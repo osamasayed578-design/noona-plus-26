@@ -462,7 +462,8 @@ CREATE OR REPLACE PACKAGE BODY NOONA_WORKFLOW_PKG AS
     INSERT INTO ntf_notification (event_type_id, membership_id, source_entity_type, source_entity_id, title,
                                   link_url, idempotency_key, due_at, correlation_id)
     VALUES (l_evt, p_member, 'WF_TASK', p_task_id, SUBSTR(p_title, 1, 500),
-            'f?p=200:1010:::NO::P1010_TASK_ID:' || p_task_id,
+            -- اسم مستعار للتطبيق والصفحة بدل الأرقام (تختلف أرقام التطبيقات بين البيئات)
+            'f?p=NOONA_PORTAL:TASK:::NO::P_TASK_ID:' || p_task_id,
             p_event || ':' || p_task_id || ':' || p_member, p_due, NOONA_CTX_PKG.correlation_id);
   EXCEPTION WHEN DUP_VAL_ON_INDEX THEN NULL;     -- Idempotent
   END notify;
