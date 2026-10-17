@@ -18,7 +18,7 @@
 
 ## الأرقام
 
-**30 حزمة · 568 جدولاً · 9,722 عموداً · 2,435 مفتاحاً أجنبياً · 1,557 صلاحية ذرية**، كلها مختبرة على Oracle Database 21c بدون أخطاء.
+**30 حزمة · 568 جدولاً · 9,722 عموداً · 2,435 مفتاحاً أجنبياً · 3,219 صلاحية ذرية**، كلها مختبرة على Oracle Database 21c بدون أخطاء.
 
 ## التثبيت
 
@@ -33,6 +33,8 @@ sqlplus NOONA_OWNER@//HOST:1521/PDB         @install.sql
 sqlplus NOONA_APP@//HOST:1521/PDB           @security/41_synonyms_noona_app.sql
 # 4) (اختياري - تطوير فقط) مؤسسة تجريبية ومستخدم ADMIN
 sqlplus NOONA_OWNER@//HOST:1521/PDB         @seed/90_demo_tenant_DEV_ONLY.sql
+# 5) (اختياري - تطوير فقط) اختبارات المرحلة الأولى: 78 حالة PASS/FAIL
+sqlplus NOONA_OWNER@//HOST:1521/PDB         @tests/test_phase1.sql
 ```
 
 غيّر كلمات المرور الافتراضية في `db/admin/00_create_schemas.sql` قبل التشغيل.

@@ -550,8 +550,10 @@ def gen_security_and_seed():
         privs = 'SELECT' if t.append else 'SELECT, INSERT, UPDATE, DELETE'
         g.append(f'GRANT {privs} ON {t.name} TO NOONA_APP;')
         syn.append(f'CREATE OR REPLACE SYNONYM {t.name} FOR NOONA_OWNER.{t.name};')
-    # NOONA_CTX_PKG لا يمنح للتطبيق (يمنع تجاوز VPD)؛ يقرأ السياق عبر SYS_CONTEXT('NOONA_CTX', ...)
-    for pkg in ('NOONA_SECURITY_PKG', 'NOONA_REFERENCE_PKG', 'NOONA_AUDIT_PKG'):
+    # NOONA_CTX_PKG و NOONA_CORE_PKG لا يمنحان للتطبيق (يمنع تجاوز VPD عبر وضع النظام)؛
+    # يقرأ التطبيق السياق عبر SYS_CONTEXT('NOONA_CTX', ...)
+    for pkg in ('NOONA_SECURITY_PKG', 'NOONA_REFERENCE_PKG', 'NOONA_AUDIT_PKG', 'NOONA_PLATFORM_PKG',
+                'NOONA_ORG_PKG', 'NOONA_DELEGATION_PKG', 'NOONA_WORKFLOW_PKG'):
         g.append(f'GRANT EXECUTE ON {pkg} TO NOONA_APP;')
         syn.append(f'CREATE OR REPLACE SYNONYM {pkg} FOR NOONA_OWNER.{pkg};')
     write('db/security/40_grants_noona_app.sql', '\n'.join(g) + '\n')
@@ -574,19 +576,19 @@ def gen_security_and_seed():
                   f"ALLOW_DMS_LINK, ALLOW_COR_LINK, HAS_COMPANY) VALUES ('{t.name}', '{t.module.code}', '{t.name}', "
                   f"'{q(t.ar)}', '{q(t.en)}', '{'Y' if is_doc else 'N'}', '{'Y' if is_doc else 'N'}', "
                   f"'{'Y' if t.scope == 'C' else 'N'}');")
+        st = t.col('STATUS_CODE')
         if t.scope == 'G':
             actions = ['VIEW', 'CONFIGURE']
-        elif is_doc:
-            actions = ['VIEW', 'CREATE', 'UPDATE', 'DELETE', 'PRINT', 'EXPORT']
-            st = t.col('STATUS_CODE')
-            if t.col('WF_INSTANCE_ID'):
+        else:
+            actions = ['VIEW', 'CREATE', 'UPDATE', 'DELETE', 'EXPORT']
+            if is_doc:
+                actions.append('PRINT')
+            if t.col('WF_INSTANCE_ID') or (st and st.check_in and ({'APPROVED', 'ACTIVE'} & set(st.check_in))):
                 actions += ['SUBMIT', 'APPROVE', 'REJECT']
             if t.col('POSTED_AT'):
                 actions += ['POST', 'REVERSE']
             if st and st.check_in and 'CANCELLED' in st.check_in:
                 actions.append('CANCEL')
-        else:
-            actions = ['VIEW', 'MANAGE']
         for a in actions:
             risk = 'HIGH' if a in ('APPROVE', 'POST', 'REVERSE', 'CONFIGURE', 'DELETE', 'EXPORT') else 'NORMAL'
             perms.append((f'{t.name}.{a}', t.module.code, t.name, a, risk, t.ar))

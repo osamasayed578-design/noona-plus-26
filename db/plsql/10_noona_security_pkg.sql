@@ -20,6 +20,12 @@ CREATE OR REPLACE PACKAGE NOONA_SECURITY_PKG AUTHID DEFINER AS
     p_ip_address      IN VARCHAR2 DEFAULT NULL,
     p_auth_method     IN VARCHAR2 DEFAULT 'APEX_ACCOUNTS');
 
+  -- جلسة Platform Console (مستخدم من نوع PLATFORM_ADMIN، بدون Tenant)
+  PROCEDURE establish_platform_session(
+    p_username        IN VARCHAR2,
+    p_apex_session_id IN NUMBER   DEFAULT NULL,
+    p_ip_address      IN VARCHAR2 DEFAULT NULL);
+
   -- بداية كل طلب APEX/ORDS: يعيد بناء السياق من SEC_SESSION الموثقة (لا من Page Items)
   PROCEDURE attach_session(p_apex_session_id IN NUMBER, p_username IN VARCHAR2);
 
@@ -162,6 +168,32 @@ CREATE OR REPLACE PACKAGE BODY NOONA_SECURITY_PKG AS
     NOONA_AUDIT_PKG.log_event('AUTH', 'SEC_SESSION', l_session_id, 'LOGIN', 'SUCCESS');
   END establish_session;
 
+  PROCEDURE establish_platform_session(
+    p_username        IN VARCHAR2,
+    p_apex_session_id IN NUMBER   DEFAULT NULL,
+    p_ip_address      IN VARCHAR2 DEFAULT NULL) IS
+    l_user sec_user%ROWTYPE;
+    l_sid  NUMBER;
+  BEGIN
+    NOONA_CTX_PKG.clear_context;
+    BEGIN
+      SELECT * INTO l_user FROM sec_user WHERE username = UPPER(p_username);
+    EXCEPTION WHEN NO_DATA_FOUND THEN
+      deny('NOONA-SEC-010', 'Unknown user');
+    END;
+    IF l_user.user_type <> 'PLATFORM_ADMIN' OR l_user.status_code <> 'ACTIVE' THEN
+      deny('NOONA-SEC-016', 'Not an active platform administrator');
+    END IF;
+    NOONA_CTX_PKG.set_platform_context(l_user.id, l_user.username);
+    INSERT INTO sec_session (user_id, apex_session_id, language_code, auth_method, ip_address, mfa_level, status_code)
+    VALUES (l_user.id, p_apex_session_id, l_user.preferred_language, 'PLATFORM', p_ip_address,
+            CASE WHEN l_user.mfa_required = 'Y' THEN 'REQUIRED' END, 'ACTIVE')
+    RETURNING id INTO l_sid;
+    NOONA_CTX_PKG.set_platform_context(l_user.id, l_user.username, l_sid);
+    UPDATE sec_user SET last_login_at = SYSTIMESTAMP, failed_logins = 0 WHERE id = l_user.id;
+    NOONA_AUDIT_PKG.log_event('AUTH', 'SEC_SESSION', l_sid, 'PLATFORM_LOGIN', 'SUCCESS');
+  END establish_platform_session;
+
   PROCEDURE attach_session(p_apex_session_id IN NUMBER, p_username IN VARCHAR2) IS
     l_s   sec_session%ROWTYPE;
     l_u   sec_user%ROWTYPE;
@@ -176,6 +208,15 @@ CREATE OR REPLACE PACKAGE BODY NOONA_SECURITY_PKG AS
                ORDER BY started_at DESC)
        WHERE ROWNUM = 1;
       SELECT * INTO l_u FROM sec_user WHERE id = l_s.user_id;
+      IF l_s.membership_id IS NULL THEN                 -- جلسة منصة
+        IF l_u.username <> UPPER(p_username) OR l_u.user_type <> 'PLATFORM_ADMIN' OR l_u.status_code <> 'ACTIVE' THEN
+          NOONA_CTX_PKG.clear_context;
+          deny('NOONA-SEC-021', 'Session context is no longer valid');
+        END IF;
+        UPDATE sec_session SET last_activity_at = SYSTIMESTAMP WHERE id = l_s.id;
+        NOONA_CTX_PKG.set_platform_context(l_u.id, l_u.username, l_s.id);
+        RETURN;
+      END IF;
       SELECT * INTO l_m FROM sec_user_membership WHERE id = l_s.membership_id;
     EXCEPTION WHEN NO_DATA_FOUND THEN
       NOONA_CTX_PKG.clear_context;

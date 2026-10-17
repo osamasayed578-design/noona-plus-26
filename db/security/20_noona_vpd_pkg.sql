@@ -52,7 +52,8 @@ CREATE OR REPLACE PACKAGE BODY NOONA_VPD_PKG AS
     IF system_mode THEN
       RETURN NULL;
     ELSIF SYS_CONTEXT(c_ctx, 'TENANT_ID') IS NULL THEN
-      RETURN '1 = 0';
+      -- مسؤول المنصة يدير صفوف المنصة الافتراضية فقط (TENANT_ID فارغ)
+      RETURN CASE WHEN SYS_CONTEXT(c_ctx, 'PLATFORM_ADMIN') = 'Y' THEN 'TENANT_ID IS NULL' ELSE '1 = 0' END;
     END IF;
     RETURN 'TENANT_ID = TO_NUMBER(SYS_CONTEXT(''NOONA_CTX'', ''TENANT_ID''))';
   END shared_dml_predicate;

@@ -1,7 +1,8 @@
 -- =============================================================================
 -- NOONA PLUS ERP | مؤسسة تجريبية للتطوير فقط (لا تشغل في الإنتاج)
 -- تنشئ: Tenant (DEMO) + مجموعة + شركة سعودية + فرع رئيسي + مستخدم مسؤول ADMIN
---       + دور مسؤول المؤسسة بكل صلاحيات المؤسسة + تقويم وسنة مالية 2026 بفتراتها.
+--       + دور مسؤول المؤسسة بكل صلاحيات المؤسسة + تقويم وسنة مالية 2026 بفتراتها
+--       + مستخدم مسؤول منصة PLATFORM (لتجربة تجهيز المؤسسات provision_tenant).
 -- كلمة المرور تدار عبر APEX Accounts / مزود الهوية؛ لا تخزن هنا.
 -- =============================================================================
 SET DEFINE OFF
@@ -112,9 +113,14 @@ BEGIN
     VALUES (l_tenant, l_company, d.doc, 2026, d.pfx, 1, 6, d.gapless, 'YEARLY');
   END LOOP;
 
+  -- مسؤول المنصة (بلا عضوية مؤسسة): يدخل عبر NOONA_SECURITY_PKG.establish_platform_session
+  INSERT INTO sec_user (username, email, display_name, user_type, preferred_language, timezone_code,
+                        mfa_required, status_code)
+  VALUES ('PLATFORM', 'platform@noona.local', 'مسؤول المنصة', 'PLATFORM_ADMIN', 'ar', 'Asia/Riyadh', 'Y', 'ACTIVE');
+
   NOONA_CTX_PKG.clear_context;
   COMMIT;
   DBMS_OUTPUT.PUT_LINE('Demo tenant created: TENANT_ID=' || l_tenant || ', COMPANY_ID=' || l_company ||
-                       ', USER=ADMIN');
+                       ', USERS=ADMIN, PLATFORM');
 END;
 /

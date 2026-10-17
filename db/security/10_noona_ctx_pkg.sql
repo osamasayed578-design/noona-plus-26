@@ -24,6 +24,13 @@ CREATE OR REPLACE PACKAGE NOONA_CTX_PKG AUTHID DEFINER AS
     p_correlation_id IN VARCHAR2 DEFAULT NULL,
     p_is_tenant_admin IN VARCHAR2 DEFAULT 'N');
 
+  -- جلسة مسؤول المنصة: بدون Tenant، ولا تمنح قراءة بيانات أعمال المؤسسات (10.3)
+  PROCEDURE set_platform_context(
+    p_user_id        IN NUMBER,
+    p_username       IN VARCHAR2,
+    p_session_id     IN NUMBER   DEFAULT NULL,
+    p_correlation_id IN VARCHAR2 DEFAULT NULL);
+
   PROCEDURE set_company(p_company_id IN NUMBER, p_branch_id IN NUMBER DEFAULT NULL);
   PROCEDURE set_correlation_id(p_correlation_id IN VARCHAR2);
 
@@ -46,6 +53,8 @@ CREATE OR REPLACE PACKAGE NOONA_CTX_PKG AUTHID DEFINER AS
   FUNCTION correlation_id RETURN VARCHAR2;
   FUNCTION is_system_mode RETURN VARCHAR2;
   FUNCTION purge_mode     RETURN VARCHAR2;
+  FUNCTION is_platform_admin RETURN VARCHAR2;
+  FUNCTION is_tenant_admin RETURN VARCHAR2;
   FUNCTION current_user_name RETURN VARCHAR2;
 END NOONA_CTX_PKG;
 /
@@ -86,6 +95,23 @@ CREATE OR REPLACE PACKAGE BODY NOONA_CTX_PKG AS
     put('PURGE_MODE',     'N');
   END set_context;
 
+  PROCEDURE set_platform_context(
+    p_user_id        IN NUMBER,
+    p_username       IN VARCHAR2,
+    p_session_id     IN NUMBER   DEFAULT NULL,
+    p_correlation_id IN VARCHAR2 DEFAULT NULL) IS
+  BEGIN
+    DBMS_SESSION.CLEAR_ALL_CONTEXT(c_namespace);
+    put('USER_ID',        TO_CHAR(p_user_id));
+    put('USERNAME',       p_username);
+    put('SESSION_ID',     TO_CHAR(p_session_id));
+    put('CORRELATION_ID', NVL(p_correlation_id, RAWTOHEX(SYS_GUID())));
+    put('PLATFORM_ADMIN', 'Y');
+    put('LANGUAGE',       'ar');
+    put('SYSTEM_MODE',    'N');
+    put('PURGE_MODE',     'N');
+  END set_platform_context;
+
   PROCEDURE set_company(p_company_id IN NUMBER, p_branch_id IN NUMBER DEFAULT NULL) IS
   BEGIN
     put('COMPANY_ID', TO_CHAR(p_company_id));
@@ -117,6 +143,9 @@ CREATE OR REPLACE PACKAGE BODY NOONA_CTX_PKG AS
   FUNCTION correlation_id RETURN VARCHAR2 IS BEGIN RETURN SYS_CONTEXT(c_namespace, 'CORRELATION_ID'); END;
   FUNCTION is_system_mode RETURN VARCHAR2 IS BEGIN RETURN NVL(SYS_CONTEXT(c_namespace, 'SYSTEM_MODE'), 'N'); END;
   FUNCTION purge_mode     RETURN VARCHAR2 IS BEGIN RETURN NVL(SYS_CONTEXT(c_namespace, 'PURGE_MODE'), 'N'); END;
+
+  FUNCTION is_platform_admin RETURN VARCHAR2 IS BEGIN RETURN NVL(SYS_CONTEXT(c_namespace, 'PLATFORM_ADMIN'), 'N'); END;
+  FUNCTION is_tenant_admin   RETURN VARCHAR2 IS BEGIN RETURN NVL(SYS_CONTEXT(c_namespace, 'TENANT_ADMIN'), 'N'); END;
 
   FUNCTION current_user_name RETURN VARCHAR2 IS
   BEGIN

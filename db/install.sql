@@ -24,9 +24,14 @@ PROMPT ========== 3/7 Audit columns & tenant triggers
 @@install_triggers.sql
 
 PROMPT ========== 4/7 Core PL/SQL services
+@@plsql/03_noona_core_pkg.sql
 @@plsql/05_noona_audit_pkg.sql
 @@plsql/10_noona_security_pkg.sql
 @@plsql/20_noona_reference_pkg.sql
+@@plsql/40_noona_platform_pkg.sql
+@@plsql/50_noona_org_pkg.sql
+@@plsql/60_noona_delegation_pkg.sql
+@@plsql/70_noona_workflow_pkg.sql
 
 PROMPT ========== 5/7 Seed: registry & reference data
 @@seed/01_registry_seed.sql
