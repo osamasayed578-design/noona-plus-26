@@ -39,7 +39,7 @@ sqlplus NOONA_OWNER@//HOST:1521/PDB         @tests/test_phase1.sql
 
 غيّر كلمات المرور الافتراضية في `db/admin/00_create_schemas.sql` قبل التشغيل.
 
-في APEX 24.2: أنشئ Workspace على المخطط `NOONA_APP`، ثم اربط Authentication و Initialization/Cleanup بـ `NOONA_SECURITY_PKG` كما في [القسم 5.2 من وثيقة التصميم](docs/design/DESIGN.md#52-دورة-الطلب-الآمنة-في-apex).
+في APEX 24.2: أنشئ Workspace باسم `NOONAPLUS` على المخطط `NOONA_APP`، ثم اربط Authentication و Initialization/Cleanup بـ `NOONA_SECURITY_PKG` كما في [القسم 5.2 من وثيقة التصميم](docs/design/DESIGN.md#52-دورة-الطلب-الآمنة-في-apex).
 
 ## تعديل التصميم
 
