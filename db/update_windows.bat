@@ -35,10 +35,11 @@ sqlplus -S -L NOONA_APP/"%APP_PWD%"@%CONN% @tests/test_portal.sql < nul | findst
 sqlplus -S -L NOONA_APP/"%APP_PWD%"@%CONN% @tests/test_sec_admin.sql < nul | findstr /c:"RESULT" /c:"FAIL" /c:"ORA-"
 sqlplus -S -L NOONA_APP/"%APP_PWD%"@%CONN% @tests/test_brand.sql < nul | findstr /c:"RESULT" /c:"FAIL" /c:"ORA-"
 sqlplus -S -L NOONA_APP/"%APP_PWD%"@%CONN% @tests/test_admin_ref.sql < nul | findstr /c:"RESULT" /c:"FAIL" /c:"ORA-"
+sqlplus -S -L NOONA_APP/"%APP_PWD%"@%CONN% @tests/test_platform_admin.sql < nul | findstr /c:"RESULT" /c:"FAIL" /c:"ORA-"
 
 echo.
-echo ===== Database updated. Expected: 79 / 26 / 21 / 25 / 10 / 16 passed, 0 failed.
-echo ===== Next: import apex\NOONA_MASTER\f115_NOONA_MASTER.zip and apex\NOONA_PORTAL\f119_NOONA_PORTAL.zip
+echo ===== Database updated. Expected: 79 / 26 / 21 / 25 / 10 / 16 / 14 passed, 0 failed.
+echo ===== Next: import apex\NOONA_MASTER\f115, NOONA_PORTAL\f119, NOONA_ADMIN\f123, NOONA_PLATFORM\f125 zips (Reuse Application ID)
 pause
 exit /b 0
 

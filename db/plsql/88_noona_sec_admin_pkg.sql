@@ -48,6 +48,8 @@ CREATE OR REPLACE PACKAGE NOONA_SEC_ADMIN_PKG AUTHID DEFINER AS
   -- مستخدم بلا كلمة مرور محلية بعد (يدخل بحساب APEX): يتحقق التطبيق من كلمته الحالية عبر APEX ويمرر
   -- p_old_verified = 'Y'؛ ولا يقبل هذا المسار إذا كانت لديه كلمة مرور محلية
   PROCEDURE change_password(p_old_password IN VARCHAR2, p_new_password IN VARCHAR2, p_old_verified IN VARCHAR2 DEFAULT 'N');
+  -- مسؤول المنصة: إعادة تعيين كلمة مرور أي حساب (ومنها الحسابات المشتركة بين المؤسسات NOONA-SEC-252)
+  PROCEDURE platform_set_password(p_username IN VARCHAR2, p_password IN VARCHAR2, p_reason IN VARCHAR2);
 END NOONA_SEC_ADMIN_PKG;
 /
 
@@ -357,6 +359,26 @@ CREATE OR REPLACE PACKAGE BODY NOONA_SEC_ADMIN_PKG AS
     NOONA_CORE_PKG.end_system;
     RAISE;
   END change_password;
+
+  PROCEDURE platform_set_password(p_username IN VARCHAR2, p_password IN VARCHAR2, p_reason IN VARCHAR2) IS
+    l_user_id NUMBER;
+  BEGIN
+    NOONA_CORE_PKG.require_platform_admin;
+    NOONA_CORE_PKG.assert(p_reason IS NOT NULL, 'NOONA-SEC-211', 'السبب إلزامي', 'Reason is required');
+    NOONA_CORE_PKG.begin_system;
+    SELECT id INTO l_user_id FROM sec_user WHERE username = UPPER(TRIM(p_username));
+    NOONA_CORE_PKG.end_system;
+    NOONA_APEX_PKG.assert_password_policy(p_username, p_password);
+    store_password(l_user_id, p_password);
+    NOONA_AUDIT_PKG.log_event('SECURITY', 'SEC_USER', l_user_id, 'PLATFORM_SET_PASSWORD', 'SUCCESS', p_reason => p_reason);
+  EXCEPTION
+    WHEN NO_DATA_FOUND THEN
+      NOONA_CORE_PKG.end_system;
+      NOONA_CORE_PKG.raise_error('NOONA-SEC-256', 'اسم الدخول غير موجود', 'Username not found');
+    WHEN OTHERS THEN
+      NOONA_CORE_PKG.end_system;
+      RAISE;
+  END platform_set_password;
 
 END NOONA_SEC_ADMIN_PKG;
 /

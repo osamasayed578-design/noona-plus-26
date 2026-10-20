@@ -363,3 +363,18 @@ tr:hover .nn-badge { transform: scale(1.05); }
   padding: 30px; background: #fff; border: 1px dashed var(--nn-border); border-radius: 14px; color: var(--nn-muted); }
 .nn-launch-empty .fa { font-size: 34px; color: var(--nn-primary); }
 .nn-launch-empty b { color: var(--nn-head-text); font-size: 1.1rem; }
+
+/* الوحدات المشترك فيها (لوحة المنصة) */
+.nn-modgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 10px; }
+.nn-mod { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border: 1px solid var(--nn-border); border-radius: 10px;
+  background: #fff; cursor: pointer; transition: border-color .15s ease, background-color .15s ease; }
+.nn-mod:hover { border-color: var(--nn-head-border); background: #f7fbff; }
+.nn-mod:has(input:checked) { border-color: var(--nn-primary); background: var(--nn-primary-50); }
+.nn-mod.is-core { opacity: .85; cursor: default; }
+.nn-mod input { width: 18px; height: 18px; accent-color: var(--nn-primary); }
+.nn-mod-code { font-weight: 800; color: var(--nn-primary); min-width: 38px; direction: ltr; }
+.nn-mod-name { font-weight: 600; }
+.nn-mod-name small { color: var(--nn-muted); font-weight: 500; }
+.nn-table { width: 100%; border-collapse: collapse; }
+.nn-table th { background: #f0f6fd; color: var(--nn-head-text); padding: 8px; border-bottom: 1px solid var(--nn-head-border); }
+.nn-table td { padding: 7px 8px; border-bottom: 1px solid #edf2f7; text-align: center; }

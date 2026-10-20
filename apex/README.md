@@ -2,121 +2,51 @@
 
 Workspace: **`NOONAPLUS`** · Parsing Schema: **`NOONA_APP`** (كل التطبيقات في نفس الـ Workspace لتشترك في الجلسة).
 
-كل تطبيق في مجلد باسمه المستعار (Alias). **أرقام التطبيقات لا تستخدم في الكود أبداً**؛
-الروابط بين التطبيقات تبنى بالاسم المستعار للتطبيق والصفحة:
+الروابط بين التطبيقات تبنى بالاسم المستعار (Alias) لا بالرقم، لذلك يمكن تغيير رقم أي تطبيق عند الاستيراد:
 
 ```sql
-APEX_PAGE.GET_URL(p_application => 'NOONA_PORTAL', p_page => 'TASK', p_items => 'P_TASK_ID', p_values => :ID)
--- أو: f?p=NOONA_PORTAL:TASK:&SESSION.::NO::P_TASK_ID:123
+f?p=NOONA_PORTAL:TASK:&SESSION.::NO::P2_TASK_ID:123
 ```
 
-## التطبيقات والأسماء المستعارة
+## التطبيقات
 
-| Alias | التطبيق | ملاحظات |
-|---|---|---|
-| `NOONA_MASTER` | المكونات المشتركة (Master) | لا يدخله المستخدم؛ باقي التطبيقات تشترك (Subscribe) في مكوناته |
-| `NOONA_PORTAL` | البوابة | الدخول، المنصة الرئيسية، صندوق المهام (صفحة alias `TASK` وعنصر `P_TASK_ID`)، الإشعارات |
-| `NOONA_ADMIN` | إدارة المؤسسة | PLT, SEC/ORG, WF, DLG, REF, LOC, التدقيق |
-| `NOONA_FIN` | المالية | GL, AR, AP, CSH, FA |
-| `NOONA_SCM` | سلسلة الإمداد | INV, PUR, SAL |
-| `NOONA_POS` | نقاط البيع | |
-| `NOONA_PRJ` | المشروعات والعقار | PRJ, RE, PRP, MNT |
-| `NOONA_HR` | الموارد البشرية | HR, PAY |
-| `NOONA_MFG` | التصنيع | MFG |
-| `NOONA_DOC` | المستندات والمراسلات | DMS, COR |
-| `NOONA_BI` | التقارير والذكاء الاصطناعي | BI, AI |
-| `NOONA_PLATFORM` | لوحة المنصة | لمسؤول المنصة فقط؛ مصادقة و MFA منفصلان |
+| الرقم | Alias | التطبيق | المحتوى | المولد |
+|---|---|---|---|---|
+| 115 | `NOONA_MASTER` | NOONA PLUS (الرئيسي) | **الدخول الموحد** وشاشة الأنظمة المشترك فيها وتغيير كلمة المرور | `tools/build_master.py` |
+| 119 | `NOONA_PORTAL` | مهامي وإشعاراتي | المهام والاعتماد، طلباتي، تفويضاتي (خدمة ذاتية)، تبديل الشركة | `tools/build_portal.py` |
+| 123 | `NOONA_ADMIN` | إدارة المؤسسة | الشركات والفروع، الهيكل، المستخدمون والأدوار ومصفوفة الصلاحيات، مسارات الاعتماد، التفويض، البيانات المرجعية، سجل التدقيق | `tools/build_admin.py` |
+| 125 | `NOONA_PLATFORM` | لوحة المنصة | المؤسسات المشتركة وتجهيزها، الاشتراك في الوحدات، الحالة والحجز القانوني، تدقيق المنصة | `tools/build_platform.py` |
 
-## إعدادات التطبيق الأساسي `NOONA_MASTER` قبل التصدير
+الأنظمة التالية (المالية، سلسلة الإمداد، المبيعات، الموارد البشرية، المشروعات، التصنيع، المستندات، التقارير)
+تظهر في شاشة الأنظمة "قيد الإنشاء" حتى تستورد تطبيقاتها.
 
-1. **Create Application**: الاسم `NOONA Master`، الرقم حسب المتاح لديك، Alias = `NOONA_MASTER`،
-   Parsing Schema = `NOONA_APP`، Theme = Universal Theme 42، Primary Language = Arabic (ar)
-   (يعكس الاتجاه RTL تلقائياً)، Date format = `DD/MM/YYYY`.
-2. **Authentication Scheme** باسم `NOONA Auth` (مؤقتاً Oracle APEX Accounts)، وفي Session Sharing:
-   Type = Custom، Cookie Name = `NOONA_SESSION`. نفس الاسم في كل التطبيقات = دخول واحد.
-   (لا تكتب Post-Authentication الآن؛ سأضيفه في الملف المصدر.)
-3. **Security Attributes**: Initialization PL/SQL و Cleanup PL/SQL اتركهما فارغين؛ سأضيفهما.
-4. اترك الباقي افتراضياً. لا حاجة لصفحات غير الصفحة الرئيسية وصفحة الدخول.
+## الدخول الموحد
 
-## طريقة التصدير
+- الدخول من التطبيق الرئيسي 115 فقط؛ كل التطبيقات الأخرى تحيل غير المسجلين وتسجيل الخروج إلى صفحة دخوله.
+- الجلسة مشتركة عبر الكوكي `NOONA_SESSION`؛ شريط كل تطبيق فيه رابط **الأنظمة** للعودة.
+- شاشة الأنظمة تعرض فقط الأنظمة التي **اشتركت فيها المؤسسة** (لوحة المنصة ← الوحدات المشترك فيها)
+  **وللمستخدم صلاحية** في إحدى وحداتها (مسؤول المؤسسة يرى كل المشترك فيه)، وتتكيف مع عددها.
+- المصادقة: كلمات مرور نونا المحلية (PBKDF2 مع قفل بعد 5 محاولات)؛ المستخدم الذي لا يملك كلمة مرور
+  محلية بعد يدخل بحساب APEX حتى يغيرها من **تغيير كلمة المرور**.
 
-App Builder ← التطبيق ← Export/Import ← **Export**:
+## الاستيراد
 
-| الخيار | القيمة |
-|---|---|
-| Export As | Zip File |
-| Split into Multiple Files | Yes |
-| Export Format | SQL (ويمكن إضافة Readable YAML للمراجعة) |
-| Supporting Object Definitions | No (قاعدة البيانات تثبت من `db/install.sql`) |
-| Export Comments / Translations | Yes |
+1. حدث قاعدة البيانات أولاً: `db\update_windows.bat` (أو `install_windows.bat` لتثبيت جديد).
+2. App Builder ← Import ← ملف الـ zip ← Parsing Schema = `NOONA_APP` ← **Reuse Application ID**
+   (أو Change Application ID إن كان الرقم محجوزاً؛ الـ Alias هو المهم).
+3. احذف أي نسخة قديمة بنفس الـ Alias قبل الاستيراد، وإلا يضيف APEX رقماً للـ Alias.
+4. بعد الاستيراد: Ctrl+F5 في المتصفح.
 
-ثم فك الضغط داخل `apex/NOONA_MASTER/` وارفعه على GitHub (أو أرسل ملف zip هنا).
+## الهوية والتصميم
 
-## الاشتراك في التطبيقات التالية
+`tools/apex_brand.py` يطبق على كل تطبيق: `apex/shared/static/noona.css` وخط Cairo والشعار
+(`noona-logo.svg`)، صفحة الدخول بالعربية، شارة الشركة (شعار المشترك) في الترويسة، الدخول الموحد،
+وروابط الأنظمة وتغيير كلمة المرور. ملفات الشعار ومقترحاته في `docs/brand`.
 
-عند إنشاء كل تطبيق جديد: Shared Components ← Authentication Schemes ← Create ← **As a Copy of an
-Existing Scheme** من `NOONA_MASTER` مع تفعيل **Subscribe**. وبالمثل لقواعد الصلاحيات (Authorization
-Schemes) والقوائم المشتركة (LOVs) وقوالب الثيم. أي تعديل لاحق في Master ينشر بزر **Publish**.
+## إعادة البناء من المصدر
 
-## NOONA_MASTER (التطبيق 115) - ما أضيف على التصدير
+```bash
+python3 tools/build_master.py && python3 tools/build_portal.py && python3 tools/build_admin.py && python3 tools/build_platform.py
+```
 
-| المكون | القيمة |
-|---|---|
-| Alias / اللغة | `NOONA_MASTER` / `ar` (RTL) |
-| Authentication | `NOONA Auth` (APEX Accounts)، Cookie `NOONA_SESSION`، Post-Auth = `noona_apex_pkg.post_auth` |
-| Initialization PL/SQL | `noona_apex_pkg.init_request(:APP_USER, :APP_SESSION)` |
-| Cleanup PL/SQL | `noona_apex_pkg.cleanup_request` |
-| صلاحية التطبيق | `NOONA - Authenticated` |
-| Authorization Schemes | `NOONA - Authenticated`، `NOONA - Tenant User`، `NOONA - Tenant Admin`، `NOONA - Platform Admin` |
-| LOVs | `NOONA_COMPANIES`، `NOONA_BRANCHES` (فروع الشركة الحالية)، `NOONA_CURRENCIES`، `NOONA_COUNTRIES` |
-
-صلاحية لعملية محددة داخل أي صفحة: Authorization Scheme من نوع PL/SQL Function Body:
-`return noona_apex_pkg.allow('ORG_COMPANY.CREATE') = 'Y';`
-
-### الاستيراد
-1. قاعدة البيانات أولاً (من مجلد `db`): `upgrade_01_apex_layer.sql` بحساب NOONA_OWNER ثم
-   `security/41_synonyms_noona_app.sql` بحساب NOONA_APP.
-2. App Builder ← Import ← ملف `f115_NOONA_MASTER.zip` ← Install: Reuse Application ID 115،
-   Parsing Schema `NOONA_APP`.
-3. مستخدمو الدخول: Administration ← Manage Users ← أنشئ حسابات APEX بنفس أسماء `SEC_USER`
-   (مثل `ADMIN` لمسؤول المؤسسة التجريبية و `PLATFORM` لمسؤول المنصة).
-
-## NOONA_PORTAL (التطبيق 119)
-
-نفس أمان `NOONA_MASTER` (المصادقة والكوكي المشترك و Initialization/Cleanup وقواعد الصلاحيات و LOVs وتحقق شاشة الدخول)، إضافة إلى:
-
-| الصفحة | Alias | المحتوى |
-|---|---|---|
-| 1 | `HOME` | سياق العمل (المستخدم، المؤسسة، الشركة، عدد المهام والإشعارات)، تطبيقاتي (روابط للتطبيقات المنشأة، والباقي "قيد الإنشاء")، مهامي، الإشعارات + تعليم الكل كمقروء |
-| 2 | `TASK` | تفاصيل المهمة (`P2_TASK_ID`)، الملاحظات، أزرار: اعتماد، رفض، إرجاع، طلب معلومات، رجوع؛ وسجل المسار |
-| 3 | `COMPANY` | تبديل الشركة الحالية |
-
-مصادر البيانات: `NOONA_V_MY_TASKS`، `NOONA_V_TASK_HISTORY`، `NOONA_V_MY_NOTIFICATIONS`، `NOONA_V_APPS`، والحزمة `NOONA_PORTAL_PKG`.
-روابط الإشعارات: `f?p=NOONA_PORTAL:TASK:::NO::P2_TASK_ID:<id>`.
-
-### الاستيراد
-1. قاعدة البيانات (من مجلد `db`): `upgrade_02_portal.sql` بحساب NOONA_OWNER ثم `security/41_synonyms_noona_app.sql` بحساب NOONA_APP
-   ثم الاختبار `tests/test_portal.sql` بحساب NOONA_APP (16 حالة).
-2. App Builder ← Import ← `NOONA_PORTAL/f119_NOONA_PORTAL.zip` ← Reuse Application ID 119، Parsing Schema `NOONA_APP`.
-
-## الاختبار على APEX فعلي
-
-كل تطبيق يُستورد ويُجرب قبل التسليم على APEX 24.2 + ORDS في بيئة التطوير:
-استيراد التطبيقين بدون أخطاء، ثم `tools/ui_tests/portal_test.js` (Playwright): رفض حساب غير مسجل برسالة عربية،
-دخول ADMIN، ظهور المناطق الأربع، فتح مهمة، منع الرفض بلا سبب، الاعتماد ورسالة النجاح ونقص المهام، صفحة تبديل الشركة.
-
-معالجة الأخطاء: كل التطبيقات تستخدم `noona_owner.noona_apex_error` (ترقية `db/upgrade_03_apex_error.sql`) فتظهر
-رسالة NOONA فقط بدون `ORA-20500` ورمز المتابعة.
-
-## هوية الواجهة (الإصدار 2 من البوابة)
-
-- الصفحات الرئيسية ولوحات المتابعة: مناطق **PL/SQL Dynamic Content** تستدعي `NOONA_UI_PKG` (HTML مع ترميز آمن، استعلام واحد لكل منطقة، حد للصفوف).
-- شاشات الإدخال والقوائم الكبيرة: مكونات APEX الجاهزة (Form / Interactive Report / Interactive Grid).
-- `apex/shared/static/noona.css` + خط **Cairo** محلي (`cairo-arabic.woff2`, `cairo-latin.woff2`) كملفات ثابتة في كل تطبيق،
-  ويُربط في User Interface ← CSS File URLs: `#APP_FILES#noona.css`.
-- ألوان قريبة من Windows 11: لون التمييز `#0067c0`، رؤوس المناطق أزرق فاتح `#e5f1fb` بعنوان `#0b3b6e`، نجاح `#107c10`، تنبيه `#b45309`، خطر `#c42b1c`، خلفية `#f3f6fa`.
-- خط أوضح: 15px بوزن 500 ولون نص `#111827`؛ العناوين 700.
-- رقم إصدار الملفات الثابتة (`p_files_version`) يُحسب من محتوى CSS والخطوط فيُحدَّث المتصفح تلقائياً بعد كل تعديل.
-- صور: `docs/design/portal_home.png` و `docs/design/style_report_headers.png`.
-- ترويسات كل الجداول (Classic / Interactive Report / Interactive Grid) في منتصف العمود.
-- القياس على APEX 24.2: تحميل الرئيسية كاملة ~120ms بعد أول زيارة، زمن استجابة الخادم ~100ms.
+القالب الأساسي لكل التطبيقات: `apex/_templates/f119_original` (تصدير تطبيق فارغ من APEX 24.2).

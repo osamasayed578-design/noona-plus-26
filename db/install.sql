@@ -48,6 +48,7 @@ PROMPT ========== 4/7 Core PL/SQL services
 @@plsql/88_noona_sec_admin_pkg.sql
 @@plsql/89_noona_brand_pkg.sql
 @@plsql/90_noona_refdata_pkg.sql
+@@plsql/91_noona_platform_admin_pkg.sql
 
 PROMPT ========== 5/7 Seed: registry & reference data
 @@seed/01_registry_seed.sql
