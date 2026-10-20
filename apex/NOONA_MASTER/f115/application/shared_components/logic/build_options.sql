@@ -1,7 +1,7 @@
 prompt --application/shared_components/logic/build_options
 begin
 --   Manifest
---     BUILD OPTIONS: 115
+--     BUILD OPTIONS: 119
 --   Manifest End
 wwv_flow_imp.component_begin (
  p_version_yyyy_mm_dd=>'2024.11.30'
@@ -12,10 +12,10 @@ wwv_flow_imp.component_begin (
 ,p_default_owner=>'NOONA_APP'
 );
 wwv_flow_imp_shared.create_build_option(
- p_id=>wwv_flow_imp.id(17669495810607582)
+ p_id=>wwv_flow_imp.id(17752872987442904)
 ,p_build_option_name=>'Commented Out'
 ,p_build_option_status=>'EXCLUDE'
-,p_version_scn=>136793540
+,p_version_scn=>137120595
 );
 wwv_flow_imp.component_end;
 end;

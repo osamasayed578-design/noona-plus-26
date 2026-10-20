@@ -1,7 +1,7 @@
 prompt --application/shared_components/globalization/dyntranslations
 begin
 --   Manifest
---     DYNAMIC TRANSLATIONS: 115
+--     DYNAMIC TRANSLATIONS: 119
 --   Manifest End
 wwv_flow_imp.component_begin (
  p_version_yyyy_mm_dd=>'2024.11.30'

@@ -21,6 +21,8 @@ CREATE OR REPLACE PACKAGE NOONA_PORTAL_PKG AUTHID DEFINER AS
   FUNCTION unread_count RETURN NUMBER;
 
   -- هل يظهر التطبيق للمستخدم الحالي؟ 'Y' / 'N'
+  -- p_module_code: وحدة أو قائمة وحدات مفصولة بفواصل؛ يظهر إذا كانت إحداها ضمن اشتراك المؤسسة
+  -- وللمستخدم صلاحية سماح فعالة فيها (مسؤول المؤسسة يرى كل الأنظمة المشترك فيها)
   FUNCTION app_visible(p_app_alias IN VARCHAR2, p_module_code IN VARCHAR2) RETURN VARCHAR2;
 
   -- تسمية عربية/إنجليزية لرموز الإجراءات والأولويات
@@ -83,6 +85,9 @@ CREATE OR REPLACE PACKAGE BODY NOONA_PORTAL_PKG AS
   END unread_count;
 
   FUNCTION app_visible(p_app_alias IN VARCHAR2, p_module_code IN VARCHAR2) RETURN VARCHAR2 IS
+    l_list  VARCHAR2(200) := ',' || REPLACE(p_module_code, ' ') || ',';
+    l_n     NUMBER;
+    l_on    BOOLEAN := FALSE;
   BEGIN
     IF p_app_alias = 'NOONA_PLATFORM' THEN
       RETURN NOONA_APEX_PKG.is_platform_admin;
@@ -93,7 +98,34 @@ CREATE OR REPLACE PACKAGE BODY NOONA_PORTAL_PKG AS
     IF p_app_alias = 'NOONA_ADMIN' THEN
       RETURN NOONA_APEX_PKG.is_tenant_admin;
     END IF;
-    RETURN CASE WHEN p_module_code IS NULL THEN 'Y' ELSE NOONA_PLATFORM_PKG.module_enabled(p_module_code) END;
+    IF p_module_code IS NULL THEN
+      RETURN 'Y';
+    END IF;
+    -- الاشتراك: إحدى وحدات النظام مفعلة للمؤسسة
+    FOR m IN (SELECT REGEXP_SUBSTR(p_module_code, '[^,]+', 1, LEVEL) AS code FROM dual
+              CONNECT BY REGEXP_SUBSTR(p_module_code, '[^,]+', 1, LEVEL) IS NOT NULL) LOOP
+      IF NOONA_PLATFORM_PKG.module_enabled(TRIM(m.code)) = 'Y' THEN
+        l_on := TRUE;
+        EXIT;
+      END IF;
+    END LOOP;
+    IF NOT l_on THEN
+      RETURN 'N';
+    END IF;
+    IF NOONA_APEX_PKG.is_tenant_admin = 'Y' THEN
+      RETURN 'Y';
+    END IF;
+    -- التخصيص: صلاحية سماح من دور ممنوح فعال في إحدى وحدات النظام
+    SELECT COUNT(*) INTO l_n
+      FROM sec_role_grant g
+      JOIN sec_role_permission rp ON rp.role_id = g.role_id AND rp.effect = 'ALLOW'
+      JOIN sec_permission p ON p.id = rp.permission_id
+     WHERE g.membership_id = TO_NUMBER(SYS_CONTEXT('NOONA_CTX', 'MEMBERSHIP_ID'))
+       AND g.status_code = 'ACTIVE'
+       AND (g.effective_to IS NULL OR g.effective_to >= TRUNC(SYSDATE))
+       AND INSTR(l_list, ',' || p.module_code || ',') > 0
+       AND ROWNUM = 1;
+    RETURN CASE WHEN l_n > 0 THEN 'Y' ELSE 'N' END;
   END app_visible;
 
   FUNCTION action_label(p_action_code IN VARCHAR2) RETURN VARCHAR2 IS
@@ -214,16 +246,30 @@ SELECT n.id                                  AS notification_id,
 
 -- ---------------------------------------------------------------- تطبيقات NOONA
 CREATE OR REPLACE VIEW NOONA_V_APPS AS
-SELECT app_alias, sort_order, app_name_ar, app_name_en, icon_class, module_code
-  FROM (SELECT 'NOONA_ADMIN' app_alias, 10 sort_order, 'إدارة المؤسسة' app_name_ar, 'Administration' app_name_en,
-               'fa-sitemap' icon_class, CAST(NULL AS VARCHAR2(10)) module_code FROM dual UNION ALL
-        SELECT 'NOONA_FIN', 20, 'المالية', 'Finance', 'fa-calculator', 'GL' FROM dual UNION ALL
-        SELECT 'NOONA_SCM', 30, 'سلسلة الإمداد', 'Supply Chain', 'fa-truck', 'INV' FROM dual UNION ALL
-        SELECT 'NOONA_POS', 40, 'نقاط البيع', 'Point of Sale', 'fa-shopping-cart', 'SAL' FROM dual UNION ALL
-        SELECT 'NOONA_HR', 50, 'الموارد البشرية والرواتب', 'HR & Payroll', 'fa-users', 'HR' FROM dual UNION ALL
-        SELECT 'NOONA_PRJ', 60, 'المشروعات والعقار', 'Projects & Real Estate', 'fa-building', 'PRJ' FROM dual UNION ALL
-        SELECT 'NOONA_MFG', 70, 'التصنيع', 'Manufacturing', 'fa-industry', 'MFG' FROM dual UNION ALL
-        SELECT 'NOONA_DOC', 80, 'المستندات والمراسلات', 'Documents & Correspondence', 'fa-folder-open', 'DMS' FROM dual UNION ALL
-        SELECT 'NOONA_BI', 90, 'التقارير والذكاء الاصطناعي', 'BI & AI', 'fa-bar-chart', 'BI' FROM dual UNION ALL
-        SELECT 'NOONA_PLATFORM', 100, 'لوحة المنصة', 'Platform Console', 'fa-server', NULL FROM dual)
- WHERE NOONA_PORTAL_PKG.app_visible(app_alias, module_code) = 'Y';
+-- كل نظام يغطي عدة وحدات (module_list)؛ يظهر إذا اشتركت فيه المؤسسة وللمستخدم صلاحية في إحدى وحداته
+SELECT app_alias, sort_order, app_name_ar, app_name_en, icon_class,
+       REGEXP_SUBSTR(module_list, '[^,]+') AS module_code, module_list, description_ar
+  FROM (SELECT 'NOONA_PORTAL' app_alias, 5 sort_order, 'مهامي وإشعاراتي' app_name_ar, 'My Work' app_name_en,
+               'fa-inbox' icon_class, CAST(NULL AS VARCHAR2(100)) module_list,
+               'الاعتمادات المطلوبة منك والإشعارات' description_ar FROM dual UNION ALL
+        SELECT 'NOONA_ADMIN', 10, 'إدارة المؤسسة', 'Administration', 'fa-sitemap', NULL,
+               'الشركات والهيكل والمستخدمون والصلاحيات' FROM dual UNION ALL
+        SELECT 'NOONA_FIN', 20, 'المالية', 'Finance', 'fa-calculator', 'GL,AR,AP,CSH,FA',
+               'الأستاذ العام والذمم والنقدية والأصول' FROM dual UNION ALL
+        SELECT 'NOONA_SCM', 30, 'سلسلة الإمداد', 'Supply Chain', 'fa-truck', 'INV,PUR',
+               'المخزون والمشتريات والموردون' FROM dual UNION ALL
+        SELECT 'NOONA_POS', 40, 'المبيعات ونقاط البيع', 'Sales & POS', 'fa-shopping-cart', 'SAL',
+               'عروض الأسعار والفواتير ونقاط البيع' FROM dual UNION ALL
+        SELECT 'NOONA_HR', 50, 'الموارد البشرية والرواتب', 'HR & Payroll', 'fa-users', 'HR,PAY',
+               'الموظفون والحضور والرواتب' FROM dual UNION ALL
+        SELECT 'NOONA_PRJ', 60, 'المشروعات والعقار', 'Projects & Real Estate', 'fa-building', 'PRJ,RE,PRP,MNT',
+               'المشروعات والعقارات والصيانة' FROM dual UNION ALL
+        SELECT 'NOONA_MFG', 70, 'التصنيع', 'Manufacturing', 'fa-industry', 'MFG,QA',
+               'أوامر الإنتاج والجودة' FROM dual UNION ALL
+        SELECT 'NOONA_DOC', 80, 'المستندات والمراسلات', 'Documents & Correspondence', 'fa-folder-open', 'DMS,COR',
+               'الأرشيف والمراسلات الصادرة والواردة' FROM dual UNION ALL
+        SELECT 'NOONA_BI', 90, 'التقارير والذكاء الاصطناعي', 'BI & AI', 'fa-bar-chart', 'BI,AI',
+               'لوحات المؤشرات والتحليلات' FROM dual UNION ALL
+        SELECT 'NOONA_PLATFORM', 100, 'لوحة المنصة', 'Platform Console', 'fa-server', NULL,
+               'المشتركون والاشتراكات والتراخيص' FROM dual)
+ WHERE NOONA_PORTAL_PKG.app_visible(app_alias, module_list) = 'Y';

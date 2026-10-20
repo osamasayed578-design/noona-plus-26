@@ -45,6 +45,25 @@ wwv_flow_imp_shared.create_list_item(
 ,p_parent_list_item_id=>wwv_flow_imp.id(17767087505443068)
 ,p_list_item_current_type=>'TARGET_PAGE'
 );
+wwv_flow_imp_shared.create_list_item(
+ p_id=>wwv_flow_imp.id(91820260001002360)
+,p_list_item_display_sequence=>5
+,p_list_item_link_text=>'الأنظمة'
+,p_list_item_link_target=>'f?p=NOONA_MASTER:1:&SESSION.::&DEBUG.:::'
+,p_list_item_icon=>'fa-th'
+,p_list_item_disp_cond_type=>'USER_IS_NOT_PUBLIC_USER'
+,p_list_item_current_type=>'TARGET_PAGE'
+);
+wwv_flow_imp_shared.create_list_item(
+ p_id=>wwv_flow_imp.id(91820260001002361)
+,p_list_item_display_sequence=>15
+,p_list_item_link_text=>'تغيير كلمة المرور'
+,p_list_item_link_target=>'f?p=NOONA_MASTER:CHANGE-PASSWORD:&SESSION.::&DEBUG.:::'
+,p_list_item_icon=>'fa-key'
+,p_list_item_disp_cond_type=>'USER_IS_NOT_PUBLIC_USER'
+,p_parent_list_item_id=>wwv_flow_imp.id(17767087505443068)
+,p_list_item_current_type=>'TARGET_PAGE'
+);
 wwv_flow_imp.component_end;
 end;
 /

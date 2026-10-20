@@ -17,7 +17,9 @@ wwv_flow_imp_shared.create_authentication(
 ,p_scheme_type=>'NATIVE_CUSTOM'
 ,p_attribute_03=>'noona_authenticate'
 ,p_attribute_05=>'N'
-,p_invalid_session_type=>'LOGIN'
+,p_invalid_session_type=>'URL'
+,p_invalid_session_url=>'f?p=NOONA_MASTER:LOGIN'
+,p_logout_url=>'f?p=NOONA_MASTER:LOGIN'
 ,p_cookie_name=>'NOONA_SESSION'
 ,p_plsql_code=>wwv_flow_string.join(wwv_flow_t_varchar2(
 '-- مصادقة نونا بلس: بيانات الاعتماد المحلية (SEC_CREDENTIAL، PBKDF2) مع قفل بعد المحاولات الفاشلة؛',

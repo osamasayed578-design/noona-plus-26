@@ -44,8 +44,10 @@ CREATE OR REPLACE PACKAGE NOONA_SEC_ADMIN_PKG AUTHID DEFINER AS
   -- تعيين/إعادة تعيين كلمة المرور المحلية لعضو في المؤسسة (يفك القفل). الحساب المشترك مع مؤسسة أخرى
   -- لا تعاد كلمة مروره من هنا (NOONA-SEC-252)، ولا يعيد كلمة مرور مسؤول المؤسسة إلا مسؤول مؤسسة (NOONA-SEC-251)
   PROCEDURE set_password(p_membership_id IN NUMBER, p_password IN VARCHAR2);
-  -- تغيير المستخدم الحالي لكلمة مروره المحلية (NOONA-SEC-253 عند خطأ كلمة المرور الحالية)
-  PROCEDURE change_password(p_old_password IN VARCHAR2, p_new_password IN VARCHAR2);
+  -- تغيير المستخدم الحالي لكلمة مروره المحلية (NOONA-SEC-253 عند خطأ كلمة المرور الحالية).
+  -- مستخدم بلا كلمة مرور محلية بعد (يدخل بحساب APEX): يتحقق التطبيق من كلمته الحالية عبر APEX ويمرر
+  -- p_old_verified = 'Y'؛ ولا يقبل هذا المسار إذا كانت لديه كلمة مرور محلية
+  PROCEDURE change_password(p_old_password IN VARCHAR2, p_new_password IN VARCHAR2, p_old_verified IN VARCHAR2 DEFAULT 'N');
 END NOONA_SEC_ADMIN_PKG;
 /
 
@@ -334,16 +336,20 @@ CREATE OR REPLACE PACKAGE BODY NOONA_SEC_ADMIN_PKG AS
     RAISE;
   END set_password;
 
-  PROCEDURE change_password(p_old_password IN VARCHAR2, p_new_password IN VARCHAR2) IS
+  PROCEDURE change_password(p_old_password IN VARCHAR2, p_new_password IN VARCHAR2, p_old_verified IN VARCHAR2 DEFAULT 'N') IS
     l_user_id  NUMBER := TO_NUMBER(SYS_CONTEXT('NOONA_CTX', 'USER_ID'));
     l_username sec_user.username%TYPE;
+    l_check    VARCHAR2(20);
   BEGIN
     NOONA_CORE_PKG.assert(l_user_id IS NOT NULL, 'NOONA-SEC-001', 'لا توجد جلسة صالحة', 'No valid session');
     NOONA_CORE_PKG.begin_system;
     SELECT username INTO l_username FROM sec_user WHERE id = l_user_id;
     NOONA_CORE_PKG.end_system;
-    NOONA_CORE_PKG.assert(NOONA_APEX_PKG.check_password(l_username, p_old_password) = 'OK', 'NOONA-SEC-253',
+    l_check := NOONA_APEX_PKG.check_password(l_username, p_old_password);
+    NOONA_CORE_PKG.assert(l_check = 'OK' OR (l_check = 'NO_LOCAL' AND p_old_verified = 'Y'), 'NOONA-SEC-253',
       'كلمة المرور الحالية غير صحيحة', 'Current password is incorrect');
+    NOONA_CORE_PKG.assert(p_new_password <> p_old_password, 'NOONA-SEC-254',
+      'كلمة المرور الجديدة يجب أن تختلف عن الحالية', 'New password must differ from the current one');
     NOONA_APEX_PKG.assert_password_policy(l_username, p_new_password);
     store_password(l_user_id, p_new_password);
     NOONA_AUDIT_PKG.log_event('SECURITY', 'SEC_USER', l_user_id, 'CHANGE_PASSWORD', 'SUCCESS');

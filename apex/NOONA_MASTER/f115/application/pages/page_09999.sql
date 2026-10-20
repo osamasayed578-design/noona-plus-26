@@ -15,7 +15,7 @@ wwv_flow_imp_page.create_page(
  p_id=>9999
 ,p_name=>'Login Page'
 ,p_alias=>'LOGIN'
-,p_step_title=>'NOONA Master - Log In'
+,p_step_title=>'NOONA PLUS - تسجيل الدخول'
 ,p_warn_on_unsaved_changes=>'N'
 ,p_first_item=>'AUTO_FIRST_ITEM'
 ,p_autocomplete_on_off=>'OFF'
@@ -26,8 +26,8 @@ wwv_flow_imp_page.create_page(
 ,p_page_component_map=>'12'
 );
 wwv_flow_imp_page.create_page_plug(
- p_id=>wwv_flow_imp.id(17676167542607654)
-,p_plug_name=>'NOONA Master'
+ p_id=>wwv_flow_imp.id(17759538014443009)
+,p_plug_name=>'NOONA PLUS'
 ,p_region_template_options=>'#DEFAULT#'
 ,p_plug_template=>2674157997338192145
 ,p_plug_display_sequence=>10
@@ -38,9 +38,9 @@ wwv_flow_imp_page.create_page_plug(
   'show_line_breaks', 'Y')).to_clob
 );
 wwv_flow_imp_page.create_page_button(
- p_id=>wwv_flow_imp.id(17677876559607668)
+ p_id=>wwv_flow_imp.id(17761150100443026)
 ,p_button_sequence=>40
-,p_button_plug_id=>wwv_flow_imp.id(17676167542607654)
+,p_button_plug_id=>wwv_flow_imp.id(17759538014443009)
 ,p_button_name=>'LOGIN'
 ,p_button_action=>'SUBMIT'
 ,p_button_template_options=>'#DEFAULT#'
@@ -53,10 +53,10 @@ wwv_flow_imp_page.create_page_button(
 ,p_grid_new_column=>'Y'
 );
 wwv_flow_imp_page.create_page_item(
- p_id=>wwv_flow_imp.id(17676601392607664)
+ p_id=>wwv_flow_imp.id(17760049504443021)
 ,p_name=>'P9999_USERNAME'
 ,p_item_sequence=>10
-,p_item_plug_id=>wwv_flow_imp.id(17676167542607654)
+,p_item_plug_id=>wwv_flow_imp.id(17759538014443009)
 ,p_prompt=>'اسم المستخدم'
 ,p_placeholder=>'اسم المستخدم'
 ,p_display_as=>'NATIVE_TEXT_FIELD'
@@ -75,10 +75,10 @@ wwv_flow_imp_page.create_page_item(
   'trim_spaces', 'BOTH')).to_clob
 );
 wwv_flow_imp_page.create_page_item(
- p_id=>wwv_flow_imp.id(17677061765607665)
+ p_id=>wwv_flow_imp.id(17760331831443023)
 ,p_name=>'P9999_PASSWORD'
 ,p_item_sequence=>20
-,p_item_plug_id=>wwv_flow_imp.id(17676167542607654)
+,p_item_plug_id=>wwv_flow_imp.id(17759538014443009)
 ,p_prompt=>'كلمة المرور'
 ,p_placeholder=>'كلمة المرور'
 ,p_display_as=>'NATIVE_PASSWORD'
@@ -94,10 +94,10 @@ wwv_flow_imp_page.create_page_item(
   'submit_when_enter_pressed', 'Y')).to_clob
 );
 wwv_flow_imp_page.create_page_item(
- p_id=>wwv_flow_imp.id(17677464864607665)
+ p_id=>wwv_flow_imp.id(17760756383443025)
 ,p_name=>'P9999_REMEMBER'
 ,p_item_sequence=>30
-,p_item_plug_id=>wwv_flow_imp.id(17676167542607654)
+,p_item_plug_id=>wwv_flow_imp.id(17759538014443009)
 ,p_prompt=>'تذكر اسم المستخدم'
 ,p_display_as=>'NATIVE_SINGLE_CHECKBOX'
 ,p_label_alignment=>'RIGHT'
@@ -113,7 +113,7 @@ wwv_flow_imp_page.create_page_item(
   'use_defaults', 'Y')).to_clob
 );
 wwv_flow_imp_page.create_page_validation(
- p_id=>wwv_flow_imp.id(91820260000000301)
+ p_id=>wwv_flow_imp.id(91820263000000008)
 ,p_validation_name=>'NOONA - User Enabled'
 ,p_validation_sequence=>10
 ,p_validation=>'return noona_apex_pkg.login_block_reason(:P9999_USERNAME);'
@@ -122,7 +122,7 @@ wwv_flow_imp_page.create_page_validation(
 ,p_error_display_location=>'INLINE_IN_NOTIFICATION'
 );
 wwv_flow_imp_page.create_page_process(
- p_id=>wwv_flow_imp.id(17680047433607671)
+ p_id=>wwv_flow_imp.id(17763337713443034)
 ,p_process_sequence=>10
 ,p_process_point=>'AFTER_SUBMIT'
 ,p_process_type=>'NATIVE_INVOKE_API'
@@ -131,11 +131,11 @@ wwv_flow_imp_page.create_page_process(
 ,p_attribute_03=>'APEX_AUTHENTICATION'
 ,p_attribute_04=>'SEND_LOGIN_USERNAME_COOKIE'
 ,p_error_display_location=>'INLINE_IN_NOTIFICATION'
-,p_internal_uid=>17680047433607671
+,p_internal_uid=>17763337713443034
 );
 wwv_flow_imp_shared.create_invokeapi_comp_param(
- p_id=>wwv_flow_imp.id(17680591708607671)
-,p_page_process_id=>wwv_flow_imp.id(17680047433607671)
+ p_id=>wwv_flow_imp.id(17763884753443035)
+,p_page_process_id=>wwv_flow_imp.id(17763337713443034)
 ,p_page_id=>9999
 ,p_name=>'p_username'
 ,p_direction=>'IN'
@@ -147,8 +147,8 @@ wwv_flow_imp_shared.create_invokeapi_comp_param(
 ,p_value=>'lower( :P9999_USERNAME )'
 );
 wwv_flow_imp_shared.create_invokeapi_comp_param(
- p_id=>wwv_flow_imp.id(17681046771607671)
-,p_page_process_id=>wwv_flow_imp.id(17680047433607671)
+ p_id=>wwv_flow_imp.id(17764382971443035)
+,p_page_process_id=>wwv_flow_imp.id(17763337713443034)
 ,p_page_id=>9999
 ,p_name=>'p_consent'
 ,p_direction=>'IN'
@@ -159,7 +159,7 @@ wwv_flow_imp_shared.create_invokeapi_comp_param(
 ,p_value=>'P9999_REMEMBER'
 );
 wwv_flow_imp_page.create_page_process(
- p_id=>wwv_flow_imp.id(17678110349607668)
+ p_id=>wwv_flow_imp.id(17761445357443028)
 ,p_process_sequence=>20
 ,p_process_point=>'AFTER_SUBMIT'
 ,p_process_type=>'NATIVE_INVOKE_API'
@@ -168,11 +168,11 @@ wwv_flow_imp_page.create_page_process(
 ,p_attribute_03=>'APEX_AUTHENTICATION'
 ,p_attribute_04=>'LOGIN'
 ,p_error_display_location=>'INLINE_IN_NOTIFICATION'
-,p_internal_uid=>17678110349607668
+,p_internal_uid=>17761445357443028
 );
 wwv_flow_imp_shared.create_invokeapi_comp_param(
- p_id=>wwv_flow_imp.id(17678614526607670)
-,p_page_process_id=>wwv_flow_imp.id(17678110349607668)
+ p_id=>wwv_flow_imp.id(17761931521443031)
+,p_page_process_id=>wwv_flow_imp.id(17761445357443028)
 ,p_page_id=>9999
 ,p_name=>'p_username'
 ,p_direction=>'IN'
@@ -183,8 +183,8 @@ wwv_flow_imp_shared.create_invokeapi_comp_param(
 ,p_value=>'P9999_USERNAME'
 );
 wwv_flow_imp_shared.create_invokeapi_comp_param(
- p_id=>wwv_flow_imp.id(17679197835607670)
-,p_page_process_id=>wwv_flow_imp.id(17678110349607668)
+ p_id=>wwv_flow_imp.id(17762427761443034)
+,p_page_process_id=>wwv_flow_imp.id(17761445357443028)
 ,p_page_id=>9999
 ,p_name=>'p_password'
 ,p_direction=>'IN'
@@ -195,8 +195,8 @@ wwv_flow_imp_shared.create_invokeapi_comp_param(
 ,p_value=>'P9999_PASSWORD'
 );
 wwv_flow_imp_shared.create_invokeapi_comp_param(
- p_id=>wwv_flow_imp.id(17679654477607670)
-,p_page_process_id=>wwv_flow_imp.id(17678110349607668)
+ p_id=>wwv_flow_imp.id(17762971067443034)
+,p_page_process_id=>wwv_flow_imp.id(17761445357443028)
 ,p_page_id=>9999
 ,p_name=>'p_set_persistent_auth'
 ,p_direction=>'IN'
@@ -206,17 +206,17 @@ wwv_flow_imp_shared.create_invokeapi_comp_param(
 ,p_value_type=>'API_DEFAULT'
 );
 wwv_flow_imp_page.create_page_process(
- p_id=>wwv_flow_imp.id(17681916440607673)
+ p_id=>wwv_flow_imp.id(17765211531443037)
 ,p_process_sequence=>30
 ,p_process_point=>'AFTER_SUBMIT'
 ,p_process_type=>'NATIVE_SESSION_STATE'
 ,p_process_name=>'Clear Page(s) Cache'
 ,p_attribute_01=>'CLEAR_CACHE_CURRENT_PAGE'
 ,p_error_display_location=>'INLINE_IN_NOTIFICATION'
-,p_internal_uid=>17681916440607673
+,p_internal_uid=>17765211531443037
 );
 wwv_flow_imp_page.create_page_process(
- p_id=>wwv_flow_imp.id(17681540193607671)
+ p_id=>wwv_flow_imp.id(17764879997443037)
 ,p_process_sequence=>10
 ,p_process_point=>'BEFORE_HEADER'
 ,p_process_type=>'NATIVE_PLSQL'
@@ -225,7 +225,7 @@ wwv_flow_imp_page.create_page_process(
 ':P9999_USERNAME := apex_authentication.get_login_username_cookie;',
 ':P9999_REMEMBER := case when :P9999_USERNAME is not null then ''Y'' end;'))
 ,p_process_clob_language=>'PLSQL'
-,p_internal_uid=>17681540193607671
+,p_internal_uid=>17764879997443037
 );
 wwv_flow_imp.component_end;
 end;

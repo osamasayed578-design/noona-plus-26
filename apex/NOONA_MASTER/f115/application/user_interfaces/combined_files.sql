@@ -1,7 +1,7 @@
 prompt --application/user_interfaces/combined_files
 begin
 --   Manifest
---     COMBINED FILES: 115
+--     COMBINED FILES: 119
 --   Manifest End
 wwv_flow_imp.component_begin (
  p_version_yyyy_mm_dd=>'2024.11.30'

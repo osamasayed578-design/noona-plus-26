@@ -1,7 +1,7 @@
 prompt --application/shared_components/user_interface/templates/popuplov
 begin
 --   Manifest
---     LOV TEMPLATES: 115
+--     LOV TEMPLATES: 119
 --   Manifest End
 wwv_flow_imp.component_begin (
  p_version_yyyy_mm_dd=>'2024.11.30'

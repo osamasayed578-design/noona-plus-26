@@ -17,6 +17,9 @@ CREATE OR REPLACE PACKAGE NOONA_UI_PKG AUTHID DEFINER AS
   -- البوابة
   FUNCTION home_summary(p_session IN VARCHAR2) RETURN CLOB;
   FUNCTION app_cards(p_session IN VARCHAR2, p_existing_aliases IN VARCHAR2) RETURN CLOB;
+  -- شاشة الأنظمة في التطبيق الرئيسي: الأنظمة المشترك فيها والمخصصة للمستخدم فقط،
+  -- وتخطيط يتكيف مع عددها (is-few / is-mid / is-many)
+  FUNCTION launcher(p_session IN VARCHAR2, p_existing_aliases IN VARCHAR2) RETURN CLOB;
   FUNCTION task_cards(p_session IN VARCHAR2, p_limit IN PLS_INTEGER DEFAULT 20) RETURN CLOB;
   FUNCTION notification_list(p_session IN VARCHAR2, p_limit IN PLS_INTEGER DEFAULT 10) RETURN CLOB;
 
@@ -118,7 +121,7 @@ CREATE OR REPLACE PACKAGE BODY NOONA_UI_PKG AS
     l_html CLOB := '<div class="nn-apps">';
     l_ok   BOOLEAN;
   BEGIN
-    FOR r IN (SELECT app_alias, app_name_ar, icon_class FROM noona_v_apps ORDER BY sort_order) LOOP
+    FOR r IN (SELECT app_alias, app_name_ar, icon_class FROM noona_v_apps WHERE app_alias <> c_portal ORDER BY sort_order) LOOP
       l_ok := INSTR(',' || p_existing_aliases || ',', ',' || r.app_alias || ',') > 0;
       l_html := l_html
         || CASE WHEN l_ok THEN '<a class="nn-app" href="' || url(r.app_alias, '1', p_session) || '">'
@@ -130,6 +133,47 @@ CREATE OR REPLACE PACKAGE BODY NOONA_UI_PKG AS
     END LOOP;
     RETURN l_html || '</div>';
   END app_cards;
+
+  FUNCTION launcher(p_session IN VARCHAR2, p_existing_aliases IN VARCHAR2) RETURN CLOB IS
+    l_html  CLOB;
+    l_cards CLOB;
+    l_n     PLS_INTEGER := 0;
+    l_ok    BOOLEAN;
+    l_tasks NUMBER := 0;
+    l_hour  NUMBER := TO_NUMBER(TO_CHAR(SYSDATE, 'HH24'));
+  BEGIN
+    BEGIN
+      l_tasks := NOONA_PORTAL_PKG.open_task_count;
+    EXCEPTION WHEN OTHERS THEN
+      l_tasks := 0;
+    END;
+    FOR r IN (SELECT app_alias, app_name_ar, icon_class, description_ar FROM noona_v_apps ORDER BY sort_order) LOOP
+      l_n := l_n + 1;
+      l_ok := INSTR(',' || p_existing_aliases || ',', ',' || r.app_alias || ',') > 0;
+      l_cards := l_cards
+        || CASE WHEN l_ok THEN '<a class="nn-sys" href="' || url(r.app_alias, '1', p_session) || '">'
+                ELSE '<div class="nn-sys is-disabled" title="قيد الإنشاء">' END
+        || '<span class="nn-sys-icon fa ' || esc(r.icon_class) || '" aria-hidden="true"></span>'
+        || '<span class="nn-sys-body"><span class="nn-sys-name">' || esc(r.app_name_ar) || '</span>'
+        || '<span class="nn-sys-desc">' || esc(r.description_ar) || '</span></span>'
+        || CASE WHEN r.app_alias = c_portal AND l_tasks > 0
+                THEN '<span class="nn-sys-count" title="مهام بانتظارك">' || l_tasks || '</span>' END
+        || CASE WHEN NOT l_ok THEN '<span class="nn-badge is-muted">قيد الإنشاء</span>' END
+        || CASE WHEN l_ok THEN '</a>' ELSE '</div>' END;
+    END LOOP;
+    l_html := '<div class="nn-hello nn-launch-hello"><div class="nn-hello-title">'
+           || CASE WHEN l_hour < 12 THEN 'صباح الخير' ELSE 'مساء الخير' END || '، ' || esc(NOONA_APEX_PKG.display_name)
+           || '</div><div class="nn-hello-sub"><span class="fa fa-building-o" aria-hidden="true"></span> '
+           || esc(NOONA_APEX_PKG.tenant_name)
+           || CASE WHEN NOONA_APEX_PKG.company_name IS NOT NULL THEN ' &middot; ' || esc(NOONA_APEX_PKG.company_name) END
+           || '</div></div>';
+    IF l_n = 0 THEN
+      RETURN l_html || '<div class="nn-launch-empty"><span class="fa fa-lock" aria-hidden="true"></span>'
+          || '<b>لم تُخصص لك أنظمة بعد</b><span>تواصل مع مسؤول المؤسسة لمنحك الأدوار المناسبة</span></div>';
+    END IF;
+    RETURN l_html || '<div class="nn-launch ' || CASE WHEN l_n <= 3 THEN 'is-few' WHEN l_n <= 6 THEN 'is-mid' ELSE 'is-many' END
+        || '" data-count="' || l_n || '">' || l_cards || '</div>';
+  END launcher;
 
   FUNCTION task_cards(p_session IN VARCHAR2, p_limit IN PLS_INTEGER DEFAULT 20) RETURN CLOB IS
     l_html CLOB;

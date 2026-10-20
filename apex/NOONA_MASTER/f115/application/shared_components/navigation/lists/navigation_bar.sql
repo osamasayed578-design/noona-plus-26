@@ -12,13 +12,13 @@ wwv_flow_imp.component_begin (
 ,p_default_owner=>'NOONA_APP'
 );
 wwv_flow_imp_shared.create_list(
- p_id=>wwv_flow_imp.id(17671621876607623)
+ p_id=>wwv_flow_imp.id(17755035362442962)
 ,p_name=>'Navigation Bar'
 ,p_list_status=>'PUBLIC'
-,p_version_scn=>136793867
+,p_version_scn=>137120844
 );
 wwv_flow_imp_shared.create_list_item(
- p_id=>wwv_flow_imp.id(17683782789607690)
+ p_id=>wwv_flow_imp.id(17767087505443068)
 ,p_list_item_display_sequence=>10
 ,p_list_item_link_text=>'&APP_USER.'
 ,p_list_item_link_target=>'#'
@@ -27,22 +27,32 @@ wwv_flow_imp_shared.create_list_item(
 ,p_list_item_current_type=>'TARGET_PAGE'
 );
 wwv_flow_imp_shared.create_list_item(
- p_id=>wwv_flow_imp.id(17684223978607692)
+ p_id=>wwv_flow_imp.id(17767551179443070)
 ,p_list_item_display_sequence=>20
 ,p_list_item_link_text=>'---'
 ,p_list_item_link_target=>'separator'
 ,p_list_item_disp_cond_type=>'USER_IS_NOT_PUBLIC_USER'
-,p_parent_list_item_id=>wwv_flow_imp.id(17683782789607690)
+,p_parent_list_item_id=>wwv_flow_imp.id(17767087505443068)
 ,p_list_item_current_type=>'TARGET_PAGE'
 );
 wwv_flow_imp_shared.create_list_item(
- p_id=>wwv_flow_imp.id(17684693458607692)
+ p_id=>wwv_flow_imp.id(17767936235443071)
 ,p_list_item_display_sequence=>30
 ,p_list_item_link_text=>'تسجيل الخروج'
 ,p_list_item_link_target=>'&LOGOUT_URL.'
 ,p_list_item_icon=>'fa-sign-out'
 ,p_list_item_disp_cond_type=>'USER_IS_NOT_PUBLIC_USER'
-,p_parent_list_item_id=>wwv_flow_imp.id(17683782789607690)
+,p_parent_list_item_id=>wwv_flow_imp.id(17767087505443068)
+,p_list_item_current_type=>'TARGET_PAGE'
+);
+wwv_flow_imp_shared.create_list_item(
+ p_id=>wwv_flow_imp.id(91820260001001561)
+,p_list_item_display_sequence=>15
+,p_list_item_link_text=>'تغيير كلمة المرور'
+,p_list_item_link_target=>'f?p=NOONA_MASTER:CHANGE-PASSWORD:&SESSION.::&DEBUG.:::'
+,p_list_item_icon=>'fa-key'
+,p_list_item_disp_cond_type=>'USER_IS_NOT_PUBLIC_USER'
+,p_parent_list_item_id=>wwv_flow_imp.id(17767087505443068)
 ,p_list_item_current_type=>'TARGET_PAGE'
 );
 wwv_flow_imp.component_end;

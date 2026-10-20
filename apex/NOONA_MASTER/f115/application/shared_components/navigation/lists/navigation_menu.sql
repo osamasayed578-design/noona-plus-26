@@ -12,17 +12,25 @@ wwv_flow_imp.component_begin (
 ,p_default_owner=>'NOONA_APP'
 );
 wwv_flow_imp_shared.create_list(
- p_id=>wwv_flow_imp.id(17670505961607589)
+ p_id=>wwv_flow_imp.id(17753914427442914)
 ,p_name=>'Navigation Menu'
 ,p_list_status=>'PUBLIC'
-,p_version_scn=>136793792
+,p_version_scn=>137120771
 );
 wwv_flow_imp_shared.create_list_item(
- p_id=>wwv_flow_imp.id(17682212458607673)
+ p_id=>wwv_flow_imp.id(91820263000000021)
 ,p_list_item_display_sequence=>10
-,p_list_item_link_text=>'Home'
+,p_list_item_link_text=>'الأنظمة'
 ,p_list_item_link_target=>'f?p=&APP_ID.:1:&APP_SESSION.::&DEBUG.:::'
-,p_list_item_icon=>'fa-home'
+,p_list_item_icon=>'fa-th'
+,p_list_item_current_type=>'TARGET_PAGE'
+);
+wwv_flow_imp_shared.create_list_item(
+ p_id=>wwv_flow_imp.id(91820263000000022)
+,p_list_item_display_sequence=>20
+,p_list_item_link_text=>'تغيير كلمة المرور'
+,p_list_item_link_target=>'f?p=&APP_ID.:10:&APP_SESSION.::&DEBUG.:::'
+,p_list_item_icon=>'fa-key'
 ,p_list_item_current_type=>'TARGET_PAGE'
 );
 wwv_flow_imp.component_end;

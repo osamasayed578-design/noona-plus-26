@@ -12,7 +12,7 @@ wwv_flow_imp.component_begin (
 ,p_default_owner=>'NOONA_APP'
 );
 wwv_flow_imp_shared.create_list_of_values(
- p_id=>wwv_flow_imp.id(91820260000000203)
+ p_id=>wwv_flow_imp.id(91820263000000006)
 ,p_lov_name=>'NOONA_CURRENCIES'
 ,p_lov_query=>'select currency_code || '' - '' || case sys_context(''NOONA_CTX'', ''LANGUAGE'') when ''en'' then name_en else name_ar end as d, currency_code as r from ref_currency where is_active = ''Y'' order by currency_code'
 ,p_source_type=>'LEGACY_SQL'

@@ -1,7 +1,7 @@
 prompt --application/pages/page_groups
 begin
 --   Manifest
---     PAGE GROUPS: 115
+--     PAGE GROUPS: 119
 --   Manifest End
 wwv_flow_imp.component_begin (
  p_version_yyyy_mm_dd=>'2024.11.30'
@@ -12,7 +12,7 @@ wwv_flow_imp.component_begin (
 ,p_default_owner=>'NOONA_APP'
 );
 wwv_flow_imp_page.create_page_group(
- p_id=>wwv_flow_imp.id(17675552808607645)
+ p_id=>wwv_flow_imp.id(17758934243442990)
 ,p_group_name=>'Administration'
 );
 wwv_flow_imp.component_end;

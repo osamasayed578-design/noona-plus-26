@@ -18,13 +18,19 @@ END;
 /
 PROMPT ========== NOONA_WORKFLOW_PKG
 @@plsql/70_noona_workflow_pkg.sql
+PROMPT ========== NOONA_PORTAL_PKG + NOONA_V_APPS
+@@plsql/85_noona_portal.sql
 PROMPT ========== NOONA_UI_PKG
 @@plsql/86_noona_ui_pkg.sql
+PROMPT ========== NOONA_SEC_ADMIN_PKG
+@@plsql/88_noona_sec_admin_pkg.sql
 PROMPT ========== NOONA_REFDATA_PKG
 @@plsql/90_noona_refdata_pkg.sql
 GRANT EXECUTE ON NOONA_WORKFLOW_PKG TO NOONA_APP;
 GRANT EXECUTE ON NOONA_REFDATA_PKG TO NOONA_APP;
 GRANT EXECUTE ON NOONA_UI_PKG TO NOONA_APP;
+GRANT EXECUTE ON NOONA_PORTAL_PKG TO NOONA_APP;
+GRANT SELECT ON NOONA_V_APPS TO NOONA_APP;
 PROMPT ========== Recompile dependents
 EXEC DBMS_UTILITY.COMPILE_SCHEMA(schema => USER, compile_all => FALSE)
 SELECT object_type, object_name FROM user_objects WHERE status <> 'VALID';

@@ -12,7 +12,7 @@ wwv_flow_imp.component_begin (
 ,p_default_owner=>'NOONA_APP'
 );
 wwv_flow_imp_shared.create_list_of_values(
- p_id=>wwv_flow_imp.id(91820260000000204)
+ p_id=>wwv_flow_imp.id(91820263000000007)
 ,p_lov_name=>'NOONA_COUNTRIES'
 ,p_lov_query=>'select case sys_context(''NOONA_CTX'', ''LANGUAGE'') when ''en'' then name_en else name_ar end as d, country_code as r from ref_country where is_active = ''Y'' order by sort_order nulls last, 1'
 ,p_source_type=>'LEGACY_SQL'

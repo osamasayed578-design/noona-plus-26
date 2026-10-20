@@ -12,7 +12,7 @@ wwv_flow_imp.component_begin (
 ,p_default_owner=>'NOONA_APP'
 );
 wwv_flow_imp_shared.create_list_of_values(
- p_id=>wwv_flow_imp.id(91820260000000202)
+ p_id=>wwv_flow_imp.id(91820263000000005)
 ,p_lov_name=>'NOONA_BRANCHES'
 ,p_lov_query=>'select case sys_context(''NOONA_CTX'', ''LANGUAGE'') when ''en'' then nvl(name_en, name_ar) else name_ar end as d, id as r from org_branch where status_code = ''ACTIVE'' and company_id = to_number(sys_context(''NOONA_CTX'', ''COMPANY_ID'')) order by is_head_office desc, 1'
 ,p_source_type=>'LEGACY_SQL'

@@ -1,7 +1,7 @@
 prompt --application/shared_components/navigation/tabs/standard
 begin
 --   Manifest
---     TABS: 115
+--     TABS: 119
 --   Manifest End
 wwv_flow_imp.component_begin (
  p_version_yyyy_mm_dd=>'2024.11.30'

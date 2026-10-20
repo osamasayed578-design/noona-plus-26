@@ -325,3 +325,41 @@ tr:hover .nn-badge { transform: scale(1.05); }
 .nn-chain small { color: var(--nn-muted); }
 .nn-chain.is-ok { background: var(--nn-success-50); border-color: #b7dfb7; color: var(--nn-success); }
 .nn-chain.is-bad { background: var(--nn-danger-50); border-color: #f3b8b2; color: var(--nn-danger); }
+
+/* ================================================================ شاشة الأنظمة (التطبيق الرئيسي)
+   تتكيف مع العدد: is-few بطاقات كبيرة في المنتصف، is-mid ثلاث في الصف، is-many شبكة كثيفة */
+.nn-launch-hello { text-align: center; margin: 8px 0 22px; }
+.nn-launch-hello .nn-hello-title { font-size: 1.7rem; }
+.nn-launch { display: grid; gap: 16px; margin: 0 auto; }
+.nn-launch.is-few  { grid-template-columns: repeat(auto-fit, minmax(240px, 300px)); justify-content: center; }
+.nn-launch.is-mid  { grid-template-columns: repeat(3, minmax(0, 1fr)); max-width: 1080px; }
+.nn-launch.is-many { grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); }
+@media (max-width: 900px) { .nn-launch.is-mid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 560px) { .nn-launch.is-mid, .nn-launch.is-few, .nn-launch.is-many { grid-template-columns: 1fr; } }
+.nn-sys { position: relative; display: flex; align-items: center; gap: 14px; padding: 18px; background: #fff;
+  border: 1px solid var(--nn-border); border-radius: 14px; color: var(--nn-text); text-decoration: none !important;
+  box-shadow: var(--nn-shadow); transition: transform .2s ease, box-shadow .2s ease, border-color .2s ease;
+  animation: nnFadeUp .4s cubic-bezier(.2, .7, .2, 1) both; }
+.nn-launch.is-few .nn-sys { flex-direction: column; text-align: center; padding: 28px 20px; }
+.nn-sys:hover { transform: translateY(-4px); border-color: var(--nn-head-border); box-shadow: 0 12px 28px rgba(0, 88, 168, .14); }
+.nn-sys:nth-child(2) { animation-delay: .05s; } .nn-sys:nth-child(3) { animation-delay: .1s; }
+.nn-sys:nth-child(4) { animation-delay: .15s; } .nn-sys:nth-child(5) { animation-delay: .2s; }
+.nn-sys:nth-child(n+6) { animation-delay: .25s; }
+.nn-sys-icon { flex: none; width: 54px; height: 54px; border-radius: 14px; display: grid; place-items: center; font-size: 24px;
+  color: #fff; background: linear-gradient(135deg, #0b84e8, #0058a8); transition: transform .25s ease; }
+.nn-launch.is-few .nn-sys-icon { width: 72px; height: 72px; font-size: 32px; border-radius: 18px; }
+.nn-sys:hover .nn-sys-icon { transform: scale(1.08) rotate(-4deg); }
+.nn-sys-body { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.nn-sys-name { font-weight: 800; font-size: 1.08rem; color: var(--nn-head-text); }
+.nn-sys-desc { color: var(--nn-muted); font-size: .88rem; }
+.nn-sys-count { position: absolute; top: 10px; inset-inline-end: 10px; min-width: 26px; height: 26px; padding: 0 8px;
+  border-radius: 13px; background: var(--nn-danger); color: #fff; font-weight: 800; display: grid; place-items: center;
+  animation: nnPop .5s ease-out .3s both; }
+.nn-sys.is-disabled { opacity: .65; cursor: default; padding-top: 32px; }
+.nn-sys.is-disabled > .nn-badge { position: absolute; top: 10px; inset-inline-end: 10px; font-size: .75rem; }
+.nn-sys.is-disabled:hover { transform: none; box-shadow: var(--nn-shadow); }
+.nn-sys.is-disabled .nn-sys-icon { background: #9ca3af; }
+.nn-launch-empty { max-width: 460px; margin: 30px auto; text-align: center; display: flex; flex-direction: column; gap: 8px;
+  padding: 30px; background: #fff; border: 1px dashed var(--nn-border); border-radius: 14px; color: var(--nn-muted); }
+.nn-launch-empty .fa { font-size: 34px; color: var(--nn-primary); }
+.nn-launch-empty b { color: var(--nn-head-text); font-size: 1.1rem; }

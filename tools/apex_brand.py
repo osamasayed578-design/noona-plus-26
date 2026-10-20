@@ -137,10 +137,51 @@ def brand(app_dir):
     for old, new in LOGIN_LABELS:
         s = s.replace(old, new)
     open(p, 'w', encoding='utf-8').write(s)
+    alias = re.search(r"get_application_alias,'([^']*)'\)", ca)
+    is_master = bool(alias) and alias.group(1) == 'NOONA_MASTER'
     p = a + 'shared_components/navigation/lists/navigation_bar.sql'
     if os.path.exists(p):
         s = open(p, encoding='utf-8').read().replace(",p_list_item_link_text=>'Sign Out'", ",p_list_item_link_text=>'تسجيل الخروج'")
+        # شريط التنقل: الرجوع لشاشة الأنظمة، وتغيير كلمة المرور (في التطبيق الرئيسي) من قائمة المستخدم
+        user_item = re.search(r"p_id=>wwv_flow_imp\.id\((\d+)\)\n,p_list_item_display_sequence=>10\n,p_list_item_link_text=>'&APP_USER\.'", s)
+        items = ''
+        if not is_master and 'NOONA_MASTER:1:' not in s:
+            items += f"""wwv_flow_imp_shared.create_list_item(
+ p_id=>wwv_flow_imp.id({91820260000990000 + app_id * 100 + 60})
+,p_list_item_display_sequence=>5
+,p_list_item_link_text=>'الأنظمة'
+,p_list_item_link_target=>'f?p=NOONA_MASTER:1:&SESSION.::&DEBUG.:::'
+,p_list_item_icon=>'fa-th'
+,p_list_item_disp_cond_type=>'USER_IS_NOT_PUBLIC_USER'
+,p_list_item_current_type=>'TARGET_PAGE'
+);
+"""
+        if user_item and 'CHANGE-PASSWORD' not in s:
+            items += f"""wwv_flow_imp_shared.create_list_item(
+ p_id=>wwv_flow_imp.id({91820260000990000 + app_id * 100 + 61})
+,p_list_item_display_sequence=>15
+,p_list_item_link_text=>'تغيير كلمة المرور'
+,p_list_item_link_target=>'f?p=NOONA_MASTER:CHANGE-PASSWORD:&SESSION.::&DEBUG.:::'
+,p_list_item_icon=>'fa-key'
+,p_list_item_disp_cond_type=>'USER_IS_NOT_PUBLIC_USER'
+,p_parent_list_item_id=>wwv_flow_imp.id({user_item.group(1)})
+,p_list_item_current_type=>'TARGET_PAGE'
+);
+"""
+        if items:
+            i = s.rindex('wwv_flow_imp.component_end;')
+            s = s[:i] + items + s[i:]
         open(p, 'w', encoding='utf-8').write(s)
+    # دخول موحد: كل التطبيقات عدا الرئيسي تحيل غير المسجلين وتسجيل الخروج إلى دخول التطبيق الرئيسي
+    p = a + 'shared_components/security/authentications/oracle_apex_accounts.sql'
+    if os.path.exists(p) and not is_master:
+        s = open(p, encoding='utf-8').read()
+        if "p_invalid_session_url" not in s:
+            s = s.replace(",p_invalid_session_type=>'LOGIN'",
+                          ",p_invalid_session_type=>'URL'\n,p_invalid_session_url=>'f?p=NOONA_MASTER:LOGIN'"
+                          "\n,p_logout_url=>'f?p=NOONA_MASTER:LOGIN'", 1)
+            assert "p_invalid_session_url" in s, 'auth scheme anchor not found'
+            open(p, 'w', encoding='utf-8').write(s)
     print(f'{app_dir}: NOONA branding applied (files v{ver})')
 
 

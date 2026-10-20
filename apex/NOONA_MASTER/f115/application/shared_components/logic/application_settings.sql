@@ -1,7 +1,7 @@
 prompt --application/shared_components/logic/application_settings
 begin
 --   Manifest
---     APPLICATION SETTINGS: 115
+--     APPLICATION SETTINGS: 119
 --   Manifest End
 wwv_flow_imp.component_begin (
  p_version_yyyy_mm_dd=>'2024.11.30'

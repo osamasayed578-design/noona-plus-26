@@ -1,7 +1,7 @@
 prompt --application/shared_components/user_interface/themes
 begin
 --   Manifest
---     THEME: 115
+--     THEME: 119
 --   Manifest End
 wwv_flow_imp.component_begin (
  p_version_yyyy_mm_dd=>'2024.11.30'
@@ -12,7 +12,7 @@ wwv_flow_imp.component_begin (
 ,p_default_owner=>'NOONA_APP'
 );
 wwv_flow_imp_shared.create_theme(
- p_id=>wwv_flow_imp.id(17670984252607592)
+ p_id=>wwv_flow_imp.id(17754380015442920)
 ,p_theme_id=>42
 ,p_theme_name=>'Universal Theme'
 ,p_theme_internal_name=>'UNIVERSAL_THEME'
