@@ -254,7 +254,7 @@ wwv_flow_imp_page.create_page_item(
 ,p_item_plug_id=>wwv_flow_imp.id(91820262000000208)
 ,p_prompt=>'رئيس الوحدة'
 ,p_display_as=>'NATIVE_SELECT_LIST'
-,p_lov=>'STATIC2:نعم;Y,لا;N'
+,p_lov=>'STATIC2:لا;N,نعم;Y'
 ,p_cHeight=>1
 ,p_lov_display_extra=>'NO'
 ,p_field_template=>1609121967514267634

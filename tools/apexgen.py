@@ -509,12 +509,15 @@ wwv_flow_imp_page.create_worksheet(
                           required, attrs(auto_height='N', character_counter='Y', resizable='Y', trim_spaces='BOTH'), full=True)
 
     def select(self, name, region, seq, prompt, lov_name=None, lov_sql=None, required=False, null_text='- اختر -',
-               submit=False):
+               submit=False, cascade=None):
         if lov_name:
             lov = f"\n,p_named_lov=>'{lov_name}'\n,p_lov=>'.'||wwv_flow_imp.id({self.app.lovs[lov_name]})||'.'"
         else:
             lov = f"\n,p_lov=>'{q(lov_sql)}'"
         lov += f"\n,p_lov_display_null=>'YES'\n,p_lov_null_text=>'{q(null_text)}'" if null_text else ''
+        if cascade:     # قائمة تابعة: تتحدث عند تغير العنصر الأب
+            lov += (f"\n,p_lov_cascade_parent_items=>'{cascade}'\n,p_ajax_items_to_submit=>'{cascade}'"
+                    "\n,p_ajax_optimize_refresh=>'Y'")
         return self._item(name, region, seq, prompt, 'NATIVE_SELECT_LIST', lov + "\n,p_cHeight=>1\n,p_lov_display_extra=>'NO'",
                           required, attrs(page_action_on_selection='SUBMIT' if submit else 'NONE'))
 
@@ -537,7 +540,8 @@ wwv_flow_imp_page.create_worksheet(
                                 max_file_size=max_kb), full=True)
 
     def yesno(self, name, region, seq, prompt):
-        return self.select(name, region, seq, prompt, lov_sql="STATIC2:نعم;Y,لا;N", null_text=None)
+        # "لا" أولاً: أي خيار حساس (افتراضي، اعتماد ذاتي، مسؤول) يتطلب اختياراً صريحاً
+        return self.select(name, region, seq, prompt, lov_sql="STATIC2:لا;N,نعم;Y", null_text=None)
 
     def display(self, name, region, seq, prompt):
         return self._item(name, region, seq, prompt, 'NATIVE_DISPLAY_ONLY', '', False,

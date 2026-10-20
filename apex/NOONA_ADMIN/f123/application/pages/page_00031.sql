@@ -152,7 +152,7 @@ wwv_flow_imp_page.create_page_item(
 ,p_item_plug_id=>wwv_flow_imp.id(91820262000000279)
 ,p_prompt=>'مسؤول المؤسسة'
 ,p_display_as=>'NATIVE_SELECT_LIST'
-,p_lov=>'STATIC2:نعم;Y,لا;N'
+,p_lov=>'STATIC2:لا;N,نعم;Y'
 ,p_cHeight=>1
 ,p_lov_display_extra=>'NO'
 ,p_field_template=>1609121967514267634
@@ -764,7 +764,7 @@ wwv_flow_imp_page.create_page_process(
 );
 wwv_flow_imp_page.create_page_branch(
  p_id=>wwv_flow_imp.id(91820262000000333)
-,p_branch_action=>'f?p=&APP_ID.:31:&SESSION.::&DEBUG.::P31_ID:&P31_ID.&success_msg=#SUCCESS_MSG#'
+,p_branch_action=>'f?p=&APP_ID.:31:&SESSION.::&DEBUG.:31:P31_ID:&P31_ID.&success_msg=#SUCCESS_MSG#'
 ,p_branch_point=>'AFTER_PROCESSING'
 ,p_branch_type=>'REDIRECT_URL'
 ,p_branch_sequence=>10

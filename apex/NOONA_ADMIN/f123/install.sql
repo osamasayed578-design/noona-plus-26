@@ -61,5 +61,10 @@ prompt --install
 @@application/pages/page_00031.sql
 @@application/pages/page_00032.sql
 @@application/pages/page_00033.sql
+@@application/pages/page_00040.sql
+@@application/pages/page_00041.sql
+@@application/pages/page_00042.sql
+@@application/pages/page_00043.sql
+@@application/pages/page_00044.sql
 @@application/pages/page_09999.sql
 @@application/end_environment.sql

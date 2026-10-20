@@ -85,28 +85,62 @@ wwv_flow_imp_shared.create_list_item(
 ,p_list_item_current_type=>'TARGET_PAGE'
 );
 wwv_flow_imp_shared.create_list_item(
- p_id=>wwv_flow_imp.id(91820262000000380)
+ p_id=>wwv_flow_imp.id(91820262000000551)
 ,p_list_item_display_sequence=>40
 ,p_list_item_link_text=>'المستخدمون والصلاحيات'
 ,p_list_item_link_target=>''
 ,p_list_item_icon=>'fa-users'
 );
 wwv_flow_imp_shared.create_list_item(
- p_id=>wwv_flow_imp.id(91820262000000381)
+ p_id=>wwv_flow_imp.id(91820262000000552)
 ,p_list_item_display_sequence=>41
 ,p_list_item_link_text=>'المستخدمون'
 ,p_list_item_link_target=>'f?p=&APP_ID.:30:&APP_SESSION.::&DEBUG.:::'
 ,p_list_item_icon=>'fa-user'
-,p_parent_list_item_id=>wwv_flow_imp.id(91820262000000380)
+,p_parent_list_item_id=>wwv_flow_imp.id(91820262000000551)
 ,p_list_item_current_type=>'TARGET_PAGE'
 );
 wwv_flow_imp_shared.create_list_item(
- p_id=>wwv_flow_imp.id(91820262000000382)
+ p_id=>wwv_flow_imp.id(91820262000000553)
 ,p_list_item_display_sequence=>42
 ,p_list_item_link_text=>'الأدوار والصلاحيات'
 ,p_list_item_link_target=>'f?p=&APP_ID.:32:&APP_SESSION.::&DEBUG.:::'
 ,p_list_item_icon=>'fa-key'
-,p_parent_list_item_id=>wwv_flow_imp.id(91820262000000380)
+,p_parent_list_item_id=>wwv_flow_imp.id(91820262000000551)
+,p_list_item_current_type=>'TARGET_PAGE'
+);
+wwv_flow_imp_shared.create_list_item(
+ p_id=>wwv_flow_imp.id(91820262000000554)
+,p_list_item_display_sequence=>50
+,p_list_item_link_text=>'مسارات الاعتماد والتفويض'
+,p_list_item_link_target=>''
+,p_list_item_icon=>'fa-sitemap'
+);
+wwv_flow_imp_shared.create_list_item(
+ p_id=>wwv_flow_imp.id(91820262000000555)
+,p_list_item_display_sequence=>51
+,p_list_item_link_text=>'مسارات الاعتماد'
+,p_list_item_link_target=>'f?p=&APP_ID.:40:&APP_SESSION.::&DEBUG.:::'
+,p_list_item_icon=>'fa-random'
+,p_parent_list_item_id=>wwv_flow_imp.id(91820262000000554)
+,p_list_item_current_type=>'TARGET_PAGE'
+);
+wwv_flow_imp_shared.create_list_item(
+ p_id=>wwv_flow_imp.id(91820262000000556)
+,p_list_item_display_sequence=>52
+,p_list_item_link_text=>'شروط التوجيه'
+,p_list_item_link_target=>'f?p=&APP_ID.:42:&APP_SESSION.::&DEBUG.:::'
+,p_list_item_icon=>'fa-filter'
+,p_parent_list_item_id=>wwv_flow_imp.id(91820262000000554)
+,p_list_item_current_type=>'TARGET_PAGE'
+);
+wwv_flow_imp_shared.create_list_item(
+ p_id=>wwv_flow_imp.id(91820262000000557)
+,p_list_item_display_sequence=>53
+,p_list_item_link_text=>'التفويضات'
+,p_list_item_link_target=>'f?p=&APP_ID.:43:&APP_SESSION.::&DEBUG.:::'
+,p_list_item_icon=>'fa-share'
+,p_parent_list_item_id=>wwv_flow_imp.id(91820262000000554)
 ,p_list_item_current_type=>'TARGET_PAGE'
 );
 wwv_flow_imp.component_end;

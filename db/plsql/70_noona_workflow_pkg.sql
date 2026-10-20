@@ -54,6 +54,12 @@ CREATE OR REPLACE PACKAGE NOONA_WORKFLOW_PKG AUTHID DEFINER AS
 
   PROCEDURE publish_version(p_version_id IN NUMBER);
 
+  -- تعديل الإصدار المسودة فقط: حذف خطوة (مع انتقالاتها) أو انتقال
+  PROCEDURE remove_step(p_step_id IN NUMBER);
+  PROCEDURE remove_transition(p_transition_id IN NUMBER);
+  -- إصدار جديد (مسودة) منسوخ من آخر إصدار منشور بخطواته وانتقالاته
+  FUNCTION copy_version(p_definition_id IN NUMBER) RETURN NUMBER;
+
   -- ---------------------------------------------------------- Runtime
   FUNCTION start_workflow(
     p_definition_code IN VARCHAR2,
@@ -249,6 +255,47 @@ CREATE OR REPLACE PACKAGE BODY NOONA_WORKFLOW_PKG AS
     RETURNING id INTO l_id;
     RETURN l_id;
   END create_rule;
+
+  PROCEDURE remove_step(p_step_id IN NUMBER) IS
+    l_ver NUMBER;
+  BEGIN
+    assert_can_define;
+    SELECT version_id INTO l_ver FROM wf_step_def WHERE id = p_step_id;
+    assert_draft_version(l_ver);
+    DELETE FROM wf_transition_def WHERE version_id = l_ver AND (from_step_id = p_step_id OR to_step_id = p_step_id);
+    DELETE FROM wf_step_def WHERE id = p_step_id;
+  END remove_step;
+
+  PROCEDURE remove_transition(p_transition_id IN NUMBER) IS
+    l_ver NUMBER;
+  BEGIN
+    assert_can_define;
+    SELECT version_id INTO l_ver FROM wf_transition_def WHERE id = p_transition_id;
+    assert_draft_version(l_ver);
+    DELETE FROM wf_transition_def WHERE id = p_transition_id;
+  END remove_transition;
+
+  FUNCTION copy_version(p_definition_id IN NUMBER) RETURN NUMBER IS
+    l_src NUMBER;
+    l_new NUMBER;
+    l_id  NUMBER;
+  BEGIN
+    SELECT MAX(id) KEEP (DENSE_RANK LAST ORDER BY version_no) INTO l_src
+      FROM wf_definition_version WHERE definition_id = p_definition_id AND status_code IN ('PUBLISHED', 'ACTIVE', 'RETIRED');
+    l_new := new_version(p_definition_id);
+    IF l_src IS NOT NULL THEN
+      FOR st IN (SELECT * FROM wf_step_def WHERE version_id = l_src ORDER BY id) LOOP
+        l_id := add_step(l_new, st.step_code, st.step_type, st.name_ar, st.assignee_rule, st.assignee_ref_id,
+                         st.join_policy, st.join_value, st.sla_policy_id, st.allow_self_approval, st.queue_id, st.action_handler);
+      END LOOP;
+      FOR tr IN (SELECT f.step_code from_code, t.step_code to_code, x.outcome_code, x.is_default, x.rule_id, x.sort_order
+                   FROM wf_transition_def x JOIN wf_step_def f ON f.id = x.from_step_id JOIN wf_step_def t ON t.id = x.to_step_id
+                  WHERE x.version_id = l_src ORDER BY x.sort_order, x.id) LOOP
+        add_transition(l_new, tr.from_code, tr.to_code, tr.outcome_code, tr.is_default, tr.rule_id, tr.sort_order);
+      END LOOP;
+    END IF;
+    RETURN l_new;
+  END copy_version;
 
   PROCEDURE publish_version(p_version_id IN NUMBER) IS
     l_v      wf_definition_version%ROWTYPE;

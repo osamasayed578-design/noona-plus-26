@@ -295,3 +295,25 @@ tr:hover .nn-badge { transform: scale(1.05); }
   font-size: .78rem; font-weight: 700; letter-spacing: .5px; direction: ltr; }
 .nn-rpt-sys::before { content: ""; width: 22px; height: 22px; background: url(noona-logo.svg) center / contain no-repeat; }
 @media print { .nn-rpt-head { break-inside: avoid; } }
+
+/* رأس الملخص (التفويض) */
+.nn-taskhead-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; margin-bottom: 12px; }
+.nn-taskhead-sub { color: var(--nn-muted); font-weight: 600; }
+
+/* مخطط مسار الاعتماد: صفوف حسب العمق من البداية */
+.nn-flow { display: flex; flex-direction: column; align-items: center; gap: 0; padding: 8px 0; }
+.nn-flow-row { display: flex; flex-wrap: wrap; justify-content: center; gap: 14px; position: relative; padding-bottom: 26px; }
+.nn-flow-row:not(:last-child)::after { content: ""; position: absolute; bottom: 4px; left: 50%; width: 2px; height: 18px;
+  background: var(--nn-head-border); }
+.nn-flow-node { min-width: 190px; max-width: 260px; background: #fff; border: 1px solid var(--nn-border); border-radius: 12px;
+  padding: 10px 14px; text-align: center; box-shadow: var(--nn-shadow); border-top: 4px solid var(--nn-primary);
+  animation: nnFadeUp .35s ease-out both; }
+.nn-flow-node.is-start, .nn-flow-node.is-end { min-width: 120px; border-radius: 22px; border-top-width: 1px; background: var(--nn-head-bg); }
+.nn-flow-node.is-end { background: #e9f6e9; border-color: #b7dfb7; }
+.nn-flow-node.is-decision { border-top-color: var(--nn-warning); }
+.nn-flow-node.is-notification { border-top-color: #6b7280; }
+.nn-flow-node.is-orphan { border: 1px dashed var(--nn-danger); border-top: 4px solid var(--nn-danger); }
+.nn-flow-type { font-size: .78rem; color: var(--nn-muted); font-weight: 700; }
+.nn-flow-name { font-weight: 800; color: var(--nn-head-text); }
+.nn-flow-who { font-size: .85rem; color: #1f2937; margin-top: 4px; }
+.nn-flow-out { font-size: .8rem; color: var(--nn-primary); margin-top: 4px; }

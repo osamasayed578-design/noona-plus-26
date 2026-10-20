@@ -51,7 +51,7 @@ wwv_imp_workspace.create_flow(
 ,p_substitution_string_01=>'APP_NAME'
 ,p_substitution_value_01=>'NOONA Master'
 ,p_file_prefix => nvl(wwv_flow_application_install.get_static_app_file_prefix,'')
-,p_files_version=>865285
+,p_files_version=>760450
 ,p_version_scn=>136794641
 ,p_print_server_type=>'INSTANCE'
 ,p_file_storage=>'DB'

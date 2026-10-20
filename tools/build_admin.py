@@ -496,7 +496,7 @@ p.process(40, 'AFTER_SUBMIT', 'Revoke Grant', 'noona_sec_admin_pkg.revoke_grant(
 p.process(50, 'AFTER_SUBMIT', 'Change Status',
           'noona_sec_admin_pkg.set_member_status(p_membership_id => :P31_ID, p_status => :P31_NEW_STATUS, p_reason => :P31_REASON);',
           when_button=b_status, success='تم تغيير حالة الحساب')
-p.branch(10, 'f?p=&APP_ID.:31:&SESSION.::&DEBUG.::P31_ID:&P31_ID.&success_msg=#SUCCESS_MSG#')
+p.branch(10, 'f?p=&APP_ID.:31:&SESSION.::&DEBUG.:31:P31_ID:&P31_ID.&success_msg=#SUCCESS_MSG#')
 
 # =============================================================== 32) الأدوار
 p = app.page(32, 'Roles', 'ROLES', 'الأدوار', scheme=ADMIN)
@@ -607,9 +607,283 @@ p.process(40, 'AFTER_SUBMIT', 'Remove Permission', 'noona_sec_admin_pkg.remove_p
           when_button=b_rm, success='تمت إزالة الصلاحية')
 p.branch(10, 'f?p=&APP_ID.:33:&SESSION.::&DEBUG.::P33_ID:&P33_ID.&success_msg=#SUCCESS_MSG#')
 
+MEMBER_LOV = ("select u.display_name || ' (' || u.username || ')' d, m.id r from sec_user_membership m "
+              "join sec_user u on u.id = m.user_id where m.status_code = 'ACTIVE' order by 1")
+
+# =============================================================== 40) مسارات الاعتماد
+p = app.page(40, 'Workflows', 'WORKFLOWS', 'مسارات الاعتماد', scheme=ADMIN)
+p.ir('مسارات الاعتماد', 10, [
+    'select d.id, d.code, d.name_ar, nvl(e.name_ar, d.object_type) as object_name,',
+    '       noona_ui_pkg.code_label(d.workflow_kind) as kind,',
+    "       (select max(v.version_no) from wf_definition_version v where v.definition_id = d.id",
+    "           and v.status_code in ('PUBLISHED', 'ACTIVE')) as published_version,",
+    "       (select count(*) from wf_definition_version v where v.definition_id = d.id and v.status_code = 'DRAFT') as drafts,",
+    "       noona_ui_pkg.status_badge(case d.is_active when 'Y' then 'ACTIVE' else 'INACTIVE' end) as status_html",
+    '  from wf_definition d left join ref_entity_type e on e.entity_type_code = d.object_type'],
+    [('ID', '#', {'hidden': True, 'type': 'NUMBER'}), ('CODE', 'الرمز', {}), ('NAME_AR', 'المسار', {}),
+     ('OBJECT_NAME', 'نوع المستند', {}), ('KIND', 'النوع', {}), ('PUBLISHED_VERSION', 'الإصدار المنشور', {'type': 'NUMBER'}),
+     ('DRAFTS', 'مسودات', {'type': 'NUMBER'}), ('STATUS_HTML', 'الحالة', {'html': True})],
+    link='f?p=&APP_ID.:41:&SESSION.::&DEBUG.:RP,41:P41_ID:#ID#')
+f = p.static('مسار جديد', 20)
+p.text('P40_CODE', f, 10, 'الرمز', required=True, maxlen=50, width=20)
+p.text('P40_NAME_AR', f, 20, 'اسم المسار', required=True)
+p.select('P40_OBJECT_TYPE', f, 30, 'نوع المستند', required=True, lov_sql=(
+    "select module_code || ' - ' || name_ar d, entity_type_code r from ref_entity_type "
+    "where module_code not in ('PLT', 'SEC', 'REF', 'MIG', 'OPS', 'DEP') order by module_code, name_ar"))
+p.select('P40_KIND', f, 40, 'نوع المسار', null_text=None, lov_sql='STATIC2:اعتماد;APPROVAL,مراجعة;REVIEW,توجيه;ROUTING,مهام;TASK')
+b = p.button(f, 10, 'CREATE', 'إنشاء المسار', hot=True)
+p.process(10, 'AFTER_SUBMIT', 'Create Workflow', [
+    'declare l_ver number; l_id number;',
+    'begin',
+    '    :P41_ID := noona_workflow_pkg.create_definition(p_code => :P40_CODE, p_name_ar => :P40_NAME_AR,',
+    "                   p_object_type => :P40_OBJECT_TYPE, p_kind => nvl(:P40_KIND, 'APPROVAL'));",
+    '    -- إصدار أول بخطوتي البداية والنهاية',
+    '    l_ver := noona_workflow_pkg.new_version(:P41_ID);',
+    "    l_id := noona_workflow_pkg.add_step(l_ver, 'START', 'START', 'بداية');",
+    "    l_id := noona_workflow_pkg.add_step(l_ver, 'END', 'END', 'نهاية');",
+    'end;'], when_button=b, success='تم إنشاء المسار؛ أضف خطوات الاعتماد ثم انشر الإصدار')
+p.branch(10, 'f?p=&APP_ID.:41:&SESSION.::&DEBUG.::P41_ID:&P41_ID.&success_msg=#SUCCESS_MSG#', when_button=b)
+
+# =============================================================== 41) المسار وإصداراته
+p = app.page(41, 'Workflow', 'WORKFLOW', 'مسار الاعتماد', scheme=ADMIN)
+hdr = p.static('المسار', 10)
+p.hidden('P41_ID', hdr, 1)
+p.hidden('P41_IS_DRAFT', hdr, 2)
+p.display('P41_NAME', hdr, 10, 'المسار')
+p.select('P41_VERSION_ID', hdr, 20, 'الإصدار', null_text=None, submit=True, lov_sql=(
+    "select 'الإصدار ' || version_no || ' - ' || noona_ui_pkg.status_label(status_code) d, id r "
+    "from wf_definition_version where definition_id = :P41_ID order by version_no desc"))
+b_pub = p.button(hdr, 10, 'PUBLISH', 'نشر الإصدار', hot=True, condition=":P41_IS_DRAFT = 'Y'")
+b_new = p.button(hdr, 20, 'NEW_VERSION', 'إصدار جديد (نسخ المنشور)', condition=":P41_IS_DRAFT = 'N'")
+p.button(hdr, 30, 'BACK', 'رجوع', redirect=back(40))
+p.process(10, 'BEFORE_HEADER', 'Load Workflow', [
+    "select name_ar || ' (' || code || ')' into :P41_NAME from wf_definition where id = :P41_ID;",
+    'declare l_n number;',
+    'begin',
+    '    select count(*) into l_n from wf_definition_version where definition_id = :P41_ID and id = :P41_VERSION_ID;',
+    '    if l_n = 0 then   -- الافتراضي: المسودة إن وجدت وإلا أحدث إصدار',
+    "        select max(id) keep (dense_rank last order by case status_code when 'DRAFT' then 1 else 0 end, version_no)",
+    '          into :P41_VERSION_ID from wf_definition_version where definition_id = :P41_ID;',
+    '    end if;',
+    'end;',
+    "select case max(status_code) when 'DRAFT' then 'Y' else 'N' end into :P41_IS_DRAFT",
+    '  from wf_definition_version where id = :P41_VERSION_ID;'])
+p.process(10, 'AFTER_SUBMIT', 'Publish', 'noona_workflow_pkg.publish_version(:P41_VERSION_ID);',
+          when_button=b_pub, success='تم نشر الإصدار؛ يطبق على الطلبات الجديدة')
+p.process(20, 'AFTER_SUBMIT', 'New Version', ':P41_VERSION_ID := noona_workflow_pkg.copy_version(:P41_ID);',
+          when_button=b_new, success='تم إنشاء إصدار مسودة منسوخ من الإصدار المنشور')
+p.dynamic('مخطط المسار', 15, 'return noona_ui_pkg.workflow_diagram(:P41_VERSION_ID);')
+p.ir('الخطوات', 20, [
+    'select s.id, s.step_code, s.name_ar, noona_ui_pkg.code_label(s.step_type) as step_type,',
+    '       noona_ui_pkg.assignee_label(s.assignee_rule, s.assignee_ref_id) as assignee,',
+    '       noona_ui_pkg.code_label(s.allow_self_approval) as allow_self',
+    '  from wf_step_def s where s.version_id = :P41_VERSION_ID'],
+    [('ID', '#', {'hidden': True, 'type': 'NUMBER'}), ('STEP_CODE', 'الرمز', {}), ('NAME_AR', 'الخطوة', {}),
+     ('STEP_TYPE', 'النوع', {}), ('ASSIGNEE', 'المكلف', {}), ('ALLOW_SELF', 'يعتمد طلبه بنفسه', {})], titled=True)
+p.ir('الانتقالات', 25, [
+    'select x.id, f.name_ar as from_name, noona_ui_pkg.code_label(nvl(x.outcome_code, \'-\')) as outcome, t.name_ar as to_name,',
+    '       noona_ui_pkg.code_label(x.is_default) as is_default, r.name_ar as rule_name',
+    '  from wf_transition_def x join wf_step_def f on f.id = x.from_step_id join wf_step_def t on t.id = x.to_step_id',
+    '  left join wf_rule r on r.id = x.rule_id where x.version_id = :P41_VERSION_ID'],
+    [('ID', '#', {'hidden': True, 'type': 'NUMBER'}), ('FROM_NAME', 'من', {}), ('OUTCOME', 'عند', {}), ('TO_NAME', 'إلى', {}),
+     ('IS_DEFAULT', 'افتراضي', {}), ('RULE_NAME', 'بشرط', {})], titled=True)
+STEPS_LOV = ("select name_ar || ' (' || step_code || ')' d, step_code r from wf_step_def "
+             "where version_id = :P41_VERSION_ID order by id")
+st = p.static('إضافة خطوة', 30, condition=":P41_IS_DRAFT = 'Y'")
+p.text('P41_STEP_CODE', st, 10, 'رمز الخطوة', maxlen=50, width=20)
+p.text('P41_STEP_NAME', st, 20, 'اسم الخطوة')
+p.select('P41_STEP_TYPE', st, 30, 'نوع الخطوة', null_text=None, lov_sql=(
+    'STATIC2:اعتماد;APPROVAL,مراجعة;REVIEW,مهمة;USER_TASK,إشعار;NOTIFICATION,قرار;DECISION,خطوة نظامية;SYSTEM,نهاية;END'))
+p.select('P41_RULE', st, 40, 'المكلف', lov_sql=(
+    'STATIC2:المدير المباشر للطالب;MANAGER,رئيس وحدة تنظيمية;HEAD_POSITION,شاغل منصب;POSITION,'
+    'أعضاء دور;ROLE,مستخدم محدد;USER,الطالب نفسه;REQUESTER'))
+p.select('P41_REF', st, 50, 'تحديد المكلف', cascade='P41_RULE', lov_sql=(
+    "select d, r from ("
+    "select u.display_name d, m.id r, 'USER' k from sec_user_membership m join sec_user u on u.id = m.user_id where m.status_code = 'ACTIVE' "
+    "union all select p.name_ar, p.id, 'POSITION' from org_position p where p.status_code <> 'CLOSED' "
+    "union all select o.name_ar, o.id, 'HEAD_POSITION' from org_unit o "
+    "union all select r.name_ar, r.id, 'ROLE' from sec_role r where r.status_code = 'ACTIVE'"
+    ") where k = :P41_RULE order by 1"))
+p.yesno('P41_ALLOW_SELF', st, 60, 'يسمح أن يعتمد طلبه بنفسه')
+b_step = p.button(st, 10, 'ADD_STEP', 'إضافة الخطوة', hot=True)
+p.process(30, 'AFTER_SUBMIT', 'Add Step', [
+    'declare l_id number;',
+    'begin',
+    '    l_id := noona_workflow_pkg.add_step(p_version_id => :P41_VERSION_ID, p_step_code => :P41_STEP_CODE,',
+    '                p_step_type => :P41_STEP_TYPE, p_name_ar => :P41_STEP_NAME, p_assignee_rule => :P41_RULE,',
+    "                p_assignee_ref_id => :P41_REF, p_allow_self => nvl(:P41_ALLOW_SELF, 'N'));",
+    'end;'], when_button=b_step, success='تمت إضافة الخطوة؛ اربطها بالانتقالات')
+tr = p.static('ربط الخطوات (انتقال)', 35, condition=":P41_IS_DRAFT = 'Y'")
+p.select('P41_FROM', tr, 10, 'من الخطوة', lov_sql=STEPS_LOV)
+p.select('P41_TO', tr, 20, 'إلى الخطوة', lov_sql=STEPS_LOV)
+p.select('P41_OUTCOME', tr, 30, 'عند', null_text='أي نتيجة', lov_sql='STATIC2:الاعتماد;APPROVED,الرفض;REJECTED,الإعادة;RETURNED')
+p.select('P41_RULE_ID', tr, 40, 'بشرط (اختياري)', lov_sql="select name_ar || ' (' || code || ')' d, id r from wf_rule order by 1")
+p.yesno('P41_IS_DEFAULT', tr, 50, 'انتقال افتراضي')
+b_tr = p.button(tr, 10, 'ADD_TRANSITION', 'إضافة الانتقال', hot=True)
+p.process(40, 'AFTER_SUBMIT', 'Add Transition',
+          "noona_workflow_pkg.add_transition(:P41_VERSION_ID, :P41_FROM, :P41_TO, :P41_OUTCOME, nvl(:P41_IS_DEFAULT, 'N'), :P41_RULE_ID);",
+          when_button=b_tr, success='تمت إضافة الانتقال')
+rm = p.static('حذف من المسودة', 40, condition=":P41_IS_DRAFT = 'Y'")
+p.select('P41_RM_STEP', rm, 10, 'خطوة', lov_sql=(
+    "select name_ar || ' (' || step_code || ')' d, id r from wf_step_def where version_id = :P41_VERSION_ID "
+    "and step_type not in ('START') order by id"))
+p.select('P41_RM_TR', rm, 20, 'انتقال', lov_sql=(
+    "select f.name_ar || ' ← ' || t.name_ar || nvl2(x.outcome_code, ' (' || noona_ui_pkg.code_label(x.outcome_code) || ')', '') d, x.id r "
+    "from wf_transition_def x join wf_step_def f on f.id = x.from_step_id join wf_step_def t on t.id = x.to_step_id "
+    "where x.version_id = :P41_VERSION_ID order by x.id"))
+b_rs = p.button(rm, 10, 'REMOVE_STEP', 'حذف الخطوة')
+b_rt = p.button(rm, 20, 'REMOVE_TRANSITION', 'حذف الانتقال')
+p.process(50, 'AFTER_SUBMIT', 'Remove Step', 'noona_workflow_pkg.remove_step(:P41_RM_STEP);', when_button=b_rs,
+          success='تم حذف الخطوة وانتقالاتها')
+p.process(60, 'AFTER_SUBMIT', 'Remove Transition', 'noona_workflow_pkg.remove_transition(:P41_RM_TR);', when_button=b_rt,
+          success='تم حذف الانتقال')
+p.branch(10, 'f?p=&APP_ID.:41:&SESSION.::&DEBUG.:41:P41_ID,P41_VERSION_ID:&P41_ID.,&P41_VERSION_ID.&success_msg=#SUCCESS_MSG#')
+
+# =============================================================== 42) شروط التوجيه
+p = app.page(42, 'Rules', 'RULES', 'شروط التوجيه', scheme=ADMIN)
+p.ir('شروط التوجيه', 10, [
+    'select id, code, name_ar, dbms_lob.substr(rule_expression, 400, 1) as expression,',
+    '       noona_ui_pkg.status_badge(status_code) as status_html from wf_rule'],
+    [('ID', '#', {'hidden': True, 'type': 'NUMBER'}), ('CODE', 'الرمز', {}), ('NAME_AR', 'الشرط', {}),
+     ('EXPRESSION', 'التعبير', {}), ('STATUS_HTML', 'الحالة', {'html': True})])
+f = p.static('شرط جديد (مثال: المبلغ أكبر من أو يساوي 10000)', 20)
+p.text('P42_CODE', f, 10, 'الرمز', required=True, maxlen=50, width=20)
+p.text('P42_NAME_AR', f, 20, 'اسم الشرط', required=True)
+p.select('P42_FIELD', f, 30, 'الحقل', null_text=None, lov_sql=(
+    'STATIC2:المبلغ;amount,العملة;currency,الأولوية;priority,الشركة;company_id,الفرع;branch_id,نوع المستند;document_type'))
+p.select('P42_OP', f, 40, 'المقارنة', null_text=None, lov_sql=(
+    'STATIC2:أكبر من أو يساوي;>=,أكبر من;>,أصغر من;<,أصغر من أو يساوي;<=,يساوي;=,لا يساوي;!=,ضمن القائمة;in'))
+p.text('P42_VALUE', f, 50, 'القيمة (للقائمة افصل بفاصلة)', required=True)
+b = p.button(f, 10, 'CREATE', 'إنشاء الشرط', hot=True)
+p.process(10, 'AFTER_SUBMIT', 'Create Rule', [
+    'declare',
+    '    l_val varchar2(4000);',
+    '    l_id  number;',
+    'begin',
+    "    if :P42_OP = 'in' then",
+    "        select '[' || listagg(case when validate_conversion(trim(column_value) as number) = 1 then trim(column_value)",
+    "                                   else '\"' || replace(trim(column_value), '\"') || '\"' end, ',') || ']'",
+    "          into l_val from table(apex_string.split(:P42_VALUE, ','));",
+    '    elsif validate_conversion(:P42_VALUE as number) = 1 then',
+    '        l_val := :P42_VALUE;',
+    '    else',
+    "        l_val := '\"' || replace(:P42_VALUE, '\"') || '\"';",
+    '    end if;',
+    "    l_id := noona_workflow_pkg.create_rule(:P42_CODE, :P42_NAME_AR,",
+    "        '{\"field\":\"' || :P42_FIELD || '\",\"op\":\"' || :P42_OP || '\",\"value\":' || l_val || '}');",
+    'end;'], when_button=b, success='تم إنشاء الشرط؛ استخدمه في انتقالات المسار')
+
+# =============================================================== 43) التفويضات
+p = app.page(43, 'Delegations', 'DELEGATIONS', 'التفويضات', scheme=ADMIN)
+p.ir('التفويضات', 10, [
+    'select d.id, d.delegation_no, noona_ui_pkg.code_label(d.delegation_type) as dtype,',
+    '       (select u.display_name from sec_user_membership m join sec_user u on u.id = m.user_id where m.id = d.grantor_member_id) as grantor,',
+    '       (select u.display_name from sec_user_membership m join sec_user u on u.id = m.user_id where m.id = d.delegate_member_id) as delegate,',
+    '       d.starts_at, d.ends_at, d.reason, noona_ui_pkg.status_badge(d.status_code) as status_html',
+    '  from dlg_delegation d'],
+    [('ID', '#', {'hidden': True, 'type': 'NUMBER'}), ('DELEGATION_NO', 'الرقم', {}), ('DTYPE', 'النوع', {}),
+     ('GRANTOR', 'المانح', {}), ('DELEGATE', 'المفوض إليه', {}), ('STARTS_AT', 'من', {'type': 'DATE'}),
+     ('ENDS_AT', 'إلى', {'type': 'DATE'}), ('REASON', 'السبب', {}), ('STATUS_HTML', 'الحالة', {'html': True})],
+    link='f?p=&APP_ID.:44:&SESSION.::&DEBUG.:RP,44:P44_ID:#ID#')
+f = p.static('تفويض جديد', 20)
+p.select('P43_TYPE', f, 10, 'نوع التفويض', null_text=None, lov_sql=(
+    'STATIC2:اعتماد;APPROVAL,مالي;FINANCIAL,تشغيلي;OPERATIONAL,إداري;ADMINISTRATIVE,مراسلات;CORRESPONDENCE,'
+    'توقيع;SIGNATURE,بالإنابة;ACTING,طارئ;EMERGENCY'))
+p.select('P43_GRANTOR', f, 20, 'المانح', required=True, lov_sql=MEMBER_LOV)
+p.select('P43_DELEGATE', f, 30, 'المفوض إليه', required=True, lov_sql=MEMBER_LOV)
+p.date('P43_FROM', f, 40, 'من تاريخ', required=True)
+p.date('P43_TO', f, 50, 'إلى تاريخ', required=True)
+p.textarea('P43_REASON', f, 60, 'السبب', required=True, rows=2)
+b = p.button(f, 10, 'CREATE', 'إنشاء التفويض', hot=True)
+p.process(10, 'BEFORE_HEADER', 'Defaults', [
+    "    :P43_GRANTOR := nvl(:P43_GRANTOR, sys_context('NOONA_CTX', 'MEMBERSHIP_ID'));",
+    "    :P43_FROM := nvl(:P43_FROM, to_char(sysdate, 'YYYY-MM-DD'));"])
+p.process(10, 'AFTER_SUBMIT', 'Create Delegation', [
+    ':P44_ID := noona_delegation_pkg.create_delegation(',
+    "    p_delegation_type => nvl(:P43_TYPE, 'APPROVAL'), p_grantor_member_id => :P43_GRANTOR,",
+    "    p_delegate_member_id => :P43_DELEGATE, p_starts_at => to_date(:P43_FROM, 'YYYY-MM-DD'),",
+    "    p_ends_at => to_date(:P43_TO, 'YYYY-MM-DD') + 1 - 1 / 86400, p_reason => :P43_REASON);"],
+    when_button=b, success='تم إنشاء التفويض كمسودة؛ حدد نطاقه وحدوده ثم أرسله للاعتماد')
+p.branch(10, 'f?p=&APP_ID.:44:&SESSION.::&DEBUG.::P44_ID:&P44_ID.&success_msg=#SUCCESS_MSG#', when_button=b)
+
+# =============================================================== 44) التفويض
+p = app.page(44, 'Delegation', 'DELEGATION', 'التفويض', scheme=ADMIN)
+p.dynamic('ملخص التفويض', 10, 'return noona_ui_pkg.delegation_header(:P44_ID);', hide_header=True)
+hdr = p.static('إجراءات التفويض', 15)
+p.hidden('P44_ID', hdr, 1)
+p.hidden('P44_STATUS_CODE', hdr, 2)
+p.hidden('P44_CAN_DECIDE', hdr, 3)
+p.textarea('P44_REASON', hdr, 10, 'السبب أو الملاحظة (إلزامي للرفض والإلغاء والإيقاف)', rows=2)
+b_sub = p.button(hdr, 10, 'SUBMIT', 'إرسال للاعتماد', hot=True, condition=":P44_STATUS_CODE = 'DRAFT'")
+b_app = p.button(hdr, 20, 'APPROVE', 'اعتماد', hot=True, condition=":P44_STATUS_CODE = 'SUBMITTED' and :P44_CAN_DECIDE = 'Y'")
+b_rej = p.button(hdr, 30, 'REJECT', 'رفض', condition=":P44_STATUS_CODE = 'SUBMITTED' and :P44_CAN_DECIDE = 'Y'")
+b_sus = p.button(hdr, 40, 'SUSPEND', 'إيقاف مؤقت', condition=":P44_STATUS_CODE = 'ACTIVE'")
+b_rev = p.button(hdr, 50, 'REVOKE', 'إلغاء التفويض', condition=":P44_STATUS_CODE in ('APPROVED', 'SCHEDULED', 'ACTIVE', 'SUSPENDED')")
+p.button(hdr, 60, 'BACK', 'رجوع', redirect=back(43))
+p.process(10, 'BEFORE_HEADER', 'Load Delegation', [
+    '-- المانح والمفوض إليه لا يعتمدان التفويض (NOONA-DLG-041): تخفى أزرار القرار عنهما',
+    "select status_code, case when sys_context('NOONA_CTX', 'MEMBERSHIP_ID') in (grantor_member_id, delegate_member_id)",
+    "                         then 'N' else 'Y' end",
+    '  into :P44_STATUS_CODE, :P44_CAN_DECIDE from dlg_delegation where id = :P44_ID;'])
+for seq, btn, code, msg in [(10, b_sub, 'noona_delegation_pkg.submit(:P44_ID);', 'تم إرسال التفويض للاعتماد'),
+                            (20, b_app, 'noona_delegation_pkg.approve(:P44_ID, :P44_REASON);', 'تم اعتماد التفويض'),
+                            (30, b_rej, 'noona_delegation_pkg.reject(:P44_ID, :P44_REASON);', 'تم رفض التفويض'),
+                            (40, b_sus, 'noona_delegation_pkg.suspend(:P44_ID, :P44_REASON);', 'تم إيقاف التفويض مؤقتاً'),
+                            (50, b_rev, 'noona_delegation_pkg.revoke_delegation(:P44_ID, :P44_REASON);', 'تم إلغاء التفويض')]:
+    p.process(seq, 'AFTER_SUBMIT', f'Delegation Action {seq}', code, when_button=btn, success=msg)
+p.ir('نطاق التفويض', 20, [
+    'select s.id, noona_ui_pkg.code_label(s.dimension_code) as dimension,',
+    '       coalesce(s.value_code, (select nvl(c.trade_name_ar, c.legal_name_ar) from org_company c',
+    "                                where s.dimension_code = 'COMPANY' and c.id = s.value_id),",
+    "                (select b.name_ar from org_branch b where s.dimension_code = 'BRANCH' and b.id = s.value_id),",
+    "                (select o.name_ar from org_unit o where s.dimension_code = 'ORG_UNIT' and o.id = s.value_id),",
+    '                to_char(s.value_id)) as scope_value',
+    '  from dlg_scope s where s.delegation_id = :P44_ID'],
+    [('ID', '#', {'hidden': True, 'type': 'NUMBER'}), ('DIMENSION', 'البعد', {}), ('SCOPE_VALUE', 'القيمة', {})], titled=True)
+sc = p.static('تحديد النطاق والحدود (للمسودة)', 25, condition=":P44_STATUS_CODE = 'DRAFT'")
+p.select('P44_DIM', sc, 10, 'البعد', lov_sql=(
+    'STATIC2:شركة;COMPANY,فرع;BRANCH,وحدة تنظيمية;ORG_UNIT,وحدة النظام;MODULE,مسار اعتماد;WORKFLOW,إجراء;ACTION'))
+p.select('P44_VAL', sc, 20, 'القيمة', cascade='P44_DIM', lov_sql=(
+    "select d, r from ("
+    "select nvl(trade_name_ar, legal_name_ar) d, 'ID:' || id r, 'COMPANY' k from org_company "
+    "union all select name_ar, 'ID:' || id, 'BRANCH' from org_branch where status_code = 'ACTIVE' "
+    "union all select name_ar, 'ID:' || id, 'ORG_UNIT' from org_unit "
+    "union all select module_code || ' - ' || name_ar, 'CODE:' || module_code, 'MODULE' from plt_module "
+    "union all select name_ar, 'CODE:' || code, 'WORKFLOW' from wf_definition "
+    "union all select noona_ui_pkg.action_label(column_value), 'CODE:' || column_value, 'ACTION' from table(sys.odcivarchar2list("
+    "'APPROVE','REJECT','SUBMIT','POST','SIGN','VIEW')) "
+    ") where k = :P44_DIM order by 1"))
+b_sc = p.button(sc, 10, 'ADD_SCOPE', 'إضافة للنطاق')
+p.select('P44_CURRENCY', sc, 30, 'عملة الحد', lov_name='NOONA_CURRENCIES')
+p.number('P44_MAX_TXN', sc, 40, 'الحد الأقصى للمعاملة')
+p.number('P44_MAX_CUM', sc, 50, 'الحد التراكمي')
+b_lim = p.button(sc, 20, 'SET_LIMIT', 'حفظ الحد المالي')
+p.process(60, 'AFTER_SUBMIT', 'Add Scope', [
+    'noona_delegation_pkg.add_scope(p_delegation_id => :P44_ID, p_dimension => :P44_DIM,',
+    "    p_value_id => case when :P44_VAL like 'ID:%' then to_number(substr(:P44_VAL, 4)) end,",
+    "    p_value_code => case when :P44_VAL like 'CODE:%' then substr(:P44_VAL, 6) end);"],
+    when_button=b_sc, success='تمت إضافة النطاق')
+p.process(70, 'AFTER_SUBMIT', 'Set Limit',
+          'noona_delegation_pkg.set_limit(:P44_ID, :P44_CURRENCY, :P44_MAX_TXN, :P44_MAX_CUM);',
+          when_button=b_lim, success='تم حفظ الحد المالي')
+p.ir('سجل الاستخدام', 30, [
+    'select e.id, e.created_at, noona_ui_pkg.action_label(e.action_code) as action_name, e.entity_type, e.entity_id,',
+    '       e.amount, e.currency_code, e.result_code,',
+    '       (select u.display_name from sec_user_membership m join sec_user u on u.id = m.user_id where m.id = e.actor_member_id) as actor',
+    '  from dlg_exercise_event e where e.delegation_id = :P44_ID'],
+    [('ID', '#', {'hidden': True, 'type': 'NUMBER'}), ('CREATED_AT', 'الوقت', {'type': 'DATE'}), ('ACTION_NAME', 'الإجراء', {}),
+     ('ENTITY_TYPE', 'المستند', {}), ('ENTITY_ID', 'رقمه', {'type': 'NUMBER'}), ('AMOUNT', 'المبلغ', {'type': 'NUMBER'}),
+     ('CURRENCY_CODE', 'العملة', {}), ('RESULT_CODE', 'النتيجة', {}), ('ACTOR', 'المنفذ', {})], titled=True)
+p.branch(10, 'f?p=&APP_ID.:44:&SESSION.::&DEBUG.:44:P44_ID:&P44_ID.&success_msg=#SUCCESS_MSG#')
+
 sec = app.nav_item('المستخدمون والصلاحيات', None, 'fa-users', 40)
 app.nav_item('المستخدمون', 30, 'fa-user', 41, parent=sec)
 app.nav_item('الأدوار والصلاحيات', 32, 'fa-key', 42, parent=sec)
+
+wfn = app.nav_item('مسارات الاعتماد والتفويض', None, 'fa-sitemap', 50)
+app.nav_item('مسارات الاعتماد', 40, 'fa-random', 51, parent=wfn)
+app.nav_item('شروط التوجيه', 42, 'fa-filter', 52, parent=wfn)
+app.nav_item('التفويضات', 43, 'fa-share', 53, parent=wfn)
 
 app.finalize()
 print('NOONA_ADMIN built:', len(app.pages), 'pages')

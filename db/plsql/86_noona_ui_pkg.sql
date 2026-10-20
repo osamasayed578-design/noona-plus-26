@@ -34,6 +34,12 @@ CREATE OR REPLACE PACKAGE NOONA_UI_PKG AUTHID DEFINER AS
   FUNCTION permission_matrix(p_role_id IN NUMBER, p_module_code IN VARCHAR2) RETURN CLOB;
   FUNCTION action_label(p_action IN VARCHAR2) RETURN VARCHAR2 DETERMINISTIC;
 
+  -- مسارات الاعتماد: اسم المكلف حسب قاعدة الإسناد، ومخطط الإصدار (خطوات مرتبة من البداية مع الانتقالات)
+  FUNCTION assignee_label(p_rule IN VARCHAR2, p_ref_id IN NUMBER) RETURN VARCHAR2;
+  FUNCTION workflow_diagram(p_version_id IN NUMBER) RETURN CLOB;
+  -- بطاقة ملخص التفويض: المانح والمفوض إليه والمدة والحالة والحدود
+  FUNCTION delegation_header(p_delegation_id IN NUMBER) RETURN CLOB;
+
   -- صفحة المهمة
   FUNCTION task_header(p_task_id IN NUMBER) RETURN CLOB;
   FUNCTION task_timeline(p_task_id IN NUMBER) RETURN CLOB;
@@ -369,6 +375,132 @@ CREATE OR REPLACE PACKAGE BODY NOONA_UI_PKG AS
     RETURN l_html;
   END permission_matrix;
 
+  -- ---------------------------------------------------------- مسارات الاعتماد
+  FUNCTION assignee_label(p_rule IN VARCHAR2, p_ref_id IN NUMBER) RETURN VARCHAR2 IS
+    l_name VARCHAR2(400);
+  BEGIN
+    IF p_rule IS NULL THEN
+      RETURN NULL;
+    ELSIF p_ref_id IS NULL THEN
+      RETURN code_label(p_rule);
+    END IF;
+    BEGIN
+      CASE
+        WHEN p_rule = 'USER' THEN
+          SELECT u.display_name INTO l_name FROM sec_user_membership m JOIN sec_user u ON u.id = m.user_id WHERE m.id = p_ref_id;
+        WHEN p_rule = 'POSITION' THEN
+          SELECT name_ar INTO l_name FROM org_position WHERE id = p_ref_id;
+        WHEN p_rule = 'HEAD_POSITION' THEN                       -- المرجع وحدة تنظيمية: رئيسها
+          SELECT name_ar INTO l_name FROM org_unit WHERE id = p_ref_id;
+        WHEN p_rule = 'ROLE' THEN
+          SELECT name_ar INTO l_name FROM sec_role WHERE id = p_ref_id;
+        WHEN p_rule = 'ORG_UNIT' THEN
+          SELECT name_ar INTO l_name FROM org_unit WHERE id = p_ref_id;
+        ELSE
+          NULL;
+      END CASE;
+    EXCEPTION WHEN NO_DATA_FOUND THEN
+      l_name := '#' || p_ref_id;
+    END;
+    RETURN code_label(p_rule) || CASE WHEN l_name IS NOT NULL THEN ': ' || l_name END;
+  END assignee_label;
+
+  FUNCTION workflow_diagram(p_version_id IN NUMBER) RETURN CLOB IS
+    TYPE t_num IS TABLE OF NUMBER INDEX BY PLS_INTEGER;
+    l_depth t_num;                  -- عمق كل خطوة من البداية (BFS)
+    l_queue t_num;
+    l_head  PLS_INTEGER := 1;
+    l_tail  PLS_INTEGER := 0;
+    l_start NUMBER;
+    l_max   PLS_INTEGER := 0;
+    l_html  CLOB;
+    l_cnt   PLS_INTEGER := 0;
+  BEGIN
+    SELECT MIN(id) INTO l_start FROM wf_step_def WHERE version_id = p_version_id AND step_type = 'START';
+    IF l_start IS NULL THEN
+      RETURN '<div class="nn-empty">أضف خطوة البداية (START) لعرض المخطط</div>';
+    END IF;
+    l_depth(l_start) := 0; l_tail := 1; l_queue(1) := l_start;
+    WHILE l_head <= l_tail LOOP
+      FOR t IN (SELECT DISTINCT to_step_id FROM wf_transition_def
+                 WHERE version_id = p_version_id AND from_step_id = l_queue(l_head)) LOOP
+        IF NOT l_depth.EXISTS(t.to_step_id) THEN
+          l_depth(t.to_step_id) := l_depth(l_queue(l_head)) + 1;
+          l_max := GREATEST(l_max, l_depth(t.to_step_id));
+          l_tail := l_tail + 1; l_queue(l_tail) := t.to_step_id;
+        END IF;
+      END LOOP;
+      l_head := l_head + 1;
+    END LOOP;
+    l_html := '<div class="nn-flow">';
+    FOR d IN 0 .. l_max LOOP
+      l_html := l_html || '<div class="nn-flow-row">';
+      FOR s IN (SELECT * FROM wf_step_def WHERE version_id = p_version_id ORDER BY id) LOOP
+        IF l_depth.EXISTS(s.id) AND l_depth(s.id) = d THEN
+          l_cnt := l_cnt + 1;
+          l_html := l_html || '<div class="nn-flow-node is-' || LOWER(s.step_type) || '">'
+                 || CASE WHEN s.step_type NOT IN ('START', 'END')
+                      THEN '<div class="nn-flow-type">' || esc(code_label(s.step_type)) || '</div>' END
+                 || '<div class="nn-flow-name">' || esc(s.name_ar) || '</div>'
+                 || CASE WHEN s.assignee_rule IS NOT NULL
+                      THEN '<div class="nn-flow-who"><span class="fa fa-user" aria-hidden="true"></span> '
+                           || esc(assignee_label(s.assignee_rule, s.assignee_ref_id)) || '</div>' END;
+          FOR t IN (SELECT x.outcome_code, x.is_default, n.name_ar, r.name_ar AS rule_name
+                      FROM wf_transition_def x JOIN wf_step_def n ON n.id = x.to_step_id
+                      LEFT JOIN wf_rule r ON r.id = x.rule_id
+                     WHERE x.from_step_id = s.id ORDER BY x.sort_order, x.id) LOOP
+            l_html := l_html || '<div class="nn-flow-out">&#8595; '
+                   || esc(NVL(code_label(t.outcome_code), 'التالي'))
+                   || CASE WHEN t.rule_name IS NOT NULL THEN ' (إذا ' || esc(t.rule_name) || ')'
+                           WHEN t.is_default = 'Y' THEN ' (افتراضي)' END
+                   || ' &larr; ' || esc(t.name_ar) || '</div>';
+          END LOOP;
+          l_html := l_html || '</div>';
+        END IF;
+      END LOOP;
+      l_html := l_html || '</div>';
+    END LOOP;
+    -- خطوات غير متصلة بالبداية
+    FOR s IN (SELECT * FROM wf_step_def WHERE version_id = p_version_id ORDER BY id) LOOP
+      IF NOT l_depth.EXISTS(s.id) THEN
+        l_html := l_html || '<div class="nn-flow-row"><div class="nn-flow-node is-orphan"><div class="nn-flow-type">غير متصلة</div>'
+               || '<div class="nn-flow-name">' || esc(s.name_ar) || '</div></div></div>';
+      END IF;
+    END LOOP;
+    RETURN l_html || '</div>';
+  END workflow_diagram;
+
+  FUNCTION delegation_header(p_delegation_id IN NUMBER) RETURN CLOB IS
+    l_d   dlg_delegation%ROWTYPE;
+    l_g   VARCHAR2(400);
+    l_t   VARCHAR2(400);
+    l_lim VARCHAR2(1000);
+  BEGIN
+    SELECT * INTO l_d FROM dlg_delegation WHERE id = p_delegation_id;
+    SELECT MAX(CASE WHEN m.id = l_d.grantor_member_id THEN u.display_name END),
+           MAX(CASE WHEN m.id = l_d.delegate_member_id THEN u.display_name END)
+      INTO l_g, l_t
+      FROM sec_user_membership m JOIN sec_user u ON u.id = m.user_id
+     WHERE m.id IN (l_d.grantor_member_id, l_d.delegate_member_id);
+    FOR l IN (SELECT * FROM dlg_limit WHERE delegation_id = p_delegation_id ORDER BY id) LOOP
+      l_lim := l_lim || CASE WHEN l_lim IS NOT NULL THEN '، ' END || fmt_amount(l.max_per_transaction, l.currency_code)
+            || ' للمعاملة' || CASE WHEN l.max_cumulative IS NOT NULL
+                                   THEN ' / ' || fmt_amount(l.max_cumulative, l.currency_code) || ' تراكمي' END;
+    END LOOP;
+    RETURN '<div class="nn-taskhead is-info"><div class="nn-taskhead-top"><div>'
+        || '<div class="nn-taskhead-title">' || esc(code_label(l_d.delegation_type)) || ' &middot; ' || esc(l_d.delegation_no) || '</div>'
+        || '<div class="nn-taskhead-sub"><span class="fa fa-user" aria-hidden="true"></span> ' || esc(l_g)
+        || ' &larr; <span class="fa fa-share" aria-hidden="true"></span> ' || esc(l_t) || '</div></div>'
+        || status_badge(l_d.status_code) || '</div><div class="nn-fields">'
+        || '<div class="nn-field"><div class="nn-field-label">من</div><div class="nn-field-value">' || TO_CHAR(l_d.starts_at, 'YYYY-MM-DD') || '</div></div>'
+        || '<div class="nn-field"><div class="nn-field-label">إلى</div><div class="nn-field-value">' || NVL(TO_CHAR(l_d.ends_at, 'YYYY-MM-DD'), '-') || '</div></div>'
+        || '<div class="nn-field"><div class="nn-field-label">الحد المالي</div><div class="nn-field-value">' || NVL(l_lim, 'بدون حد') || '</div></div>'
+        || '<div class="nn-field"><div class="nn-field-label">السبب</div><div class="nn-field-value">' || esc(l_d.reason) || '</div></div>'
+        || '</div></div>';
+  EXCEPTION WHEN NO_DATA_FOUND THEN
+    RETURN '<div class="nn-empty">التفويض غير موجود</div>';
+  END delegation_header;
+
   FUNCTION code_label(p_code IN VARCHAR2) RETURN VARCHAR2 DETERMINISTIC IS
   BEGIN
     RETURN CASE p_code
@@ -390,7 +522,15 @@ CREATE OR REPLACE PACKAGE BODY NOONA_UI_PKG AS
       WHEN 'DECISION' THEN 'قرار' WHEN 'USER_TASK' THEN 'مهمة' WHEN 'NOTIFICATION' THEN 'إشعار'
       WHEN 'USER' THEN 'مستخدم محدد' WHEN 'REQUESTER' THEN 'الطالب' WHEN 'MANAGER' THEN 'المدير المباشر'
       WHEN 'HEAD_POSITION' THEN 'رئيس الوحدة' WHEN 'POSITION' THEN 'منصب' WHEN 'ROLE' THEN 'دور'
-      WHEN 'AUTHORITY_MATRIX' THEN 'مصفوفة الصلاحيات'
+      WHEN 'AUTHORITY_MATRIX' THEN 'مصفوفة الصلاحيات' WHEN 'ORG_UNIT' THEN 'وحدة تنظيمية'
+      WHEN 'SYSTEM' THEN 'خطوة نظامية' WHEN 'TIMER' THEN 'مؤقت' WHEN 'PARALLEL_SPLIT' THEN 'تفرع متوازٍ'
+      WHEN 'PARALLEL_JOIN' THEN 'دمج متوازٍ' WHEN 'SIGNATURE' THEN 'توقيع' WHEN 'POSTING' THEN 'ترحيل'
+      WHEN 'ROUTING' THEN 'توجيه' WHEN 'TASK' THEN 'مهام' WHEN 'CASE' THEN 'حالة' WHEN 'CHECKLIST' THEN 'قائمة تحقق'
+      WHEN 'DOCUMENT' THEN 'مستندات' WHEN 'ALL' THEN 'الجميع' WHEN 'ANY' THEN 'أي واحد' WHEN 'MAJORITY' THEN 'الأغلبية'
+      WHEN 'APPROVED' THEN 'عند الاعتماد' WHEN 'REJECTED' THEN 'عند الرفض' WHEN 'RETURNED' THEN 'عند الإعادة'
+      WHEN 'ACCESS' THEN 'وصول' WHEN 'EMERGENCY' THEN 'طارئ'
+      WHEN 'MODULE' THEN 'وحدة النظام' WHEN 'WORKFLOW' THEN 'مسار اعتماد' WHEN 'ACTION' THEN 'إجراء'
+      WHEN 'TRANSACTION_TYPE' THEN 'نوع المعاملة' WHEN 'REQUEST_TYPE' THEN 'نوع الطلب' WHEN 'MAX_CONFIDENTIALITY' THEN 'أعلى سرية'
       ELSE p_code END;
   END code_label;
 
