@@ -39,6 +39,7 @@ sqlplus NOONA_OWNER@//HOST:1521/PDB         @seed/90_demo_tenant_DEV_ONLY.sql
 # 5) (اختياري - تطوير فقط) الاختبارات
 sqlplus NOONA_OWNER@//HOST:1521/PDB         @tests/test_phase1.sql
 sqlplus NOONA_APP@//HOST:1521/PDB           @tests/test_apex_pkg.sql
+sqlplus NOONA_APP@//HOST:1521/PDB           @tests/test_portal.sql
 ```
 
 غيّر كلمات المرور الافتراضية في `db/admin/00_create_schemas.sql` قبل التشغيل.

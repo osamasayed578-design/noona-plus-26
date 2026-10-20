@@ -80,3 +80,21 @@ Schemes) والقوائم المشتركة (LOVs) وقوالب الثيم. أي 
    Parsing Schema `NOONA_APP`.
 3. مستخدمو الدخول: Administration ← Manage Users ← أنشئ حسابات APEX بنفس أسماء `SEC_USER`
    (مثل `ADMIN` لمسؤول المؤسسة التجريبية و `PLATFORM` لمسؤول المنصة).
+
+## NOONA_PORTAL (التطبيق 119)
+
+نفس أمان `NOONA_MASTER` (المصادقة والكوكي المشترك و Initialization/Cleanup وقواعد الصلاحيات و LOVs وتحقق شاشة الدخول)، إضافة إلى:
+
+| الصفحة | Alias | المحتوى |
+|---|---|---|
+| 1 | `HOME` | سياق العمل (المستخدم، المؤسسة، الشركة، عدد المهام والإشعارات)، تطبيقاتي (روابط للتطبيقات المنشأة، والباقي "قيد الإنشاء")، مهامي، الإشعارات + تعليم الكل كمقروء |
+| 2 | `TASK` | تفاصيل المهمة (`P2_TASK_ID`)، الملاحظات، أزرار: اعتماد، رفض، إرجاع، طلب معلومات، رجوع؛ وسجل المسار |
+| 3 | `COMPANY` | تبديل الشركة الحالية |
+
+مصادر البيانات: `NOONA_V_MY_TASKS`، `NOONA_V_TASK_HISTORY`، `NOONA_V_MY_NOTIFICATIONS`، `NOONA_V_APPS`، والحزمة `NOONA_PORTAL_PKG`.
+روابط الإشعارات: `f?p=NOONA_PORTAL:TASK:::NO::P2_TASK_ID:<id>`.
+
+### الاستيراد
+1. قاعدة البيانات (من مجلد `db`): `upgrade_02_portal.sql` بحساب NOONA_OWNER ثم `security/41_synonyms_noona_app.sql` بحساب NOONA_APP
+   ثم الاختبار `tests/test_portal.sql` بحساب NOONA_APP (16 حالة).
+2. App Builder ← Import ← `NOONA_PORTAL/f119_NOONA_PORTAL.zip` ← Reuse Application ID 119، Parsing Schema `NOONA_APP`.
