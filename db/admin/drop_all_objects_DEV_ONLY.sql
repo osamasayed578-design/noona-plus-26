@@ -13,11 +13,11 @@ SET VERIFY OFF
 WHENEVER SQLERROR EXIT SQL.SQLCODE
 
 PROMPT ============================================================
-PROMPT  سيتم حذف كل كائنات المخطط الحالي نهائياً
+PROMPT  ALL objects of the current schema will be dropped permanently
 PROMPT ============================================================
 SELECT USER AS schema_name, COUNT(*) AS objects_before FROM user_objects;
 
-ACCEPT confirm CHAR PROMPT 'اكتب اسم المخطط للتأكيد: '
+ACCEPT confirm CHAR PROMPT 'Type the schema name to confirm (NOONA_OWNER / NOONA_APP): '
 
 DECLARE
   l_confirm VARCHAR2(128) := UPPER(TRIM('&confirm'));
@@ -74,4 +74,4 @@ END;
 /
 
 SELECT COUNT(*) AS objects_after FROM user_objects;
-PROMPT سياق NOONA_CTX كائن عام (يملكه SYS) ويعاد إنشاؤه تلقائياً مع install.sql.
+PROMPT Done. Context NOONA_CTX is owned by SYS and is recreated by install.sql.
