@@ -354,7 +354,14 @@ class Page:
         self.parts.append(text)
 
     # ---------------------------------------------------------------- مناطق
-    def static(self, name, seq, hide_header=False, text=None, opts='#DEFAULT#'):
+    @staticmethod
+    def _cond(condition):
+        if not condition:
+            return ''
+        return (f"\n,p_plug_display_condition_type=>'EXPRESSION'\n,p_plug_display_when_condition=>'{q(condition)}'"
+                "\n,p_plug_display_when_cond2=>'PLSQL'")
+
+    def static(self, name, seq, hide_header=False, text=None, opts='#DEFAULT#', condition=None):
         rid = self.app.id()
         o = opts + (':t-Region--removeHeader js-removeLandmark' if hide_header else '')
         src = f"\n,p_plug_source=>{join(text)}" if text else ''
@@ -363,13 +370,13 @@ class Page:
 ,p_plug_name=>'{q(name)}'
 ,p_region_template_options=>'{o}'
 ,p_plug_template=>{T_STD}
-,p_plug_display_sequence=>{seq}{src}
+,p_plug_display_sequence=>{seq}{src}{self._cond(condition)}
 ,p_attributes=>{attrs(expand_shortcuts='N', output_as='HTML', show_line_breaks='Y')}
 );
 """)
         return rid
 
-    def dynamic(self, name, seq, code, hide_header=False, opts='#DEFAULT#:t-Region--scrollBody'):
+    def dynamic(self, name, seq, code, hide_header=False, opts='#DEFAULT#:t-Region--scrollBody', condition=None):
         rid = self.app.id()
         o = opts + (':t-Region--removeHeader js-removeLandmark:t-Region--noUI' if hide_header else '')
         self.add(f"""wwv_flow_imp_page.create_page_plug(
@@ -377,7 +384,7 @@ class Page:
 ,p_plug_name=>'{q(name)}'
 ,p_region_template_options=>'{o}'
 ,p_plug_template=>{T_STD}
-,p_plug_display_sequence=>{seq}
+,p_plug_display_sequence=>{seq}{self._cond(condition)}
 ,p_function_body_language=>'PLSQL'
 ,p_plug_source=>{join(code)}
 ,p_plug_source_type=>'NATIVE_DYNAMIC_CONTENT'
@@ -519,6 +526,15 @@ wwv_flow_imp_page.create_worksheet(
     def password(self, name, region, seq, prompt, required=False):
         return self._item(name, region, seq, prompt, 'NATIVE_PASSWORD', "\n,p_cSize=>30\n,p_cMaxlength=>100", required,
                           attrs(submit_when_enter_pressed='N'))
+
+    def file(self, name, region, seq, prompt, file_types='image/png,image/jpeg,image/gif,image/webp', max_kb=512):
+        """رفع ملف إلى APEX_APPLICATION_TEMP_FILES (يحذف بنهاية الطلب)؛ تقرأه العملية بالاسم المخزن في العنصر."""
+        return self._item(name, region, seq, prompt, 'NATIVE_FILE', '', False,
+                          attrs(storage_type='APEX_APPLICATION_TEMP_FILES', purge_file_at='REQUEST',
+                                allow_multiple_files='N', file_types=file_types, display_as='DROPZONE_BLOCK',
+                                dropzone_title='اسحب الشعار هنا أو اضغط للاختيار',
+                                dropzone_description='PNG أو JPG أو GIF أو WEBP حتى 512 كيلوبايت',
+                                max_file_size=max_kb), full=True)
 
     def yesno(self, name, region, seq, prompt):
         return self.select(name, region, seq, prompt, lov_sql="STATIC2:نعم;Y,لا;N", null_text=None)

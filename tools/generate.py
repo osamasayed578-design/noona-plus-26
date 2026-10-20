@@ -559,7 +559,7 @@ def gen_security_and_seed():
     # يقرأ التطبيق السياق عبر SYS_CONTEXT('NOONA_CTX', ...)
     for pkg in ('NOONA_SECURITY_PKG', 'NOONA_REFERENCE_PKG', 'NOONA_AUDIT_PKG', 'NOONA_PLATFORM_PKG',
                 'NOONA_ORG_PKG', 'NOONA_DELEGATION_PKG', 'NOONA_WORKFLOW_PKG', 'NOONA_APEX_PKG',
-                'NOONA_PORTAL_PKG', 'NOONA_UI_PKG', 'NOONA_SEC_ADMIN_PKG'):
+                'NOONA_PORTAL_PKG', 'NOONA_UI_PKG', 'NOONA_SEC_ADMIN_PKG', 'NOONA_BRAND_PKG'):
         g.append(f'GRANT EXECUTE ON {pkg} TO NOONA_APP;')
         syn.append(f'CREATE OR REPLACE SYNONYM {pkg} FOR NOONA_OWNER.{pkg};')
     # واجهات العرض المكتوبة يدوياً في db/plsql (قراءة فقط للتطبيق)

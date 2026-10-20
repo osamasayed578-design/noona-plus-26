@@ -18,7 +18,7 @@ set /p OWNER_PWD=NOONA_OWNER password:
 set /p APP_PWD=NOONA_APP password: 
 echo.
 
-for %%U in (upgrade_01_apex_layer upgrade_02_portal upgrade_03_apex_error upgrade_04_ui upgrade_05_admin) do (
+for %%U in (upgrade_01_apex_layer upgrade_02_portal upgrade_03_apex_error upgrade_04_ui upgrade_05_admin upgrade_06_brand) do (
   echo ===== %%U
   sqlplus -S -L NOONA_OWNER/"%OWNER_PWD%"@%CONN% @%%U.sql < nul
   if errorlevel 1 goto :fail
@@ -33,9 +33,10 @@ sqlplus -S -L NOONA_OWNER/"%OWNER_PWD%"@%CONN% @tests/test_phase1.sql < nul | fi
 sqlplus -S -L NOONA_APP/"%APP_PWD%"@%CONN% @tests/test_apex_pkg.sql < nul | findstr /c:"RESULT" /c:"FAIL" /c:"ORA-"
 sqlplus -S -L NOONA_APP/"%APP_PWD%"@%CONN% @tests/test_portal.sql < nul | findstr /c:"RESULT" /c:"FAIL" /c:"ORA-"
 sqlplus -S -L NOONA_APP/"%APP_PWD%"@%CONN% @tests/test_sec_admin.sql < nul | findstr /c:"RESULT" /c:"FAIL" /c:"ORA-"
+sqlplus -S -L NOONA_APP/"%APP_PWD%"@%CONN% @tests/test_brand.sql < nul | findstr /c:"RESULT" /c:"FAIL" /c:"ORA-"
 
 echo.
-echo ===== Database updated. Expected: 79 / 26 / 21 / 25 passed, 0 failed.
+echo ===== Database updated. Expected: 79 / 26 / 21 / 25 / 10 passed, 0 failed.
 echo ===== Next: import apex\NOONA_MASTER\f115_NOONA_MASTER.zip and apex\NOONA_PORTAL\f119_NOONA_PORTAL.zip
 pause
 exit /b 0

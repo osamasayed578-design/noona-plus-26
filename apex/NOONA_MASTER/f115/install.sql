@@ -11,6 +11,7 @@ prompt --install
 @@application/shared_components/files/icons_app_icon_192_png.sql
 @@application/shared_components/files/icons_app_icon_256_rounded_png.sql
 @@application/shared_components/files/icons_app_icon_512_png.sql
+@@application/shared_components/logic/application_processes/noona_company_logo.sql
 @@application/shared_components/files/noona_1.sql
 @@application/shared_components/files/noona_2.sql
 @@application/shared_components/files/noona_3.sql

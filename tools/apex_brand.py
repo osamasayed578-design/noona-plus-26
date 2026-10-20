@@ -14,6 +14,46 @@ LOGIN_LABELS = [(",p_button_image_alt=>'Sign In'", ",p_button_image_alt=>'تسج
                 (",p_prompt=>'Remember username'", ",p_prompt=>'تذكر اسم المستخدم'")]
 
 
+LOGO_PROCESS = [
+    '-- شعار الشركة الحالية (شعار المشترك) من إدارة المستندات؛ يستدعى من شارة الشركة في الترويسة',
+    'declare',
+    '    l_blob blob;',
+    '    l_mime varchar2(100);',
+    '    l_hash varchar2(128);',
+    'begin',
+    '    noona_brand_pkg.get_company_logo(null, l_blob, l_mime, l_hash);',
+    '    if l_blob is null then',
+    "        owa_util.status_line(404, 'Not Found');",
+    '    else',
+    '        owa_util.mime_header(l_mime, false);',
+    "        htp.p('Content-Length: ' || dbms_lob.getlength(l_blob));",
+    "        htp.p('Cache-Control: private, max-age=600');",
+    "        htp.p('X-Content-Type-Options: nosniff');",
+    '        owa_util.http_header_close;',
+    '        wpg_docload.download_file(l_blob);',
+    '    end if;',
+    '    apex_application.stop_apex_engine;',
+    'exception',
+    '    when apex_application.e_stop_apex_engine then',
+    '        null;',
+    'end;']
+
+
+def q(s):
+    return s.replace("'", "''")
+
+
+def join(lines):
+    return "wwv_flow_string.join(wwv_flow_t_varchar2(\n" + ",\n".join("'" + q(l) + "'" for l in lines) + "))"
+
+
+def component(rel, manifest, app_id, ws, body):
+    return (f"prompt --application/{rel}\nbegin\n--   Manifest\n--     {manifest}\n--   Manifest End\n"
+            f"wwv_flow_imp.component_begin (\n p_version_yyyy_mm_dd=>'2024.11.30'\n,p_release=>'24.2.0'\n"
+            f",p_default_workspace_id=>{ws}\n,p_default_application_id=>{app_id}\n,p_default_id_offset=>0\n"
+            f",p_default_owner=>'NOONA_APP'\n);\n{body}\nwwv_flow_imp.component_end;\nend;\n/\n")
+
+
 def brand(app_dir):
     a = os.path.join(app_dir, 'application') + '/'
     ca = open(a + 'create_application.sql', encoding='utf-8').read()
@@ -39,10 +79,7 @@ def brand(app_dir):
 ,p_file_charset=>'utf-8'
 ,p_file_content => wwv_flow_imp.varchar2_to_blob(wwv_flow_imp.g_varchar2_table)
 );"""
-        text = (f"prompt --application/{rel}\nbegin\n--   Manifest\n--     APP STATIC FILES: {app_id}\n--   Manifest End\n"
-                f"wwv_flow_imp.component_begin (\n p_version_yyyy_mm_dd=>'2024.11.30'\n,p_release=>'24.2.0'\n"
-                f",p_default_workspace_id=>{ws}\n,p_default_application_id=>{app_id}\n,p_default_id_offset=>0\n"
-                f",p_default_owner=>'NOONA_APP'\n);\n{body}\nwwv_flow_imp.component_end;\nend;\n/\n")
+        text = component(rel, f'APP STATIC FILES: {app_id}', app_id, ws, body)
         os.makedirs(os.path.dirname(path), exist_ok=True)
         open(path, 'w', encoding='utf-8').write(text)
         paths.append(rel)
@@ -50,6 +87,21 @@ def brand(app_dir):
     inst = os.path.join(app_dir, 'install.sql')
     s = open(inst, encoding='utf-8').read()
     anchor = "@@application/shared_components/files/icons_app_icon_512_png.sql\n"
+    # عملية عند الطلب: صورة شعار الشركة الحالية
+    rel = 'shared_components/logic/application_processes/noona_company_logo'
+    body = f"""wwv_flow_imp_shared.create_flow_process(
+ p_id=>wwv_flow_imp.id({91820260000990000 + app_id * 100 + 40})
+,p_process_sequence=>10
+,p_process_point=>'ON_DEMAND'
+,p_process_type=>'NATIVE_PLSQL'
+,p_process_name=>'NOONA_COMPANY_LOGO'
+,p_process_sql_clob=>{join(LOGO_PROCESS)}
+,p_process_clob_language=>'PLSQL'
+,p_security_scheme=>'MUST_NOT_BE_PUBLIC_USER'
+);"""
+    os.makedirs(os.path.dirname(a + rel), exist_ok=True)
+    open(a + rel + '.sql', 'w', encoding='utf-8').write(component(rel, 'APPLICATION PROCESS: NOONA_COMPANY_LOGO', app_id, ws, body))
+    paths.append(rel)
     missing = ''.join(f'@@application/{p}.sql\n' for p in paths if f'@@application/{p}.sql' not in s)
     assert anchor in s, 'install.sql anchor not found'
     open(inst, 'w', encoding='utf-8').write(s.replace(anchor, anchor + missing, 1))
@@ -62,6 +114,23 @@ def brand(app_dir):
                         ",p_nav_bar_template_options=>'#DEFAULT#'\n,p_css_file_urls=>'#APP_FILES#noona.css'", 1)
         assert 'noona.css' in ui, 'user_interfaces anchor not found'
         open(a + 'user_interfaces.sql', 'w', encoding='utf-8').write(ui)
+    # الصفحة 0: شارة الشركة الحالية (شعار المشترك واسمها) في ترويسة كل الصفحات
+    p = a + 'pages/page_00000.sql'
+    s = open(p, encoding='utf-8').read()
+    if 'noona_brand_pkg.header_badge' not in s:
+        region = f"""wwv_flow_imp_page.create_page_plug(
+ p_id=>wwv_flow_imp.id({91820260000990000 + app_id * 100 + 50})
+,p_plug_name=>'NOONA Company Badge'
+,p_region_template_options=>'#DEFAULT#'
+,p_plug_display_sequence=>10
+,p_plug_display_point=>'BEFORE_NAVIGATION_BAR'
+,p_function_body_language=>'PLSQL'
+,p_plug_source=>'return noona_brand_pkg.header_badge(p_app_id => :APP_ID, p_session => :APP_SESSION);'
+,p_plug_source_type=>'NATIVE_DYNAMIC_CONTENT'
+);
+"""
+        i = s.rindex('wwv_flow_imp.component_end;')
+        open(p, 'w', encoding='utf-8').write(s[:i] + region + s[i:])
     # صفحة الدخول بالعربية
     p = a + 'pages/page_09999.sql'
     s = open(p, encoding='utf-8').read()

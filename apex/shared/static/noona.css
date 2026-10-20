@@ -234,13 +234,15 @@ tr:hover .nn-badge { transform: scale(1.05); }
 /* ================================================================ صفحة الدخول (كل التطبيقات) */
 .t-PageBody--login { background: #f3f6fa; }
 .t-PageBody--login .t-Login-bg { background: linear-gradient(150deg, #0b84e8 0%, #0067c0 45%, #0b3b6e 100%); overflow: hidden; }
-.t-PageBody--login .t-Login-bg::before {   /* دوائر زخرفية متحركة ببطء */
-  content: ""; position: absolute; inset: -20%;
-  background: radial-gradient(circle at 20% 25%, rgba(255, 255, 255, .14) 0 120px, transparent 121px),
-              radial-gradient(circle at 80% 70%, rgba(255, 255, 255, .08) 0 220px, transparent 221px),
-              radial-gradient(circle at 65% 15%, rgba(255, 185, 0, .18) 0 60px, transparent 61px);
-  animation: nnFloat 18s ease-in-out infinite alternate; }
-@keyframes nnFloat { from { transform: translate(0, 0) rotate(0); } to { transform: translate(3%, -2%) rotate(4deg); } }
+.t-PageBody--login .t-Login-bg::before {   /* مسارات دائرة إلكترونية ورموز محاسبية تتحرك ببطء */
+  content: ""; position: absolute; inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22240%22 height=%22240%22 viewBox=%220 0 240 240%22%3E%3Cg fill=%22none%22 stroke=%22%23ffffff%22 stroke-opacity=%22.16%22 stroke-width=%222%22 stroke-linecap=%22round%22 stroke-linejoin=%22round%22%3E%3Cpath d=%22M0 40h60l20 20h60%22/%3E%3Cpath d=%22M140 60v40h60%22/%3E%3Cpath d=%22M200 100l40 0%22/%3E%3Cpath d=%22M30 240v-60l30-30h50%22/%3E%3Cpath d=%22M110 150v-30h40l20-20%22/%3E%3Cpath d=%22M0 200h20%22/%3E%3Cpath d=%22M180 240v-40l30-30v-30%22/%3E%3Cpath d=%22M210 0v40l-30 30%22/%3E%3Cpath d=%22M90 0v20%22/%3E%3C/g%3E%3Cg fill=%22%23ffffff%22 fill-opacity=%22.22%22%3E%3Ccircle cx=%2260%22 cy=%2240%22 r=%224%22/%3E%3Ccircle cx=%22140%22 cy=%2260%22 r=%224%22/%3E%3Ccircle cx=%22200%22 cy=%22100%22 r=%224%22/%3E%3Ccircle cx=%22110%22 cy=%22150%22 r=%224%22/%3E%3Ccircle cx=%2220%22 cy=%22200%22 r=%224%22/%3E%3Ccircle cx=%22210%22 cy=%22140%22 r=%224%22/%3E%3Ccircle cx=%22180%22 cy=%2270%22 r=%224%22/%3E%3Ccircle cx=%2290%22 cy=%2220%22 r=%224%22/%3E%3C/g%3E%3Cg fill=%22%23ffffff%22 fill-opacity=%22.10%22%3E%3Crect x=%22150%22 y=%22170%22 width=%228%22 height=%2222%22 rx=%221.5%22/%3E%3Crect x=%22162%22 y=%22160%22 width=%228%22 height=%2232%22 rx=%221.5%22/%3E%3Crect x=%22174%22 y=%22148%22 width=%228%22 height=%2244%22 rx=%221.5%22/%3E%3C/g%3E%3Cpath d=%22M40 112l14-12 12 8 18-20%22 fill=%22none%22 stroke=%22%23ffb900%22 stroke-opacity=%22.28%22 stroke-width=%222.5%22 stroke-linecap=%22round%22 stroke-linejoin=%22round%22/%3E%3Cg fill=%22none%22 stroke=%22%23ffffff%22 stroke-opacity=%22.10%22 stroke-width=%221.5%22%3E%3Crect x=%22186%22 y=%2212%22 width=%2240%22 height=%2230%22 rx=%223%22/%3E%3Cpath d=%22M186 22h40M186 32h40M200 12v30%22/%3E%3C/g%3E%3C/svg%3E");
+  background-size: 240px 240px; animation: nnCircuit 60s linear infinite; }
+.t-PageBody--login .t-Login-bg::after {   /* توهج خفيف */
+  content: ""; position: absolute; inset: 0;
+  background: radial-gradient(circle at 75% 20%, rgba(255, 185, 0, .14), transparent 35%),
+              radial-gradient(circle at 15% 85%, rgba(140, 200, 255, .22), transparent 40%); }
+@keyframes nnCircuit { from { background-position: 0 0; } to { background-position: 240px 240px; } }
 .t-PageBody--login .t-Login-bgImg { background: none !important; }
 .t-PageBody--login .t-Login-container { animation: nnFadeUp .5s cubic-bezier(.2, .7, .2, 1) both; }
 .t-PageBody--login .t-Login-region { background: #fff; border-radius: 18px; border: 0;
@@ -270,3 +272,26 @@ tr:hover .nn-badge { transform: scale(1.05); }
 .t-Header-logo-link::before { content: ""; width: 30px; height: 30px; flex: none;
   background: url(noona-logo.svg) center / contain no-repeat; transition: transform .25s ease; }
 .t-Header-logo-link:hover::before { transform: rotate(-8deg) scale(1.06); }
+
+/* شارة الشركة (شعار المشترك) في الترويسة */
+.nn-co-badge { display: inline-flex; align-items: center; gap: 8px; height: 34px; padding: 0 12px 0 6px; margin-inline-end: 8px;
+  border: 1px solid var(--nn-border); border-radius: 18px; background: #fff; color: var(--nn-head-text); font-weight: 600;
+  font-size: .9rem; max-width: 280px; animation: nnFadeIn .3s ease-out both; }
+.nn-co-logo { max-height: 26px; max-width: 80px; object-fit: contain; border-radius: 4px; }
+.nn-co-icon { color: var(--nn-primary); font-size: 16px; width: 26px; text-align: center; }
+.nn-co-name { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+@media (max-width: 640px) { .nn-co-name { display: none; } }
+
+/* ترويسة التقارير: شعار الشركة يميناً، العنوان في الوسط، علامة النظام يساراً */
+.nn-rpt-head { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 16px;
+  padding: 12px 4px 14px; border-bottom: 2px solid var(--nn-primary); margin-bottom: 14px; }
+.nn-rpt-co { display: flex; align-items: center; gap: 12px; }
+.nn-rpt-logo { max-height: 64px; max-width: 160px; object-fit: contain; }
+.nn-rpt-co-name { font-weight: 800; color: var(--nn-head-text); font-size: 1.1rem; }
+.nn-rpt-co-en { color: var(--nn-muted); font-size: .85rem; direction: ltr; text-align: right; }
+.nn-rpt-title { text-align: center; font-weight: 800; font-size: 1.25rem; color: #111827; }
+.nn-rpt-title small { display: block; font-weight: 500; font-size: .8rem; color: var(--nn-muted); }
+.nn-rpt-sys { justify-self: end; display: inline-flex; align-items: center; gap: 6px; color: var(--nn-muted);
+  font-size: .78rem; font-weight: 700; letter-spacing: .5px; direction: ltr; }
+.nn-rpt-sys::before { content: ""; width: 22px; height: 22px; background: url(noona-logo.svg) center / contain no-repeat; }
+@media print { .nn-rpt-head { break-inside: avoid; } }

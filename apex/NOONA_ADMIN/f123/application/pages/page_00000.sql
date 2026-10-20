@@ -20,6 +20,16 @@ wwv_flow_imp_page.create_page(
 ,p_protection_level=>'D'
 ,p_page_component_map=>'14'
 );
+wwv_flow_imp_page.create_page_plug(
+ p_id=>wwv_flow_imp.id(91820260001002350)
+,p_plug_name=>'NOONA Company Badge'
+,p_region_template_options=>'#DEFAULT#'
+,p_plug_display_sequence=>10
+,p_plug_display_point=>'BEFORE_NAVIGATION_BAR'
+,p_function_body_language=>'PLSQL'
+,p_plug_source=>'return noona_brand_pkg.header_badge(p_app_id => :APP_ID, p_session => :APP_SESSION);'
+,p_plug_source_type=>'NATIVE_DYNAMIC_CONTENT'
+);
 wwv_flow_imp.component_end;
 end;
 /

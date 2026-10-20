@@ -81,6 +81,34 @@ p.process(20, 'AFTER_SUBMIT', 'Save Company', [
     ' where id = :P11_ID;'],
     when_button=b_save, success='تم حفظ بيانات الشركة')
 
+# شعار المشترك: يظهر في ترويسة التطبيقات وفي ترويسة التقارير المطبوعة
+lg = p.static('شعار الشركة (الترويسة والتقارير)', 15, condition=':P11_ID is not null')
+p.file('P11_LOGO', lg, 10, 'ملف الشعار')
+b_logo = p.button(lg, 10, 'UPLOAD_LOGO', 'رفع الشعار', hot=True)
+b_nologo = p.button(lg, 20, 'REMOVE_LOGO', 'إزالة الشعار')
+p.dynamic('معاينة الشعار وترويسة التقارير', 16, [
+    'declare',
+    '    l_uri clob := noona_brand_pkg.logo_data_uri(:P11_ID);',
+    'begin',
+    '    return case when l_uri is null',
+    "                then '<div class=\"nn-empty\">لا يوجد شعار بعد؛ تظهر التقارير باسم الشركة فقط</div>'",
+    "           end || noona_brand_pkg.report_header('معاينة ترويسة التقارير', :P11_ID);",
+    'end;'], condition=':P11_ID is not null')
+p.process(25, 'AFTER_SUBMIT', 'Upload Logo', [
+    'declare',
+    '    l_blob blob;',
+    '    l_name varchar2(400);',
+    '    l_doc  number;',
+    'begin',
+    '    if :P11_LOGO is null then',
+    "        raise_application_error(-20500, 'NOONA-BRD-003: اختر ملف الشعار أولاً');",
+    '    end if;',
+    '    select blob_content, filename into l_blob, l_name from apex_application_temp_files where name = :P11_LOGO;',
+    '    l_doc := noona_brand_pkg.set_company_logo(p_company_id => :P11_ID, p_file_name => l_name, p_content => l_blob);',
+    'end;'], when_button=b_logo, success='تم حفظ الشعار؛ سيظهر في الترويسة والتقارير')
+p.process(26, 'AFTER_SUBMIT', 'Remove Logo', 'noona_brand_pkg.remove_company_logo(p_company_id => :P11_ID);',
+          when_button=b_nologo, success='تمت إزالة الشعار')
+
 chk = p.ir('فحوص التفعيل', 20, [
     'select id, noona_ui_pkg.code_label(check_code) as check_code, noona_ui_pkg.status_badge(status_code) as status_html, result_info, waived_by, checked_at',
     '  from org_company_check where company_id = :P11_ID'],
