@@ -56,6 +56,15 @@ BEGIN
   SELECT COUNT(*) INTO l_n FROM sec_role_permission rp JOIN sec_permission p ON p.id = rp.permission_id
    WHERE rp.role_id = l_role AND p.action_code NOT IN ('VIEW', 'CREATE');
   ok('only requested actions added', l_n = 0, l_n);
+  -- مصفوفة الصلاحيات: الحفظ يضيف المختار ويزيل غير المختار في الوحدة نفسها فقط
+  SELECT LISTAGG(id, ',') WITHIN GROUP (ORDER BY id) INTO l_s FROM (
+    SELECT p.id FROM sec_permission p WHERE p.module_code = 'GL' AND p.action_code = 'VIEW' AND ROWNUM <= 3);
+  l_s := NOONA_SEC_ADMIN_PKG.sync_module_permissions(l_role, 'GL', l_s);
+  SELECT COUNT(*) INTO l_n FROM sec_role_permission rp JOIN sec_permission p ON p.id = rp.permission_id
+   WHERE rp.role_id = l_role AND p.module_code = 'GL';
+  ok('matrix sync keeps only selected permissions', l_n = 3, l_s || ' -> ' || l_n);
+  BEGIN l_s := NOONA_SEC_ADMIN_PKG.sync_module_permissions(l_role, 'GL', '1,2) or (1=1'); ok('matrix rejects invalid list', FALSE);
+  EXCEPTION WHEN OTHERS THEN expect('matrix rejects invalid list', 'NOONA-SEC-232', SQLERRM); END;
   BEGIN NOONA_SEC_ADMIN_PKG.add_permission(l_role, 'PLT_TENANT.CONFIGURE'); ok('CONFIGURE permission blocked', FALSE);
   EXCEPTION WHEN OTHERS THEN expect('CONFIGURE permission blocked', 'NOONA-SEC-231', SQLERRM); END;
 

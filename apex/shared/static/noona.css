@@ -153,3 +153,19 @@ a.nn-app:hover { border-color: var(--nn-primary); background: var(--nn-primary-5
 
 .nn-empty { color: var(--nn-muted); padding: 14px 4px; }
 .nn-empty.is-warning { color: var(--nn-warning); }
+
+/* ---------------------------------------------------------------- مصفوفة الصلاحيات (خانات اختيار) */
+.nn-matrix-wrap { overflow: auto; max-height: 70vh; border: 1px solid var(--nn-border); border-radius: 8px; }
+.nn-matrix { width: 100%; border-collapse: separate; border-spacing: 0; background: #fff; }
+.nn-matrix th { position: sticky; top: 0; z-index: 1; background: var(--nn-head-bg); color: var(--nn-head-text);
+  font-weight: 700; text-align: center; padding: 8px 6px; border-bottom: 1px solid var(--nn-head-border); white-space: nowrap; }
+.nn-matrix th label { display: inline-flex; flex-direction: column; align-items: center; gap: 4px; cursor: pointer; }
+.nn-matrix td { text-align: center; padding: 6px; border-bottom: 1px solid #edf2f7; }
+.nn-matrix tbody tr:hover td { background: #f3f8fd; }
+.nn-matrix .nn-matrix-res { text-align: start; min-width: 240px; }
+.nn-matrix th.nn-matrix-res label { flex-direction: row; }
+.nn-matrix td.nn-matrix-res label { display: inline-flex; align-items: center; gap: 6px; cursor: pointer; }
+.nn-matrix td.nn-matrix-res small { display: block; color: var(--nn-muted); font-size: .78rem; padding-inline-start: 24px; }
+.nn-matrix input[type=checkbox] { width: 17px; height: 17px; accent-color: var(--nn-primary); cursor: pointer; }
+.nn-matrix .nn-na { color: #c3cbd6; }
+.nn-matrix .nn-deny { color: var(--nn-danger); }

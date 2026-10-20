@@ -367,6 +367,10 @@ class Page:
     def render(self):
         return self.header + ''.join(self.parts)
 
+    def onload(self, code):
+        """JavaScript يعمل عند تحميل الصفحة (Execute when Page Loads)."""
+        self.header = self.header.replace(",p_protection_level=>", f",p_javascript_code_onload=>{join(code)}\n,p_protection_level=>", 1)
+
     def add(self, text):
         self.parts.append(text)
 
@@ -518,14 +522,15 @@ wwv_flow_imp_page.create_worksheet(
         return self._item(name, region, seq, prompt, 'NATIVE_TEXTAREA', f"\n,p_cSize=>60\n,p_cMaxlength=>1000\n,p_cHeight=>{rows}",
                           required, attrs(auto_height='N', character_counter='Y', resizable='Y', trim_spaces='BOTH'), full=True)
 
-    def select(self, name, region, seq, prompt, lov_name=None, lov_sql=None, required=False, null_text='- اختر -'):
+    def select(self, name, region, seq, prompt, lov_name=None, lov_sql=None, required=False, null_text='- اختر -',
+               submit=False):
         if lov_name:
             lov = f"\n,p_named_lov=>'{lov_name}'\n,p_lov=>'.'||wwv_flow_imp.id({self.app.lovs[lov_name]})||'.'"
         else:
             lov = f"\n,p_lov=>'{q(lov_sql)}'"
         lov += f"\n,p_lov_display_null=>'YES'\n,p_lov_null_text=>'{q(null_text)}'" if null_text else ''
         return self._item(name, region, seq, prompt, 'NATIVE_SELECT_LIST', lov + "\n,p_cHeight=>1\n,p_lov_display_extra=>'NO'",
-                          required, attrs(page_action_on_selection='NONE'))
+                          required, attrs(page_action_on_selection='SUBMIT' if submit else 'NONE'))
 
     def date(self, name, region, seq, prompt, required=False):
         return self._item(name, region, seq, prompt, 'NATIVE_DATE_PICKER_APEX', "\n,p_cSize=>20\n,p_format_mask=>'YYYY-MM-DD'",

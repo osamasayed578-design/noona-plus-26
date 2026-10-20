@@ -35,7 +35,7 @@ sqlplus -S -L NOONA_APP/"%APP_PWD%"@%CONN% @tests/test_portal.sql < nul | findst
 sqlplus -S -L NOONA_APP/"%APP_PWD%"@%CONN% @tests/test_sec_admin.sql < nul | findstr /c:"RESULT" /c:"FAIL" /c:"ORA-"
 
 echo.
-echo ===== Database updated. Expected: 79 / 26 / 21 / 23 passed, 0 failed.
+echo ===== Database updated. Expected: 79 / 26 / 21 / 25 passed, 0 failed.
 echo ===== Next: import apex\NOONA_MASTER\f115_NOONA_MASTER.zip and apex\NOONA_PORTAL\f119_NOONA_PORTAL.zip
 pause
 exit /b 0

@@ -30,6 +30,11 @@ CREATE OR REPLACE PACKAGE NOONA_SEC_ADMIN_PKG AUTHID DEFINER AS
                                   p_effect IN VARCHAR2 DEFAULT 'ALLOW') RETURN NUMBER;
   PROCEDURE add_permission(p_role_id IN NUMBER, p_permission_code IN VARCHAR2, p_effect IN VARCHAR2 DEFAULT 'ALLOW');
   PROCEDURE remove_permission(p_role_permission_id IN NUMBER);
+  -- حفظ مصفوفة الصلاحيات لوحدة: p_permission_ids = أرقام الصلاحيات المختارة (مفصولة بفواصل).
+  -- يضيف المختار غير الموجود ويزيل صلاحيات السماح غير المختارة في هذه الوحدة فقط؛ صلاحيات المنع لا تتغير.
+  -- يعيد 'added:removed'
+  FUNCTION sync_module_permissions(p_role_id IN NUMBER, p_module_code IN VARCHAR2, p_permission_ids IN VARCHAR2)
+    RETURN VARCHAR2;
 
   -- p_company_id فارغ = كل شركات المؤسسة
   FUNCTION grant_role(p_membership_id IN NUMBER, p_role_id IN NUMBER, p_company_id IN NUMBER DEFAULT NULL,
@@ -232,6 +237,37 @@ CREATE OR REPLACE PACKAGE BODY NOONA_SEC_ADMIN_PKG AS
     DELETE FROM sec_role_permission WHERE id = p_role_permission_id;
     NOONA_AUDIT_PKG.log_event('SECURITY', 'SEC_ROLE', l_role, 'REMOVE_PERMISSION', 'SUCCESS');
   END remove_permission;
+
+  FUNCTION sync_module_permissions(p_role_id IN NUMBER, p_module_code IN VARCHAR2, p_permission_ids IN VARCHAR2)
+    RETURN VARCHAR2 IS
+    l_ids   VARCHAR2(32767) := ',' || REPLACE(p_permission_ids, ' ') || ',';
+    l_added NUMBER;
+    l_rem   NUMBER;
+    l_role  NUMBER;
+  BEGIN
+    guard('SEC_ROLE_PERMISSION.CREATE');
+    guard('SEC_ROLE_PERMISSION.DELETE');
+    SELECT id INTO l_role FROM sec_role WHERE id = p_role_id;                      -- VPD: أدوار المؤسسة فقط
+    NOONA_CORE_PKG.assert(NOT REGEXP_LIKE(l_ids, '[^0-9,]'), 'NOONA-SEC-232', 'قائمة صلاحيات غير صالحة', 'Invalid permission list');
+    INSERT INTO sec_role_permission (role_id, permission_id, effect)
+    SELECT p_role_id, p.id, 'ALLOW'
+      FROM sec_permission p
+     WHERE p.module_code = p_module_code AND p.is_active = 'Y' AND p.action_code <> 'CONFIGURE'
+       AND INSTR(l_ids, ',' || p.id || ',') > 0
+       AND NOT EXISTS (SELECT 1 FROM sec_role_permission x WHERE x.role_id = p_role_id AND x.permission_id = p.id);
+    l_added := SQL%ROWCOUNT;
+    DELETE FROM sec_role_permission rp
+     WHERE rp.role_id = p_role_id AND rp.effect = 'ALLOW'
+       AND INSTR(l_ids, ',' || rp.permission_id || ',') = 0
+       AND rp.permission_id IN (SELECT id FROM sec_permission WHERE module_code = p_module_code);
+    l_rem := SQL%ROWCOUNT;
+    IF l_added + l_rem > 0 THEN
+      NOONA_AUDIT_PKG.log_event('SECURITY', 'SEC_ROLE', p_role_id, 'SYNC_PERMISSIONS', 'SUCCESS',
+        p_new_values => '{"module":' || NOONA_CORE_PKG.json_text(p_module_code) || ',"added":' || l_added
+                        || ',"removed":' || l_rem || '}');
+    END IF;
+    RETURN l_added || ':' || l_rem;
+  END sync_module_permissions;
 
   FUNCTION grant_role(p_membership_id IN NUMBER, p_role_id IN NUMBER, p_company_id IN NUMBER DEFAULT NULL,
                       p_reason IN VARCHAR2 DEFAULT NULL, p_effective_to IN DATE DEFAULT NULL) RETURN NUMBER IS

@@ -29,6 +29,11 @@ CREATE OR REPLACE PACKAGE NOONA_UI_PKG AUTHID DEFINER AS
   -- لوحة إدارة المؤسسة
   FUNCTION admin_summary(p_session IN VARCHAR2) RETURN CLOB;
 
+  -- مصفوفة صلاحيات الدور لوحدة: صف لكل عنصر وعمود لكل فعل، بخانات اختيار (class nn-perm، القيمة = رقم الصلاحية)
+  -- صلاحيات المنع (DENY) تظهر معطلة؛ وصلاحيات CONFIGURE لا تظهر (لا تمنح لأدوار المؤسسة)
+  FUNCTION permission_matrix(p_role_id IN NUMBER, p_module_code IN VARCHAR2) RETURN CLOB;
+  FUNCTION action_label(p_action IN VARCHAR2) RETURN VARCHAR2 DETERMINISTIC;
+
   -- صفحة المهمة
   FUNCTION task_header(p_task_id IN NUMBER) RETURN CLOB;
   FUNCTION task_timeline(p_task_id IN NUMBER) RETURN CLOB;
@@ -290,6 +295,79 @@ CREATE OR REPLACE PACKAGE BODY NOONA_UI_PKG AS
         || kpi('فحوص تفعيل فاشلة', l_checks, 'fa-exclamation-triangle', CASE WHEN l_checks > 0 THEN 'is-danger' ELSE 'is-muted' END)
         || '</div>';
   END admin_summary;
+
+  -- ---------------------------------------------------------------- مصفوفة الصلاحيات
+  FUNCTION action_label(p_action IN VARCHAR2) RETURN VARCHAR2 DETERMINISTIC IS
+  BEGIN
+    RETURN CASE p_action
+      WHEN 'VIEW' THEN 'عرض' WHEN 'CREATE' THEN 'إنشاء' WHEN 'UPDATE' THEN 'تعديل' WHEN 'DELETE' THEN 'حذف'
+      WHEN 'EXPORT' THEN 'تصدير' WHEN 'PRINT' THEN 'طباعة' WHEN 'SUBMIT' THEN 'إرسال' WHEN 'APPROVE' THEN 'اعتماد'
+      WHEN 'REJECT' THEN 'رفض' WHEN 'POST' THEN 'ترحيل' WHEN 'REVERSE' THEN 'عكس' WHEN 'CANCEL' THEN 'إلغاء'
+      ELSE p_action END;
+  END action_label;
+
+  FUNCTION permission_matrix(p_role_id IN NUMBER, p_module_code IN VARCHAR2) RETURN CLOB IS
+    c_order CONSTANT VARCHAR2(200) := ',VIEW,CREATE,UPDATE,DELETE,EXPORT,PRINT,SUBMIT,APPROVE,REJECT,POST,REVERSE,CANCEL,';
+    TYPE t_list IS TABLE OF VARCHAR2(30);
+    l_actions t_list;
+    l_html    CLOB;
+    l_row     VARCHAR2(32767);
+    l_res     VARCHAR2(128);
+    l_n       PLS_INTEGER := 0;
+
+    PROCEDURE add(p_text VARCHAR2) IS
+    BEGIN
+      DBMS_LOB.WRITEAPPEND(l_html, LENGTH(p_text), p_text);
+    END add;
+  BEGIN
+    IF p_role_id IS NULL OR p_module_code IS NULL THEN
+      RETURN '<div class="nn-empty">اختر الوحدة لعرض صلاحياتها</div>';
+    END IF;
+    SELECT action_code BULK COLLECT INTO l_actions
+      FROM (SELECT DISTINCT action_code FROM sec_permission
+             WHERE module_code = p_module_code AND is_active = 'Y' AND action_code <> 'CONFIGURE')
+     ORDER BY NULLIF(INSTR(c_order, ',' || action_code || ','), 0) NULLS LAST, action_code;
+    DBMS_LOB.CREATETEMPORARY(l_html, TRUE);
+    add('<div class="nn-matrix-wrap"><table class="nn-matrix"><thead><tr><th class="nn-matrix-res">'
+        || '<label><input type="checkbox" class="nn-all"> العنصر</label></th>');
+    FOR i IN 1 .. l_actions.COUNT LOOP
+      add('<th><label><input type="checkbox" class="nn-col" data-col="' || l_actions(i) || '"><span>'
+          || esc(action_label(l_actions(i))) || '</span></label></th>');
+    END LOOP;
+    add('</tr></thead><tbody>');
+    FOR r IN (SELECT p.resource_code,
+                     NVL(MAX(e.name_ar), p.resource_code) AS res_name,
+                     LISTAGG(p.action_code || ':' || p.id || ':' || NVL(rp.effect, '-'), ',') AS cells
+                FROM sec_permission p
+                LEFT JOIN ref_entity_type e ON e.entity_type_code = p.resource_code
+                LEFT JOIN sec_role_permission rp ON rp.permission_id = p.id AND rp.role_id = p_role_id
+               WHERE p.module_code = p_module_code AND p.is_active = 'Y' AND p.action_code <> 'CONFIGURE'
+               GROUP BY p.resource_code
+               ORDER BY 2) LOOP
+      l_n := l_n + 1;
+      l_row := '<tr><td class="nn-matrix-res"><label><input type="checkbox" class="nn-row"> ' || esc(r.res_name)
+            || '</label><small>' || esc(r.resource_code) || '</small></td>';
+      FOR i IN 1 .. l_actions.COUNT LOOP
+        l_res := REGEXP_SUBSTR(',' || r.cells || ',', ',' || l_actions(i) || ':([0-9]+:[A-Z-]+),', 1, 1, NULL, 1);
+        IF l_res IS NULL THEN
+          l_row := l_row || '<td class="nn-na">&ndash;</td>';
+        ELSIF l_res LIKE '%:DENY' THEN
+          l_row := l_row || '<td class="nn-deny" title="منع صريح"><span class="fa fa-ban" aria-hidden="true"></span></td>';
+        ELSE
+          l_row := l_row || '<td><input type="checkbox" class="nn-perm" data-col="' || l_actions(i) || '" value="'
+                || SUBSTR(l_res, 1, INSTR(l_res, ':') - 1) || '"'
+                || CASE WHEN l_res LIKE '%:ALLOW' THEN ' checked' END
+                || ' aria-label="' || esc(r.res_name || ' - ' || action_label(l_actions(i))) || '"></td>';
+        END IF;
+      END LOOP;
+      add(l_row || '</tr>');
+    END LOOP;
+    add('</tbody></table></div>');
+    IF l_n = 0 THEN
+      RETURN '<div class="nn-empty">لا توجد صلاحيات معرفة لهذه الوحدة</div>';
+    END IF;
+    RETURN l_html;
+  END permission_matrix;
 
   FUNCTION code_label(p_code IN VARCHAR2) RETURN VARCHAR2 DETERMINISTIC IS
   BEGIN

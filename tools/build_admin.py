@@ -507,41 +507,73 @@ b_status = p.button(info, 10, 'CHANGE_STATUS', 'تغيير الحالة')
 p.button(info, 20, 'BACK', 'رجوع', redirect=back(32))
 p.process(10, 'BEFORE_HEADER', 'Load Role', [
     "select name_ar || ' (' || code || ')', noona_ui_pkg.status_label(status_code) into :P33_NAME, :P33_STATUS",
-    '  from sec_role where id = :P33_ID;'])
+    '  from sec_role where id = :P33_ID;',
+    '-- الوحدة الافتراضية: أول وحدة للدور فيها صلاحيات، وإلا أول وحدة',
+    'if :P33_MODULE is null then',
+    '    select min(m.module_code) keep (dense_rank first order by',
+    '               case when exists (select 1 from sec_role_permission rp join sec_permission p on p.id = rp.permission_id',
+    '                                  where rp.role_id = :P33_ID and p.module_code = m.module_code) then 0 else 1 end,',
+    '               m.package_no)',
+    '      into :P33_MODULE from plt_module m;',
+    'end if;'])
 p.process(10, 'AFTER_SUBMIT', 'Role Status', 'noona_sec_admin_pkg.set_role_status(:P33_ID, :P33_NEW_STATUS);',
           when_button=b_status, success='تم تغيير حالة الدور')
-p.ir('صلاحيات الدور', 20, [
-    'select rp.id, p.module_code, p.permission_code, p.name_ar, p.action_code, noona_ui_pkg.code_label(rp.effect) as effect, p.risk_level',
-    '  from sec_role_permission rp join sec_permission p on p.id = rp.permission_id',
-    ' where rp.role_id = :P33_ID'],
-    [('ID', '#', {'hidden': True, 'type': 'NUMBER'}), ('MODULE_CODE', 'الوحدة', {}), ('PERMISSION_CODE', 'رمز الصلاحية', {}),
-     ('NAME_AR', 'الصلاحية', {}), ('ACTION_CODE', 'الفعل', {}), ('EFFECT', 'الأثر', {}), ('RISK_LEVEL', 'الخطورة', {})], titled=True)
-f = p.static('إضافة صلاحيات', 30)
-p.select('P33_MODULE', f, 10, 'الوحدة', lov_sql=(
-    "select module_code || ' - ' || name_ar d, module_code r from plt_module order by package_no"))
-ACTION_PRESETS = [('عرض فقط', 'VIEW'), ('عرض وتصدير وطباعة', 'VIEW,EXPORT,PRINT'),
-                  ('إدخال (عرض وإنشاء وتعديل)', 'VIEW,CREATE,UPDATE'),
-                  ('إدخال وإرسال للاعتماد', 'VIEW,CREATE,UPDATE,SUBMIT,PRINT,EXPORT'),
-                  ('اعتماد ورفض', 'VIEW,APPROVE,REJECT'), ('ترحيل وعكس', 'VIEW,POST,REVERSE'),
-                  ('كل الأفعال', 'VIEW,CREATE,UPDATE,DELETE,EXPORT,PRINT,SUBMIT,APPROVE,REJECT,POST,REVERSE,CANCEL')]
-p.select('P33_ACTIONS', f, 20, 'الأفعال', null_text=None, lov_sql='select d, r from (' + ' union all '.join(
-    f"select '{d}' d, '{r}' r, {i} s from dual" for i, (d, r) in enumerate(ACTION_PRESETS)) + ') order by s')
-p.select('P33_EFFECT', f, 30, 'الأثر', null_text=None, lov_sql='STATIC2:سماح;ALLOW,منع;DENY')
-p.text('P33_PERMISSION_CODE', f, 40, 'أو صلاحية محددة (رمز)', maxlen=150)
-b_mod = p.button(f, 10, 'ADD_MODULE', 'إضافة صلاحيات الوحدة', hot=True)
-b_one = p.button(f, 20, 'ADD_ONE', 'إضافة الصلاحية المحددة')
-p.select('P33_REMOVE_ID', f, 50, 'إزالة صلاحية', lov_sql=(
-    "select p.permission_code d, rp.id r from sec_role_permission rp join sec_permission p on p.id = rp.permission_id "
-    "where rp.role_id = :P33_ID order by 1"))
-b_rm = p.button(f, 30, 'REMOVE', 'إزالة')
-p.process(20, 'AFTER_SUBMIT', 'Add Module Permissions', [
-    'declare l_n number;',
+
+# مصفوفة الصلاحيات: صف لكل عنصر وعمود لكل فعل؛ رأس العمود/الصف يحدد الكل
+mx = p.static('مصفوفة الصلاحيات', 20)
+p.select('P33_MODULE', mx, 10, 'الوحدة', null_text=None, submit=True, lov_sql=(
+    "select m.module_code || ' - ' || m.name_ar || ' (' || (select count(*) from sec_role_permission rp "
+    "join sec_permission p on p.id = rp.permission_id where rp.role_id = :P33_ID and p.module_code = m.module_code "
+    "and rp.effect = 'ALLOW') || ')' d, m.module_code r from plt_module m order by m.package_no"))
+p.hidden('P33_PERMS', mx, 20, protected=False)
+b_save = p.button(mx, 10, 'SAVE_MATRIX', 'حفظ الصلاحيات', hot=True)
+p.dynamic('خانات الصلاحيات', 25, 'return noona_ui_pkg.permission_matrix(p_role_id => :P33_ID, p_module_code => :P33_MODULE);',
+          hide_header=True)
+p.onload([
+    '// رؤوس الأعمدة والصفوف تعكس حالة الخانات (محددة إذا كانت كل خاناتها محددة)',
+    'function nnSyncHeads() {',
+    "    $('.nn-col').each(function () {",
+    "        var c = $('.nn-perm[data-col=\"' + $(this).data('col') + '\"]');",
+    "        this.checked = c.length > 0 && c.filter(':checked').length === c.length;",
+    '    });',
+    "    $('.nn-row').each(function () {",
+    "        var c = $(this).closest('tr').find('.nn-perm');",
+    "        this.checked = c.length > 0 && c.filter(':checked').length === c.length;",
+    '    });',
+    "    var all = $('.nn-perm'); $('.nn-all').prop('checked', all.length > 0 && all.filter(':checked').length === all.length);",
+    '}',
+    "$(document).on('change', '.nn-col', function () {",
+    "    $('.nn-perm[data-col=\"' + $(this).data('col') + '\"]').prop('checked', this.checked); nnSyncHeads();",
+    '});',
+    "$(document).on('change', '.nn-row', function () {",
+    "    $(this).closest('tr').find('.nn-perm').prop('checked', this.checked); nnSyncHeads();",
+    '});',
+    "$(document).on('change', '.nn-all', function () { $('.nn-perm').prop('checked', this.checked); nnSyncHeads(); });",
+    "$(document).on('change', '.nn-perm', nnSyncHeads);",
+    '// قبل الإرسال: أرقام الصلاحيات المختارة في عنصر مخفي',
+    "$(document).on('apexbeforepagesubmit', function () {",
+    "    $s('P33_PERMS', $('.nn-perm:checked').map(function () { return this.value; }).get().join(','));",
+    '});',
+    'nnSyncHeads();'])
+p.process(20, 'AFTER_SUBMIT', 'Save Permission Matrix', [
+    'declare l_r varchar2(50);',
     'begin',
-    "    l_n := noona_sec_admin_pkg.add_module_permissions(:P33_ID, :P33_MODULE, :P33_ACTIONS, nvl(:P33_EFFECT, 'ALLOW'));",
-    "    apex_application.g_print_success_message := 'تمت إضافة ' || l_n || ' صلاحية';",
-    'end;'], when_button=b_mod)
+    '    l_r := noona_sec_admin_pkg.sync_module_permissions(:P33_ID, :P33_MODULE, :P33_PERMS);',
+    "    apex_application.g_print_success_message := 'تم حفظ الصلاحيات: إضافة ' || substr(l_r, 1, instr(l_r, ':') - 1)",
+    "        || ' وإزالة ' || substr(l_r, instr(l_r, ':') + 1);",
+    'end;'], when_button=b_save)
+
+# صلاحية بالرمز (سماح أو منع صريح يتقدم على أي سماح)
+f = p.static('صلاحية محددة أو منع صريح', 30)
+p.text('P33_PERMISSION_CODE', f, 10, 'رمز الصلاحية', maxlen=150)
+p.select('P33_EFFECT', f, 20, 'الأثر', null_text=None, lov_sql='STATIC2:منع;DENY,سماح;ALLOW')
+p.select('P33_REMOVE_ID', f, 30, 'إزالة صلاحية منع', lov_sql=(
+    "select p.permission_code d, rp.id r from sec_role_permission rp join sec_permission p on p.id = rp.permission_id "
+    "where rp.role_id = :P33_ID and rp.effect = 'DENY' order by 1"))
+b_one = p.button(f, 10, 'ADD_ONE', 'إضافة')
+b_rm = p.button(f, 20, 'REMOVE', 'إزالة المنع')
 p.process(30, 'AFTER_SUBMIT', 'Add One Permission',
-          "noona_sec_admin_pkg.add_permission(:P33_ID, :P33_PERMISSION_CODE, nvl(:P33_EFFECT, 'ALLOW'));",
+          "noona_sec_admin_pkg.add_permission(:P33_ID, :P33_PERMISSION_CODE, nvl(:P33_EFFECT, 'DENY'));",
           when_button=b_one, success='تمت إضافة الصلاحية')
 p.process(40, 'AFTER_SUBMIT', 'Remove Permission', 'noona_sec_admin_pkg.remove_permission(:P33_REMOVE_ID);',
           when_button=b_rm, success='تمت إزالة الصلاحية')
