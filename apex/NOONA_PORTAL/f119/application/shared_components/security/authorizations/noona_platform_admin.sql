@@ -12,7 +12,7 @@ wwv_flow_imp.component_begin (
 ,p_default_owner=>'NOONA_APP'
 );
 wwv_flow_imp_shared.create_security_scheme(
- p_id=>wwv_flow_imp.id(91820261000000103)
+ p_id=>wwv_flow_imp.id(91820264000000003)
 ,p_name=>'NOONA - Platform Admin'
 ,p_scheme_type=>'NATIVE_FUNCTION_BODY'
 ,p_attribute_01=>'return noona_apex_pkg.is_platform_admin = ''Y'';'

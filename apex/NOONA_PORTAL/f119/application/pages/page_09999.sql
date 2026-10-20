@@ -15,7 +15,7 @@ wwv_flow_imp_page.create_page(
  p_id=>9999
 ,p_name=>'Login Page'
 ,p_alias=>'LOGIN'
-,p_step_title=>'NOONA Portal - Log In'
+,p_step_title=>'NOONA Portal - تسجيل الدخول'
 ,p_warn_on_unsaved_changes=>'N'
 ,p_first_item=>'AUTO_FIRST_ITEM'
 ,p_autocomplete_on_off=>'OFF'
@@ -113,7 +113,7 @@ wwv_flow_imp_page.create_page_item(
   'use_defaults', 'Y')).to_clob
 );
 wwv_flow_imp_page.create_page_validation(
- p_id=>wwv_flow_imp.id(91820261000000301)
+ p_id=>wwv_flow_imp.id(91820264000000008)
 ,p_validation_name=>'NOONA - User Enabled'
 ,p_validation_sequence=>10
 ,p_validation=>'return noona_apex_pkg.login_block_reason(:P9999_USERNAME);'

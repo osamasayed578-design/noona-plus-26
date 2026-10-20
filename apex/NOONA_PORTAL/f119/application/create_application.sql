@@ -30,7 +30,7 @@ wwv_imp_workspace.create_flow(
 ,p_direction_right_to_left=>'Y'
 ,p_flow_image_prefix => nvl(wwv_flow_application_install.get_image_prefix,'')
 ,p_authentication_id=>wwv_flow_imp.id(17753165707442907)
-,p_security_scheme=>wwv_flow_imp.id(91820261000000101)
+,p_security_scheme=>wwv_flow_imp.id(91820264000000001)
 ,p_vpd=>'noona_apex_pkg.init_request(p_username => :APP_USER, p_apex_session_id => :APP_SESSION);'
 ,p_vpd_teardown_code=>'noona_apex_pkg.cleanup_request;'
 ,p_error_handling_function=>'noona_owner.noona_apex_error'

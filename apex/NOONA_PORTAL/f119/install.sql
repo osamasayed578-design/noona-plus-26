@@ -11,12 +11,12 @@ prompt --install
 @@application/shared_components/files/icons_app_icon_192_png.sql
 @@application/shared_components/files/icons_app_icon_256_rounded_png.sql
 @@application/shared_components/files/icons_app_icon_512_png.sql
-@@application/shared_components/logic/application_processes/noona_company_logo.sql
-@@application/shared_components/files/noona_4.sql
-@@application/shared_components/files/noona_5.sql
 @@application/shared_components/files/noona_1.sql
 @@application/shared_components/files/noona_2.sql
 @@application/shared_components/files/noona_3.sql
+@@application/shared_components/files/noona_4.sql
+@@application/shared_components/files/noona_5.sql
+@@application/shared_components/logic/application_processes/noona_company_logo.sql
 @@application/plugin_settings.sql
 @@application/shared_components/security/authorizations/administration_rights.sql
 @@application/shared_components/security/authorizations/noona_authenticated.sql
@@ -51,5 +51,7 @@ prompt --install
 @@application/pages/page_00001.sql
 @@application/pages/page_00002.sql
 @@application/pages/page_00003.sql
+@@application/pages/page_00004.sql
+@@application/pages/page_00005.sql
 @@application/pages/page_09999.sql
 @@application/end_environment.sql
