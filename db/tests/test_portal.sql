@@ -88,6 +88,13 @@ BEGIN
   EXCEPTION WHEN OTHERS THEN ok('unsupported action blocked', INSTR(SQLERRM, 'NOONA-WF-060') > 0, SQLERRM);
   END;
 
+  -- مكونات الواجهة HTML
+  ok('ui: html escaping', NOONA_UI_PKG.esc('<b a="1">&''') = '&lt;b a=&quot;1&quot;&gt;&amp;&#x27;');
+  ok('ui: task card links to TASK page', INSTR(NOONA_UI_PKG.task_cards('123'), 'P2_TASK_ID:' || l_task) > 0);
+  ok('ui: task header shows step name', INSTR(NOONA_UI_PKG.task_header(l_task), 'اعتماد المدير') > 0);
+  ok('ui: unknown task shows safe message', INSTR(NOONA_UI_PKG.task_header(-1), 'nn-empty') > 0);
+  ok('ui: session id sanitised in links', INSTR(NOONA_UI_PKG.url('NOONA_PORTAL', 'HOME', '12"><x'), '"') = 0);
+
   NOONA_PORTAL_PKG.task_action(l_task, 'APPROVE', 'موافق من البوابة');
   SELECT COUNT(*) INTO l_n FROM noona_v_my_tasks WHERE task_id = l_task;
   ok('approved task leaves my tasks', l_n = 0);

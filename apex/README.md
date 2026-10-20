@@ -107,3 +107,13 @@ Schemes) والقوائم المشتركة (LOVs) وقوالب الثيم. أي 
 
 معالجة الأخطاء: كل التطبيقات تستخدم `noona_owner.noona_apex_error` (ترقية `db/upgrade_03_apex_error.sql`) فتظهر
 رسالة NOONA فقط بدون `ORA-20500` ورمز المتابعة.
+
+## هوية الواجهة (الإصدار 2 من البوابة)
+
+- الصفحات الرئيسية ولوحات المتابعة: مناطق **PL/SQL Dynamic Content** تستدعي `NOONA_UI_PKG` (HTML مع ترميز آمن، استعلام واحد لكل منطقة، حد للصفوف).
+- شاشات الإدخال والقوائم الكبيرة: مكونات APEX الجاهزة (Form / Interactive Report / Interactive Grid).
+- `apex/shared/static/noona.css` + خط **Cairo** محلي (`cairo-arabic.woff2`, `cairo-latin.woff2`) كملفات ثابتة في كل تطبيق،
+  ويُربط في User Interface ← CSS File URLs: `#APP_FILES#noona.css`.
+- ألوان فاتحة قياسية: أساسي `#2563eb`، نجاح `#16a34a`، تنبيه `#d97706`، خطر `#dc2626`، معلومات `#0284c7`، خلفية `#f5f7fb`.
+- ترويسات كل الجداول (Classic / Interactive Report / Interactive Grid) في منتصف العمود.
+- القياس على APEX 24.2: تحميل الرئيسية كاملة ~120ms بعد أول زيارة، زمن استجابة الخادم ~100ms.

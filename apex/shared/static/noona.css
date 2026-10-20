@@ -1,0 +1,132 @@
+/* =============================================================================
+   NOONA PLUS - هوية الواجهة: ألوان فاتحة قياسية، خط Cairo محلي، ترويسات جداول في المنتصف
+   خفيف وسريع: بلا مكتبات خارجية، الخط محفوظ داخل التطبيق (font-display: swap)
+   ============================================================================= */
+@font-face { font-family: "Cairo"; font-style: normal; font-weight: 200 1000; font-display: swap;
+  src: url("cairo-arabic.woff2") format("woff2"); unicode-range: U+0600-06FF, U+0750-077F, U+0870-0891, U+0897-08E1, U+08E3-08FF, U+200C-200E, U+2010-2011, U+204F, U+2E41, U+FB50-FDFF, U+FE70-FE74, U+FE76-FEFC, U+102E0-102FB, U+10E60-10E7E, U+10EC2-10EC7, U+10EC9-10EEE, U+10EF0-10EFF, U+1EE00-1EE03, U+1EE05-1EE1F, U+1EE21-1EE22, U+1EE24, U+1EE27, U+1EE29-1EE32, U+1EE34-1EE37, U+1EE39, U+1EE3B, U+1EE42, U+1EE47, U+1EE49, U+1EE4B, U+1EE4D-1EE4F, U+1EE51-1EE52, U+1EE54, U+1EE57, U+1EE59, U+1EE5B, U+1EE5D, U+1EE5F, U+1EE61-1EE62, U+1EE64, U+1EE67-1EE6A, U+1EE6C-1EE72, U+1EE74-1EE77, U+1EE79-1EE7C, U+1EE7E, U+1EE80-1EE89, U+1EE8B-1EE9B, U+1EEA1-1EEA3, U+1EEA5-1EEA9, U+1EEAB-1EEBB, U+1EEF0-1EEF1; }
+@font-face { font-family: "Cairo"; font-style: normal; font-weight: 200 1000; font-display: swap;
+  src: url("cairo-latin.woff2") format("woff2"); unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD; }
+
+:root {
+  --nn-font: "Cairo", system-ui, "Segoe UI", Tahoma, Arial, sans-serif;
+  --nn-primary: #2563eb;  --nn-primary-50: #eff4ff;  --nn-primary-100: #dbe6fe;
+  --nn-bg: #f5f7fb;       --nn-surface: #ffffff;     --nn-border: #e4e8ef;
+  --nn-text: #1f2937;     --nn-muted: #6b7280;
+  --nn-success: #16a34a;  --nn-success-50: #ecfdf3;
+  --nn-warning: #d97706;  --nn-warning-50: #fff7e6;
+  --nn-danger: #dc2626;   --nn-danger-50: #fef2f2;
+  --nn-info: #0284c7;     --nn-info-50: #eef8ff;
+  --nn-radius: 10px;      --nn-shadow: 0 1px 2px rgba(16, 24, 40, .06);
+
+  /* Universal Theme */
+  --a-base-font-family: var(--nn-font);
+  --ut-base-font-family: var(--nn-font);
+  --ut-palette-primary: var(--nn-primary);
+  --ut-palette-primary-contrast: #fff;
+  --ut-link-text-color: var(--nn-primary);
+  --ut-body-background-color: var(--nn-bg);
+  --ut-header-background-color: #ffffff;
+  --ut-header-text-color: var(--nn-text);
+  --ut-header-border-color: var(--nn-border);
+  --ut-header-border-width: 1px;
+  --ut-header-box-shadow: none;
+  --ut-region-header-background-color: #ffffff;
+  --ut-component-border-color: var(--nn-border);
+}
+body, .t-Body, input, select, textarea, button { font-family: var(--nn-font); }
+
+/* القائمة الجانبية فاتحة */
+.t-Body-nav, .t-TreeNav, .t-TreeNav .a-TreeView-node--topLevel { background-color: #ffffff !important; }
+.t-Body-nav { border-inline-end: 1px solid var(--nn-border); }
+.t-TreeNav .a-TreeView-label, .t-TreeNav .a-TreeView-content, .t-TreeNav .fa { color: #374151 !important; }
+.t-TreeNav .a-TreeView-row.is-selected, .t-TreeNav .a-TreeView-row.is-current,
+.t-TreeNav .a-TreeView-row.is-current--top, .t-TreeNav .a-TreeView-row.is-hover { background-color: var(--nn-primary-50) !important; }
+
+/* ترويسات الجداول في منتصف العمود: Classic Report / Interactive Report / Interactive Grid */
+.t-Report-colHead, .t-Report-report th, .a-IRR-header, .a-IRR-headerLink, .a-IRR-headerLabel,
+.a-GV-header, .a-GV-headerLabel, .nn-table th { text-align: center !important; justify-content: center; }
+.t-Report-colHead, .a-IRR-header, .a-GV-header { background-color: #f8fafc; font-weight: 600; }
+
+/* المناطق */
+.t-Region { border-radius: var(--nn-radius); border-color: var(--nn-border); box-shadow: var(--nn-shadow); }
+.t-Region-title { font-weight: 700; }
+
+/* ------------------------------------------------------------------ مكونات NOONA */
+.nn-hello { margin-bottom: 14px; }
+.nn-hello-title { font-size: 1.5rem; font-weight: 700; color: var(--nn-text); }
+.nn-hello-sub { color: var(--nn-muted); margin-top: 2px; }
+.nn-hello-sub a { margin-inline-start: 4px; }
+
+.nn-kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 12px; }
+.nn-kpi { display: flex; align-items: center; gap: 12px; background: var(--nn-surface); border: 1px solid var(--nn-border);
+  border-radius: var(--nn-radius); padding: 14px 16px; }
+.nn-kpi-icon { width: 42px; height: 42px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-size: 18px; }
+.nn-kpi-value { font-size: 1.6rem; font-weight: 700; line-height: 1.1; color: var(--nn-text); }
+.nn-kpi-label { color: var(--nn-muted); font-size: .9rem; }
+
+.is-info    .nn-kpi-icon { background: var(--nn-info-50);    color: var(--nn-info); }
+.is-success .nn-kpi-icon { background: var(--nn-success-50); color: var(--nn-success); }
+.is-warning .nn-kpi-icon { background: var(--nn-warning-50); color: var(--nn-warning); }
+.is-danger  .nn-kpi-icon { background: var(--nn-danger-50);  color: var(--nn-danger); }
+.is-muted   .nn-kpi-icon { background: #f1f3f6;              color: var(--nn-muted); }
+
+.nn-apps { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 12px; }
+.nn-app { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 18px 10px; text-align: center;
+  background: var(--nn-surface); border: 1px solid var(--nn-border); border-radius: var(--nn-radius);
+  color: var(--nn-text) !important; text-decoration: none !important; transition: border-color .15s, background-color .15s; }
+a.nn-app:hover { border-color: var(--nn-primary); background: var(--nn-primary-50); }
+.nn-app-icon { font-size: 26px; color: var(--nn-primary); }
+.nn-app-name { font-weight: 600; }
+.nn-app.is-disabled { opacity: .55; cursor: default; }
+.nn-app.is-disabled .nn-app-icon { color: var(--nn-muted); }
+
+.nn-badge { display: inline-block; padding: 1px 10px; border-radius: 999px; font-size: .78rem; font-weight: 600; line-height: 1.7; }
+.nn-badge.is-info    { background: var(--nn-info-50);    color: var(--nn-info); }
+.nn-badge.is-success { background: var(--nn-success-50); color: var(--nn-success); }
+.nn-badge.is-warning { background: var(--nn-warning-50); color: var(--nn-warning); }
+.nn-badge.is-danger  { background: var(--nn-danger-50);  color: var(--nn-danger); }
+.nn-badge.is-muted   { background: #f1f3f6;              color: var(--nn-muted); }
+
+.nn-tasks { display: flex; flex-direction: column; gap: 8px; }
+.nn-task { display: flex; justify-content: space-between; gap: 12px; padding: 12px 14px; background: var(--nn-surface);
+  border: 1px solid var(--nn-border); border-inline-start: 4px solid var(--nn-info); border-radius: var(--nn-radius);
+  color: var(--nn-text) !important; text-decoration: none !important; transition: background-color .15s; }
+.nn-task:hover { background: var(--nn-primary-50); }
+.nn-task.is-warning { border-inline-start-color: var(--nn-warning); }
+.nn-task.is-danger  { border-inline-start-color: var(--nn-danger); }
+.nn-task.is-muted   { border-inline-start-color: #cbd2dc; }
+.nn-task-title { font-weight: 700; }
+.nn-task-meta, .nn-task-time { color: var(--nn-muted); font-size: .85rem; }
+.nn-task-side { text-align: end; display: flex; flex-direction: column; align-items: flex-end; gap: 4px; }
+.nn-task-amount { font-weight: 700; }
+.nn-task-badges { display: flex; gap: 4px; flex-wrap: wrap; justify-content: flex-end; }
+
+.nn-notes { list-style: none; margin: 0; padding: 0; }
+.nn-note { display: flex; gap: 10px; padding: 9px 4px; border-bottom: 1px solid var(--nn-border); }
+.nn-note:last-child { border-bottom: 0; }
+.nn-note-dot { width: 8px; height: 8px; border-radius: 50%; background: #cbd2dc; margin-top: 9px; flex: none; }
+.nn-note.is-unread .nn-note-dot { background: var(--nn-primary); }
+.nn-note.is-unread .nn-note-body > a, .nn-note.is-unread .nn-note-body { font-weight: 600; }
+.nn-note-time { color: var(--nn-muted); font-size: .8rem; font-weight: 400; }
+
+.nn-taskhead { border-inline-start: 4px solid var(--nn-info); padding-inline-start: 12px; }
+.nn-taskhead.is-warning { border-inline-start-color: var(--nn-warning); }
+.nn-taskhead.is-danger  { border-inline-start-color: var(--nn-danger); }
+.nn-taskhead-title { font-size: 1.25rem; font-weight: 700; margin-bottom: 10px; }
+.nn-fields { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 10px 16px; }
+.nn-field-label { color: var(--nn-muted); font-size: .82rem; }
+.nn-field-value { font-weight: 600; }
+
+.nn-timeline { list-style: none; margin: 0; padding: 0; border-inline-start: 2px solid var(--nn-border); }
+.nn-tl-item { position: relative; padding: 4px 18px 14px; }
+.nn-tl-item::before { content: ""; position: absolute; inset-inline-start: -7px; top: 10px; width: 12px; height: 12px;
+  border-radius: 50%; background: var(--nn-info); border: 2px solid #fff; }
+.nn-tl-item.is-success::before { background: var(--nn-success); }
+.nn-tl-item.is-danger::before  { background: var(--nn-danger); }
+.nn-tl-item.is-warning::before { background: var(--nn-warning); }
+.nn-tl-time { color: var(--nn-muted); font-size: .8rem; margin-inline-start: 8px; }
+.nn-tl-by { color: var(--nn-muted); font-size: .88rem; }
+.nn-tl-comment { margin-top: 4px; background: #f8fafc; border: 1px solid var(--nn-border); border-radius: 8px; padding: 6px 10px; }
+
+.nn-empty { color: var(--nn-muted); padding: 14px 4px; }
+.nn-empty.is-warning { color: var(--nn-warning); }

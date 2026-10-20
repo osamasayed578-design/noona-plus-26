@@ -44,7 +44,7 @@ sqlplus -S -L NOONA_APP/"%APP_PWD%"@%CONN% @tests/test_apex_pkg.sql < nul | find
 sqlplus -S -L NOONA_APP/"%APP_PWD%"@%CONN% @tests/test_portal.sql < nul | findstr /c:"RESULT" /c:"FAIL" /c:"ORA-"
 
 echo.
-echo ===== Finished. Expected: 79 / 26 / 16 passed, 0 failed.
+echo ===== Finished. Expected: 79 / 26 / 21 passed, 0 failed.
 pause
 exit /b 0
 
