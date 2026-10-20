@@ -20,7 +20,10 @@ PROMPT ========== NOONA_WORKFLOW_PKG
 @@plsql/70_noona_workflow_pkg.sql
 PROMPT ========== NOONA_UI_PKG
 @@plsql/86_noona_ui_pkg.sql
+PROMPT ========== NOONA_REFDATA_PKG
+@@plsql/90_noona_refdata_pkg.sql
 GRANT EXECUTE ON NOONA_WORKFLOW_PKG TO NOONA_APP;
+GRANT EXECUTE ON NOONA_REFDATA_PKG TO NOONA_APP;
 GRANT EXECUTE ON NOONA_UI_PKG TO NOONA_APP;
 PROMPT ========== Recompile dependents
 EXEC DBMS_UTILITY.COMPILE_SCHEMA(schema => USER, compile_all => FALSE)

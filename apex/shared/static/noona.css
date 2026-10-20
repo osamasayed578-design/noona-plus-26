@@ -317,3 +317,11 @@ tr:hover .nn-badge { transform: scale(1.05); }
 .nn-flow-name { font-weight: 800; color: var(--nn-head-text); }
 .nn-flow-who { font-size: .85rem; color: #1f2937; margin-top: 4px; }
 .nn-flow-out { font-size: .8rem; color: var(--nn-primary); margin-top: 4px; }
+
+/* حالة سلسلة التدقيق */
+.nn-chain { display: flex; align-items: center; gap: 14px; padding: 14px 18px; border-radius: 12px; border: 1px solid; }
+.nn-chain .fa { font-size: 28px; }
+.nn-chain b { display: block; font-size: 1.05rem; }
+.nn-chain small { color: var(--nn-muted); }
+.nn-chain.is-ok { background: var(--nn-success-50); border-color: #b7dfb7; color: var(--nn-success); }
+.nn-chain.is-bad { background: var(--nn-danger-50); border-color: #f3b8b2; color: var(--nn-danger); }

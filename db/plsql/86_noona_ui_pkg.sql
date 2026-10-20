@@ -253,6 +253,7 @@ CREATE OR REPLACE PACKAGE BODY NOONA_UI_PKG AS
       WHEN 'SUBMITTED' THEN 'مرسل' WHEN 'APPROVED' THEN 'معتمد' WHEN 'REJECTED' THEN 'مرفوض' WHEN 'SCHEDULED' THEN 'مجدول'
       WHEN 'EXPIRED' THEN 'منتهي' WHEN 'REVOKED' THEN 'ملغى' WHEN 'CANCELLED' THEN 'ملغى' WHEN 'TERMINATED' THEN 'منتهي'
       WHEN 'RETIRED' THEN 'متقاعد' WHEN 'SUPERSEDED' THEN 'مستبدل' WHEN 'UNDER_REVIEW' THEN 'قيد المراجعة'
+      WHEN 'SUCCESS' THEN 'نجاح' WHEN 'DENIED' THEN 'مرفوض' WHEN 'PUBLISHED' THEN 'منشور'
       WHEN 'VACANT' THEN 'شاغر' WHEN 'OCCUPIED' THEN 'مشغول' WHEN 'FROZEN' THEN 'مجمد' WHEN 'PLANNED' THEN 'مخطط'
       WHEN 'EFFECTIVE' THEN 'ساري' WHEN 'COMPLETED' THEN 'مكتمل' WHEN 'RUNNING' THEN 'قيد التشغيل' WHEN 'WAITING' THEN 'بانتظار إجراء'
       WHEN 'INVITED' THEN 'مدعو' WHEN 'ENDED' THEN 'منتهي' WHEN 'LOCKED' THEN 'مقفل'
@@ -264,8 +265,8 @@ CREATE OR REPLACE PACKAGE BODY NOONA_UI_PKG AS
     l_class VARCHAR2(20);
   BEGIN
     l_class := CASE
-      WHEN p_code IN ('ACTIVE', 'PASSED', 'APPROVED', 'EFFECTIVE', 'COMPLETED', 'OCCUPIED') THEN 'is-success'
-      WHEN p_code IN ('FAILED', 'REJECTED', 'SUSPENDED', 'CLOSED', 'REVOKED', 'CANCELLED', 'LOCKED', 'TRANSACTIONS_BLOCKED') THEN 'is-danger'
+      WHEN p_code IN ('ACTIVE', 'PASSED', 'APPROVED', 'EFFECTIVE', 'COMPLETED', 'OCCUPIED', 'SUCCESS', 'PUBLISHED') THEN 'is-success'
+      WHEN p_code IN ('FAILED', 'DENIED', 'REJECTED', 'SUSPENDED', 'CLOSED', 'REVOKED', 'CANCELLED', 'LOCKED', 'TRANSACTIONS_BLOCKED') THEN 'is-danger'
       WHEN p_code IN ('PENDING', 'SUBMITTED', 'UNDER_CONFIGURATION', 'READY_FOR_REVIEW', 'WAIVED', 'CLOSING', 'WAITING',
                       'UNDER_REVIEW', 'GRACE_PERIOD', 'READ_ONLY', 'VACANT') THEN 'is-warning'
       WHEN p_code IN ('DRAFT', 'SCHEDULED', 'RUNNING', 'TRIAL', 'PLANNED', 'INVITED') THEN 'is-info'
@@ -529,6 +530,12 @@ CREATE OR REPLACE PACKAGE BODY NOONA_UI_PKG AS
       WHEN 'DOCUMENT' THEN 'مستندات' WHEN 'ALL' THEN 'الجميع' WHEN 'ANY' THEN 'أي واحد' WHEN 'MAJORITY' THEN 'الأغلبية'
       WHEN 'APPROVED' THEN 'عند الاعتماد' WHEN 'REJECTED' THEN 'عند الرفض' WHEN 'RETURNED' THEN 'عند الإعادة'
       WHEN 'ACCESS' THEN 'وصول' WHEN 'EMERGENCY' THEN 'طارئ'
+      WHEN 'AUTH' THEN 'دخول' WHEN 'SECURITY' THEN 'أمن وصلاحيات' WHEN 'CONFIG' THEN 'إعدادات' WHEN 'DATA_CHANGE' THEN 'تعديل بيانات'
+      WHEN 'PAYMENT' THEN 'مدفوعات' WHEN 'INVENTORY' THEN 'مخزون' WHEN 'EXPORT' THEN 'تصدير' WHEN 'SUPPORT' THEN 'دعم فني'
+      WHEN 'API' THEN 'تكامل' WHEN 'AI' THEN 'ذكاء اصطناعي' WHEN 'DEPLOYMENT' THEN 'نشر'
+      WHEN 'DOC_DATE' THEN 'تاريخ المستند' WHEN 'DELIVERY_DATE' THEN 'تاريخ التسليم' WHEN 'END_OF_MONTH' THEN 'نهاية الشهر'
+      WHEN 'RECEIPT_DATE' THEN 'تاريخ الاستلام' WHEN 'HALF_UP' THEN 'تقريب عادي' WHEN 'HALF_EVEN' THEN 'تقريب بنكي'
+      WHEN 'UP' THEN 'لأعلى' WHEN 'DOWN' THEN 'لأسفل'
       WHEN 'MODULE' THEN 'وحدة النظام' WHEN 'WORKFLOW' THEN 'مسار اعتماد' WHEN 'ACTION' THEN 'إجراء'
       WHEN 'TRANSACTION_TYPE' THEN 'نوع المعاملة' WHEN 'REQUEST_TYPE' THEN 'نوع الطلب' WHEN 'MAX_CONFIDENTIALITY' THEN 'أعلى سرية'
       ELSE p_code END;

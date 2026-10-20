@@ -876,6 +876,185 @@ p.ir('سجل الاستخدام', 30, [
      ('CURRENCY_CODE', 'العملة', {}), ('RESULT_CODE', 'النتيجة', {}), ('ACTOR', 'المنفذ', {})], titled=True)
 p.branch(10, 'f?p=&APP_ID.:44:&SESSION.::&DEBUG.:44:P44_ID:&P44_ID.&success_msg=#SUCCESS_MSG#')
 
+# =============================================================== 50) العملات (مرجع عام للقراءة)
+p = app.page(50, 'Currencies', 'CURRENCIES', 'العملات', scheme=ADMIN)
+p.ir('العملات', 10, [
+    'select id, currency_code, name_ar, name_en, symbol, decimal_places, minor_unit_ar,',
+    '       noona_ui_pkg.code_label(rounding_method) as rounding, noona_ui_pkg.code_label(is_active) as active',
+    '  from ref_currency'],
+    [('ID', '#', {'hidden': True, 'type': 'NUMBER'}), ('CURRENCY_CODE', 'الرمز', {}), ('NAME_AR', 'العملة', {}),
+     ('NAME_EN', 'بالإنجليزية', {}), ('SYMBOL', 'الرمز المختصر', {}), ('DECIMAL_PLACES', 'الخانات العشرية', {'type': 'NUMBER'}),
+     ('MINOR_UNIT_AR', 'الوحدة الصغرى', {}), ('ROUNDING', 'التقريب', {}), ('ACTIVE', 'فعالة', {})])
+
+# =============================================================== 51) أسعار الصرف
+p = app.page(51, 'Exchange Rates', 'EXCHANGE-RATES', 'أسعار الصرف', scheme=ADMIN)
+p.ir('أسعار الصرف', 10, [
+    'select r.id, r.rate_date, t.name_ar as rate_type, r.from_currency || \' / \' || r.to_currency as pair,',
+    '       r.rate, r.inverse_rate, r.created_by, r.approved_by, noona_ui_pkg.status_badge(r.status_code) as status_html',
+    '  from ref_exchange_rate r join ref_rate_type t on t.id = r.rate_type_id order by r.rate_date desc, r.id desc'],
+    [('ID', '#', {'hidden': True, 'type': 'NUMBER'}), ('RATE_DATE', 'التاريخ', {'type': 'DATE'}), ('RATE_TYPE', 'نوع السعر', {}),
+     ('PAIR', 'العملتان', {}), ('RATE', 'السعر', {'type': 'NUMBER'}), ('INVERSE_RATE', 'المعكوس', {'type': 'NUMBER'}),
+     ('CREATED_BY', 'أدخله', {}), ('APPROVED_BY', 'اعتمده', {}), ('STATUS_HTML', 'الحالة', {'html': True})])
+RATE_TYPES = "select name_ar || ' (' || code || ')' d, id r from ref_rate_type where is_active = 'Y' order by 1"
+f = p.static('سعر جديد', 20)
+p.select('P51_TYPE', f, 10, 'نوع السعر', required=True, lov_sql=RATE_TYPES)
+p.date('P51_DATE', f, 20, 'التاريخ', required=True)
+p.select('P51_FROM', f, 30, 'من عملة', lov_name='NOONA_CURRENCIES', required=True)
+p.select('P51_TO', f, 40, 'إلى عملة', lov_name='NOONA_CURRENCIES', required=True)
+p.number('P51_RATE', f, 50, 'السعر (وحدة واحدة من الأولى = ؟ من الثانية)', required=True)
+p.text('P51_NOTE', f, 60, 'المصدر أو الملاحظة')
+b_add = p.button(f, 10, 'ADD_RATE', 'حفظ السعر', hot=True)
+p.process(10, 'BEFORE_HEADER', 'Defaults', [":P51_DATE := nvl(:P51_DATE, to_char(sysdate, 'YYYY-MM-DD'));"])
+p.process(10, 'AFTER_SUBMIT', 'Add Rate', [
+    'declare l_id number; l_status varchar2(30);',
+    'begin',
+    "    l_id := noona_refdata_pkg.add_rate(:P51_TYPE, :P51_FROM, :P51_TO, to_date(:P51_DATE, 'YYYY-MM-DD'), :P51_RATE, :P51_NOTE);",
+    '    select status_code into l_status from ref_exchange_rate where id = l_id;',
+    "    apex_application.g_print_success_message := case l_status",
+    "        when 'DRAFT' then 'تم حفظ السعر بانتظار اعتماد مستخدم آخر' else 'تم حفظ السعر واعتماده' end;",
+    'end;'], when_button=b_add)
+ap = p.static('اعتماد الأسعار المعلقة (لا يعتمد المدخل سعره)', 30)
+p.select('P51_PENDING', ap, 10, 'سعر معلق', lov_sql=(
+    "select to_char(r.rate_date, 'YYYY-MM-DD') || ' · ' || r.from_currency || '/' || r.to_currency || ' = ' || r.rate "
+    "|| ' · ' || r.created_by d, r.id r from ref_exchange_rate r where r.status_code = 'DRAFT' order by r.rate_date desc"))
+p.text('P51_REJECT_REASON', ap, 20, 'سبب الرفض')
+b_ap = p.button(ap, 10, 'APPROVE_RATE', 'اعتماد', hot=True)
+b_rj = p.button(ap, 20, 'REJECT_RATE', 'رفض')
+p.process(20, 'AFTER_SUBMIT', 'Approve Rate', 'noona_refdata_pkg.approve_rate(:P51_PENDING);', when_button=b_ap,
+          success='تم اعتماد السعر')
+p.process(30, 'AFTER_SUBMIT', 'Reject Rate', 'noona_refdata_pkg.reject_rate(:P51_PENDING, :P51_REJECT_REASON);',
+          when_button=b_rj, success='تم رفض السعر')
+rt = p.static('نوع سعر جديد', 40)
+p.text('P51_RT_CODE', rt, 10, 'الرمز', maxlen=50, width=20)
+p.text('P51_RT_NAME', rt, 20, 'الاسم')
+p.select('P51_RT_CAT', rt, 30, 'الفئة', null_text=None, lov_sql=(
+    'STATIC2:يدوي;MANUAL,رسمي;OFFICIAL,البنك المركزي;CENTRAL_BANK,بنكي;BANK,شراء;BUY,بيع;SELL,متوسط;AVERAGE,إقفال;CLOSING'))
+p.yesno('P51_RT_APPROVAL', rt, 40, 'يتطلب اعتماد مستخدم آخر')
+b_rt = p.button(rt, 10, 'ADD_TYPE', 'إضافة النوع')
+p.process(40, 'AFTER_SUBMIT', 'Add Rate Type', [
+    'declare l_id number;',
+    'begin',
+    "    l_id := noona_refdata_pkg.create_rate_type(:P51_RT_CODE, :P51_RT_NAME, :P51_RT_CAT, nvl(:P51_RT_APPROVAL, 'N'));",
+    'end;'], when_button=b_rt, success='تمت إضافة نوع السعر')
+p.branch(10, 'f?p=&APP_ID.:51:&SESSION.::&DEBUG.:51::&success_msg=#SUCCESS_MSG#')
+
+# =============================================================== 52) شروط الدفع
+p = app.page(52, 'Payment Terms', 'PAYMENT-TERMS', 'شروط الدفع', scheme=ADMIN)
+p.ir('شروط الدفع', 10, [
+    'select t.id, t.code, t.name_ar, noona_ui_pkg.code_label(t.base_date_rule) as base_rule, t.due_days,',
+    "       case when t.early_discount_pct is not null then t.early_discount_pct || '% خلال ' || t.early_discount_days || ' يوم' end as discount,",
+    "       (select listagg(l.due_pct || '% بعد ' || l.due_days || ' يوم', '، ') within group (order by l.line_no)",
+    '          from ref_payment_term_line l where l.payment_term_id = t.id) as installments,',
+    "       noona_ui_pkg.status_badge(case t.is_active when 'Y' then 'ACTIVE' else 'INACTIVE' end) as status_html",
+    '  from ref_payment_term t'],
+    [('ID', '#', {'hidden': True, 'type': 'NUMBER'}), ('CODE', 'الرمز', {}), ('NAME_AR', 'الشرط', {}),
+     ('BASE_RULE', 'يحسب من', {}), ('DUE_DAYS', 'أيام الاستحقاق', {'type': 'NUMBER'}), ('DISCOUNT', 'خصم السداد المبكر', {}),
+     ('INSTALLMENTS', 'الأقساط', {}), ('STATUS_HTML', 'الحالة', {'html': True})])
+f = p.static('شرط دفع جديد', 20)
+p.text('P52_CODE', f, 10, 'الرمز', required=True, maxlen=50, width=20)
+p.text('P52_NAME_AR', f, 20, 'الاسم (مثال: صافي 30 يوم)', required=True)
+p.select('P52_BASE', f, 30, 'يحسب الاستحقاق من', null_text=None, lov_sql=(
+    'STATIC2:تاريخ المستند;DOC_DATE,تاريخ التسليم;DELIVERY_DATE,نهاية الشهر;END_OF_MONTH,تاريخ الاستلام;RECEIPT_DATE'))
+p.number('P52_DAYS', f, 40, 'أيام الاستحقاق', required=True)
+p.number('P52_DISC_PCT', f, 50, 'خصم السداد المبكر %')
+p.number('P52_DISC_DAYS', f, 60, 'خلال (يوم)')
+b = p.button(f, 10, 'CREATE', 'إنشاء الشرط', hot=True)
+p.process(10, 'AFTER_SUBMIT', 'Create Term', [
+    'declare l_id number;',
+    'begin',
+    '    l_id := noona_refdata_pkg.create_payment_term(:P52_CODE, :P52_NAME_AR, :P52_BASE, :P52_DAYS, :P52_DISC_PCT, :P52_DISC_DAYS);',
+    'end;'], when_button=b, success='تم إنشاء شرط الدفع')
+it = p.static('أقساط وتفعيل', 30)
+TERMS = "select name_ar || ' (' || code || ')' d, id r from ref_payment_term order by 1"
+p.select('P52_TERM', it, 10, 'شرط الدفع', lov_sql=TERMS)
+p.number('P52_INST_PCT', it, 20, 'نسبة القسط %')
+p.number('P52_INST_DAYS', it, 30, 'يستحق بعد (يوم)')
+b_in = p.button(it, 10, 'ADD_INSTALLMENT', 'إضافة القسط', hot=True)
+b_on = p.button(it, 20, 'ACTIVATE', 'تفعيل')
+b_off = p.button(it, 30, 'DEACTIVATE', 'إيقاف')
+p.process(20, 'AFTER_SUBMIT', 'Add Installment', 'noona_refdata_pkg.add_installment(:P52_TERM, :P52_INST_PCT, :P52_INST_DAYS);',
+          when_button=b_in, success='تمت إضافة القسط')
+p.process(30, 'AFTER_SUBMIT', 'Activate Term', "noona_refdata_pkg.set_term_active(:P52_TERM, 'Y');", when_button=b_on, success='تم التفعيل')
+p.process(40, 'AFTER_SUBMIT', 'Deactivate Term', "noona_refdata_pkg.set_term_active(:P52_TERM, 'N');", when_button=b_off, success='تم الإيقاف')
+p.branch(10, 'f?p=&APP_ID.:52:&SESSION.::&DEBUG.:52::&success_msg=#SUCCESS_MSG#')
+
+# =============================================================== 53) تسلسلات المستندات
+p = app.page(53, 'Document Sequences', 'DOC-SEQUENCES', 'تسلسلات المستندات', scheme=ADMIN)
+p.ir('تسلسلات المستندات', 10, [
+    'select s.id, nvl(c.trade_name_ar, c.legal_name_ar) as company_name, b.name_ar as branch_name, s.doc_type_code, s.fiscal_year,',
+    '       noona_refdata_pkg.preview_doc_no(s.id) as next_doc_no, noona_ui_pkg.code_label(s.is_gapless) as gapless,',
+    "       decode(s.reset_policy, 'YEARLY', 'سنوي', 'MONTHLY', 'شهري', 'بدون') as reset_policy,",
+    "       noona_ui_pkg.status_badge(case s.is_active when 'Y' then 'ACTIVE' else 'INACTIVE' end) as status_html",
+    '  from ref_doc_sequence s left join org_company c on c.id = s.company_id left join org_branch b on b.id = s.branch_id'],
+    [('ID', '#', {'hidden': True, 'type': 'NUMBER'}), ('COMPANY_NAME', 'الشركة', {}), ('BRANCH_NAME', 'الفرع', {}),
+     ('DOC_TYPE_CODE', 'نوع المستند', {}), ('FISCAL_YEAR', 'السنة', {'type': 'NUMBER'}), ('NEXT_DOC_NO', 'الرقم التالي', {}),
+     ('GAPLESS', 'بلا فجوات', {}), ('RESET_POLICY', 'إعادة الترقيم', {}), ('STATUS_HTML', 'الحالة', {'html': True})])
+f = p.static('تسلسل جديد', 20)
+p.select('P53_COMPANY', f, 10, 'الشركة', lov_name='NOONA_COMPANIES', required=True)
+p.select('P53_BRANCH', f, 20, 'الفرع (اختياري)', cascade='P53_COMPANY', lov_sql=(
+    "select name_ar d, id r from org_branch where company_id = :P53_COMPANY and status_code = 'ACTIVE' order by 1"))
+p.text('P53_DOC_TYPE', f, 30, 'نوع المستند (مثال: PO, SI, JV)', required=True, maxlen=30, width=15)
+p.number('P53_YEAR', f, 40, 'السنة المالية', required=True)
+p.text('P53_PREFIX', f, 50, 'البادئة (مثال: PO-)', maxlen=20, width=15)
+p.number('P53_PADDING', f, 60, 'عدد الخانات')
+p.yesno('P53_GAPLESS', f, 70, 'بلا فجوات (للمستندات الضريبية)')
+p.select('P53_RESET', f, 80, 'إعادة الترقيم', null_text=None, lov_sql='STATIC2:سنوي;YEARLY,شهري;MONTHLY,بدون;NEVER')
+b = p.button(f, 10, 'CREATE', 'إنشاء التسلسل', hot=True)
+p.process(10, 'BEFORE_HEADER', 'Defaults', [
+    ":P53_YEAR := nvl(:P53_YEAR, to_char(sysdate, 'YYYY'));",
+    ':P53_PADDING := nvl(:P53_PADDING, 6);'])
+p.process(10, 'AFTER_SUBMIT', 'Create Sequence', [
+    'declare l_id number;',
+    'begin',
+    '    l_id := noona_refdata_pkg.create_doc_sequence(p_company_id => :P53_COMPANY, p_doc_type => :P53_DOC_TYPE,',
+    '                p_fiscal_year => :P53_YEAR, p_prefix => :P53_PREFIX, p_branch_id => :P53_BRANCH,',
+    "                p_padding => :P53_PADDING, p_gapless => nvl(:P53_GAPLESS, 'N'), p_reset => :P53_RESET);",
+    'end;'], when_button=b, success='تم إنشاء التسلسل')
+ed = p.static('تعديل تسلسل', 30)
+p.select('P53_SEQ', ed, 10, 'التسلسل', submit=True, lov_sql=(
+    "select s.doc_type_code || ' · ' || s.fiscal_year || ' · ' || nvl(c.trade_name_ar, c.legal_name_ar) || ' → '"
+    " || noona_refdata_pkg.preview_doc_no(s.id) d, s.id r from ref_doc_sequence s join org_company c on c.id = s.company_id order by 1"))
+p.text('P53_E_PREFIX', ed, 20, 'البادئة', maxlen=20, width=15)
+p.number('P53_E_NEXT', ed, 30, 'الرقم التالي (لا يقل عن الحالي)')
+p.yesno('P53_E_ACTIVE', ed, 40, 'فعال')
+b_up = p.button(ed, 10, 'UPDATE', 'حفظ التعديل', hot=True)
+p.process(20, 'BEFORE_HEADER', 'Load Sequence', [
+    'if :P53_SEQ is not null then',
+    '    select prefix, next_number, is_active into :P53_E_PREFIX, :P53_E_NEXT, :P53_E_ACTIVE from ref_doc_sequence where id = :P53_SEQ;',
+    'end if;'])
+p.process(20, 'AFTER_SUBMIT', 'Update Sequence',
+          'noona_refdata_pkg.update_doc_sequence(:P53_SEQ, :P53_E_PREFIX, :P53_E_NEXT, :P53_E_ACTIVE);',
+          when_button=b_up, success='تم حفظ التسلسل')
+p.branch(10, 'f?p=&APP_ID.:53:&SESSION.::&DEBUG.:53:P53_SEQ:&P53_SEQ.&success_msg=#SUCCESS_MSG#')
+
+# =============================================================== 60) سجل التدقيق
+p = app.page(60, 'Audit Log', 'AUDIT', 'سجل التدقيق', scheme=ADMIN)
+p.dynamic('سلامة السجل', 5, [
+    'declare',
+    "    l_bad number := noona_audit_pkg.verify_chain(to_number(sys_context('NOONA_CTX', 'TENANT_ID')));",
+    '    l_n   number;',
+    'begin',
+    '    select count(*) into l_n from aud_event;',
+    '    if l_bad is null then',
+    "        return '<div class=\"nn-chain is-ok\"><span class=\"fa fa-shield\" aria-hidden=\"true\"></span><div><b>سجل التدقيق سليم</b>'",
+    "            || '<small>تم التحقق من سلسلة التجزئة لعدد ' || l_n || ' حدث؛ لم يعدل أو يحذف أي حدث</small></div></div>';",
+    '    end if;',
+    "    return '<div class=\"nn-chain is-bad\"><span class=\"fa fa-exclamation-triangle\" aria-hidden=\"true\"></span><div><b>تحذير: انقطاع في سلسلة التدقيق</b>'",
+    "        || '<small>أول حدث غير مطابق رقم ' || l_bad || '؛ أبلغ مسؤول المنصة فوراً</small></div></div>';",
+    'end;'], hide_header=True)
+p.ir('سجل التدقيق', 10, [
+    "select e.id, to_char(e.occurred_at, 'YYYY-MM-DD HH24:MI:SS') as occurred_at, noona_ui_pkg.code_label(e.event_category) as category,",
+    '       nvl(et.name_ar, e.entity_type) as entity_type, e.entity_id,',
+    '       e.action_code, noona_ui_pkg.status_badge(e.result_code) as result_html,',
+    '       (select u.display_name from sec_user u where u.id = e.actor_user_id) as actor,',
+    '       (select nvl(c.trade_name_ar, c.legal_name_ar) from org_company c where c.id = e.company_id) as company_name,',
+    '       e.reason, e.ip_address, e.request_source',
+    '  from aud_event e left join ref_entity_type et on et.entity_type_code = e.entity_type order by e.id desc'],
+    [('ID', 'رقم الحدث', {'type': 'NUMBER'}), ('OCCURRED_AT', 'الوقت', {}), ('CATEGORY', 'الفئة', {}),
+     ('ENTITY_TYPE', 'الكيان', {}), ('ENTITY_ID', 'رقمه', {'type': 'NUMBER'}), ('ACTION_CODE', 'الإجراء', {}),
+     ('RESULT_HTML', 'النتيجة', {'html': True}), ('ACTOR', 'المستخدم', {}), ('COMPANY_NAME', 'الشركة', {}),
+     ('REASON', 'السبب', {}), ('IP_ADDRESS', 'عنوان IP', {}), ('REQUEST_SOURCE', 'المصدر', {})])
+
 sec = app.nav_item('المستخدمون والصلاحيات', None, 'fa-users', 40)
 app.nav_item('المستخدمون', 30, 'fa-user', 41, parent=sec)
 app.nav_item('الأدوار والصلاحيات', 32, 'fa-key', 42, parent=sec)
@@ -885,5 +1064,11 @@ app.nav_item('مسارات الاعتماد', 40, 'fa-random', 51, parent=wfn)
 app.nav_item('شروط التوجيه', 42, 'fa-filter', 52, parent=wfn)
 app.nav_item('التفويضات', 43, 'fa-share', 53, parent=wfn)
 
+ref = app.nav_item('البيانات المرجعية', None, 'fa-database', 60)
+app.nav_item('العملات', 50, 'fa-money', 61, parent=ref)
+app.nav_item('أسعار الصرف', 51, 'fa-exchange', 62, parent=ref)
+app.nav_item('شروط الدفع', 52, 'fa-calendar-check-o', 63, parent=ref)
+app.nav_item('تسلسلات المستندات', 53, 'fa-sort-numeric-asc', 64, parent=ref)
+app.nav_item('سجل التدقيق', 60, 'fa-shield', 70)
 app.finalize()
 print('NOONA_ADMIN built:', len(app.pages), 'pages')
