@@ -14,10 +14,24 @@ wwv_flow_imp.component_begin (
 wwv_flow_imp_shared.create_authentication(
  p_id=>wwv_flow_imp.id(17753165707442907)
 ,p_name=>'NOONA Auth'
-,p_scheme_type=>'NATIVE_APEX_ACCOUNTS'
+,p_scheme_type=>'NATIVE_CUSTOM'
+,p_attribute_03=>'noona_authenticate'
+,p_attribute_05=>'N'
 ,p_invalid_session_type=>'LOGIN'
 ,p_cookie_name=>'NOONA_SESSION'
 ,p_plsql_code=>wwv_flow_string.join(wwv_flow_t_varchar2(
+'-- مصادقة نونا بلس: بيانات الاعتماد المحلية (SEC_CREDENTIAL، PBKDF2) مع قفل بعد المحاولات الفاشلة؛',
+'-- المستخدم الذي لا يملك كلمة مرور محلية بعد يتحقق عبر حساب APEX (للانتقال التدريجي)',
+'function noona_authenticate(p_username in varchar2, p_password in varchar2) return boolean is',
+'    l_result varchar2(20);',
+'begin',
+'    l_result := noona_apex_pkg.check_password(p_username, p_password);',
+'    if l_result = ''NO_LOCAL'' then',
+'        return apex_util.is_login_password_valid(p_username => p_username, p_password => p_password);',
+'    end if;',
+'    return l_result = ''OK'';',
+'end noona_authenticate;',
+'',
 '-- بعد نجاح كلمة المرور: إنشاء جلسة NOONA (المؤسسة أو المنصة) وربطها بجلسة APEX',
 'procedure noona_post_auth is',
 '    l_ip varchar2(100);',

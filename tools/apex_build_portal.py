@@ -415,3 +415,9 @@ _ca = open(A+'create_application.sql',encoding='utf-8').read()
 open(A+'create_application.sql','w',encoding='utf-8').write(re.sub(r",p_files_version=>\d+", f",p_files_version=>{_ver}", _ca))
 edit(A+'user_interfaces.sql', ",p_nav_bar_template_options=>'#DEFAULT#'", ",p_nav_bar_template_options=>'#DEFAULT#'\n,p_css_file_urls=>'#APP_FILES#noona.css'")
 print('ui done')
+
+# ---------------------------------------------------------------- 9) مصادقة نونا المخصصة (كلمات المرور المحلية)
+import sys
+sys.path.insert(0, '/home/user/noona-plus/tools')
+from apex_auth_patch import patch
+patch('.')

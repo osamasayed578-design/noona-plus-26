@@ -42,6 +42,48 @@ def attrs(**kv):
     return f"wwv_flow_t_plugin_attributes(wwv_flow_t_varchar2(\n{body})).to_clob"
 
 
+
+AUTH_PLSQL = [
+    '-- مصادقة نونا بلس: بيانات الاعتماد المحلية (SEC_CREDENTIAL، PBKDF2) مع قفل بعد المحاولات الفاشلة؛',
+    '-- المستخدم الذي لا يملك كلمة مرور محلية بعد يتحقق عبر حساب APEX (للانتقال التدريجي)',
+    'function noona_authenticate(p_username in varchar2, p_password in varchar2) return boolean is',
+    '    l_result varchar2(20);',
+    'begin',
+    '    l_result := noona_apex_pkg.check_password(p_username, p_password);',
+    "    if l_result = 'NO_LOCAL' then",
+    '        return apex_util.is_login_password_valid(p_username => p_username, p_password => p_password);',
+    '    end if;',
+    "    return l_result = 'OK';",
+    'end noona_authenticate;',
+    '',
+    '-- بعد نجاح كلمة المرور: إنشاء جلسة NOONA (المؤسسة أو المنصة) وربطها بجلسة APEX',
+    'procedure noona_post_auth is',
+    '    l_ip varchar2(100);',
+    'begin',
+    '    begin',
+    "        l_ip := owa_util.get_cgi_env('REMOTE_ADDR');",
+    '    exception when others then',
+    '        l_ip := null;   -- عنوان IP اختياري ولا يمنع الدخول',
+    '    end;',
+    '    noona_apex_pkg.post_auth(',
+    '        p_username        => apex_application.g_user,',
+    '        p_apex_session_id => to_number(apex_application.g_instance),',
+    '        p_ip_address      => l_ip);',
+    'end noona_post_auth;']
+
+
+def noona_auth_scheme(s):
+    """يحول مخطط 'NOONA Auth' إلى مصادقة مخصصة (Custom) تستدعي noona_authenticate."""
+    s = s.replace(""",p_name=>'NOONA Auth'
+,p_scheme_type=>'NATIVE_APEX_ACCOUNTS'""", """,p_name=>'NOONA Auth'
+,p_scheme_type=>'NATIVE_CUSTOM'
+,p_attribute_03=>'noona_authenticate'
+,p_attribute_05=>'N'""")
+    s, n = re.subn(r",p_plsql_code=>wwv_flow_string\.join\(wwv_flow_t_varchar2\(\n.*?'end noona_post_auth;'\)\)",
+                   lambda m: ',p_plsql_code=>' + join(AUTH_PLSQL), s, flags=re.S)
+    assert n == 1 and 'NATIVE_CUSTOM' in s, 'NOONA Auth scheme not found'
+    return s
+
 class App:
     def __init__(self, template_dir, out_dir, app_id, alias, name, id_base):
         self.app_id, self.alias, self.name, self.base = app_id, alias, name, id_base
@@ -115,6 +157,10 @@ class App:
             s = re.sub(r",p_plug_name=>'[^']*'", f",p_plug_name=>'{q(self.name)}'", s, count=1)
             self.write(rel, s)
 
+    def allow_workspace_api(self):
+        """يسمح باستدعاء واجهات إدارة مساحة العمل (مثل apex_util.create_user) أثناء التشغيل."""
+        self.edit('create_application.sql', ",p_flow_version=>", ",p_runtime_api_usage=>'W'\n,p_flow_version=>")
+
     # ------------------------------------------------------------------ أمان NOONA
     def wire_security(self):
         auth_id = re.search(r"p_authentication_id=>wwv_flow_imp\.id\((\d+)\)", self.read('create_application.sql')).group(1)
@@ -151,7 +197,7 @@ class App:
             'end noona_post_auth;']) + """
 ,p_post_auth_process=>'noona_post_auth'""")
         assert 'NOONA_SESSION' in s
-        self.write(rel, s)
+        self.write(rel, noona_auth_scheme(s))
         rel = 'shared_components/security/authorizations/administration_rights.sql'
         s = self.read(rel)
         self.schemes['admin'] = int(re.search(r"p_id=>wwv_flow_imp\.id\((\d+)\)", s).group(1))
@@ -485,6 +531,10 @@ wwv_flow_imp_page.create_worksheet(
         return self._item(name, region, seq, prompt, 'NATIVE_DATE_PICKER_APEX', "\n,p_cSize=>20\n,p_format_mask=>'YYYY-MM-DD'",
                           required, attrs(display_as='POPUP', max_date='NONE', min_date='NONE', multiple_months='N',
                                           show_time='N', use_defaults='Y'))
+
+    def password(self, name, region, seq, prompt, required=False):
+        return self._item(name, region, seq, prompt, 'NATIVE_PASSWORD', "\n,p_cSize=>30\n,p_cMaxlength=>100", required,
+                          attrs(submit_when_enter_pressed='N'))
 
     def yesno(self, name, region, seq, prompt):
         return self.select(name, region, seq, prompt, lov_sql="STATIC2:نعم;Y,لا;N", null_text=None)

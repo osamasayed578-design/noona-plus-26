@@ -84,6 +84,31 @@ wwv_flow_imp_shared.create_list_item(
 ,p_parent_list_item_id=>wwv_flow_imp.id(91820262000000257)
 ,p_list_item_current_type=>'TARGET_PAGE'
 );
+wwv_flow_imp_shared.create_list_item(
+ p_id=>wwv_flow_imp.id(91820262000000384)
+,p_list_item_display_sequence=>40
+,p_list_item_link_text=>'المستخدمون والصلاحيات'
+,p_list_item_link_target=>''
+,p_list_item_icon=>'fa-users'
+);
+wwv_flow_imp_shared.create_list_item(
+ p_id=>wwv_flow_imp.id(91820262000000385)
+,p_list_item_display_sequence=>41
+,p_list_item_link_text=>'المستخدمون'
+,p_list_item_link_target=>'f?p=&APP_ID.:30:&APP_SESSION.::&DEBUG.:::'
+,p_list_item_icon=>'fa-user'
+,p_parent_list_item_id=>wwv_flow_imp.id(91820262000000384)
+,p_list_item_current_type=>'TARGET_PAGE'
+);
+wwv_flow_imp_shared.create_list_item(
+ p_id=>wwv_flow_imp.id(91820262000000386)
+,p_list_item_display_sequence=>42
+,p_list_item_link_text=>'الأدوار والصلاحيات'
+,p_list_item_link_target=>'f?p=&APP_ID.:32:&APP_SESSION.::&DEBUG.:::'
+,p_list_item_icon=>'fa-key'
+,p_parent_list_item_id=>wwv_flow_imp.id(91820262000000384)
+,p_list_item_current_type=>'TARGET_PAGE'
+);
 wwv_flow_imp.component_end;
 end;
 /

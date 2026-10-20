@@ -370,5 +370,186 @@ app.nav_item('الهياكل والإصدارات', 20, 'fa-sitemap', 31, parent
 app.nav_item('المناصب والوظائف', 22, 'fa-id-badge', 32, parent=orgm)
 app.nav_item('تعيين الموظفين', 23, 'fa-user-plus', 33, parent=orgm)
 
+
+# ######################################################################## المرحلة 3: المستخدمون والأدوار
+ROLE_LOV = "select name_ar || ' (' || code || ')' d, id r from sec_role where status_code = 'ACTIVE' order by 1"
+BRANCH_ALL_LOV = ("select b.name_ar || ' - ' || nvl(c.trade_name_ar, c.legal_name_ar) d, b.id r from org_branch b "
+                  "join org_company c on c.id = b.company_id where b.status_code = 'ACTIVE' order by 1")
+
+# =============================================================== 30) المستخدمون
+p = app.page(30, 'Users', 'USERS', 'المستخدمون', scheme=ADMIN)
+r = p.ir('المستخدمون', 10, [
+    'select m.id, u.username, u.display_name, u.email, nvl(c.trade_name_ar, c.legal_name_ar) as company_name,',
+    '       noona_ui_pkg.code_label(m.is_tenant_admin) as is_admin, m.clearance_level,',
+    "       (select count(*) from sec_role_grant g where g.membership_id = m.id and g.status_code = 'ACTIVE') as roles,",
+    '       u.last_login_at, noona_ui_pkg.status_badge(m.status_code) as status_html',
+    '  from sec_user_membership m join sec_user u on u.id = m.user_id',
+    '  left join org_company c on c.id = m.default_company_id'],
+    [('ID', '#', {'hidden': True, 'type': 'NUMBER'}), ('USERNAME', 'اسم الدخول', {}), ('DISPLAY_NAME', 'الاسم', {}),
+     ('EMAIL', 'البريد', {}), ('COMPANY_NAME', 'الشركة الافتراضية', {}), ('IS_ADMIN', 'مسؤول المؤسسة', {}),
+     ('CLEARANCE_LEVEL', 'مستوى السرية', {}), ('ROLES', 'الأدوار', {'type': 'NUMBER'}),
+     ('LAST_LOGIN_AT', 'آخر دخول', {'type': 'DATE'}), ('STATUS_HTML', 'الحالة', {'html': True})],
+    link='f?p=&APP_ID.:31:&SESSION.::&DEBUG.:RP,31:P31_ID:#ID#')
+p.button(r, 10, 'CREATE', 'مستخدم جديد', hot=True, redirect='f?p=&APP_ID.:31:&SESSION.::&DEBUG.:RP,31::', position='RIGHT_OF_IR_SEARCH_BAR')
+
+# =============================================================== 31) المستخدم
+p = app.page(31, 'User', 'USER', 'المستخدم', scheme=ADMIN)
+info = p.static('بيانات المستخدم', 10)
+p.hidden('P31_ID', info, 1)
+p.text('P31_USERNAME', info, 10, 'اسم الدخول', required=True, maxlen=100, width=30)
+p.text('P31_DISPLAY_NAME', info, 20, 'الاسم الكامل', required=True)
+p.text('P31_EMAIL', info, 30, 'البريد الإلكتروني', required=True)
+p.select('P31_COMPANY_ID', info, 40, 'الشركة الافتراضية', lov_name='NOONA_COMPANIES', required=True)
+p.select('P31_BRANCH_ID', info, 50, 'الفرع الافتراضي', lov_sql=BRANCH_ALL_LOV)
+p.select('P31_CLEARANCE', info, 60, 'مستوى السرية', null_text=None, lov_sql=(
+    'STATIC2:عام;PUBLIC,داخلي;INTERNAL,سري;CONFIDENTIAL,سري جداً;SECRET,مقيد للغاية;HIGHLY_RESTRICTED'))
+p.yesno('P31_IS_ADMIN', info, 70, 'مسؤول المؤسسة')
+p.password('P31_PASSWORD', info, 80, 'كلمة المرور (10 أحرف: كبير وصغير ورقم)')
+p.display('P31_STATUS', info, 90, 'الحالة')
+b_create = p.button(info, 10, 'CREATE', 'إنشاء المستخدم', hot=True, condition=':P31_ID is null')
+b_save = p.button(info, 20, 'SAVE', 'حفظ التعديلات', hot=True, condition=':P31_ID is not null')
+b_pwd = p.button(info, 25, 'SET_PASSWORD', 'تعيين كلمة المرور', condition=':P31_ID is not null')
+p.button(info, 30, 'BACK', 'رجوع', redirect=back(30))
+p.process(10, 'BEFORE_HEADER', 'Load User', [
+    'if :P31_ID is not null then',
+    '    select u.username, u.display_name, u.email, m.default_company_id, m.default_branch_id, m.clearance_level,',
+    '           m.is_tenant_admin, noona_ui_pkg.status_label(m.status_code)',
+    '      into :P31_USERNAME, :P31_DISPLAY_NAME, :P31_EMAIL, :P31_COMPANY_ID, :P31_BRANCH_ID, :P31_CLEARANCE,',
+    '           :P31_IS_ADMIN, :P31_STATUS',
+    '      from sec_user_membership m join sec_user u on u.id = m.user_id where m.id = :P31_ID;',
+    'else',
+    "    :P31_CLEARANCE := nvl(:P31_CLEARANCE, 'INTERNAL'); :P31_IS_ADMIN := nvl(:P31_IS_ADMIN, 'N');",
+    'end if;'])
+p.process(10, 'AFTER_SUBMIT', 'Create User', [
+    ':P31_ID := noona_sec_admin_pkg.create_user(p_username => :P31_USERNAME, p_display_name => :P31_DISPLAY_NAME,',
+    '    p_email => :P31_EMAIL, p_company_id => :P31_COMPANY_ID, p_branch_id => :P31_BRANCH_ID,',
+    '    p_is_tenant_admin => :P31_IS_ADMIN, p_clearance => :P31_CLEARANCE);',
+    '-- كلمة المرور المحلية (SEC_CREDENTIAL)؛ بدونها يدخل المستخدم بحساب APEX إن وجد',
+    'if :P31_PASSWORD is not null then',
+    '    noona_sec_admin_pkg.set_password(p_membership_id => :P31_ID, p_password => :P31_PASSWORD);',
+    'end if;',
+    ':P31_PASSWORD := null;'], when_button=b_create, success='تم إنشاء المستخدم؛ امنحه الأدوار المناسبة')
+p.process(15, 'AFTER_SUBMIT', 'Set Password', [
+    'noona_sec_admin_pkg.set_password(p_membership_id => :P31_ID, p_password => :P31_PASSWORD);',
+    ':P31_PASSWORD := null;'], when_button=b_pwd, success='تم تعيين كلمة المرور وفك قفل الحساب')
+p.process(20, 'AFTER_SUBMIT', 'Save User', [
+    'noona_sec_admin_pkg.update_member(p_membership_id => :P31_ID, p_display_name => :P31_DISPLAY_NAME, p_email => :P31_EMAIL,',
+    '    p_company_id => :P31_COMPANY_ID, p_branch_id => :P31_BRANCH_ID, p_clearance => :P31_CLEARANCE);'],
+    when_button=b_save, success='تم حفظ بيانات المستخدم')
+gr = p.ir('أدوار المستخدم', 20, [
+    "select g.id, r.name_ar as role_name, r.code, case when s.scope_type = 'ALL_TENANT' then 'كل المؤسسة'",
+    "       else (select nvl(c.trade_name_ar, c.legal_name_ar) from org_company c where c.id = s.company_id) end as scope,",
+    '       g.effective_from, g.effective_to, g.reason, noona_ui_pkg.status_badge(g.status_code) as status_html',
+    '  from sec_role_grant g join sec_role r on r.id = g.role_id',
+    '  left join sec_data_scope s on s.role_grant_id = g.id',
+    ' where g.membership_id = :P31_ID'],
+    [('ID', '#', {'hidden': True, 'type': 'NUMBER'}), ('ROLE_NAME', 'الدور', {}), ('CODE', 'الرمز', {}),
+     ('SCOPE', 'نطاق البيانات', {}), ('EFFECTIVE_FROM', 'من', {'type': 'DATE'}), ('EFFECTIVE_TO', 'إلى', {'type': 'DATE'}),
+     ('REASON', 'السبب', {}), ('STATUS_HTML', 'الحالة', {'html': True})], titled=True)
+ga = p.static('منح دور / سحب / حالة الحساب', 30)
+p.select('P31_ROLE_ID', ga, 10, 'الدور', lov_sql=ROLE_LOV)
+p.select('P31_SCOPE_COMPANY', ga, 20, 'نطاق البيانات', lov_name='NOONA_COMPANIES', null_text='- كل شركات المؤسسة -')
+p.select('P31_REVOKE_ID', ga, 30, 'منح للسحب', lov_sql=(
+    "select r.name_ar || ' (' || r.code || ')' d, g.id r from sec_role_grant g join sec_role r on r.id = g.role_id "
+    "where g.membership_id = :P31_ID and g.status_code = 'ACTIVE' order by 1"))
+p.select('P31_NEW_STATUS', ga, 40, 'تغيير حالة الحساب إلى', lov_sql='STATIC2:نشط;ACTIVE,معلق;SUSPENDED,منتهي;ENDED')
+p.textarea('P31_REASON', ga, 50, 'السبب (إلزامي للسحب وتغيير الحالة)', rows=2)
+b_grant = p.button(ga, 10, 'GRANT', 'منح الدور', hot=True, condition=':P31_ID is not null')
+b_revoke = p.button(ga, 20, 'REVOKE', 'سحب المنح', condition=':P31_ID is not null')
+b_status = p.button(ga, 30, 'CHANGE_STATUS', 'تغيير الحالة', condition=':P31_ID is not null')
+p.process(30, 'AFTER_SUBMIT', 'Grant Role', [
+    'declare l_id number;',
+    'begin',
+    '    l_id := noona_sec_admin_pkg.grant_role(p_membership_id => :P31_ID, p_role_id => :P31_ROLE_ID,',
+    '                                           p_company_id => :P31_SCOPE_COMPANY, p_reason => :P31_REASON);',
+    'end;'], when_button=b_grant, success='تم منح الدور')
+p.process(40, 'AFTER_SUBMIT', 'Revoke Grant', 'noona_sec_admin_pkg.revoke_grant(p_grant_id => :P31_REVOKE_ID, p_reason => :P31_REASON);',
+          when_button=b_revoke, success='تم سحب المنح')
+p.process(50, 'AFTER_SUBMIT', 'Change Status',
+          'noona_sec_admin_pkg.set_member_status(p_membership_id => :P31_ID, p_status => :P31_NEW_STATUS, p_reason => :P31_REASON);',
+          when_button=b_status, success='تم تغيير حالة الحساب')
+p.branch(10, 'f?p=&APP_ID.:31:&SESSION.::&DEBUG.::P31_ID:&P31_ID.&success_msg=#SUCCESS_MSG#')
+
+# =============================================================== 32) الأدوار
+p = app.page(32, 'Roles', 'ROLES', 'الأدوار', scheme=ADMIN)
+p.ir('الأدوار', 10, [
+    'select r.id, r.code, r.name_ar, noona_ui_pkg.code_label(r.role_type) as role_type, noona_ui_pkg.code_label(r.is_privileged) as privileged,',
+    '       (select count(*) from sec_role_permission rp where rp.role_id = r.id) as permissions,',
+    "       (select count(*) from sec_role_grant g where g.role_id = r.id and g.status_code = 'ACTIVE') as members,",
+    '       noona_ui_pkg.status_badge(r.status_code) as status_html',
+    '  from sec_role r'],
+    [('ID', '#', {'hidden': True, 'type': 'NUMBER'}), ('CODE', 'الرمز', {}), ('NAME_AR', 'الدور', {}),
+     ('ROLE_TYPE', 'النوع', {}), ('PRIVILEGED', 'مميز', {}), ('PERMISSIONS', 'الصلاحيات', {'type': 'NUMBER'}),
+     ('MEMBERS', 'الممنوح لهم', {'type': 'NUMBER'}), ('STATUS_HTML', 'الحالة', {'html': True})],
+    link='f?p=&APP_ID.:33:&SESSION.::&DEBUG.:RP,33:P33_ID:#ID#')
+f = p.static('دور جديد', 20)
+p.text('P32_CODE', f, 10, 'الرمز', required=True, maxlen=50, width=20)
+p.text('P32_NAME_AR', f, 20, 'اسم الدور', required=True)
+p.select('P32_TYPE', f, 30, 'النوع', null_text=None, lov_sql=(
+    'STATIC2:وظيفي;FUNCTIONAL,شركة;COMPANY,فرع;BRANCH,وظيفة;JOB,منصب;POSITION,مشروع;PROJECT,لجنة;COMMITTEE,مؤقت;TEMPORARY,خارجي;EXTERNAL'))
+p.yesno('P32_PRIVILEGED', f, 40, 'دور مميز (يمنحه مسؤول المؤسسة فقط)')
+b = p.button(f, 10, 'CREATE', 'إنشاء الدور', hot=True)
+p.process(10, 'BEFORE_HEADER', 'Defaults', [":P32_PRIVILEGED := nvl(:P32_PRIVILEGED, 'N');"])
+p.process(10, 'AFTER_SUBMIT', 'Create Role', [
+    ':P33_ID := noona_sec_admin_pkg.create_role(p_code => :P32_CODE, p_name_ar => :P32_NAME_AR,',
+    '                                         p_role_type => :P32_TYPE, p_privileged => :P32_PRIVILEGED);'],
+    when_button=b, success='تم إنشاء الدور؛ أضف صلاحياته')
+p.branch(10, 'f?p=&APP_ID.:33:&SESSION.::&DEBUG.::P33_ID:&P33_ID.&success_msg=#SUCCESS_MSG#', when_button=b)
+
+# =============================================================== 33) الدور وصلاحياته
+p = app.page(33, 'Role', 'ROLE', 'الدور وصلاحياته', scheme=ADMIN)
+info = p.static('الدور', 10)
+p.hidden('P33_ID', info, 1)
+p.display('P33_NAME', info, 10, 'الدور')
+p.display('P33_STATUS', info, 20, 'الحالة')
+p.select('P33_NEW_STATUS', info, 30, 'تغيير الحالة إلى', lov_sql='STATIC2:نشط;ACTIVE,مسودة;DRAFT,متقاعد;RETIRED')
+b_status = p.button(info, 10, 'CHANGE_STATUS', 'تغيير الحالة')
+p.button(info, 20, 'BACK', 'رجوع', redirect=back(32))
+p.process(10, 'BEFORE_HEADER', 'Load Role', [
+    "select name_ar || ' (' || code || ')', noona_ui_pkg.status_label(status_code) into :P33_NAME, :P33_STATUS",
+    '  from sec_role where id = :P33_ID;'])
+p.process(10, 'AFTER_SUBMIT', 'Role Status', 'noona_sec_admin_pkg.set_role_status(:P33_ID, :P33_NEW_STATUS);',
+          when_button=b_status, success='تم تغيير حالة الدور')
+p.ir('صلاحيات الدور', 20, [
+    'select rp.id, p.module_code, p.permission_code, p.name_ar, p.action_code, noona_ui_pkg.code_label(rp.effect) as effect, p.risk_level',
+    '  from sec_role_permission rp join sec_permission p on p.id = rp.permission_id',
+    ' where rp.role_id = :P33_ID'],
+    [('ID', '#', {'hidden': True, 'type': 'NUMBER'}), ('MODULE_CODE', 'الوحدة', {}), ('PERMISSION_CODE', 'رمز الصلاحية', {}),
+     ('NAME_AR', 'الصلاحية', {}), ('ACTION_CODE', 'الفعل', {}), ('EFFECT', 'الأثر', {}), ('RISK_LEVEL', 'الخطورة', {})], titled=True)
+f = p.static('إضافة صلاحيات', 30)
+p.select('P33_MODULE', f, 10, 'الوحدة', lov_sql=(
+    "select module_code || ' - ' || name_ar d, module_code r from plt_module order by package_no"))
+ACTION_PRESETS = [('عرض فقط', 'VIEW'), ('عرض وتصدير وطباعة', 'VIEW,EXPORT,PRINT'),
+                  ('إدخال (عرض وإنشاء وتعديل)', 'VIEW,CREATE,UPDATE'),
+                  ('إدخال وإرسال للاعتماد', 'VIEW,CREATE,UPDATE,SUBMIT,PRINT,EXPORT'),
+                  ('اعتماد ورفض', 'VIEW,APPROVE,REJECT'), ('ترحيل وعكس', 'VIEW,POST,REVERSE'),
+                  ('كل الأفعال', 'VIEW,CREATE,UPDATE,DELETE,EXPORT,PRINT,SUBMIT,APPROVE,REJECT,POST,REVERSE,CANCEL')]
+p.select('P33_ACTIONS', f, 20, 'الأفعال', null_text=None, lov_sql='select d, r from (' + ' union all '.join(
+    f"select '{d}' d, '{r}' r, {i} s from dual" for i, (d, r) in enumerate(ACTION_PRESETS)) + ') order by s')
+p.select('P33_EFFECT', f, 30, 'الأثر', null_text=None, lov_sql='STATIC2:سماح;ALLOW,منع;DENY')
+p.text('P33_PERMISSION_CODE', f, 40, 'أو صلاحية محددة (رمز)', maxlen=150)
+b_mod = p.button(f, 10, 'ADD_MODULE', 'إضافة صلاحيات الوحدة', hot=True)
+b_one = p.button(f, 20, 'ADD_ONE', 'إضافة الصلاحية المحددة')
+p.select('P33_REMOVE_ID', f, 50, 'إزالة صلاحية', lov_sql=(
+    "select p.permission_code d, rp.id r from sec_role_permission rp join sec_permission p on p.id = rp.permission_id "
+    "where rp.role_id = :P33_ID order by 1"))
+b_rm = p.button(f, 30, 'REMOVE', 'إزالة')
+p.process(20, 'AFTER_SUBMIT', 'Add Module Permissions', [
+    'declare l_n number;',
+    'begin',
+    "    l_n := noona_sec_admin_pkg.add_module_permissions(:P33_ID, :P33_MODULE, :P33_ACTIONS, nvl(:P33_EFFECT, 'ALLOW'));",
+    "    apex_application.g_print_success_message := 'تمت إضافة ' || l_n || ' صلاحية';",
+    'end;'], when_button=b_mod)
+p.process(30, 'AFTER_SUBMIT', 'Add One Permission',
+          "noona_sec_admin_pkg.add_permission(:P33_ID, :P33_PERMISSION_CODE, nvl(:P33_EFFECT, 'ALLOW'));",
+          when_button=b_one, success='تمت إضافة الصلاحية')
+p.process(40, 'AFTER_SUBMIT', 'Remove Permission', 'noona_sec_admin_pkg.remove_permission(:P33_REMOVE_ID);',
+          when_button=b_rm, success='تمت إزالة الصلاحية')
+p.branch(10, 'f?p=&APP_ID.:33:&SESSION.::&DEBUG.::P33_ID:&P33_ID.&success_msg=#SUCCESS_MSG#')
+
+sec = app.nav_item('المستخدمون والصلاحيات', None, 'fa-users', 40)
+app.nav_item('المستخدمون', 30, 'fa-user', 41, parent=sec)
+app.nav_item('الأدوار والصلاحيات', 32, 'fa-key', 42, parent=sec)
+
 app.finalize()
 print('NOONA_ADMIN built:', len(app.pages), 'pages')

@@ -546,7 +546,12 @@ def gen_security_and_seed():
          'SET DEFINE OFF', '',
          '-- الجداول Append-only (التدقيق والأحداث) تمنح SELECT فقط؛ الكتابة عبر حزم المالك (Definer Rights).']
     syn = [HEADER.format(title='Private synonyms in NOONA_APP (run as NOONA_APP)'), 'SET DEFINE OFF', '']
+    # بيانات الاعتماد السرية لا تمنح للتطبيق إطلاقاً (التحقق والتخزين عبر حزم المالك فقط)
+    secret = {'SEC_CREDENTIAL', 'SEC_MFA_FACTOR'}
+    g.append('-- ' + ', '.join(sorted(secret)) + ': لا منح (بيانات اعتماد سرية؛ عبر NOONA_APEX_PKG و NOONA_SEC_ADMIN_PKG)')
     for t in sorted(TABLES.values(), key=lambda x: x.name):
+        if t.name in secret:
+            continue
         privs = 'SELECT' if t.append else 'SELECT, INSERT, UPDATE, DELETE'
         g.append(f'GRANT {privs} ON {t.name} TO NOONA_APP;')
         syn.append(f'CREATE OR REPLACE SYNONYM {t.name} FOR NOONA_OWNER.{t.name};')
@@ -554,7 +559,7 @@ def gen_security_and_seed():
     # يقرأ التطبيق السياق عبر SYS_CONTEXT('NOONA_CTX', ...)
     for pkg in ('NOONA_SECURITY_PKG', 'NOONA_REFERENCE_PKG', 'NOONA_AUDIT_PKG', 'NOONA_PLATFORM_PKG',
                 'NOONA_ORG_PKG', 'NOONA_DELEGATION_PKG', 'NOONA_WORKFLOW_PKG', 'NOONA_APEX_PKG',
-                'NOONA_PORTAL_PKG', 'NOONA_UI_PKG'):
+                'NOONA_PORTAL_PKG', 'NOONA_UI_PKG', 'NOONA_SEC_ADMIN_PKG'):
         g.append(f'GRANT EXECUTE ON {pkg} TO NOONA_APP;')
         syn.append(f'CREATE OR REPLACE SYNONYM {pkg} FOR NOONA_OWNER.{pkg};')
     # واجهات العرض المكتوبة يدوياً في db/plsql (قراءة فقط للتطبيق)

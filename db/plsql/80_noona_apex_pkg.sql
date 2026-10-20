@@ -46,12 +46,21 @@ CREATE OR REPLACE PACKAGE NOONA_APEX_PKG AUTHID DEFINER AS
 
   -- تحقق صفحة الدخول قبل المصادقة: NULL = مسموح، وإلا رسالة عامة (لا تكشف سبب الرفض)
   FUNCTION login_block_reason(p_username IN VARCHAR2) RETURN VARCHAR2;
+  -- كلمات المرور المحلية (SEC_CREDENTIAL): PBKDF2-HMAC-SHA256 مع ملح عشوائي لكل كلمة مرور
+  -- check_password: 'OK' | 'INVALID' | 'LOCKED' | 'NO_LOCAL' (لا توجد كلمة مرور محلية؛ يتحقق التطبيق عبر حساب APEX)
+  -- يقفل الحساب 15 دقيقة بعد 5 محاولات فاشلة متتالية
+  FUNCTION check_password(p_username IN VARCHAR2, p_password IN VARCHAR2) RETURN VARCHAR2;
+  FUNCTION hash_password(p_password IN VARCHAR2, p_salt_hex IN VARCHAR2, p_iterations IN PLS_INTEGER) RETURN VARCHAR2;
+  -- سياسة كلمة المرور: 10 أحرف على الأقل، حرف كبير وصغير ورقم، ولا تحتوي اسم المستخدم (NOONA-SEC-250)
+  PROCEDURE assert_password_policy(p_username IN VARCHAR2, p_password IN VARCHAR2);
 END NOONA_APEX_PKG;
 /
 
 CREATE OR REPLACE PACKAGE BODY NOONA_APEX_PKG AS
 
   c_allowed_tenant_states CONSTANT VARCHAR2(200) := ',TRIAL,ACTIVE,GRACE_PERIOD,READ_ONLY,SUSPENDED,';
+  c_max_failures CONSTANT PLS_INTEGER := 5;
+  c_lock_minutes CONSTANT PLS_INTEGER := 15;
 
   FUNCTION lang RETURN VARCHAR2 IS
   BEGIN
@@ -264,6 +273,79 @@ CREATE OR REPLACE PACKAGE BODY NOONA_APEX_PKG AS
     NOONA_CORE_PKG.end_system;
     RAISE;
   END login_block_reason;
+
+  -- ------------------------------------------------------------------ كلمات المرور المحلية
+
+  FUNCTION hash_password(p_password IN VARCHAR2, p_salt_hex IN VARCHAR2, p_iterations IN PLS_INTEGER) RETURN VARCHAR2 IS
+    l_key RAW(2000) := UTL_I18N.STRING_TO_RAW(p_password, 'AL32UTF8');
+    l_u   RAW(32);
+    l_t   RAW(32);
+  BEGIN
+    -- PBKDF2 (RFC 8018) بكتلة واحدة: 32 بايت = طول مخرجات SHA-256
+    l_u := DBMS_CRYPTO.MAC(UTL_RAW.CONCAT(HEXTORAW(p_salt_hex), HEXTORAW('00000001')), DBMS_CRYPTO.HMAC_SH256, l_key);
+    l_t := l_u;
+    FOR i IN 2 .. p_iterations LOOP
+      l_u := DBMS_CRYPTO.MAC(l_u, DBMS_CRYPTO.HMAC_SH256, l_key);
+      l_t := UTL_RAW.BIT_XOR(l_t, l_u);
+    END LOOP;
+    RETURN RAWTOHEX(l_t);
+  END hash_password;
+
+  PROCEDURE assert_password_policy(p_username IN VARCHAR2, p_password IN VARCHAR2) IS
+  BEGIN
+    NOONA_CORE_PKG.assert(LENGTH(p_password) >= 10 AND REGEXP_LIKE(p_password, '[A-Z]', 'c')
+                          AND REGEXP_LIKE(p_password, '[a-z]', 'c') AND REGEXP_LIKE(p_password, '[0-9]')
+                          AND INSTR(UPPER(p_password), UPPER(TRIM(p_username))) = 0, 'NOONA-SEC-250',
+      'كلمة المرور يجب أن تكون 10 أحرف على الأقل وتحتوي حرفاً كبيراً وحرفاً صغيراً ورقماً ولا تحتوي اسم المستخدم',
+      'Password must be at least 10 characters with upper, lower case and a digit, and must not contain the username');
+  END assert_password_policy;
+
+  FUNCTION check_password(p_username IN VARCHAR2, p_password IN VARCHAR2) RETURN VARCHAR2 IS
+    PRAGMA AUTONOMOUS_TRANSACTION;          -- عداد المحاولات الفاشلة يحفظ حتى لو تراجع APEX عن الطلب
+    l_user   sec_user%ROWTYPE;
+    l_cred   sec_credential%ROWTYPE;
+    l_result VARCHAR2(20);
+  BEGIN
+    NOONA_CORE_PKG.begin_system;
+    BEGIN
+      SELECT * INTO l_user FROM sec_user WHERE username = UPPER(TRIM(p_username));
+    EXCEPTION WHEN NO_DATA_FOUND THEN
+      NOONA_CORE_PKG.end_system;
+      RETURN 'INVALID';
+    END;
+    IF l_user.locked_until > SYSTIMESTAMP THEN
+      l_result := 'LOCKED';
+    ELSE
+      BEGIN
+        SELECT * INTO l_cred FROM sec_credential
+         WHERE user_id = l_user.id AND credential_type = 'PASSWORD' AND status_code = 'ACTIVE'
+           AND (expires_at IS NULL OR expires_at > SYSTIMESTAMP);
+      EXCEPTION WHEN NO_DATA_FOUND THEN
+        l_result := 'NO_LOCAL';
+      END;
+      IF l_result IS NULL THEN
+        IF p_password IS NOT NULL AND hash_password(p_password, l_cred.salt,
+             TO_NUMBER(REGEXP_SUBSTR(l_cred.hash_algorithm, '[0-9]+$'))) = l_cred.secret_hash THEN
+          l_result := 'OK';
+          UPDATE sec_user SET failed_logins = 0, locked_until = NULL WHERE id = l_user.id AND failed_logins > 0;
+        ELSE
+          l_result := 'INVALID';
+          UPDATE sec_user
+             SET failed_logins = CASE WHEN failed_logins + 1 >= c_max_failures THEN 0 ELSE failed_logins + 1 END,
+                 locked_until  = CASE WHEN failed_logins + 1 >= c_max_failures
+                                      THEN SYSTIMESTAMP + NUMTODSINTERVAL(c_lock_minutes, 'MINUTE') END
+           WHERE id = l_user.id;
+        END IF;
+      END IF;
+    END IF;
+    COMMIT;
+    NOONA_CORE_PKG.end_system;
+    RETURN l_result;
+  EXCEPTION WHEN OTHERS THEN
+    ROLLBACK;
+    NOONA_CORE_PKG.end_system;
+    RAISE;
+  END check_password;
 
 END NOONA_APEX_PKG;
 /

@@ -42,9 +42,10 @@ if errorlevel 2 goto :fail
 echo ===== 5/5 tests APEX layer + portal (NOONA_APP)
 sqlplus -S -L NOONA_APP/"%APP_PWD%"@%CONN% @tests/test_apex_pkg.sql < nul | findstr /c:"RESULT" /c:"FAIL" /c:"ORA-"
 sqlplus -S -L NOONA_APP/"%APP_PWD%"@%CONN% @tests/test_portal.sql < nul | findstr /c:"RESULT" /c:"FAIL" /c:"ORA-"
+sqlplus -S -L NOONA_APP/"%APP_PWD%"@%CONN% @tests/test_sec_admin.sql < nul | findstr /c:"RESULT" /c:"FAIL" /c:"ORA-"
 
 echo.
-echo ===== Finished. Expected: 79 / 26 / 21 passed, 0 failed.
+echo ===== Finished. Expected: 79 / 26 / 21 / 23 passed, 0 failed.
 pause
 exit /b 0
 
