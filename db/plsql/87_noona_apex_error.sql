@@ -1,0 +1,42 @@
+-- =============================================================================
+-- NOONA PLUS ERP | دالة معالجة أخطاء APEX (Error Handling Function) لكل تطبيقات NOONA
+--   * أخطاء الأعمال (-20500) والأمن (-20100): تعرض رسالة NOONA النظيفة فقط بدون ORA-xxxxx
+--     ورمز المتابعة cid ينقل إلى تفاصيل الخطأ للدعم الفني (لا يظهر للمستخدم)
+--   * أخطاء غير متوقعة: رسالة عامة للمستخدم + رقم مرجعي؛ التفاصيل في سجل APEX
+-- تحتاج APEX مثبتاً؛ تنشأ فقط إن وجد (التثبيت على قاعدة بدون APEX يتخطاها بأمان).
+-- في التطبيق: Application Definition ← Error Handling Function = noona_owner.noona_apex_error
+-- =============================================================================
+SET DEFINE OFF
+DECLARE
+  l_has_apex NUMBER;
+BEGIN
+  SELECT COUNT(*) INTO l_has_apex FROM all_objects
+   WHERE object_name = 'APEX_ERROR' AND object_type = 'SYNONYM' AND owner = 'PUBLIC';
+  IF l_has_apex = 0 THEN
+    DBMS_OUTPUT.PUT_LINE('APEX not installed: NOONA_APEX_ERROR skipped');
+    RETURN;
+  END IF;
+  EXECUTE IMMEDIATE q'~
+CREATE OR REPLACE FUNCTION NOONA_APEX_ERROR(p_error IN apex_error.t_error)
+  RETURN apex_error.t_error_result AUTHID DEFINER IS
+  l_result apex_error.t_error_result;
+  l_msg    VARCHAR2(32767);
+  l_cid    VARCHAR2(100);
+BEGIN
+  l_result := apex_error.init_error_result(p_error => p_error);
+  IF p_error.ora_sqlcode IN (-20500, -20100, -20001, -20002, -20200) THEN
+    l_msg := apex_error.get_first_ora_error_text(p_error => p_error);
+    l_cid := REGEXP_SUBSTR(l_msg, '\[cid=([^]]+)\]', 1, 1, NULL, 1);
+    l_result.message := TRIM(REGEXP_REPLACE(l_msg, '\s*\[cid=[^]]+\]', ''));
+    l_result.additional_info := CASE WHEN l_cid IS NOT NULL THEN 'cid=' || l_cid END;
+    l_result.display_location := apex_error.c_inline_in_notification;
+  ELSIF p_error.is_internal_error = FALSE AND p_error.ora_sqlcode IS NOT NULL THEN
+    l_result.message := 'حدث خطأ غير متوقع؛ أبلغ الدعم الفني بالرقم المرجعي / Unexpected error, reference: '
+                        || NVL(SYS_CONTEXT('NOONA_CTX', 'CORRELATION_ID'), TO_CHAR(SYSTIMESTAMP, 'YYYYMMDDHH24MISSFF3'));
+    l_result.additional_info := p_error.ora_sqlerrm;
+  END IF;
+  RETURN l_result;
+END NOONA_APEX_ERROR;~';
+  EXECUTE IMMEDIATE 'GRANT EXECUTE ON NOONA_APEX_ERROR TO NOONA_APP';
+END;
+/

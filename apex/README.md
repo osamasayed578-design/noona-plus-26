@@ -98,3 +98,12 @@ Schemes) والقوائم المشتركة (LOVs) وقوالب الثيم. أي 
 1. قاعدة البيانات (من مجلد `db`): `upgrade_02_portal.sql` بحساب NOONA_OWNER ثم `security/41_synonyms_noona_app.sql` بحساب NOONA_APP
    ثم الاختبار `tests/test_portal.sql` بحساب NOONA_APP (16 حالة).
 2. App Builder ← Import ← `NOONA_PORTAL/f119_NOONA_PORTAL.zip` ← Reuse Application ID 119، Parsing Schema `NOONA_APP`.
+
+## الاختبار على APEX فعلي
+
+كل تطبيق يُستورد ويُجرب قبل التسليم على APEX 24.2 + ORDS في بيئة التطوير:
+استيراد التطبيقين بدون أخطاء، ثم `tools/ui_tests/portal_test.js` (Playwright): رفض حساب غير مسجل برسالة عربية،
+دخول ADMIN، ظهور المناطق الأربع، فتح مهمة، منع الرفض بلا سبب، الاعتماد ورسالة النجاح ونقص المهام، صفحة تبديل الشركة.
+
+معالجة الأخطاء: كل التطبيقات تستخدم `noona_owner.noona_apex_error` (ترقية `db/upgrade_03_apex_error.sql`) فتظهر
+رسالة NOONA فقط بدون `ORA-20500` ورمز المتابعة.

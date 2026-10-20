@@ -33,6 +33,7 @@ wwv_imp_workspace.create_flow(
 ,p_security_scheme=>wwv_flow_imp.id(91820260000000101)
 ,p_vpd=>'noona_apex_pkg.init_request(p_username => :APP_USER, p_apex_session_id => :APP_SESSION);'
 ,p_vpd_teardown_code=>'noona_apex_pkg.cleanup_request;'
+,p_error_handling_function=>'noona_owner.noona_apex_error'
 ,p_application_tab_set=>0
 ,p_logo_type=>'T'
 ,p_logo_text=>'NOONA Master'
