@@ -46,7 +46,7 @@ wwv_flow_imp_page.create_page_button(
 ,p_button_template_options=>'#DEFAULT#'
 ,p_button_template_id=>4072362960822175091
 ,p_button_is_hot=>'Y'
-,p_button_image_alt=>'Sign In'
+,p_button_image_alt=>'تسجيل الدخول'
 ,p_button_position=>'NEXT'
 ,p_button_alignment=>'LEFT'
 ,p_grid_new_row=>'Y'
@@ -57,8 +57,8 @@ wwv_flow_imp_page.create_page_item(
 ,p_name=>'P9999_USERNAME'
 ,p_item_sequence=>10
 ,p_item_plug_id=>wwv_flow_imp.id(17676167542607654)
-,p_prompt=>'Username'
-,p_placeholder=>'Username'
+,p_prompt=>'اسم المستخدم'
+,p_placeholder=>'اسم المستخدم'
 ,p_display_as=>'NATIVE_TEXT_FIELD'
 ,p_cSize=>40
 ,p_cMaxlength=>100
@@ -79,8 +79,8 @@ wwv_flow_imp_page.create_page_item(
 ,p_name=>'P9999_PASSWORD'
 ,p_item_sequence=>20
 ,p_item_plug_id=>wwv_flow_imp.id(17676167542607654)
-,p_prompt=>'Password'
-,p_placeholder=>'Password'
+,p_prompt=>'كلمة المرور'
+,p_placeholder=>'كلمة المرور'
 ,p_display_as=>'NATIVE_PASSWORD'
 ,p_cSize=>40
 ,p_cMaxlength=>100
@@ -98,7 +98,7 @@ wwv_flow_imp_page.create_page_item(
 ,p_name=>'P9999_REMEMBER'
 ,p_item_sequence=>30
 ,p_item_plug_id=>wwv_flow_imp.id(17676167542607654)
-,p_prompt=>'Remember username'
+,p_prompt=>'تذكر اسم المستخدم'
 ,p_display_as=>'NATIVE_SINGLE_CHECKBOX'
 ,p_label_alignment=>'RIGHT'
 ,p_display_when=>'apex_authentication.persistent_cookies_enabled'

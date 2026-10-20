@@ -22,7 +22,7 @@ wwv_flow_imp_page.create_page(
 ,p_protection_level=>'C'
 );
 wwv_flow_imp_page.create_page_plug(
- p_id=>wwv_flow_imp.id(91820262000000012)
+ p_id=>wwv_flow_imp.id(91820262000000009)
 ,p_plug_name=>'لوحة الإدارة'
 ,p_region_template_options=>'#DEFAULT#:t-Region--scrollBody:t-Region--removeHeader js-removeLandmark:t-Region--noUI'
 ,p_plug_template=>4072358936313175081
@@ -33,7 +33,7 @@ wwv_flow_imp_page.create_page_plug(
 ,p_plug_source_type=>'NATIVE_DYNAMIC_CONTENT'
 );
 wwv_flow_imp_page.create_page_plug(
- p_id=>wwv_flow_imp.id(91820262000000013)
+ p_id=>wwv_flow_imp.id(91820262000000010)
 ,p_plug_name=>'الشركات'
 ,p_region_template_options=>'#DEFAULT#'
 ,p_component_template_options=>'#DEFAULT#'
@@ -48,7 +48,7 @@ wwv_flow_imp_page.create_page_plug(
 ,p_prn_page_header=>'الشركات'
 );
 wwv_flow_imp_page.create_worksheet(
- p_id=>wwv_flow_imp.id(91820262000000014)
+ p_id=>wwv_flow_imp.id(91820262000000011)
 ,p_max_row_count=>'1000000'
 ,p_no_data_found_message=>'لا توجد بيانات'
 ,p_pagination_type=>'ROWS_X_TO_Y'
@@ -62,10 +62,10 @@ wwv_flow_imp_page.create_worksheet(
 ,p_detail_link=>'f?p=&APP_ID.:11:&SESSION.::&DEBUG.:RP,11:P11_ID:#ID#'
 ,p_detail_link_text=>'<span role="img" aria-label="تعديل" class="fa fa-edit" title="فتح"></span>'
 ,p_owner=>'NOONA'
-,p_internal_uid=>91820262000000014
+,p_internal_uid=>91820262000000011
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820262000000016)
+ p_id=>wwv_flow_imp.id(91820262000000013)
 ,p_db_column_name=>'ID'
 ,p_display_order=>10
 ,p_column_identifier=>'A'
@@ -76,7 +76,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820262000000017)
+ p_id=>wwv_flow_imp.id(91820262000000014)
 ,p_db_column_name=>'CODE'
 ,p_display_order=>20
 ,p_column_identifier=>'B'
@@ -86,7 +86,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820262000000018)
+ p_id=>wwv_flow_imp.id(91820262000000015)
 ,p_db_column_name=>'COMPANY_NAME'
 ,p_display_order=>30
 ,p_column_identifier=>'C'
@@ -96,7 +96,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820262000000019)
+ p_id=>wwv_flow_imp.id(91820262000000016)
 ,p_db_column_name=>'COUNTRY_CODE'
 ,p_display_order=>40
 ,p_column_identifier=>'D'
@@ -106,7 +106,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820262000000020)
+ p_id=>wwv_flow_imp.id(91820262000000017)
 ,p_db_column_name=>'FUNCTIONAL_CURRENCY'
 ,p_display_order=>50
 ,p_column_identifier=>'E'
@@ -116,7 +116,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820262000000021)
+ p_id=>wwv_flow_imp.id(91820262000000018)
 ,p_db_column_name=>'STATUS_HTML'
 ,p_display_order=>60
 ,p_column_identifier=>'F'
@@ -127,10 +127,10 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_rpt(
- p_id=>wwv_flow_imp.id(91820262000000015)
+ p_id=>wwv_flow_imp.id(91820262000000012)
 ,p_application_user=>'APXWS_DEFAULT'
 ,p_report_seq=>10
-,p_report_alias=>'15'
+,p_report_alias=>'12'
 ,p_status=>'PUBLIC'
 ,p_is_default=>'Y'
 ,p_report_columns=>'CODE:COMPANY_NAME:COUNTRY_CODE:FUNCTIONAL_CURRENCY:STATUS_HTML'

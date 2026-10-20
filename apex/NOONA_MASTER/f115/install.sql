@@ -11,6 +11,11 @@ prompt --install
 @@application/shared_components/files/icons_app_icon_192_png.sql
 @@application/shared_components/files/icons_app_icon_256_rounded_png.sql
 @@application/shared_components/files/icons_app_icon_512_png.sql
+@@application/shared_components/files/noona_1.sql
+@@application/shared_components/files/noona_2.sql
+@@application/shared_components/files/noona_3.sql
+@@application/shared_components/files/noona_4.sql
+@@application/shared_components/files/noona_5.sql
 @@application/plugin_settings.sql
 @@application/shared_components/security/authorizations/administration_rights.sql
 @@application/shared_components/security/authorizations/noona_authenticated.sql

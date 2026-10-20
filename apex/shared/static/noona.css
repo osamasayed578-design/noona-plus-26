@@ -169,3 +169,104 @@ a.nn-app:hover { border-color: var(--nn-primary); background: var(--nn-primary-5
 .nn-matrix input[type=checkbox] { width: 17px; height: 17px; accent-color: var(--nn-primary); cursor: pointer; }
 .nn-matrix .nn-na { color: #c3cbd6; }
 .nn-matrix .nn-deny { color: var(--nn-danger); }
+
+/* ================================================================ القوائم: فاتحة وواضحة */
+.t-TreeNav ul ul, .t-TreeNav .a-TreeView-node--topLevel > ul { background-color: #f6f9fc !important; }
+.t-TreeNav ul ul .a-TreeView-label, .t-TreeNav ul ul .fa { color: #1f2937 !important; font-weight: 500; opacity: 1 !important; }
+.t-TreeNav .a-TreeView-row { transition: background-color .15s ease; }
+/* حالات التمرير والفتح في نمط القائمة A (محددات أقوى من القالب) */
+body .t-TreeNav.a-TreeView .a-TreeView-node .a-TreeView-row.is-hover,
+body .t-TreeNav.a-TreeView .a-TreeView-node .a-TreeView-row.is-focused { background-color: var(--nn-primary-50) !important; }
+body .t-TreeNav.a-TreeView .a-TreeView-node--topLevel.is-collapsible > .a-TreeView-row:not(.is-hover):not(.is-selected) { background-color: #eef4fb !important; }
+body .t-TreeNav.a-TreeView .a-TreeView-node .a-TreeView-content.is-hover .a-TreeView-label,
+body .t-TreeNav.a-TreeView .a-TreeView-node .a-TreeView-content.is-hover .fa { color: var(--nn-primary) !important; }
+.t-TreeNav .a-TreeView-row.is-selected, .t-TreeNav .a-TreeView-row.is-current--top {
+  background-color: var(--nn-head-bg) !important; box-shadow: inset -3px 0 0 var(--nn-primary); }
+.t-TreeNav .a-TreeView-row.is-selected + .a-TreeView-content .a-TreeView-label,
+.t-TreeNav .is-current--top + .a-TreeView-content .a-TreeView-label { color: var(--nn-primary) !important; font-weight: 700; }
+.t-TreeNav .a-TreeView-toggle { color: #4b5563 !important; }
+
+/* القوائم المنسدلة (قائمة المستخدم، إجراءات التقارير) */
+.a-Menu, .a-Menu .a-Menu-content, .t-NavigationBar-menu .a-Menu-content {
+  background: #fff !important; color: var(--nn-text) !important; border: 1px solid var(--nn-border) !important;
+  border-radius: 10px !important; box-shadow: 0 8px 24px rgba(16, 24, 40, .14) !important; }
+.a-Menu .a-Menu-label, .a-Menu .a-Menu-accel, .a-Menu .a-Menu-statusCol .fa, .a-Menu .a-Menu-itemIcon { color: #1f2937 !important; }
+.a-Menu .a-Menu-item.is-focused > .a-Menu-inner, .a-Menu .a-Menu-item:hover > .a-Menu-inner,
+.a-Menu .a-Menu-item.is-expanded > .a-Menu-inner { background: var(--nn-primary-50) !important; }
+.a-Menu .a-Menu-item.is-focused .a-Menu-label, .a-Menu .a-Menu-item:hover .a-Menu-label { color: var(--nn-primary) !important; }
+.a-Menu .a-Menu-item.is-disabled .a-Menu-label { color: #9ca3af !important; }
+
+/* ================================================================ مؤثرات خفيفة (CSS فقط، لا تؤثر على السرعة) */
+@keyframes nnFadeUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+@keyframes nnFadeIn { from { opacity: 0; } to { opacity: 1; } }
+@keyframes nnSlideIn { from { opacity: 0; transform: translateY(-12px); } to { opacity: 1; transform: none; } }
+@keyframes nnPop { 0% { transform: scale(.6); opacity: 0; } 70% { transform: scale(1.08); } 100% { transform: scale(1); opacity: 1; } }
+.t-Body-contentInner > .container > .row > .col > .t-Region,
+.t-Body-contentInner .t-IRR-region, .t-Body-contentInner .t-Region { animation: nnFadeUp .38s cubic-bezier(.2, .7, .2, 1) both; }
+.t-Body-contentInner .row:nth-of-type(2) .t-Region { animation-delay: .05s; }
+.t-Body-contentInner .row:nth-of-type(3) .t-Region { animation-delay: .1s; }
+.t-Body-contentInner .row:nth-of-type(4) .t-Region { animation-delay: .15s; }
+.nn-kpi, .nn-app, .nn-task { animation: nnFadeUp .4s cubic-bezier(.2, .7, .2, 1) both; }
+.nn-kpi:nth-child(2), .nn-app:nth-child(2), .nn-task:nth-child(2) { animation-delay: .04s; }
+.nn-kpi:nth-child(3), .nn-app:nth-child(3), .nn-task:nth-child(3) { animation-delay: .08s; }
+.nn-kpi:nth-child(4), .nn-app:nth-child(4), .nn-task:nth-child(4) { animation-delay: .12s; }
+.nn-kpi:nth-child(5), .nn-app:nth-child(5), .nn-task:nth-child(5) { animation-delay: .16s; }
+.nn-kpi:nth-child(n+6), .nn-app:nth-child(n+6), .nn-task:nth-child(n+6) { animation-delay: .2s; }
+.nn-kpi, .nn-app, .nn-task, .t-Region { transition: box-shadow .2s ease, transform .2s ease, border-color .2s ease; }
+.nn-kpi:hover, .nn-app:hover, .nn-task:hover { transform: translateY(-3px); box-shadow: 0 10px 24px rgba(0, 88, 168, .12); }
+.nn-kpi-icon, .nn-app-icon { transition: transform .25s ease; }
+.nn-kpi:hover .nn-kpi-icon, .nn-app:hover .nn-app-icon { transform: scale(1.1) rotate(-4deg); }
+.t-Button { transition: background-color .15s ease, box-shadow .15s ease, transform .08s ease, color .15s ease; }
+.t-Button:hover { box-shadow: 0 2px 8px rgba(0, 103, 192, .18); }
+.t-Button:active { transform: scale(.97); }
+.a-IRR-table tbody tr, .t-Report-report tbody tr, .nn-matrix tbody tr { transition: background-color .12s ease; }
+.a-IRR-table tbody tr:hover td, .t-Report-report tbody tr:hover td { background-color: #f3f8fd !important; }
+.t-Alert--page { animation: nnSlideIn .3s ease-out both; border-radius: 10px !important; }
+.t-Alert--success .t-Icon, .t-Alert--page .t-Alert-icon .t-Icon { animation: nnPop .45s ease-out .1s both; }
+.a-Menu { animation: nnFadeIn .14s ease-out; }
+.t-Form-fieldContainer .apex-item-text, .t-Form-fieldContainer .apex-item-select, .t-Form-fieldContainer textarea {
+  transition: border-color .15s ease, box-shadow .15s ease; }
+.t-Form-fieldContainer .apex-item-text:focus, .t-Form-fieldContainer .apex-item-select:focus, .t-Form-fieldContainer textarea:focus {
+  box-shadow: 0 0 0 3px rgba(0, 103, 192, .15) !important; }
+.nn-badge { transition: transform .15s ease; }
+tr:hover .nn-badge { transform: scale(1.05); }
+
+/* ================================================================ صفحة الدخول (كل التطبيقات) */
+.t-PageBody--login { background: #f3f6fa; }
+.t-PageBody--login .t-Login-bg { background: linear-gradient(150deg, #0b84e8 0%, #0067c0 45%, #0b3b6e 100%); overflow: hidden; }
+.t-PageBody--login .t-Login-bg::before {   /* دوائر زخرفية متحركة ببطء */
+  content: ""; position: absolute; inset: -20%;
+  background: radial-gradient(circle at 20% 25%, rgba(255, 255, 255, .14) 0 120px, transparent 121px),
+              radial-gradient(circle at 80% 70%, rgba(255, 255, 255, .08) 0 220px, transparent 221px),
+              radial-gradient(circle at 65% 15%, rgba(255, 185, 0, .18) 0 60px, transparent 61px);
+  animation: nnFloat 18s ease-in-out infinite alternate; }
+@keyframes nnFloat { from { transform: translate(0, 0) rotate(0); } to { transform: translate(3%, -2%) rotate(4deg); } }
+.t-PageBody--login .t-Login-bgImg { background: none !important; }
+.t-PageBody--login .t-Login-container { animation: nnFadeUp .5s cubic-bezier(.2, .7, .2, 1) both; }
+.t-PageBody--login .t-Login-region { background: #fff; border-radius: 18px; border: 0;
+  box-shadow: 0 24px 60px rgba(11, 59, 110, .28); padding: 8px 6px; }
+.t-PageBody--login .t-Login-logo { width: 76px !important; height: 76px !important; border-radius: 0 !important;
+  background: url(noona-logo.svg) center / contain no-repeat !important; box-shadow: none !important;
+  animation: nnPop .6s ease-out .15s both; }
+.t-PageBody--login .t-Login-logo::before, .t-PageBody--login img.t-Login-logo { display: none !important; }
+.t-PageBody--login span.t-Login-logo { display: block !important; margin: 6px auto 0 !important; }
+.t-PageBody--login .t-Login-header { text-align: center; }
+.t-PageBody--login .t-Login-title { font-size: 1.45rem; font-weight: 800; color: var(--nn-head-text); margin-top: 10px; }
+.t-PageBody--login .t-Login-header::after { content: "NOONA PLUS \2014  نونا بلس"; display: block; direction: ltr; text-align: center;
+  margin-top: 4px; color: var(--nn-muted); font-size: .9rem; font-weight: 600; letter-spacing: .5px; }
+.t-PageBody--login .t-Login-buttons .t-Button--hot { border-radius: 10px; height: 46px; font-size: 1.05rem; font-weight: 700;
+  background: linear-gradient(90deg, #0b84e8, #0058a8); border: 0; }
+.t-PageBody--login .t-Login-buttons .t-Button--hot:hover { filter: brightness(1.06); box-shadow: 0 8px 20px rgba(0, 103, 192, .35); }
+.t-PageBody--login .t-Form-fieldContainer .apex-item-text { border-radius: 10px; height: 46px; }
+.t-PageBody--login .t-Login-containerFooter::after { content: "\00A9  NOONA PLUS ERP"; color: rgba(255, 255, 255, .8);
+  font-size: .85rem; display: block; text-align: center; padding: 10px; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; }
+}
+
+/* الشعار بجوار اسم التطبيق في الترويسة */
+.t-Header-logo-link { display: inline-flex !important; align-items: center; gap: 10px; font-weight: 700; color: var(--nn-head-text) !important; }
+.t-Header-logo-link::before { content: ""; width: 30px; height: 30px; flex: none;
+  background: url(noona-logo.svg) center / contain no-repeat; transition: transform .25s ease; }
+.t-Header-logo-link:hover::before { transform: rotate(-8deg) scale(1.06); }

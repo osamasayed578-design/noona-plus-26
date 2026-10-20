@@ -22,7 +22,7 @@ wwv_flow_imp_page.create_page(
 ,p_protection_level=>'C'
 );
 wwv_flow_imp_page.create_page_plug(
- p_id=>wwv_flow_imp.id(91820262000000225)
+ p_id=>wwv_flow_imp.id(91820262000000222)
 ,p_plug_name=>'التعيينات'
 ,p_region_template_options=>'#DEFAULT#'
 ,p_component_template_options=>'#DEFAULT#'
@@ -39,7 +39,7 @@ wwv_flow_imp_page.create_page_plug(
 ,p_prn_page_header=>'التعيينات'
 );
 wwv_flow_imp_page.create_worksheet(
- p_id=>wwv_flow_imp.id(91820262000000226)
+ p_id=>wwv_flow_imp.id(91820262000000223)
 ,p_max_row_count=>'1000000'
 ,p_no_data_found_message=>'لا توجد بيانات'
 ,p_pagination_type=>'ROWS_X_TO_Y'
@@ -51,10 +51,10 @@ wwv_flow_imp_page.create_worksheet(
 ,p_download_formats=>'CSV:HTML:XLSX:PDF'
 ,p_enable_mail_download=>'N'
 ,p_owner=>'NOONA'
-,p_internal_uid=>91820262000000226
+,p_internal_uid=>91820262000000223
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820262000000228)
+ p_id=>wwv_flow_imp.id(91820262000000225)
 ,p_db_column_name=>'ID'
 ,p_display_order=>10
 ,p_column_identifier=>'A'
@@ -65,7 +65,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820262000000229)
+ p_id=>wwv_flow_imp.id(91820262000000226)
 ,p_db_column_name=>'EMPLOYEE_NAME'
 ,p_display_order=>20
 ,p_column_identifier=>'B'
@@ -75,7 +75,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820262000000230)
+ p_id=>wwv_flow_imp.id(91820262000000227)
 ,p_db_column_name=>'EMPLOYEE_NO'
 ,p_display_order=>30
 ,p_column_identifier=>'C'
@@ -85,7 +85,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820262000000231)
+ p_id=>wwv_flow_imp.id(91820262000000228)
 ,p_db_column_name=>'POSITION_NAME'
 ,p_display_order=>40
 ,p_column_identifier=>'D'
@@ -95,7 +95,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820262000000232)
+ p_id=>wwv_flow_imp.id(91820262000000229)
 ,p_db_column_name=>'UNIT_NAME'
 ,p_display_order=>50
 ,p_column_identifier=>'E'
@@ -105,7 +105,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820262000000233)
+ p_id=>wwv_flow_imp.id(91820262000000230)
 ,p_db_column_name=>'ASSIGNMENT_TYPE'
 ,p_display_order=>60
 ,p_column_identifier=>'F'
@@ -115,7 +115,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820262000000234)
+ p_id=>wwv_flow_imp.id(91820262000000231)
 ,p_db_column_name=>'FTE_PCT'
 ,p_display_order=>70
 ,p_column_identifier=>'G'
@@ -125,7 +125,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820262000000235)
+ p_id=>wwv_flow_imp.id(91820262000000232)
 ,p_db_column_name=>'EFFECTIVE_FROM'
 ,p_display_order=>80
 ,p_column_identifier=>'H'
@@ -135,7 +135,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820262000000236)
+ p_id=>wwv_flow_imp.id(91820262000000233)
 ,p_db_column_name=>'EFFECTIVE_TO'
 ,p_display_order=>90
 ,p_column_identifier=>'I'
@@ -145,7 +145,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820262000000237)
+ p_id=>wwv_flow_imp.id(91820262000000234)
 ,p_db_column_name=>'STATUS_HTML'
 ,p_display_order=>100
 ,p_column_identifier=>'J'
@@ -156,16 +156,16 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_rpt(
- p_id=>wwv_flow_imp.id(91820262000000227)
+ p_id=>wwv_flow_imp.id(91820262000000224)
 ,p_application_user=>'APXWS_DEFAULT'
 ,p_report_seq=>10
-,p_report_alias=>'227'
+,p_report_alias=>'224'
 ,p_status=>'PUBLIC'
 ,p_is_default=>'Y'
 ,p_report_columns=>'EMPLOYEE_NAME:EMPLOYEE_NO:POSITION_NAME:UNIT_NAME:ASSIGNMENT_TYPE:FTE_PCT:EFFECTIVE_FROM:EFFECTIVE_TO:STATUS_HTML'
 );
 wwv_flow_imp_page.create_page_plug(
- p_id=>wwv_flow_imp.id(91820262000000238)
+ p_id=>wwv_flow_imp.id(91820262000000235)
 ,p_plug_name=>'تعيين جديد'
 ,p_region_template_options=>'#DEFAULT#'
 ,p_plug_template=>4072358936313175081
@@ -176,10 +176,10 @@ wwv_flow_imp_page.create_page_plug(
   'show_line_breaks', 'Y')).to_clob
 );
 wwv_flow_imp_page.create_page_item(
- p_id=>wwv_flow_imp.id(91820262000000239)
+ p_id=>wwv_flow_imp.id(91820262000000236)
 ,p_name=>'P23_EMPLOYMENT_ID'
 ,p_item_sequence=>10
-,p_item_plug_id=>wwv_flow_imp.id(91820262000000238)
+,p_item_plug_id=>wwv_flow_imp.id(91820262000000235)
 ,p_prompt=>'الموظف'
 ,p_display_as=>'NATIVE_SELECT_LIST'
 ,p_lov=>'select pt.display_name_ar || '' ('' || e.employee_no || '')'' d, em.id r from hr_employment em join hr_employee e on e.id = em.employee_id join pty_party pt on pt.id = e.person_party_id where em.status_code in (''PENDING'',''ACTIVE'') order by 1'
@@ -193,10 +193,10 @@ wwv_flow_imp_page.create_page_item(
   'page_action_on_selection', 'NONE')).to_clob
 );
 wwv_flow_imp_page.create_page_item(
- p_id=>wwv_flow_imp.id(91820262000000240)
+ p_id=>wwv_flow_imp.id(91820262000000237)
 ,p_name=>'P23_POSITION_ID'
 ,p_item_sequence=>20
-,p_item_plug_id=>wwv_flow_imp.id(91820262000000238)
+,p_item_plug_id=>wwv_flow_imp.id(91820262000000235)
 ,p_prompt=>'المنصب'
 ,p_display_as=>'NATIVE_SELECT_LIST'
 ,p_lov=>'select name_ar || '' ('' || code || '') - '' || noona_ui_pkg.status_label(status_code) d, id r from org_position where status_code not in (''CANCELLED'',''CLOSED'',''FROZEN'',''PLANNED'') order by 1'
@@ -211,10 +211,10 @@ wwv_flow_imp_page.create_page_item(
   'page_action_on_selection', 'NONE')).to_clob
 );
 wwv_flow_imp_page.create_page_item(
- p_id=>wwv_flow_imp.id(91820262000000241)
+ p_id=>wwv_flow_imp.id(91820262000000238)
 ,p_name=>'P23_TYPE'
 ,p_item_sequence=>30
-,p_item_plug_id=>wwv_flow_imp.id(91820262000000238)
+,p_item_plug_id=>wwv_flow_imp.id(91820262000000235)
 ,p_prompt=>'نوع التعيين'
 ,p_display_as=>'NATIVE_SELECT_LIST'
 ,p_lov=>'STATIC2:أساسي;PRIMARY,إضافي;ADDITIONAL,بالإنابة;ACTING,إعارة;SECONDMENT,مؤقت;TEMPORARY'
@@ -226,10 +226,10 @@ wwv_flow_imp_page.create_page_item(
   'page_action_on_selection', 'NONE')).to_clob
 );
 wwv_flow_imp_page.create_page_item(
- p_id=>wwv_flow_imp.id(91820262000000242)
+ p_id=>wwv_flow_imp.id(91820262000000239)
 ,p_name=>'P23_FROM'
 ,p_item_sequence=>40
-,p_item_plug_id=>wwv_flow_imp.id(91820262000000238)
+,p_item_plug_id=>wwv_flow_imp.id(91820262000000235)
 ,p_prompt=>'من تاريخ'
 ,p_display_as=>'NATIVE_DATE_PICKER_APEX'
 ,p_cSize=>20
@@ -246,10 +246,10 @@ wwv_flow_imp_page.create_page_item(
   'use_defaults', 'Y')).to_clob
 );
 wwv_flow_imp_page.create_page_item(
- p_id=>wwv_flow_imp.id(91820262000000243)
+ p_id=>wwv_flow_imp.id(91820262000000240)
 ,p_name=>'P23_FTE'
 ,p_item_sequence=>50
-,p_item_plug_id=>wwv_flow_imp.id(91820262000000238)
+,p_item_plug_id=>wwv_flow_imp.id(91820262000000235)
 ,p_prompt=>'نسبة التفرغ %'
 ,p_display_as=>'NATIVE_NUMBER_FIELD'
 ,p_cSize=>20
@@ -260,42 +260,42 @@ wwv_flow_imp_page.create_page_item(
   'virtual_keyboard', 'decimal')).to_clob
 );
 wwv_flow_imp_page.create_page_validation(
- p_id=>wwv_flow_imp.id(91820262000000245)
+ p_id=>wwv_flow_imp.id(91820262000000242)
 ,p_validation_name=>'P23_EMPLOYMENT_ID required (ASSIGN)'
 ,p_validation_sequence=>18
 ,p_validation=>'P23_EMPLOYMENT_ID'
 ,p_validation_type=>'ITEM_NOT_NULL'
 ,p_error_message=>'#LABEL#: قيمة مطلوبة'
-,p_when_button_pressed=>wwv_flow_imp.id(91820262000000244)
-,p_associated_item=>wwv_flow_imp.id(91820262000000239)
+,p_when_button_pressed=>wwv_flow_imp.id(91820262000000241)
+,p_associated_item=>wwv_flow_imp.id(91820262000000236)
 ,p_error_display_location=>'INLINE_WITH_FIELD_AND_NOTIFICATION'
 );
 wwv_flow_imp_page.create_page_validation(
- p_id=>wwv_flow_imp.id(91820262000000246)
+ p_id=>wwv_flow_imp.id(91820262000000243)
 ,p_validation_name=>'P23_POSITION_ID required (ASSIGN)'
 ,p_validation_sequence=>19
 ,p_validation=>'P23_POSITION_ID'
 ,p_validation_type=>'ITEM_NOT_NULL'
 ,p_error_message=>'#LABEL#: قيمة مطلوبة'
-,p_when_button_pressed=>wwv_flow_imp.id(91820262000000244)
-,p_associated_item=>wwv_flow_imp.id(91820262000000240)
+,p_when_button_pressed=>wwv_flow_imp.id(91820262000000241)
+,p_associated_item=>wwv_flow_imp.id(91820262000000237)
 ,p_error_display_location=>'INLINE_WITH_FIELD_AND_NOTIFICATION'
 );
 wwv_flow_imp_page.create_page_validation(
- p_id=>wwv_flow_imp.id(91820262000000247)
+ p_id=>wwv_flow_imp.id(91820262000000244)
 ,p_validation_name=>'P23_FROM required (ASSIGN)'
 ,p_validation_sequence=>20
 ,p_validation=>'P23_FROM'
 ,p_validation_type=>'ITEM_NOT_NULL'
 ,p_error_message=>'#LABEL#: قيمة مطلوبة'
-,p_when_button_pressed=>wwv_flow_imp.id(91820262000000244)
-,p_associated_item=>wwv_flow_imp.id(91820262000000242)
+,p_when_button_pressed=>wwv_flow_imp.id(91820262000000241)
+,p_associated_item=>wwv_flow_imp.id(91820262000000239)
 ,p_error_display_location=>'INLINE_WITH_FIELD_AND_NOTIFICATION'
 );
 wwv_flow_imp_page.create_page_button(
- p_id=>wwv_flow_imp.id(91820262000000244)
+ p_id=>wwv_flow_imp.id(91820262000000241)
 ,p_button_sequence=>10
-,p_button_plug_id=>wwv_flow_imp.id(91820262000000238)
+,p_button_plug_id=>wwv_flow_imp.id(91820262000000235)
 ,p_button_name=>'ASSIGN'
 ,p_button_action=>'SUBMIT'
 ,p_button_template_options=>'#DEFAULT#'
@@ -305,7 +305,7 @@ wwv_flow_imp_page.create_page_button(
 ,p_button_position=>'NEXT'
 );
 wwv_flow_imp_page.create_page_process(
- p_id=>wwv_flow_imp.id(91820262000000248)
+ p_id=>wwv_flow_imp.id(91820262000000245)
 ,p_process_sequence=>10
 ,p_process_point=>'BEFORE_HEADER'
 ,p_process_type=>'NATIVE_PLSQL'
@@ -314,10 +314,10 @@ wwv_flow_imp_page.create_page_process(
 ':P23_FROM := nvl(:P23_FROM, to_char(sysdate, ''YYYY-MM-DD'')); :P23_FTE := nvl(:P23_FTE, 100);'))
 ,p_process_clob_language=>'PLSQL'
 ,p_error_display_location=>'INLINE_IN_NOTIFICATION'
-,p_internal_uid=>91820262000000248
+,p_internal_uid=>91820262000000245
 );
 wwv_flow_imp_page.create_page_process(
- p_id=>wwv_flow_imp.id(91820262000000249)
+ p_id=>wwv_flow_imp.id(91820262000000246)
 ,p_process_sequence=>10
 ,p_process_point=>'AFTER_SUBMIT'
 ,p_process_type=>'NATIVE_PLSQL'
@@ -330,12 +330,12 @@ wwv_flow_imp_page.create_page_process(
 'end;'))
 ,p_process_clob_language=>'PLSQL'
 ,p_error_display_location=>'INLINE_IN_NOTIFICATION'
-,p_process_when_button_id=>wwv_flow_imp.id(91820262000000244)
+,p_process_when_button_id=>wwv_flow_imp.id(91820262000000241)
 ,p_process_success_message=>'تم التعيين'
-,p_internal_uid=>91820262000000249
+,p_internal_uid=>91820262000000246
 );
 wwv_flow_imp_page.create_page_plug(
- p_id=>wwv_flow_imp.id(91820262000000250)
+ p_id=>wwv_flow_imp.id(91820262000000247)
 ,p_plug_name=>'إنهاء تعيين'
 ,p_region_template_options=>'#DEFAULT#'
 ,p_plug_template=>4072358936313175081
@@ -346,10 +346,10 @@ wwv_flow_imp_page.create_page_plug(
   'show_line_breaks', 'Y')).to_clob
 );
 wwv_flow_imp_page.create_page_item(
- p_id=>wwv_flow_imp.id(91820262000000251)
+ p_id=>wwv_flow_imp.id(91820262000000248)
 ,p_name=>'P23_END_ID'
 ,p_item_sequence=>10
-,p_item_plug_id=>wwv_flow_imp.id(91820262000000250)
+,p_item_plug_id=>wwv_flow_imp.id(91820262000000247)
 ,p_prompt=>'التعيين'
 ,p_display_as=>'NATIVE_SELECT_LIST'
 ,p_lov=>'select pt.display_name_ar || '' - '' || p.name_ar d, a.id r from org_position_assignment a join hr_employment em on em.id = a.employment_id join hr_employee e on e.id = em.employee_id join pty_party pt on pt.id = e.person_party_id join org_position p on p.id = a.position_id where a.status_code in (''EFFECTIVE'',''SCHEDULED'') order by 1'
@@ -363,10 +363,10 @@ wwv_flow_imp_page.create_page_item(
   'page_action_on_selection', 'NONE')).to_clob
 );
 wwv_flow_imp_page.create_page_item(
- p_id=>wwv_flow_imp.id(91820262000000252)
+ p_id=>wwv_flow_imp.id(91820262000000249)
 ,p_name=>'P23_END_DATE'
 ,p_item_sequence=>20
-,p_item_plug_id=>wwv_flow_imp.id(91820262000000250)
+,p_item_plug_id=>wwv_flow_imp.id(91820262000000247)
 ,p_prompt=>'تاريخ الانتهاء'
 ,p_display_as=>'NATIVE_DATE_PICKER_APEX'
 ,p_cSize=>20
@@ -383,10 +383,10 @@ wwv_flow_imp_page.create_page_item(
   'use_defaults', 'Y')).to_clob
 );
 wwv_flow_imp_page.create_page_item(
- p_id=>wwv_flow_imp.id(91820262000000253)
+ p_id=>wwv_flow_imp.id(91820262000000250)
 ,p_name=>'P23_END_REASON'
 ,p_item_sequence=>30
-,p_item_plug_id=>wwv_flow_imp.id(91820262000000250)
+,p_item_plug_id=>wwv_flow_imp.id(91820262000000247)
 ,p_prompt=>'السبب'
 ,p_display_as=>'NATIVE_TEXTAREA'
 ,p_cSize=>60
@@ -401,9 +401,9 @@ wwv_flow_imp_page.create_page_item(
   'trim_spaces', 'BOTH')).to_clob
 );
 wwv_flow_imp_page.create_page_button(
- p_id=>wwv_flow_imp.id(91820262000000254)
+ p_id=>wwv_flow_imp.id(91820262000000251)
 ,p_button_sequence=>10
-,p_button_plug_id=>wwv_flow_imp.id(91820262000000250)
+,p_button_plug_id=>wwv_flow_imp.id(91820262000000247)
 ,p_button_name=>'END_ASSIGNMENT'
 ,p_button_action=>'SUBMIT'
 ,p_button_template_options=>'#DEFAULT#'
@@ -412,7 +412,7 @@ wwv_flow_imp_page.create_page_button(
 ,p_button_position=>'NEXT'
 );
 wwv_flow_imp_page.create_page_process(
- p_id=>wwv_flow_imp.id(91820262000000255)
+ p_id=>wwv_flow_imp.id(91820262000000252)
 ,p_process_sequence=>20
 ,p_process_point=>'AFTER_SUBMIT'
 ,p_process_type=>'NATIVE_PLSQL'
@@ -421,12 +421,12 @@ wwv_flow_imp_page.create_page_process(
 'noona_org_pkg.end_assignment(p_assignment_id => :P23_END_ID, p_end_date => to_date(:P23_END_DATE, ''YYYY-MM-DD''), p_reason => :P23_END_REASON);'))
 ,p_process_clob_language=>'PLSQL'
 ,p_error_display_location=>'INLINE_IN_NOTIFICATION'
-,p_process_when_button_id=>wwv_flow_imp.id(91820262000000254)
+,p_process_when_button_id=>wwv_flow_imp.id(91820262000000251)
 ,p_process_success_message=>'تم إنهاء التعيين'
-,p_internal_uid=>91820262000000255
+,p_internal_uid=>91820262000000252
 );
 wwv_flow_imp_page.create_page_branch(
- p_id=>wwv_flow_imp.id(91820262000000256)
+ p_id=>wwv_flow_imp.id(91820262000000253)
 ,p_branch_action=>'f?p=&APP_ID.:23:&SESSION.::&DEBUG.:::&success_msg=#SUCCESS_MSG#'
 ,p_branch_point=>'AFTER_PROCESSING'
 ,p_branch_type=>'REDIRECT_URL'

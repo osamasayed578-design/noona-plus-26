@@ -38,7 +38,7 @@ wwv_flow_imp_shared.create_list_item(
 wwv_flow_imp_shared.create_list_item(
  p_id=>wwv_flow_imp.id(17684693458607692)
 ,p_list_item_display_sequence=>30
-,p_list_item_link_text=>'Sign Out'
+,p_list_item_link_text=>'تسجيل الخروج'
 ,p_list_item_link_target=>'&LOGOUT_URL.'
 ,p_list_item_icon=>'fa-sign-out'
 ,p_list_item_disp_cond_type=>'USER_IS_NOT_PUBLIC_USER'

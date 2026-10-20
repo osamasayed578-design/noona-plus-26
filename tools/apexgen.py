@@ -265,32 +265,8 @@ class App:
 
     # ------------------------------------------------------------------ الهوية
     def add_branding(self):
-        files = []
-        content = b''
-        for k, (fname, mime) in enumerate([('noona.css', 'text/css'), ('cairo-arabic.woff2', 'font/woff2'),
-                                           ('cairo-latin.woff2', 'font/woff2')], start=1):
-            data = open(os.path.join(STATIC_DIR, fname), 'rb').read()
-            content += data
-            hexd = data.hex().upper()
-            chunks = [hexd[i:i + 200] for i in range(0, len(hexd), 200)]
-            body = "wwv_flow_imp.g_varchar2_table := wwv_flow_imp.empty_varchar2_table;\n"
-            body += ''.join(f"wwv_flow_imp.g_varchar2_table({i}) := '{c}';\n" for i, c in enumerate(chunks, 1))
-            body += f"""wwv_flow_imp_shared.create_app_static_file(
- p_id=>wwv_flow_imp.id({self.id()})
-,p_file_name=>'{fname}'
-,p_mime_type=>'{mime}'
-,p_file_charset=>'utf-8'
-,p_file_content => wwv_flow_imp.varchar2_to_blob(wwv_flow_imp.g_varchar2_table)
-);"""
-            path = f'shared_components/files/noona_{k}'
-            self.write(path + '.sql', self.comp(path, f'APP STATIC FILES: {self.app_id}', body))
-            files.append(path)
-        self._static_files = files
-        ver = 1 + zlib.crc32(content) % 900000
-        ca = self.read('create_application.sql')
-        self.write('create_application.sql', re.sub(r",p_files_version=>\d+", f",p_files_version=>{ver}", ca))
-        self.edit('user_interfaces.sql', ",p_nav_bar_template_options=>'#DEFAULT#'",
-                  ",p_nav_bar_template_options=>'#DEFAULT#'\n,p_css_file_urls=>'#APP_FILES#noona.css'")
+        """ملفات الهوية (CSS + Cairo + الشعار) وصفحة الدخول بالعربية: تطبق عند finalize عبر tools/apex_brand.py"""
+        self._branding = True
 
     # ------------------------------------------------------------------ الصفحات
     def page(self, pid, name, alias, title, scheme=None, protection='C', mode=None):
@@ -341,6 +317,9 @@ class App:
         s = s.replace("@@application/pages/page_00000.sql\n", "@@application/pages/page_00000.sql\n" +
                       ''.join(f'@@application/pages/page_{pid:05d}.sql\n' for pid in sorted(self.pages)))
         open(inst, 'w').write(s)
+        if getattr(self, '_branding', False):
+            from apex_brand import brand
+            brand(self.dir)
         # حذف ملفات صفحات القالب غير المستخدمة
         for f in os.listdir(self.A + 'pages'):
             m = re.match(r'page_(\d+)\.sql', f)
