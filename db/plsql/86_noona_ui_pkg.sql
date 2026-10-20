@@ -20,6 +20,15 @@ CREATE OR REPLACE PACKAGE NOONA_UI_PKG AUTHID DEFINER AS
   FUNCTION task_cards(p_session IN VARCHAR2, p_limit IN PLS_INTEGER DEFAULT 20) RETURN CLOB;
   FUNCTION notification_list(p_session IN VARCHAR2, p_limit IN PLS_INTEGER DEFAULT 10) RETURN CLOB;
 
+  -- حالات موحدة: تسمية عربية وشارة ملونة (تستخدم في التقارير بعرض HTML)
+  FUNCTION status_label(p_code IN VARCHAR2) RETURN VARCHAR2 DETERMINISTIC;
+  FUNCTION status_badge(p_code IN VARCHAR2) RETURN VARCHAR2 DETERMINISTIC;
+  -- تسميات رموز شائعة: فحوص التفعيل، أنواع الفروع، نعم/لا
+  FUNCTION code_label(p_code IN VARCHAR2) RETURN VARCHAR2 DETERMINISTIC;
+
+  -- لوحة إدارة المؤسسة
+  FUNCTION admin_summary(p_session IN VARCHAR2) RETURN CLOB;
+
   -- صفحة المهمة
   FUNCTION task_header(p_task_id IN NUMBER) RETURN CLOB;
   FUNCTION task_timeline(p_task_id IN NUMBER) RETURN CLOB;
@@ -218,6 +227,94 @@ CREATE OR REPLACE PACKAGE BODY NOONA_UI_PKG AS
     END IF;
     RETURN '<ol class="nn-timeline">' || l_html || '</ol>';
   END task_timeline;
+
+  -- ---------------------------------------------------------------- الحالات
+  FUNCTION status_label(p_code IN VARCHAR2) RETURN VARCHAR2 DETERMINISTIC IS
+  BEGIN
+    RETURN CASE p_code
+      WHEN 'DRAFT' THEN 'مسودة' WHEN 'ACTIVE' THEN 'نشط' WHEN 'INACTIVE' THEN 'غير نشط'
+      WHEN 'UNDER_CONFIGURATION' THEN 'قيد الإعداد' WHEN 'READY_FOR_REVIEW' THEN 'جاهز للمراجعة'
+      WHEN 'SUSPENDED' THEN 'معلق' WHEN 'CLOSED' THEN 'مغلق' WHEN 'CLOSING' THEN 'قيد الإغلاق' WHEN 'ARCHIVED' THEN 'مؤرشف'
+      WHEN 'CLOSURE_REQUESTED' THEN 'طلب إغلاق' WHEN 'UNDER_LIQUIDATION' THEN 'تحت التصفية'
+      WHEN 'TRANSACTIONS_BLOCKED' THEN 'المعاملات موقوفة' WHEN 'FINANCIALLY_CLOSED' THEN 'مقفل مالياً'
+      WHEN 'LEGALLY_CLOSED' THEN 'مغلق قانونياً'
+      WHEN 'PENDING' THEN 'معلق' WHEN 'PASSED' THEN 'ناجح' WHEN 'FAILED' THEN 'فشل' WHEN 'WAIVED' THEN 'مستثنى'
+      WHEN 'SUBMITTED' THEN 'مرسل' WHEN 'APPROVED' THEN 'معتمد' WHEN 'REJECTED' THEN 'مرفوض' WHEN 'SCHEDULED' THEN 'مجدول'
+      WHEN 'EXPIRED' THEN 'منتهي' WHEN 'REVOKED' THEN 'ملغى' WHEN 'CANCELLED' THEN 'ملغى' WHEN 'TERMINATED' THEN 'منتهي'
+      WHEN 'RETIRED' THEN 'متقاعد' WHEN 'SUPERSEDED' THEN 'مستبدل' WHEN 'UNDER_REVIEW' THEN 'قيد المراجعة'
+      WHEN 'VACANT' THEN 'شاغر' WHEN 'OCCUPIED' THEN 'مشغول' WHEN 'FROZEN' THEN 'مجمد' WHEN 'PLANNED' THEN 'مخطط'
+      WHEN 'EFFECTIVE' THEN 'ساري' WHEN 'COMPLETED' THEN 'مكتمل' WHEN 'RUNNING' THEN 'قيد التشغيل' WHEN 'WAITING' THEN 'بانتظار إجراء'
+      WHEN 'INVITED' THEN 'مدعو' WHEN 'ENDED' THEN 'منتهي' WHEN 'LOCKED' THEN 'مقفل'
+      WHEN 'TRIAL' THEN 'تجريبي' WHEN 'READ_ONLY' THEN 'قراءة فقط' WHEN 'GRACE_PERIOD' THEN 'فترة سماح'
+      ELSE p_code END;
+  END status_label;
+
+  FUNCTION status_badge(p_code IN VARCHAR2) RETURN VARCHAR2 DETERMINISTIC IS
+    l_class VARCHAR2(20);
+  BEGIN
+    l_class := CASE
+      WHEN p_code IN ('ACTIVE', 'PASSED', 'APPROVED', 'EFFECTIVE', 'COMPLETED', 'OCCUPIED') THEN 'is-success'
+      WHEN p_code IN ('FAILED', 'REJECTED', 'SUSPENDED', 'CLOSED', 'REVOKED', 'CANCELLED', 'LOCKED', 'TRANSACTIONS_BLOCKED') THEN 'is-danger'
+      WHEN p_code IN ('PENDING', 'SUBMITTED', 'UNDER_CONFIGURATION', 'READY_FOR_REVIEW', 'WAIVED', 'CLOSING', 'WAITING',
+                      'UNDER_REVIEW', 'GRACE_PERIOD', 'READ_ONLY', 'VACANT') THEN 'is-warning'
+      WHEN p_code IN ('DRAFT', 'SCHEDULED', 'RUNNING', 'TRIAL', 'PLANNED', 'INVITED') THEN 'is-info'
+      ELSE 'is-muted' END;
+    RETURN '<span class="nn-badge ' || l_class || '">' || esc(status_label(p_code)) || '</span>';
+  END status_badge;
+
+  -- ---------------------------------------------------------------- لوحة الإدارة
+  FUNCTION admin_summary(p_session IN VARCHAR2) RETURN CLOB IS
+    l_comp NUMBER; l_comp_act NUMBER; l_br NUMBER; l_users NUMBER; l_roles NUMBER;
+    l_dlg_pending NUMBER; l_wf NUMBER; l_checks NUMBER;
+  BEGIN
+    SELECT (SELECT COUNT(*) FROM org_company),
+           (SELECT COUNT(*) FROM org_company WHERE status_code = 'ACTIVE'),
+           (SELECT COUNT(*) FROM org_branch WHERE status_code = 'ACTIVE'),
+           (SELECT COUNT(*) FROM sec_user_membership WHERE status_code = 'ACTIVE'),
+           (SELECT COUNT(*) FROM sec_role WHERE status_code = 'ACTIVE'),
+           (SELECT COUNT(*) FROM dlg_delegation WHERE status_code = 'SUBMITTED'),
+           (SELECT COUNT(*) FROM wf_definition_version WHERE status_code = 'ACTIVE'),
+           (SELECT COUNT(*) FROM org_company_check WHERE status_code = 'FAILED')
+      INTO l_comp, l_comp_act, l_br, l_users, l_roles, l_dlg_pending, l_wf, l_checks
+      FROM dual;
+    RETURN '<div class="nn-hello"><div class="nn-hello-title">إدارة المؤسسة</div>'
+        || '<div class="nn-hello-sub"><span class="fa fa-building-o" aria-hidden="true"></span> '
+        || esc(NOONA_APEX_PKG.tenant_name) || ' &middot; ' || esc(NOONA_APEX_PKG.display_name) || '</div></div>'
+        || '<div class="nn-kpis">'
+        || kpi('شركات نشطة من ' || l_comp, l_comp_act, 'fa-building-o', 'is-success')
+        || kpi('فروع نشطة', l_br, 'fa-map-marker', 'is-info')
+        || kpi('مستخدمون نشطون', l_users, 'fa-users', 'is-info')
+        || kpi('أدوار', l_roles, 'fa-key', 'is-muted')
+        || kpi('تفويضات بانتظار الاعتماد', l_dlg_pending, 'fa-share', CASE WHEN l_dlg_pending > 0 THEN 'is-warning' ELSE 'is-muted' END)
+        || kpi('مسارات اعتماد منشورة', l_wf, 'fa-sitemap', 'is-info')
+        || kpi('فحوص تفعيل فاشلة', l_checks, 'fa-exclamation-triangle', CASE WHEN l_checks > 0 THEN 'is-danger' ELSE 'is-muted' END)
+        || '</div>';
+  END admin_summary;
+
+  FUNCTION code_label(p_code IN VARCHAR2) RETURN VARCHAR2 DETERMINISTIC IS
+  BEGIN
+    RETURN CASE p_code
+      WHEN 'Y' THEN 'نعم' WHEN 'N' THEN 'لا'
+      WHEN 'LEGAL_REGISTRATION' THEN 'التسجيلات القانونية' WHEN 'FUNCTIONAL_CURRENCY' THEN 'العملة الوظيفية'
+      WHEN 'FISCAL_YEAR' THEN 'السنة المالية' WHEN 'LEDGER_COA' THEN 'دفتر الأستاذ ودليل الحسابات'
+      WHEN 'HEAD_BRANCH' THEN 'الفرع الرئيسي' WHEN 'COMPANY_ADMIN' THEN 'مسؤول للشركة'
+      WHEN 'DOC_SEQUENCES' THEN 'تسلسلات المستندات' WHEN 'LICENSE_LIMIT' THEN 'حدود الترخيص'
+      WHEN 'HEAD_OFFICE' THEN 'مركز رئيسي' WHEN 'BRANCH' THEN 'فرع' WHEN 'WAREHOUSE' THEN 'مستودع'
+      WHEN 'SHOWROOM' THEN 'معرض' WHEN 'FACTORY' THEN 'مصنع' WHEN 'SITE_OFFICE' THEN 'مكتب موقع'
+      WHEN 'EXECUTIVE' THEN 'إدارة عليا' WHEN 'SECTOR' THEN 'قطاع' WHEN 'DEPARTMENT' THEN 'إدارة' WHEN 'SECTION' THEN 'قسم'
+      WHEN 'UNIT' THEN 'وحدة' WHEN 'TEAM' THEN 'فريق' WHEN 'OFFICE' THEN 'مكتب' WHEN 'COMMITTEE' THEN 'لجنة'
+      WHEN 'PRIMARY' THEN 'أساسي' WHEN 'ADDITIONAL' THEN 'إضافي' WHEN 'ACTING' THEN 'بالإنابة' WHEN 'SECONDMENT' THEN 'إعارة'
+      WHEN 'TEMPORARY' THEN 'مؤقت' WHEN 'ADMINISTRATIVE' THEN 'إداري' WHEN 'FINANCIAL' THEN 'مالي' WHEN 'OPERATIONAL' THEN 'تشغيلي'
+      WHEN 'PROJECT' THEN 'مشروعات' WHEN 'CORRESPONDENCE' THEN 'مراسلات' WHEN 'REPORTING' THEN 'تقارير' WHEN 'MATRIX' THEN 'مصفوفي'
+      WHEN 'TENANT' THEN 'مؤسسة' WHEN 'COMPANY' THEN 'شركة' WHEN 'PLATFORM' THEN 'منصة' WHEN 'CUSTOM' THEN 'مخصص'
+      WHEN 'ALLOW' THEN 'سماح' WHEN 'DENY' THEN 'منع' WHEN 'ALL_TENANT' THEN 'كل المؤسسة'
+      WHEN 'APPROVAL' THEN 'اعتماد' WHEN 'REVIEW' THEN 'مراجعة' WHEN 'START' THEN 'بداية' WHEN 'END' THEN 'نهاية'
+      WHEN 'DECISION' THEN 'قرار' WHEN 'USER_TASK' THEN 'مهمة' WHEN 'NOTIFICATION' THEN 'إشعار'
+      WHEN 'USER' THEN 'مستخدم محدد' WHEN 'REQUESTER' THEN 'الطالب' WHEN 'MANAGER' THEN 'المدير المباشر'
+      WHEN 'HEAD_POSITION' THEN 'رئيس الوحدة' WHEN 'POSITION' THEN 'منصب' WHEN 'ROLE' THEN 'دور'
+      WHEN 'AUTHORITY_MATRIX' THEN 'مصفوفة الصلاحيات'
+      ELSE p_code END;
+  END code_label;
 
 END NOONA_UI_PKG;
 /
