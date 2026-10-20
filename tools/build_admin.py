@@ -1,5 +1,5 @@
 """NOONA_ADMIN (إدارة المؤسسة) - يبني التطبيق من القالب عبر tools/apexgen.py
-الاستخدام: python3 tools/build_admin.py   ->  apex/NOONA_ADMIN/f120
+الاستخدام: python3 tools/build_admin.py   ->  apex/NOONA_ADMIN/f123
 """
 import os, sys
 sys.path.insert(0, os.path.dirname(__file__))
@@ -7,8 +7,8 @@ from apexgen import App
 
 ROOT = os.path.join(os.path.dirname(__file__), '..')
 app = App(template_dir=os.path.join(ROOT, 'apex/_templates/f119_original'),
-          out_dir=os.path.join(ROOT, 'apex/NOONA_ADMIN/f120'),
-          app_id=120, alias='NOONA_ADMIN', name='NOONA Administration', id_base=91820262000000000)
+          out_dir=os.path.join(ROOT, 'apex/NOONA_ADMIN/f123'),
+          app_id=123, alias='NOONA_ADMIN', name='NOONA Administration', id_base=91820262000000000)
 app.wire_security()
 app.add_branding()
 ADMIN = app.schemes['admin']
