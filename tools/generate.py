@@ -553,7 +553,7 @@ def gen_security_and_seed():
     # NOONA_CTX_PKG و NOONA_CORE_PKG لا يمنحان للتطبيق (يمنع تجاوز VPD عبر وضع النظام)؛
     # يقرأ التطبيق السياق عبر SYS_CONTEXT('NOONA_CTX', ...)
     for pkg in ('NOONA_SECURITY_PKG', 'NOONA_REFERENCE_PKG', 'NOONA_AUDIT_PKG', 'NOONA_PLATFORM_PKG',
-                'NOONA_ORG_PKG', 'NOONA_DELEGATION_PKG', 'NOONA_WORKFLOW_PKG'):
+                'NOONA_ORG_PKG', 'NOONA_DELEGATION_PKG', 'NOONA_WORKFLOW_PKG', 'NOONA_APEX_PKG'):
         g.append(f'GRANT EXECUTE ON {pkg} TO NOONA_APP;')
         syn.append(f'CREATE OR REPLACE SYNONYM {pkg} FOR NOONA_OWNER.{pkg};')
     write('db/security/40_grants_noona_app.sql', '\n'.join(g) + '\n')

@@ -520,6 +520,15 @@ BEGIN
      NOONA_AUDIT_PKG.verify_chain(l_tenant));
   NOONA_CTX_PKG.clear_context;
 
+  -- ================================================================== 8) وضع النظام عبر طلبات الـPool
+  NOONA_CORE_PKG.begin_system;            -- طلب سابق انتهى بخطأ دون end_system
+  NOONA_CTX_PKG.clear_context;            -- طلب جديد على نفس الاتصال
+  NOONA_CORE_PKG.begin_system;
+  NOONA_CORE_PKG.end_system;
+  ok('CORE: stale system-mode depth cannot leak VPD bypass', NOONA_CTX_PKG.is_system_mode = 'N');
+  NOONA_CORE_PKG.reset_system;
+  NOONA_CTX_PKG.clear_context;
+
   DBMS_OUTPUT.PUT_LINE('=== RESULT: ' || g_pass || ' passed, ' || g_fail || ' failed');
   IF g_fail > 0 THEN
     RAISE_APPLICATION_ERROR(-20999, g_fail || ' test(s) failed');

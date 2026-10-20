@@ -32,6 +32,7 @@ PROMPT ========== 4/7 Core PL/SQL services
 @@plsql/50_noona_org_pkg.sql
 @@plsql/60_noona_delegation_pkg.sql
 @@plsql/70_noona_workflow_pkg.sql
+@@plsql/80_noona_apex_pkg.sql
 
 PROMPT ========== 5/7 Seed: registry & reference data
 @@seed/01_registry_seed.sql

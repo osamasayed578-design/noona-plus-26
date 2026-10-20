@@ -57,3 +57,26 @@ App Builder ← التطبيق ← Export/Import ← **Export**:
 عند إنشاء كل تطبيق جديد: Shared Components ← Authentication Schemes ← Create ← **As a Copy of an
 Existing Scheme** من `NOONA_MASTER` مع تفعيل **Subscribe**. وبالمثل لقواعد الصلاحيات (Authorization
 Schemes) والقوائم المشتركة (LOVs) وقوالب الثيم. أي تعديل لاحق في Master ينشر بزر **Publish**.
+
+## NOONA_MASTER (التطبيق 115) - ما أضيف على التصدير
+
+| المكون | القيمة |
+|---|---|
+| Alias / اللغة | `NOONA_MASTER` / `ar` (RTL) |
+| Authentication | `NOONA Auth` (APEX Accounts)، Cookie `NOONA_SESSION`، Post-Auth = `noona_apex_pkg.post_auth` |
+| Initialization PL/SQL | `noona_apex_pkg.init_request(:APP_USER, :APP_SESSION)` |
+| Cleanup PL/SQL | `noona_apex_pkg.cleanup_request` |
+| صلاحية التطبيق | `NOONA - Authenticated` |
+| Authorization Schemes | `NOONA - Authenticated`، `NOONA - Tenant User`، `NOONA - Tenant Admin`، `NOONA - Platform Admin` |
+| LOVs | `NOONA_COMPANIES`، `NOONA_BRANCHES` (فروع الشركة الحالية)، `NOONA_CURRENCIES`، `NOONA_COUNTRIES` |
+
+صلاحية لعملية محددة داخل أي صفحة: Authorization Scheme من نوع PL/SQL Function Body:
+`return noona_apex_pkg.allow('ORG_COMPANY.CREATE') = 'Y';`
+
+### الاستيراد
+1. قاعدة البيانات أولاً (من مجلد `db`): `upgrade_01_apex_layer.sql` بحساب NOONA_OWNER ثم
+   `security/41_synonyms_noona_app.sql` بحساب NOONA_APP.
+2. App Builder ← Import ← ملف `f115_NOONA_MASTER.zip` ← Install: Reuse Application ID 115،
+   Parsing Schema `NOONA_APP`.
+3. مستخدمو الدخول: Administration ← Manage Users ← أنشئ حسابات APEX بنفس أسماء `SEC_USER`
+   (مثل `ADMIN` لمسؤول المؤسسة التجريبية و `PLATFORM` لمسؤول المنصة).

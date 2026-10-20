@@ -27,6 +27,7 @@ CREATE OR REPLACE PACKAGE NOONA_CORE_PKG AUTHID DEFINER AS
   -- وضع النظام: يحفظ الوضع السابق ويعيده
   PROCEDURE begin_system;
   PROCEDURE end_system;
+  PROCEDURE reset_system;     -- يلغي وضع النظام ويصفر العداد (بداية/نهاية كل طلب)
 
   FUNCTION yn(p_bool IN BOOLEAN) RETURN VARCHAR2;
   FUNCTION json_text(p_value IN VARCHAR2) RETURN VARCHAR2;   -- قيمة نصية آمنة داخل JSON
@@ -80,6 +81,11 @@ CREATE OR REPLACE PACKAGE BODY NOONA_CORE_PKG AS
 
   PROCEDURE begin_system IS
   BEGIN
+    -- العداد حالة حزمة تبقى عبر طلبات APEX في نفس اتصال الـPool؛ إن مُسح السياق (طلب جديد)
+    -- فالعداد القديم لا معنى له. بدون هذا قد يبقى وضع النظام مفعلاً بعد end_system (تجاوز VPD).
+    IF NOONA_CTX_PKG.is_system_mode <> 'Y' THEN
+      g_system_depth := 0;
+    END IF;
     g_system_depth := g_system_depth + 1;
     NOONA_CTX_PKG.enable_system_mode;
   END begin_system;
@@ -91,6 +97,12 @@ CREATE OR REPLACE PACKAGE BODY NOONA_CORE_PKG AS
       NOONA_CTX_PKG.disable_system_mode;
     END IF;
   END end_system;
+
+  PROCEDURE reset_system IS
+  BEGIN
+    g_system_depth := 0;
+    NOONA_CTX_PKG.disable_system_mode;
+  END reset_system;
 
   FUNCTION yn(p_bool IN BOOLEAN) RETURN VARCHAR2 IS
   BEGIN
