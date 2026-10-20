@@ -73,6 +73,13 @@ BEGIN
     ok('post_auth: unknown user rejected', INSTR(SQLERRM, 'NOONA-SEC-010') > 0, SQLERRM);
   END;
 
+  -- تحقق صفحة الدخول
+  ok('login check: ADMIN allowed', NOONA_APEX_PKG.login_block_reason('admin') IS NULL);
+  ok('login check: PLATFORM allowed', NOONA_APEX_PKG.login_block_reason('PLATFORM') IS NULL);
+  ok('login check: non-NOONA account blocked with message',
+     NOONA_APEX_PKG.login_block_reason('NOONA_DEV_X') IS NOT NULL);
+  ok('login check: empty username blocked', NOONA_APEX_PKG.login_block_reason(NULL) IS NOT NULL);
+
   -- مسؤول المنصة
   NOONA_APEX_PKG.post_auth('PLATFORM', l_sess + 2);
   ok('platform admin session', NOONA_APEX_PKG.is_platform_admin = 'Y' AND NOONA_APEX_PKG.is_tenant_user = 'N');

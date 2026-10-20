@@ -43,6 +43,9 @@ CREATE OR REPLACE PACKAGE NOONA_APEX_PKG AUTHID DEFINER AS
 
   -- عدد المؤسسات المتاحة للمستخدم (لإظهار مبدل المؤسسة)
   FUNCTION tenant_count(p_username IN VARCHAR2) RETURN NUMBER;
+
+  -- تحقق صفحة الدخول قبل المصادقة: NULL = مسموح، وإلا رسالة عامة (لا تكشف سبب الرفض)
+  FUNCTION login_block_reason(p_username IN VARCHAR2) RETURN VARCHAR2;
 END NOONA_APEX_PKG;
 /
 
@@ -235,6 +238,32 @@ CREATE OR REPLACE PACKAGE BODY NOONA_APEX_PKG AS
     NOONA_CORE_PKG.end_system;
     RAISE;
   END tenant_count;
+
+  FUNCTION login_block_reason(p_username IN VARCHAR2) RETURN VARCHAR2 IS
+    l_user sec_user%ROWTYPE;
+    l_ok   BOOLEAN := FALSE;
+  BEGIN
+    IF p_username IS NOT NULL THEN
+      NOONA_CORE_PKG.begin_system;
+      BEGIN
+        SELECT * INTO l_user FROM sec_user WHERE username = UPPER(TRIM(p_username));
+        IF l_user.status_code = 'ACTIVE' AND (l_user.expires_at IS NULL OR l_user.expires_at > SYSTIMESTAMP) THEN
+          l_ok := l_user.user_type = 'PLATFORM_ADMIN' OR default_tenant(l_user.id) IS NOT NULL;
+        END IF;
+      EXCEPTION WHEN NO_DATA_FOUND THEN
+        l_ok := FALSE;
+      END;
+      NOONA_CORE_PKG.end_system;
+    END IF;
+    IF l_ok THEN
+      RETURN NULL;
+    END IF;
+    RETURN 'تعذر تسجيل الدخول: اسم المستخدم أو كلمة المرور غير صحيحة، أو الحساب غير مفعل في نونا بلس'
+        || ' / Login failed: invalid credentials or account not enabled in NOONA PLUS';
+  EXCEPTION WHEN OTHERS THEN
+    NOONA_CORE_PKG.end_system;
+    RAISE;
+  END login_block_reason;
 
 END NOONA_APEX_PKG;
 /

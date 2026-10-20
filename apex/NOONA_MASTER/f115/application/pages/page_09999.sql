@@ -112,6 +112,15 @@ wwv_flow_imp_page.create_page_item(
   'unchecked_value', '',
   'use_defaults', 'Y')).to_clob
 );
+wwv_flow_imp_page.create_page_validation(
+ p_id=>wwv_flow_imp.id(91820260000000301)
+,p_validation_name=>'NOONA - User Enabled'
+,p_validation_sequence=>10
+,p_validation=>'return noona_apex_pkg.login_block_reason(:P9999_USERNAME);'
+,p_validation2=>'PLSQL'
+,p_validation_type=>'FUNC_BODY_RETURNING_ERR_TEXT'
+,p_error_display_location=>'INLINE_IN_NOTIFICATION'
+);
 wwv_flow_imp_page.create_page_process(
  p_id=>wwv_flow_imp.id(17680047433607671)
 ,p_process_sequence=>10
