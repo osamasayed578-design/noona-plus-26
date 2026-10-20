@@ -12,6 +12,15 @@ SET FEEDBACK OFF
 SET SERVEROUTPUT ON
 WHENEVER SQLERROR EXIT SQL.SQLCODE
 
+PROMPT ========== Client character set check (NLS_LANG must end with .AL32UTF8)
+BEGIN
+  IF LENGTH('نونا') <> 4 THEN
+    RAISE_APPLICATION_ERROR(-20000, 'NOONA-INS-001: Client character set is not UTF-8; Arabic text would be corrupted. '
+      || 'Windows CMD: set NLS_LANG=AMERICAN_AMERICA.AL32UTF8  then run sqlplus again.');
+  END IF;
+END;
+/
+
 PROMPT ========== NOONA_CORE_PKG
 @@plsql/03_noona_core_pkg.sql
 PROMPT ========== NOONA_APEX_PKG

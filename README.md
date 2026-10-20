@@ -23,6 +23,9 @@
 ## التثبيت
 
 ```bash
+# مهم: ترميز العميل يجب أن يكون UTF-8 وإلا تتلف النصوص العربية (السكربتات ترفض التشغيل بدونه)
+#   Windows CMD:  set NLS_LANG=AMERICAN_AMERICA.AL32UTF8
+#   Linux/macOS:  export NLS_LANG=AMERICAN_AMERICA.AL32UTF8
 cd db
 # 1) مرة واحدة: إنشاء المخططات (DBA) ومنح حزم SYS
 sqlplus system@//HOST:1521/PDB              @admin/00_create_schemas.sql

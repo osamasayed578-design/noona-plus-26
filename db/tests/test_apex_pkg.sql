@@ -9,6 +9,15 @@ SET SERVEROUTPUT ON SIZE UNLIMITED
 SET FEEDBACK OFF
 WHENEVER SQLERROR EXIT SQL.SQLCODE
 
+PROMPT ========== Client character set check (NLS_LANG must end with .AL32UTF8)
+BEGIN
+  IF LENGTH('نونا') <> 4 THEN
+    RAISE_APPLICATION_ERROR(-20000, 'NOONA-INS-001: Client character set is not UTF-8; Arabic text would be corrupted. '
+      || 'Windows CMD: set NLS_LANG=AMERICAN_AMERICA.AL32UTF8  then run sqlplus again.');
+  END IF;
+END;
+/
+
 DECLARE
   g_pass PLS_INTEGER := 0;
   g_fail PLS_INTEGER := 0;
