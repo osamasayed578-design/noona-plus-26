@@ -9,14 +9,16 @@
 
 :root {
   --nn-font: "Cairo", system-ui, "Segoe UI", Tahoma, Arial, sans-serif;
-  --nn-primary: #2563eb;  --nn-primary-50: #eff4ff;  --nn-primary-100: #dbe6fe;
-  --nn-bg: #f5f7fb;       --nn-surface: #ffffff;     --nn-border: #e4e8ef;
-  --nn-text: #1f2937;     --nn-muted: #6b7280;
-  --nn-success: #16a34a;  --nn-success-50: #ecfdf3;
-  --nn-warning: #d97706;  --nn-warning-50: #fff7e6;
-  --nn-danger: #dc2626;   --nn-danger-50: #fef2f2;
-  --nn-info: #0284c7;     --nn-info-50: #eef8ff;
-  --nn-radius: 10px;      --nn-shadow: 0 1px 2px rgba(16, 24, 40, .06);
+  /* ألوان قريبة من Windows 11: لون التمييز #0067c0 ودرجاته الفاتحة */
+  --nn-primary: #0067c0;  --nn-primary-50: #eaf3fc;  --nn-primary-100: #d4e7fa;
+  --nn-head-bg: #e5f1fb;  --nn-head-border: #c7dff5; --nn-head-text: #0b3b6e;
+  --nn-bg: #f3f6fa;       --nn-surface: #ffffff;     --nn-border: #dde3ea;
+  --nn-text: #111827;     --nn-muted: #4b5563;
+  --nn-success: #107c10;  --nn-success-50: #e9f6e9;
+  --nn-warning: #b45309;  --nn-warning-50: #fff4e0;
+  --nn-danger: #c42b1c;   --nn-danger-50: #fdecea;
+  --nn-info: #0067c0;     --nn-info-50: #eaf3fc;
+  --nn-radius: 8px;       --nn-shadow: 0 1px 2px rgba(16, 24, 40, .06);
 
   /* Universal Theme */
   --a-base-font-family: var(--nn-font);
@@ -30,26 +32,47 @@
   --ut-header-border-color: var(--nn-border);
   --ut-header-border-width: 1px;
   --ut-header-box-shadow: none;
-  --ut-region-header-background-color: #ffffff;
   --ut-component-border-color: var(--nn-border);
+  --ut-component-text-default-color: var(--nn-text);
+  /* رؤوس المناطق: أزرق فاتح */
+  --ut-region-header-background-color: var(--nn-head-bg);
+  --ut-region-header-text-color: var(--nn-head-text);
+  --ut-region-header-border-color: var(--nn-head-border);
+  --ut-region-header-font-size: 1.05rem;
+  /* رؤوس أعمدة التقارير والشبكات */
+  --ut-report-header-cell-background-color: #f0f6fd;
+  --ut-report-header-cell-font-weight: 700;
+  --a-gv-header-background-color: #f0f6fd;
+  --a-gv-header-text-color: var(--nn-head-text);
 }
-body, .t-Body, input, select, textarea, button { font-family: var(--nn-font); }
+/* خط أوضح: حجم 15px ووزن 500 ولون نص أغمق */
+html { font-size: 15px; }
+body, .t-Body, input, select, textarea, button {
+  font-family: var(--nn-font); font-weight: 500; color: var(--nn-text);
+  -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility; }
+.t-Form-label, label { font-weight: 600; color: #1f2937; }
+b, strong, th { font-weight: 700; }
 
 /* القائمة الجانبية فاتحة */
 .t-Body-nav, .t-TreeNav, .t-TreeNav .a-TreeView-node--topLevel { background-color: #ffffff !important; }
 .t-Body-nav { border-inline-end: 1px solid var(--nn-border); }
-.t-TreeNav .a-TreeView-label, .t-TreeNav .a-TreeView-content, .t-TreeNav .fa { color: #374151 !important; }
+.t-TreeNav .a-TreeView-label, .t-TreeNav .a-TreeView-content, .t-TreeNav .fa { color: #1f2937 !important; font-weight: 600; }
 .t-TreeNav .a-TreeView-row.is-selected, .t-TreeNav .a-TreeView-row.is-current,
 .t-TreeNav .a-TreeView-row.is-current--top, .t-TreeNav .a-TreeView-row.is-hover { background-color: var(--nn-primary-50) !important; }
 
-/* ترويسات الجداول في منتصف العمود: Classic Report / Interactive Report / Interactive Grid */
-.t-Report-colHead, .t-Report-report th, .a-IRR-header, .a-IRR-headerLink, .a-IRR-headerLabel,
-.a-GV-header, .a-GV-headerLabel, .nn-table th { text-align: center !important; justify-content: center; }
-.t-Report-colHead, .a-IRR-header, .a-GV-header { background-color: #f8fafc; font-weight: 600; }
+/* ترويسات الجداول في منتصف العمود (تتجاوز محاذاة الأعمدة المضبوطة في الصفحة)
+   Classic Report: th.t-Report-colHead | Interactive Report: flex داخل الرأس | Interactive Grid: th.a-GV-header */
+.t-Report-colHead, .t-Report-report th, .nn-table th, .a-GV-header, .a-GV-headerGroup { text-align: center !important; }
+.t-Report-colHead a, .t-Report-colHead .t-Report-sortHeading { display: block; text-align: center !important; }
+.a-IRR-headerLabel, .a-IRR-headerLink { justify-content: center !important; text-align: center !important; }
+.t-Report-colHead, .a-IRR-header, .a-GV-header { color: var(--nn-head-text); font-weight: 700; }
+.t-Report-colHead, .a-IRR-header { background-color: #f0f6fd !important; }
 
-/* المناطق */
-.t-Region { border-radius: var(--nn-radius); border-color: var(--nn-border); box-shadow: var(--nn-shadow); }
-.t-Region-title { font-weight: 700; }
+/* المناطق: رأس أزرق فاتح بخط أوضح */
+.t-Region { border-radius: var(--nn-radius); border-color: var(--nn-border); box-shadow: var(--nn-shadow); overflow: hidden; }
+.t-Region-header { background-color: var(--nn-head-bg) !important; border-bottom: 1px solid var(--nn-head-border) !important; }
+.t-Region-title { font-weight: 700; color: var(--nn-head-text) !important; }
+.t-Region--noUI > .t-Region-header, .t-Region--removeHeader > .t-Region-header { display: none; }
 
 /* ------------------------------------------------------------------ مكونات NOONA */
 .nn-hello { margin-bottom: 14px; }

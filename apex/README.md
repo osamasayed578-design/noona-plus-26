@@ -114,6 +114,9 @@ Schemes) والقوائم المشتركة (LOVs) وقوالب الثيم. أي 
 - شاشات الإدخال والقوائم الكبيرة: مكونات APEX الجاهزة (Form / Interactive Report / Interactive Grid).
 - `apex/shared/static/noona.css` + خط **Cairo** محلي (`cairo-arabic.woff2`, `cairo-latin.woff2`) كملفات ثابتة في كل تطبيق،
   ويُربط في User Interface ← CSS File URLs: `#APP_FILES#noona.css`.
-- ألوان فاتحة قياسية: أساسي `#2563eb`، نجاح `#16a34a`، تنبيه `#d97706`، خطر `#dc2626`، معلومات `#0284c7`، خلفية `#f5f7fb`.
+- ألوان قريبة من Windows 11: لون التمييز `#0067c0`، رؤوس المناطق أزرق فاتح `#e5f1fb` بعنوان `#0b3b6e`، نجاح `#107c10`، تنبيه `#b45309`، خطر `#c42b1c`، خلفية `#f3f6fa`.
+- خط أوضح: 15px بوزن 500 ولون نص `#111827`؛ العناوين 700.
+- رقم إصدار الملفات الثابتة (`p_files_version`) يُحسب من محتوى CSS والخطوط فيُحدَّث المتصفح تلقائياً بعد كل تعديل.
+- صور: `docs/design/portal_home.png` و `docs/design/style_report_headers.png`.
 - ترويسات كل الجداول (Classic / Interactive Report / Interactive Grid) في منتصف العمود.
 - القياس على APEX 24.2: تحميل الرئيسية كاملة ~120ms بعد أول زيارة، زمن استجابة الخادم ~100ms.

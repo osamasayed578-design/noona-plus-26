@@ -408,5 +408,10 @@ for k,(fname,mime) in enumerate([('noona.css','text/css'),('cairo-arabic.woff2',
 p='install.sql'; s2=open(p).read()
 old="@@application/shared_components/files/icons_app_icon_512_png.sql\n"
 s2=s2.replace(old, old+''.join(f'@@application/{x}.sql\n' for x in files)); open(p,'w').write(s2)
+# رقم إصدار الملفات الثابتة يتغير مع محتواها (يكسر ذاكرة المتصفح بعد كل تعديل للتصميم)
+import zlib
+_ver = 1 + zlib.crc32(b''.join(open(STATIC+f,'rb').read() for f in ('noona.css','cairo-arabic.woff2','cairo-latin.woff2'))) % 900000
+_ca = open(A+'create_application.sql',encoding='utf-8').read()
+open(A+'create_application.sql','w',encoding='utf-8').write(re.sub(r",p_files_version=>\d+", f",p_files_version=>{_ver}", _ca))
 edit(A+'user_interfaces.sql', ",p_nav_bar_template_options=>'#DEFAULT#'", ",p_nav_bar_template_options=>'#DEFAULT#'\n,p_css_file_urls=>'#APP_FILES#noona.css'")
 print('ui done')
