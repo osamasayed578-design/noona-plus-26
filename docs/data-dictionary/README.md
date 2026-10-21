@@ -52,5 +52,5 @@
 | 29 | النشر الإنتاجي والإصدارات | Deployment & Release Management | `NOONA_DEPLOYMENT_PKG` | 6 | [p29_dep](p29_dep.md) |
 | 30 | التشغيل والدعم والتطوير المستمر | Operations, Support & Continuous Improvement | `NOONA_OPERATIONS_PKG` | 12 | [p30_ops](p30_ops.md) |
 
-**الإجمالي:** 568 جدول · 9722 عمود.
+**الإجمالي:** 568 جدول · 9723 عمود.
 

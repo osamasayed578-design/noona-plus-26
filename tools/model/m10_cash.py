@@ -29,8 +29,8 @@ REPLENISH_LEVEL AMT              | حد إعادة التعزيز
 ''', area='account')
 
 table('CSH_TRANSACTION', 'حركات النقدية والبنوك', 'Cash & Bank Transactions', scope='C', mix='pub branch doc src cur wf posted status',
-      status='DRAFT APPROVED SUBMITTED_TO_BANK SETTLED FAILED REVERSED CANCELLED', cols='''
-TXN_TYPE        CODE NN IN:RECEIPT,PAYMENT,TRANSFER_OUT,TRANSFER_IN,BANK_CHARGE,INTEREST,FX_ADJUSTMENT,ADJUSTMENT,REPLENISHMENT | النوع
+      status='DRAFT SUBMITTED APPROVED SUBMITTED_TO_BANK SETTLED FAILED REVERSED CANCELLED', cols='''
+TXN_TYPE        CODE NN IN:RECEIPT,PAYMENT,EXPENSE,TRANSFER_OUT,TRANSFER_IN,BANK_CHARGE,INTEREST,FX_ADJUSTMENT,ADJUSTMENT,REPLENISHMENT | النوع
 CHANNEL         CODE NN IN:CASH,BANK_TRANSFER,CHEQUE,CARD,WALLET,GATEWAY,DIRECT_DEBIT | القناة
 BANK_ACCOUNT_ID ID   >CSH_BANK_ACCOUNT | الحساب البنكي
 CASH_BOX_ID     ID   >CSH_CASH_BOX | الصندوق
@@ -40,6 +40,7 @@ AMOUNT          AMT  NN          | المبلغ
 AMOUNT_FUNC     AMT              | الوظيفي
 VALUE_DATE      DATE             | تاريخ القيمة
 EXTERNAL_REFERENCE V200          | المرجع البنكي
+DESCRIPTION     V1000            | بيان السند
 TRANSFER_ID     ID   >CSH_TRANSFER | التحويل الداخلي
 CHEQUE_ID       ID   >CSH_CHEQUE | الشيك
 IS_RECONCILED   YN   NN D='N'    | مسوى بنكياً

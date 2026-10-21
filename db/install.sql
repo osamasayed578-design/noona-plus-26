@@ -50,10 +50,13 @@ PROMPT ========== 4/7 Core PL/SQL services
 @@plsql/90_noona_refdata_pkg.sql
 @@plsql/91_noona_platform_admin_pkg.sql
 @@plsql/100_noona_gl_pkg.sql
+@@plsql/101_noona_ace_pkg.sql
+@@plsql/102_noona_csh_pkg.sql
 
 PROMPT ========== 5/7 Seed: registry & reference data
 @@seed/01_registry_seed.sql
 @@seed/02_reference_data.sql
+@@seed/03_banks.sql
 
 PROMPT ========== 6/7 Row-Level Security (VPD)
 @@security/20_noona_vpd_pkg.sql
