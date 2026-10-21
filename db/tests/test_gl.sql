@@ -50,6 +50,9 @@ BEGIN
   l_led := NOONA_GL_PKG.quick_setup;
   l_led2 := NOONA_GL_PKG.quick_setup;
   ok('quick setup creates ledger (idempotent)', l_led IS NOT NULL AND l_led = l_led2);
+  -- قاعدة مركز التكلفة قد تكون إلزامية من بيانات سابقة؛ الاختبار يستخدم 5202 دون مركز
+  SELECT a.id INTO l_n FROM gl_account a JOIN gl_ledger g ON g.coa_id = a.coa_id WHERE g.id = l_led AND a.account_code = '5202';
+  NOONA_GL_PKG.set_cc_rule(l_n, 'OPTIONAL');
   SELECT COUNT(*) INTO l_n FROM gl_account a JOIN gl_ledger g ON g.coa_id = a.coa_id WHERE g.id = l_led AND a.is_postable = 'Y';
   ok('standard chart loaded', l_n >= 40, l_n);
   l_n := NOONA_PLATFORM_PKG.run_activation_checks(TO_NUMBER(SYS_CONTEXT('NOONA_CTX', 'COMPANY_ID')));

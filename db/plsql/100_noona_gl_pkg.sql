@@ -26,6 +26,15 @@ CREATE OR REPLACE PACKAGE NOONA_GL_PKG AUTHID DEFINER AS
   FUNCTION period_for(p_date DATE) RETURN NUMBER;
   FUNCTION fy_start(p_date DATE) RETURN DATE;
 
+  -- ---------------------------------------------------------- إقفال السنة المالية
+  -- قيد إقفال الإيرادات والمصروفات في حساب الأرباح المبقاة (حساب الأرباح والخسائر المرحلة) بتاريخ نهاية السنة،
+  -- ثم تقفل فترات السنة والسنة نفسها؛ يعيد رقم قيد الإقفال
+  FUNCTION close_year(p_fiscal_year_id IN NUMBER) RETURN NUMBER;
+  -- إعادة فتح سنة مقفلة: عكس قيد الإقفال وفتح السنة وفترتها الأخيرة (مسؤول المؤسسة)
+  PROCEDURE reopen_year(p_fiscal_year_id IN NUMBER, p_reason IN VARCHAR2);
+  -- تذييل التقارير: أساس الاحتساب ونطاقه ووقت الاستخراج والمستخدم
+  FUNCTION report_footer(p_basis IN VARCHAR2 DEFAULT NULL) RETURN VARCHAR2;
+
   -- ---------------------------------------------------------- مراكز التكلفة
   FUNCTION create_cost_center(p_code IN VARCHAR2, p_name_ar IN VARCHAR2, p_type IN VARCHAR2 DEFAULT 'COST',
                               p_parent_code IN VARCHAR2 DEFAULT NULL) RETURN NUMBER;
@@ -64,9 +73,13 @@ CREATE OR REPLACE PACKAGE NOONA_GL_PKG AUTHID DEFINER AS
   FUNCTION gl_summary(p_session IN VARCHAR2) RETURN CLOB;
   FUNCTION journal_header(p_journal_id IN NUMBER) RETURN CLOB;
   FUNCTION cost_centers_json RETURN CLOB;
+  -- p_basis: POSTED (المرحلة فقط) / ALL (يشمل المرسلة والمعتمدة غير المرحلة)
+  -- p_link: رابط التفصيل؛ #ID# يستبدل برقم الحساب (ميزان المراجعة) أو القيد (كشف الحساب)
   FUNCTION trial_balance(p_from IN DATE, p_to IN DATE, p_show_zero IN VARCHAR2 DEFAULT 'N',
-                         p_cost_center_id IN NUMBER DEFAULT NULL) RETURN CLOB;
-  FUNCTION account_statement(p_account_id IN NUMBER, p_from IN DATE, p_to IN DATE, p_cost_center_id IN NUMBER DEFAULT NULL) RETURN CLOB;
+                         p_cost_center_id IN NUMBER DEFAULT NULL, p_basis IN VARCHAR2 DEFAULT 'POSTED',
+                         p_link IN VARCHAR2 DEFAULT NULL) RETURN CLOB;
+  FUNCTION account_statement(p_account_id IN NUMBER, p_from IN DATE, p_to IN DATE, p_cost_center_id IN NUMBER DEFAULT NULL,
+                             p_link IN VARCHAR2 DEFAULT NULL) RETURN CLOB;
   -- قائمة الدخل (اختيارياً لمركز تكلفة) والميزانية العمومية
   FUNCTION income_statement(p_from IN DATE, p_to IN DATE, p_cost_center_id IN NUMBER DEFAULT NULL) RETURN CLOB;
   FUNCTION balance_sheet(p_as_of IN DATE) RETURN CLOB;
@@ -703,6 +716,117 @@ CREATE OR REPLACE PACKAGE BODY NOONA_GL_PKG AS
     RETURN l_id;
   END post_system;
 
+  -- ================================================================ إقفال السنة المالية
+  FUNCTION close_year(p_fiscal_year_id IN NUMBER) RETURN NUMBER IS
+    l_y    gl_fiscal_year%ROWTYPE;
+    l_led  gl_ledger%ROWTYPE;
+    l_src  NUMBER;
+    l_id   NUMBER;
+    l_n    NUMBER;
+    l_no   PLS_INTEGER := 0;
+    l_net  NUMBER := 0;
+    l_tot  NUMBER := 0;
+  BEGIN
+    guard('GL_FISCAL_YEAR.UPDATE');
+    BEGIN
+      SELECT * INTO l_y FROM gl_fiscal_year WHERE id = p_fiscal_year_id AND company_id = company FOR UPDATE;
+    EXCEPTION WHEN NO_DATA_FOUND THEN
+      NOONA_CORE_PKG.raise_error('NOONA-GL-110', 'السنة المالية غير موجودة', 'Fiscal year not found');
+    END;
+    NOONA_CORE_PKG.assert(l_y.status_code = 'OPEN', 'NOONA-GL-111', 'السنة المالية ليست مفتوحة', 'Fiscal year is not open');
+    SELECT * INTO l_led FROM gl_ledger WHERE id = primary_ledger;
+    NOONA_CORE_PKG.assert(l_led.retained_earnings_account_id IS NOT NULL, 'NOONA-GL-112',
+      'حدد حساب الأرباح المبقاة في الدفتر أولاً', 'Retained earnings account is not set');
+    SELECT COUNT(*) INTO l_n FROM gl_fiscal_year WHERE company_id = l_y.company_id AND end_date < l_y.start_date AND status_code = 'OPEN';
+    NOONA_CORE_PKG.assert(l_n = 0, 'NOONA-GL-113', 'أقفل السنوات السابقة أولاً بالترتيب', 'Close earlier years first');
+    SELECT COUNT(*) INTO l_n FROM gl_journal
+     WHERE ledger_id = l_led.id AND doc_date BETWEEN l_y.start_date AND l_y.end_date AND status_code IN ('DRAFT', 'SUBMITTED', 'APPROVED');
+    NOONA_CORE_PKG.assert(l_n = 0, 'NOONA-GL-114', 'توجد ' || l_n || ' قيود غير مرحلة في السنة؛ رحلها أو ألغها قبل الإقفال',
+                          'Unposted journals exist in the year');
+    SELECT COUNT(*) INTO l_n FROM csh_transaction
+     WHERE company_id = l_y.company_id AND doc_date BETWEEN l_y.start_date AND l_y.end_date AND status_code IN ('DRAFT', 'SUBMITTED');
+    NOONA_CORE_PKG.assert(l_n = 0, 'NOONA-GL-115', 'توجد ' || l_n || ' سندات غير معتمدة في السنة؛ اعتمدها أو ألغها قبل الإقفال',
+                          'Unapproved vouchers exist in the year');
+    SELECT id INTO l_src FROM gl_journal_source WHERE code = 'YEAR_END';
+    INSERT INTO gl_journal (company_id, branch_id, doc_no, doc_date, currency_code, exchange_rate, rate_date, ledger_id, period_id,
+                            posting_date, journal_source_id, journal_category, reference_no, description,
+                            is_opening, is_adjustment, status_code, approved_by)
+    VALUES (l_y.company_id, NULL, 'CLS-' || RAWTOHEX(SYS_GUID()), l_y.end_date, l_led.currency_code, 1, l_y.end_date, l_led.id,
+            period_for(l_y.end_date), l_y.end_date, l_src, 'CLOSING', l_y.code,
+            'إقفال الإيرادات والمصروفات للسنة المالية ' || l_y.name_ar || ' في الأرباح المبقاة', 'N', 'Y', 'APPROVED',
+            NOONA_CTX_PKG.current_user_name)
+    RETURNING id INTO l_id;
+    -- عكس رصيد كل حساب أرباح وخسائر (لكل مركز تكلفة) حتى يصبح صفراً في نهاية السنة
+    FOR r IN (SELECT l.account_id, a.account_code, l.cost_center_id, SUM(l.debit_func - l.credit_func) net
+                FROM gl_journal_line l JOIN gl_journal j ON j.id = l.journal_id JOIN gl_account a ON a.id = l.account_id
+               WHERE j.ledger_id = l_led.id AND j.status_code IN ('POSTED', 'REVERSED')
+                 AND j.doc_date BETWEEN l_y.start_date AND l_y.end_date AND a.account_type IN ('REVENUE', 'EXPENSE')
+               GROUP BY l.account_id, a.account_code, l.cost_center_id
+              HAVING SUM(l.debit_func - l.credit_func) <> 0
+               ORDER BY a.account_code, l.cost_center_id) LOOP
+      l_no := l_no + 1;
+      INSERT INTO gl_journal_line (company_id, journal_id, line_no, account_id, account_code_snapshot, debit_amount, credit_amount,
+                                   currency_code, exchange_rate, debit_func, credit_func, cost_center_id, description)
+      VALUES (l_y.company_id, l_id, l_no, r.account_id, r.account_code, GREATEST(-r.net, 0), GREATEST(r.net, 0), l_led.currency_code,
+              1, GREATEST(-r.net, 0), GREATEST(r.net, 0), r.cost_center_id, 'إقفال');
+      l_net := l_net + r.net;
+      l_tot := l_tot + ABS(r.net);
+    END LOOP;
+    IF l_no = 0 THEN
+      DELETE FROM gl_journal WHERE id = l_id;
+      l_id := NULL;
+    ELSE
+      l_no := l_no + 1;
+      -- صافي الربح دائن في الأرباح المبقاة، والخسارة مدينة
+      INSERT INTO gl_journal_line (company_id, journal_id, line_no, account_id, account_code_snapshot, debit_amount, credit_amount,
+                                   currency_code, exchange_rate, debit_func, credit_func, description)
+      SELECT l_y.company_id, l_id, l_no, a.id, a.account_code, GREATEST(l_net, 0), GREATEST(-l_net, 0), l_led.currency_code, 1,
+             GREATEST(l_net, 0), GREATEST(-l_net, 0), CASE WHEN l_net <= 0 THEN 'صافي ربح السنة' ELSE 'صافي خسارة السنة' END
+        FROM gl_account a WHERE a.id = l_led.retained_earnings_account_id;
+      UPDATE gl_journal SET total_debit_func = (SELECT SUM(debit_func) FROM gl_journal_line WHERE journal_id = l_id),
+                            total_credit_func = (SELECT SUM(credit_func) FROM gl_journal_line WHERE journal_id = l_id)
+       WHERE id = l_id;
+      do_post(l_id);
+    END IF;
+    UPDATE gl_period_status
+       SET status_code = 'HARD_CLOSED', closed_by = NOONA_CTX_PKG.current_user_name, closed_at = SYSTIMESTAMP
+     WHERE ledger_id = l_led.id AND module_code = 'GL'
+       AND period_id IN (SELECT id FROM gl_period WHERE fiscal_year_id = l_y.id);
+    UPDATE gl_fiscal_year SET status_code = 'CLOSED' WHERE id = l_y.id;
+    NOONA_AUDIT_PKG.log_event('POSTING', 'GL_FISCAL_YEAR', l_y.id, 'YEAR_CLOSE', 'SUCCESS',
+      p_new_values => '{"journal_id":' || NVL(TO_CHAR(l_id), 'null') || ',"net_result":' || TO_CHAR(-l_net) || '}');
+    RETURN l_id;
+  END close_year;
+
+  PROCEDURE reopen_year(p_fiscal_year_id IN NUMBER, p_reason IN VARCHAR2) IS
+    l_y   gl_fiscal_year%ROWTYPE;
+    l_led NUMBER := primary_ledger;
+    l_n   NUMBER;
+    l_j   NUMBER;
+    l_rev NUMBER;
+  BEGIN
+    guard('GL_FISCAL_YEAR.UPDATE');
+    NOONA_CORE_PKG.assert(NOONA_APEX_PKG.is_tenant_admin = 'Y', 'NOONA-GL-116', 'إعادة فتح سنة مقفلة تتطلب مسؤول المؤسسة',
+                          'Reopening a closed year requires a tenant admin');
+    NOONA_CORE_PKG.assert(p_reason IS NOT NULL, 'NOONA-GL-081', 'السبب إلزامي', 'Reason is required');
+    SELECT * INTO l_y FROM gl_fiscal_year WHERE id = p_fiscal_year_id AND company_id = company FOR UPDATE;
+    NOONA_CORE_PKG.assert(l_y.status_code = 'CLOSED', 'NOONA-GL-117', 'السنة ليست مقفلة (أو مقفلة نهائياً)', 'Year is not closed');
+    SELECT COUNT(*) INTO l_n FROM gl_fiscal_year WHERE company_id = l_y.company_id AND start_date > l_y.end_date
+       AND status_code IN ('CLOSED', 'PERMANENTLY_CLOSED');
+    NOONA_CORE_PKG.assert(l_n = 0, 'NOONA-GL-118', 'أعد فتح السنوات اللاحقة أولاً', 'Reopen later years first');
+    UPDATE gl_fiscal_year SET status_code = 'OPEN' WHERE id = l_y.id;
+    UPDATE gl_period_status SET status_code = 'OPEN', closed_by = NULL, closed_at = NULL
+     WHERE ledger_id = l_led AND module_code = 'GL' AND period_id IN (SELECT id FROM gl_period WHERE fiscal_year_id = l_y.id);
+    SELECT MAX(id) INTO l_j FROM gl_journal
+     WHERE ledger_id = l_led AND journal_category = 'CLOSING' AND status_code = 'POSTED' AND reversal_of_id IS NULL
+       AND doc_date = l_y.end_date;
+    IF l_j IS NOT NULL THEN
+      l_rev := do_reverse(l_j, l_y.end_date, p_reason);
+      UPDATE gl_journal SET journal_category = 'CLOSING' WHERE id = l_rev;     -- لا يظهر في قائمة الدخل
+    END IF;
+    NOONA_AUDIT_PKG.log_event('POSTING', 'GL_FISCAL_YEAR', l_y.id, 'YEAR_REOPEN', 'SUCCESS', p_reason => p_reason);
+  END reopen_year;
+
   -- ================================================================ الواجهة
   FUNCTION lines_json(p_journal_id IN NUMBER) RETURN CLOB IS
     l_out CLOB;
@@ -788,6 +912,23 @@ CREATE OR REPLACE PACKAGE BODY NOONA_GL_PKG AS
   END journal_header;
 
   -- ================================================================ التقارير
+  FUNCTION drill(p_link VARCHAR2, p_id NUMBER, p_text VARCHAR2) RETURN VARCHAR2 IS
+  BEGIN
+    RETURN CASE WHEN p_link IS NULL OR p_id IS NULL THEN esc(p_text)
+                ELSE '<a class="nn-drill" href="' || esc(REPLACE(p_link, '#ID#', p_id)) || '">' || esc(p_text) || '</a>' END;
+  END drill;
+
+  FUNCTION report_footer(p_basis IN VARCHAR2 DEFAULT NULL) RETURN VARCHAR2 IS
+    l_cur VARCHAR2(3);
+  BEGIN
+    SELECT MAX(currency_code) INTO l_cur FROM gl_ledger WHERE id = primary_ledger;
+    RETURN '<div class="nn-rpt-foot"><span><b>أساس الاحتساب:</b> '
+        || esc(NVL(p_basis, 'القيود المرحلة بتاريخ القيد؛ القيد المعكوس يظهر مع قيد عكسه'))
+        || '</span><span><b>النطاق:</b> ' || esc(NOONA_APEX_PKG.company_name) || ' - الدفتر الرئيسي - ' || esc(l_cur)
+        || ' (العملة الوظيفية)</span><span><b>استخرج:</b> ' || TO_CHAR(SYSTIMESTAMP, 'YYYY-MM-DD HH24:MI')
+        || ' - ' || esc(NOONA_CTX_PKG.current_user_name) || '</span></div>';
+  END report_footer;
+
   FUNCTION cc_title(p_cc NUMBER) RETURN VARCHAR2 IS
     l VARCHAR2(300);
   BEGIN
@@ -803,8 +944,11 @@ CREATE OR REPLACE PACKAGE BODY NOONA_GL_PKG AS
   END fy_start;
 
   FUNCTION trial_balance(p_from IN DATE, p_to IN DATE, p_show_zero IN VARCHAR2 DEFAULT 'N',
-                         p_cost_center_id IN NUMBER DEFAULT NULL) RETURN CLOB IS
+                         p_cost_center_id IN NUMBER DEFAULT NULL, p_basis IN VARCHAR2 DEFAULT 'POSTED',
+                         p_link IN VARCHAR2 DEFAULT NULL) RETURN CLOB IS
     l_led  NUMBER := primary_ledger;
+    l_all  VARCHAR2(1) := CASE WHEN p_basis = 'ALL' THEN 'Y' ELSE 'N' END;
+    l_prior NUMBER;
     l_fy   DATE := fy_start(p_from);
     l_html CLOB;
     l_t    NUMBER := 0;
@@ -813,7 +957,7 @@ CREATE OR REPLACE PACKAGE BODY NOONA_GL_PKG AS
   BEGIN
     NOONA_SECURITY_PKG.assert_permission('GL_BALANCE.VIEW', company);
     l_html := NOONA_BRAND_PKG.report_header('ميزان المراجعة من ' || TO_CHAR(p_from, 'YYYY-MM-DD') || ' إلى ' || TO_CHAR(p_to, 'YYYY-MM-DD')
-                                            || cc_title(p_cost_center_id))
+                                            || cc_title(p_cost_center_id) || CASE WHEN l_all = 'Y' THEN ' (شامل غير المرحل)' END)
            || '<table class="nn-rpt"><thead><tr><th rowspan="2">الحساب</th><th rowspan="2">اسم الحساب</th>'
            || '<th colspan="2">الرصيد الافتتاحي</th><th colspan="2">حركة الفترة</th><th colspan="2">الرصيد الختامي</th></tr>'
            || '<tr><th>مدين</th><th>دائن</th><th>مدين</th><th>دائن</th><th>مدين</th><th>دائن</th></tr></thead><tbody>';
@@ -826,10 +970,11 @@ CREATE OR REPLACE PACKAGE BODY NOONA_GL_PKG AS
                SUM(CASE WHEN j.doc_date BETWEEN p_from AND p_to THEN l.debit_func END) AS pdr,
                SUM(CASE WHEN j.doc_date BETWEEN p_from AND p_to THEN l.credit_func END) AS pcr
           FROM gl_journal_line l JOIN gl_journal j ON j.id = l.journal_id JOIN gl_account a ON a.id = l.account_id
-         WHERE j.ledger_id = l_led AND j.status_code IN ('POSTED', 'REVERSED') AND j.doc_date <= p_to
+         WHERE j.ledger_id = l_led AND j.doc_date <= p_to
+           AND (j.status_code IN ('POSTED', 'REVERSED') OR (l_all = 'Y' AND j.status_code IN ('SUBMITTED', 'APPROVED')))
            AND (p_cost_center_id IS NULL OR l.cost_center_id = p_cost_center_id)
          GROUP BY l.account_id)
-      SELECT a.account_code, a.name_ar, a.account_type, NVL(m.opening, 0) opening, NVL(m.pdr, 0) pdr, NVL(m.pcr, 0) pcr
+      SELECT a.id, a.account_code, a.name_ar, a.account_type, NVL(m.opening, 0) opening, NVL(m.pdr, 0) pdr, NVL(m.pcr, 0) pcr
         FROM gl_account a JOIN gl_ledger g ON g.coa_id = a.coa_id AND g.id = l_led
         LEFT JOIN mv m ON m.account_id = a.id
        WHERE a.is_postable = 'Y'
@@ -842,7 +987,7 @@ CREATE OR REPLACE PACKAGE BODY NOONA_GL_PKG AS
                   WHEN 'EXPENSE' THEN 'التكاليف والمصروفات' ELSE r.account_type END) || '</td></tr>';
       END IF;
       l_t := r.opening + r.pdr - r.pcr;
-      l_html := l_html || '<tr><td class="nn-num-code">' || esc(r.account_code) || '</td><td>' || esc(r.name_ar) || '</td>'
+      l_html := l_html || '<tr><td class="nn-num-code">' || drill(p_link, r.id, r.account_code) || '</td><td>' || esc(r.name_ar) || '</td>'
              || '<td>' || fmt(GREATEST(r.opening, 0)) || '</td><td>' || fmt(GREATEST(-r.opening, 0)) || '</td>'
              || '<td>' || fmt(r.pdr) || '</td><td>' || fmt(r.pcr) || '</td>'
              || '<td>' || fmt(GREATEST(l_t, 0)) || '</td><td>' || fmt(GREATEST(-l_t, 0)) || '</td></tr>';
@@ -850,16 +995,31 @@ CREATE OR REPLACE PACKAGE BODY NOONA_GL_PKG AS
       t_pdr := t_pdr + r.pdr; t_pcr := t_pcr + r.pcr;
       t_cdr := t_cdr + GREATEST(l_t, 0); t_ccr := t_ccr + GREATEST(-l_t, 0);
     END LOOP;
+    -- نتيجة سنوات سابقة لم تقفل بعد في الأرباح المبقاة: تظهر في حقوق الملكية ليتوازن الافتتاحي
+    SELECT NVL(SUM(l.debit_func - l.credit_func), 0) INTO l_prior
+      FROM gl_journal_line l JOIN gl_journal j ON j.id = l.journal_id JOIN gl_account a ON a.id = l.account_id
+     WHERE j.ledger_id = l_led AND j.doc_date < l_fy AND a.account_type IN ('REVENUE', 'EXPENSE')
+       AND (j.status_code IN ('POSTED', 'REVERSED') OR (l_all = 'Y' AND j.status_code IN ('SUBMITTED', 'APPROVED')))
+       AND (p_cost_center_id IS NULL OR l.cost_center_id = p_cost_center_id);
+    IF l_prior <> 0 THEN
+      l_html := l_html || '<tr class="nn-rpt-head2"><td></td><td>نتيجة سنوات سابقة غير مقفلة (تقفل في الأرباح المبقاة)</td><td>'
+             || fmt(GREATEST(l_prior, 0)) || '</td><td>' || fmt(GREATEST(-l_prior, 0)) || '</td><td></td><td></td><td>'
+             || fmt(GREATEST(l_prior, 0)) || '</td><td>' || fmt(GREATEST(-l_prior, 0)) || '</td></tr>';
+      t_odr := t_odr + GREATEST(l_prior, 0); t_ocr := t_ocr + GREATEST(-l_prior, 0);
+      t_cdr := t_cdr + GREATEST(l_prior, 0); t_ccr := t_ccr + GREATEST(-l_prior, 0);
+    END IF;
     l_html := l_html || '</tbody><tfoot><tr><td colspan="2">الإجمالي</td><td>' || fmt0(t_odr) || '</td><td>' || fmt0(t_ocr)
            || '</td><td>' || fmt0(t_pdr) || '</td><td>' || fmt0(t_pcr) || '</td><td>' || fmt0(t_cdr) || '</td><td>' || fmt0(t_ccr)
            || '</td></tr></tfoot></table>'
            || CASE WHEN t_cdr = t_ccr THEN '<div class="nn-chain is-ok nn-rpt-check"><span class="fa fa-check-circle" aria-hidden="true"></span><div><b>الميزان متوازن</b></div></div>'
                    ELSE '<div class="nn-chain is-bad nn-rpt-check"><span class="fa fa-exclamation-triangle" aria-hidden="true"></span><div><b>الميزان غير متوازن: الفرق '
-                        || fmt0(t_cdr - t_ccr) || '</b></div></div>' END;
+                        || fmt0(t_cdr - t_ccr) || '</b></div></div>' END
+           || report_footer(CASE WHEN l_all = 'Y' THEN 'القيود المرحلة والمرسلة والمعتمدة غير المرحلة' END);
     RETURN l_html;
   END trial_balance;
 
-  FUNCTION account_statement(p_account_id IN NUMBER, p_from IN DATE, p_to IN DATE, p_cost_center_id IN NUMBER DEFAULT NULL) RETURN CLOB IS
+  FUNCTION account_statement(p_account_id IN NUMBER, p_from IN DATE, p_to IN DATE, p_cost_center_id IN NUMBER DEFAULT NULL,
+                             p_link IN VARCHAR2 DEFAULT NULL) RETURN CLOB IS
     l_acc  gl_account%ROWTYPE;
     l_led  NUMBER := primary_ledger;
     l_open NUMBER;
@@ -885,17 +1045,17 @@ CREATE OR REPLACE PACKAGE BODY NOONA_GL_PKG AS
            || '<table class="nn-rpt"><thead><tr><th>التاريخ</th><th>رقم القيد</th><th>البيان</th><th>مدين</th><th>دائن</th>'
            || '<th>الرصيد</th></tr></thead><tbody><tr class="nn-rpt-group"><td colspan="5">رصيد أول المدة</td><td>'
            || fmt0(l_open * l_sign) || '</td></tr>';
-    FOR r IN (SELECT j.doc_date, j.doc_no, NVL(l.description, j.description) AS txt, l.debit_func, l.credit_func
+    FOR r IN (SELECT j.id, j.doc_date, j.doc_no, NVL(l.description, j.description) AS txt, l.debit_func, l.credit_func
                 FROM gl_journal_line l JOIN gl_journal j ON j.id = l.journal_id
                WHERE l.account_id = p_account_id AND j.ledger_id = l_led AND j.status_code IN ('POSTED', 'REVERSED')
                  AND j.doc_date BETWEEN p_from AND p_to AND (p_cost_center_id IS NULL OR l.cost_center_id = p_cost_center_id)
                ORDER BY j.doc_date, j.posted_at, j.id, l.line_no) LOOP
       l_bal := l_bal + r.debit_func - r.credit_func;
-      l_html := l_html || '<tr><td>' || TO_CHAR(r.doc_date, 'YYYY-MM-DD') || '</td><td>' || esc(r.doc_no) || '</td><td class="nn-rpt-text">'
+      l_html := l_html || '<tr><td>' || TO_CHAR(r.doc_date, 'YYYY-MM-DD') || '</td><td>' || drill(p_link, r.id, r.doc_no) || '</td><td class="nn-rpt-text">'
              || esc(r.txt) || '</td><td>' || fmt(r.debit_func) || '</td><td>' || fmt(r.credit_func) || '</td><td>' || fmt0(l_bal * l_sign) || '</td></tr>';
     END LOOP;
     RETURN l_html || '</tbody><tfoot><tr><td colspan="5">الرصيد الختامي (' || CASE l_acc.normal_balance WHEN 'DEBIT' THEN 'مدين' ELSE 'دائن' END
-        || ' بطبيعته)</td><td>' || fmt0(l_bal * l_sign) || '</td></tr></tfoot></table>';
+        || ' بطبيعته)</td><td>' || fmt0(l_bal * l_sign) || '</td></tr></tfoot></table>' || report_footer;
   END account_statement;
 
   FUNCTION cost_centers_json RETURN CLOB IS
@@ -937,6 +1097,7 @@ CREATE OR REPLACE PACKAGE BODY NOONA_GL_PKG AS
         SELECT l.account_id, SUM(l.debit_func - l.credit_func) net
           FROM gl_journal_line l JOIN gl_journal j ON j.id = l.journal_id
          WHERE j.ledger_id = l_led AND j.status_code IN ('POSTED', 'REVERSED') AND j.doc_date BETWEEN p_from AND p_to
+           AND NVL(j.journal_category, '-') <> 'CLOSING'
            AND (p_cost_center_id IS NULL OR l.cost_center_id = p_cost_center_id)
          GROUP BY l.account_id)
       SELECT t.account_code, t.name_ar, t.account_type,
@@ -971,7 +1132,8 @@ CREATE OR REPLACE PACKAGE BODY NOONA_GL_PKG AS
     END IF;
     l_html := l_html || '<tr class="nn-rpt-total"><td colspan="2">إجمالي التكاليف والمصروفات</td><td>' || fmt0(l_exp) || '</td></tr>'
            || '</tbody><tfoot><tr><td colspan="2">' || CASE WHEN l_rev - l_exp >= 0 THEN 'صافي الربح' ELSE 'صافي الخسارة' END
-           || '</td><td>' || fmt0(ABS(l_rev - l_exp)) || '</td></tr></tfoot></table>';
+           || '</td><td>' || fmt0(ABS(l_rev - l_exp)) || '</td></tr></tfoot></table>'
+           || report_footer('القيود المرحلة بتاريخ القيد دون قيود إقفال السنة');
     RETURN l_html;
   END income_statement;
 
@@ -1045,7 +1207,7 @@ CREATE OR REPLACE PACKAGE BODY NOONA_GL_PKG AS
                    THEN '<div class="nn-chain is-ok nn-rpt-check"><span class="fa fa-check-circle" aria-hidden="true"></span><div><b>الميزانية متوازنة: الأصول = الخصوم + حقوق الملكية = '
                         || fmt0(l_asst) || '</b></div></div>'
                    ELSE '<div class="nn-chain is-bad nn-rpt-check"><span class="fa fa-exclamation-triangle" aria-hidden="true"></span><div><b>الميزانية غير متوازنة: الفرق '
-                        || fmt0(l_asst - l_le) || '</b></div></div>' END;
+                        || fmt0(l_asst - l_le) || '</b></div></div>' END || report_footer;
     RETURN l_html;
   END balance_sheet;
 
@@ -1084,7 +1246,7 @@ CREATE OR REPLACE PACKAGE BODY NOONA_GL_PKG AS
                      SUM(l.debit_func - l.credit_func) net
                 FROM gl_journal_line l JOIN gl_journal j ON j.id = l.journal_id JOIN gl_account a ON a.id = l.account_id
                WHERE j.ledger_id = l_led AND j.status_code IN ('POSTED', 'REVERSED') AND j.doc_date BETWEEN p_from AND p_to
-                 AND a.account_type = p_type
+                 AND a.account_type = p_type AND NVL(j.journal_category, '-') <> 'CLOSING'
                GROUP BY a.account_code, CASE WHEN p_by = 'MONTH' THEN TO_CHAR(j.doc_date, 'YYYY-MM') ELSE TO_CHAR(NVL(l.cost_center_id, 0)) END) LOOP
       l_amt(r.account_code || '|' || r.k) := r.net * l_sign;
     END LOOP;
@@ -1124,7 +1286,8 @@ CREATE OR REPLACE PACKAGE BODY NOONA_GL_PKG AS
     FOR i IN 1 .. l_n LOOP
       l_html := l_html || '<td>' || fmt0(CASE WHEN l_coltot.EXISTS(l_keys(i)) THEN l_coltot(l_keys(i)) ELSE 0 END) || '</td>';
     END LOOP;
-    RETURN l_html || '<td>' || fmt0(l_grand) || '</td><td>100%</td></tr></tfoot></table></div>';
+    RETURN l_html || '<td>' || fmt0(l_grand) || '</td><td>100%</td></tr></tfoot></table></div>'
+        || report_footer('القيود المرحلة بتاريخ القيد دون قيود إقفال السنة');
   END analysis;
 
 END NOONA_GL_PKG;
