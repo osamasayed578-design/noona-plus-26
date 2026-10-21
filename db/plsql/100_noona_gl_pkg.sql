@@ -719,7 +719,8 @@ CREATE OR REPLACE PACKAGE BODY NOONA_GL_PKG AS
     l_out CLOB;
     l_led NUMBER := primary_ledger;
   BEGIN
-    SELECT JSON_ARRAYAGG(JSON_OBJECT('a' VALUE a.account_code, 'n' VALUE a.name_ar) ORDER BY a.account_code RETURNING CLOB)
+    SELECT JSON_ARRAYAGG(JSON_OBJECT('a' VALUE a.account_code, 'n' VALUE a.name_ar, 'r' VALUE NVL(cc_rule(a.id), 'OPTIONAL'))
+                         ORDER BY a.account_code RETURNING CLOB)
       INTO l_out
       FROM gl_account a JOIN gl_ledger l ON l.coa_id = a.coa_id
      WHERE l.id = l_led AND a.is_postable = 'Y' AND a.status_code = 'ACTIVE' AND a.allow_manual_posting = 'Y';

@@ -569,6 +569,8 @@ CREATE OR REPLACE PACKAGE BODY NOONA_UI_PKG AS
   BEGIN
     RETURN CASE p_code
       WHEN 'Y' THEN 'نعم' WHEN 'N' THEN 'لا'
+      WHEN 'CASH' THEN 'نقداً' WHEN 'BANK_TRANSFER' THEN 'تحويل بنكي' WHEN 'CHEQUE' THEN 'شيك' WHEN 'CARD' THEN 'بطاقة'
+      WHEN 'WALLET' THEN 'محفظة إلكترونية' WHEN 'GATEWAY' THEN 'بوابة دفع' WHEN 'DIRECT_DEBIT' THEN 'خصم مباشر'
       WHEN 'LEGAL_REGISTRATION' THEN 'التسجيلات القانونية' WHEN 'FUNCTIONAL_CURRENCY' THEN 'العملة الوظيفية'
       WHEN 'FISCAL_YEAR' THEN 'السنة المالية' WHEN 'LEDGER_COA' THEN 'دفتر الأستاذ ودليل الحسابات'
       WHEN 'HEAD_BRANCH' THEN 'الفرع الرئيسي' WHEN 'COMPANY_ADMIN' THEN 'مسؤول للشركة'

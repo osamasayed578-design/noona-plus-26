@@ -14,6 +14,8 @@ CREATE OR REPLACE PACKAGE NOONA_CSH_PKG AUTHID DEFINER AS
   -- ---------------------------------------------------------- التجهيز
   -- صندوق رئيسي وتسلسلات السندات (Idempotent)؛ يعيد رقم الصندوق الرئيسي
   FUNCTION quick_setup RETURN NUMBER;
+  -- Y إن جهزت النقدية للشركة الحالية (يوجد صندوق)
+  FUNCTION is_ready RETURN VARCHAR2;
   FUNCTION create_cash_box(p_code IN VARCHAR2, p_name_ar IN VARCHAR2, p_account_code IN VARCHAR2 DEFAULT '1101',
                            p_box_type IN VARCHAR2 DEFAULT 'MAIN', p_max_balance IN NUMBER DEFAULT NULL) RETURN NUMBER;
   FUNCTION create_bank_account(p_code IN VARCHAR2, p_name_ar IN VARCHAR2, p_bank_id IN NUMBER, p_account_no IN VARCHAR2,
@@ -180,6 +182,13 @@ CREATE OR REPLACE PACKAGE BODY NOONA_CSH_PKG AS
     UPDATE csh_bank_account SET status_code = p_status WHERE id = p_bank_account_id AND company_id = NOONA_GL_PKG.company;
     NOONA_AUDIT_PKG.log_event('CONFIG', 'CSH_BANK_ACCOUNT', p_bank_account_id, 'STATUS_' || p_status, 'SUCCESS');
   END set_bank_status;
+
+  FUNCTION is_ready RETURN VARCHAR2 IS
+    l_n NUMBER;
+  BEGIN
+    SELECT COUNT(*) INTO l_n FROM csh_cash_box WHERE company_id = NOONA_GL_PKG.company AND ROWNUM = 1;
+    RETURN CASE WHEN l_n > 0 THEN 'Y' ELSE 'N' END;
+  END is_ready;
 
   FUNCTION quick_setup RETURN NUMBER IS
     l_box NUMBER;
@@ -642,7 +651,8 @@ CREATE OR REPLACE PACKAGE BODY NOONA_CSH_PKG AS
            || '</div><div class="nn-words">' || esc(amount_words(l_t.amount, l_t.currency_code)) || '</div>'
            || '<div class="nn-words-sub">وذلك عن: ' || esc(l_t.description) || '</div>'
            || '<table class="nn-rpt"><thead><tr><th>#</th><th>الحساب</th><th>مركز التكلفة</th><th>البيان</th><th>المبلغ</th></tr></thead><tbody>';
-    FOR r IN (SELECT l.line_no, a.account_code || ' - ' || a.name_ar acc, c.code || ' ' || c.name_ar cc, l.description, l.amount
+    FOR r IN (SELECT l.line_no, a.account_code || ' - ' || a.name_ar acc, c.code || ' ' || c.name_ar cc,
+                     NVL(l.description, l_t.description) description, l.amount
                 FROM csh_transaction_line l JOIN gl_account a ON a.id = l.account_id
                 LEFT JOIN gl_cost_center c ON c.id = l.cost_center_id
                WHERE l.transaction_id = p_id ORDER BY l.line_no) LOOP

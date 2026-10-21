@@ -290,7 +290,8 @@ class App:
         s = re.sub(r"wwv_flow_imp_shared\.create_list_item\(.*?\n\);\n", '', s, flags=re.S)
         items = ''
         for nid, label, page, icon, seq, parent, scheme in self.nav:
-            target = f"f?p=&APP_ID.:{page}:&APP_SESSION.::&DEBUG.:::" if page is not None else ''
+            # page: رقم صفحة، أو رابط كامل (مثل صفحة بمعامل: سند قبض جديد)
+            target = page if isinstance(page, str) else (f"f?p=&APP_ID.:{page}:&APP_SESSION.::&DEBUG.:::" if page is not None else '')
             items += f"""wwv_flow_imp_shared.create_list_item(
  p_id=>wwv_flow_imp.id({nid})
 ,p_list_item_display_sequence=>{seq}
@@ -301,7 +302,7 @@ class App:
                 items += f"\n,p_parent_list_item_id=>wwv_flow_imp.id({parent})"
             if scheme:
                 items += f"\n,p_security_scheme=>wwv_flow_imp.id({scheme})"
-            if page is not None:
+            if isinstance(page, int):
                 items += f"\n,p_list_item_current_type=>'TARGET_PAGE'"
             items += "\n);\n"
         i = s.rindex('wwv_flow_imp.component_end;')

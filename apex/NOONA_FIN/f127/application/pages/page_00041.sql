@@ -1,0 +1,229 @@
+prompt --application/pages/page_00041
+begin
+--   Manifest
+--     PAGE: 00041
+--   Manifest End
+wwv_flow_imp.component_begin (
+ p_version_yyyy_mm_dd=>'2024.11.30'
+,p_release=>'24.2.0'
+,p_default_workspace_id=>17663301221950901
+,p_default_application_id=>127
+,p_default_id_offset=>0
+,p_default_owner=>'NOONA_APP'
+);
+wwv_flow_imp_page.create_page(
+ p_id=>41
+,p_name=>'Vouchers'
+,p_alias=>'VOUCHERS'
+,p_step_title=>'سندات القبض والصرف'
+,p_autocomplete_on_off=>'OFF'
+,p_page_template_options=>'#DEFAULT#'
+,p_required_role=>wwv_flow_imp.id(91820266000000002)
+,p_protection_level=>'C'
+);
+wwv_flow_imp_page.create_page_plug(
+ p_id=>wwv_flow_imp.id(91820266000000205)
+,p_plug_name=>'السندات'
+,p_region_template_options=>'#DEFAULT#'
+,p_component_template_options=>'#DEFAULT#'
+,p_plug_template=>2100526641005906379
+,p_plug_display_sequence=>10
+,p_query_type=>'SQL'
+,p_plug_source=>wwv_flow_string.join(wwv_flow_t_varchar2(
+'select t.id, noona_csh_pkg.type_label(t.txn_type) as type_name, t.doc_no, to_char(t.doc_date, ''YYYY-MM-DD'') as doc_date,',
+'       nvl(b.name_ar, k.name_ar) as place, t.counterparty_name, t.description, t.amount, t.currency_code, t.created_by,',
+'       t.posted_by, noona_ui_pkg.status_badge(t.status_code) as status_html',
+'  from csh_transaction t left join csh_cash_box b on b.id = t.cash_box_id left join csh_bank_account k on k.id = t.bank_account_id',
+' where t.company_id = noona_gl_pkg.company and t.txn_type in (''RECEIPT'', ''PAYMENT'', ''EXPENSE'') order by t.id desc'))
+,p_plug_source_type=>'NATIVE_IR'
+,p_prn_page_header=>'السندات'
+);
+wwv_flow_imp_page.create_worksheet(
+ p_id=>wwv_flow_imp.id(91820266000000206)
+,p_max_row_count=>'1000000'
+,p_no_data_found_message=>'لا توجد بيانات'
+,p_pagination_type=>'ROWS_X_TO_Y'
+,p_pagination_display_pos=>'BOTTOM_RIGHT'
+,p_report_list_mode=>'TABS'
+,p_lazy_loading=>false
+,p_show_detail_link=>'C'
+,p_show_notify=>'N'
+,p_download_formats=>'CSV:HTML:XLSX:PDF'
+,p_enable_mail_download=>'N'
+,p_detail_link=>'f?p=&APP_ID.:42:&SESSION.::&DEBUG.:RP,42:P42_ID:#ID#'
+,p_detail_link_text=>'<span role="img" aria-label="تعديل" class="fa fa-edit" title="فتح"></span>'
+,p_owner=>'NOONA'
+,p_internal_uid=>91820266000000206
+);
+wwv_flow_imp_page.create_worksheet_column(
+ p_id=>wwv_flow_imp.id(91820266000000208)
+,p_db_column_name=>'ID'
+,p_display_order=>10
+,p_column_identifier=>'A'
+,p_column_label=>'#'
+,p_column_type=>'NUMBER'
+,p_display_text_as=>'HIDDEN'
+,p_heading_alignment=>'CENTER'
+,p_use_as_row_header=>'N'
+);
+wwv_flow_imp_page.create_worksheet_column(
+ p_id=>wwv_flow_imp.id(91820266000000209)
+,p_db_column_name=>'TYPE_NAME'
+,p_display_order=>20
+,p_column_identifier=>'B'
+,p_column_label=>'النوع'
+,p_column_type=>'STRING'
+,p_heading_alignment=>'CENTER'
+,p_use_as_row_header=>'N'
+);
+wwv_flow_imp_page.create_worksheet_column(
+ p_id=>wwv_flow_imp.id(91820266000000210)
+,p_db_column_name=>'DOC_NO'
+,p_display_order=>30
+,p_column_identifier=>'C'
+,p_column_label=>'رقم السند'
+,p_column_type=>'STRING'
+,p_heading_alignment=>'CENTER'
+,p_use_as_row_header=>'N'
+);
+wwv_flow_imp_page.create_worksheet_column(
+ p_id=>wwv_flow_imp.id(91820266000000211)
+,p_db_column_name=>'DOC_DATE'
+,p_display_order=>40
+,p_column_identifier=>'D'
+,p_column_label=>'التاريخ'
+,p_column_type=>'STRING'
+,p_heading_alignment=>'CENTER'
+,p_use_as_row_header=>'N'
+);
+wwv_flow_imp_page.create_worksheet_column(
+ p_id=>wwv_flow_imp.id(91820266000000212)
+,p_db_column_name=>'PLACE'
+,p_display_order=>50
+,p_column_identifier=>'E'
+,p_column_label=>'الصندوق / البنك'
+,p_column_type=>'STRING'
+,p_heading_alignment=>'CENTER'
+,p_use_as_row_header=>'N'
+);
+wwv_flow_imp_page.create_worksheet_column(
+ p_id=>wwv_flow_imp.id(91820266000000213)
+,p_db_column_name=>'COUNTERPARTY_NAME'
+,p_display_order=>60
+,p_column_identifier=>'F'
+,p_column_label=>'الطرف'
+,p_column_type=>'STRING'
+,p_heading_alignment=>'CENTER'
+,p_use_as_row_header=>'N'
+);
+wwv_flow_imp_page.create_worksheet_column(
+ p_id=>wwv_flow_imp.id(91820266000000214)
+,p_db_column_name=>'DESCRIPTION'
+,p_display_order=>70
+,p_column_identifier=>'G'
+,p_column_label=>'البيان'
+,p_column_type=>'STRING'
+,p_heading_alignment=>'CENTER'
+,p_use_as_row_header=>'N'
+);
+wwv_flow_imp_page.create_worksheet_column(
+ p_id=>wwv_flow_imp.id(91820266000000215)
+,p_db_column_name=>'AMOUNT'
+,p_display_order=>80
+,p_column_identifier=>'H'
+,p_column_label=>'المبلغ'
+,p_column_type=>'NUMBER'
+,p_heading_alignment=>'CENTER'
+,p_use_as_row_header=>'N'
+);
+wwv_flow_imp_page.create_worksheet_column(
+ p_id=>wwv_flow_imp.id(91820266000000216)
+,p_db_column_name=>'CURRENCY_CODE'
+,p_display_order=>90
+,p_column_identifier=>'I'
+,p_column_label=>'العملة'
+,p_column_type=>'STRING'
+,p_heading_alignment=>'CENTER'
+,p_use_as_row_header=>'N'
+);
+wwv_flow_imp_page.create_worksheet_column(
+ p_id=>wwv_flow_imp.id(91820266000000217)
+,p_db_column_name=>'CREATED_BY'
+,p_display_order=>100
+,p_column_identifier=>'J'
+,p_column_label=>'أنشأه'
+,p_column_type=>'STRING'
+,p_heading_alignment=>'CENTER'
+,p_use_as_row_header=>'N'
+);
+wwv_flow_imp_page.create_worksheet_column(
+ p_id=>wwv_flow_imp.id(91820266000000218)
+,p_db_column_name=>'POSTED_BY'
+,p_display_order=>110
+,p_column_identifier=>'K'
+,p_column_label=>'اعتمده'
+,p_column_type=>'STRING'
+,p_heading_alignment=>'CENTER'
+,p_use_as_row_header=>'N'
+);
+wwv_flow_imp_page.create_worksheet_column(
+ p_id=>wwv_flow_imp.id(91820266000000219)
+,p_db_column_name=>'STATUS_HTML'
+,p_display_order=>120
+,p_column_identifier=>'L'
+,p_column_label=>'الحالة'
+,p_column_type=>'STRING'
+,p_display_text_as=>'WITHOUT_MODIFICATION'
+,p_heading_alignment=>'CENTER'
+,p_use_as_row_header=>'N'
+);
+wwv_flow_imp_page.create_worksheet_rpt(
+ p_id=>wwv_flow_imp.id(91820266000000207)
+,p_application_user=>'APXWS_DEFAULT'
+,p_report_seq=>10
+,p_report_alias=>'207'
+,p_status=>'PUBLIC'
+,p_is_default=>'Y'
+,p_report_columns=>'TYPE_NAME:DOC_NO:DOC_DATE:PLACE:COUNTERPARTY_NAME:DESCRIPTION:AMOUNT:CURRENCY_CODE:CREATED_BY:POSTED_BY:STATUS_HTML'
+);
+wwv_flow_imp_page.create_page_button(
+ p_id=>wwv_flow_imp.id(91820266000000220)
+,p_button_sequence=>10
+,p_button_plug_id=>wwv_flow_imp.id(91820266000000205)
+,p_button_name=>'NEW_RV'
+,p_button_action=>'REDIRECT_URL'
+,p_button_template_options=>'#DEFAULT#'
+,p_button_template_id=>4072362960822175091
+,p_button_is_hot=>'Y'
+,p_button_image_alt=>'سند قبض'
+,p_button_position=>'RIGHT_OF_IR_SEARCH_BAR'
+,p_button_redirect_url=>'f?p=&APP_ID.:42:&SESSION.::&DEBUG.:RP,42:P42_TYPE:RECEIPT'
+);
+wwv_flow_imp_page.create_page_button(
+ p_id=>wwv_flow_imp.id(91820266000000221)
+,p_button_sequence=>20
+,p_button_plug_id=>wwv_flow_imp.id(91820266000000205)
+,p_button_name=>'NEW_PV'
+,p_button_action=>'REDIRECT_URL'
+,p_button_template_options=>'#DEFAULT#'
+,p_button_template_id=>4072362960822175091
+,p_button_image_alt=>'سند صرف'
+,p_button_position=>'RIGHT_OF_IR_SEARCH_BAR'
+,p_button_redirect_url=>'f?p=&APP_ID.:42:&SESSION.::&DEBUG.:RP,42:P42_TYPE:PAYMENT'
+);
+wwv_flow_imp_page.create_page_button(
+ p_id=>wwv_flow_imp.id(91820266000000222)
+,p_button_sequence=>30
+,p_button_plug_id=>wwv_flow_imp.id(91820266000000205)
+,p_button_name=>'NEW_EV'
+,p_button_action=>'REDIRECT_URL'
+,p_button_template_options=>'#DEFAULT#'
+,p_button_template_id=>4072362960822175091
+,p_button_image_alt=>'سند مصروفات'
+,p_button_position=>'RIGHT_OF_IR_SEARCH_BAR'
+,p_button_redirect_url=>'f?p=&APP_ID.:42:&SESSION.::&DEBUG.:RP,42:P42_TYPE:EXPENSE'
+);
+
+wwv_flow_imp.component_end;
+end;
+/

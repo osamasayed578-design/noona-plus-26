@@ -408,6 +408,27 @@ tr:hover .nn-badge { transform: scale(1.05); }
 .nn-rpt tfoot td:first-child { direction: rtl; text-align: start; }
 .nn-rpt tbody tr:hover td { background: #f7fbff; }
 .nn-rpt-check { margin-top: 12px; }
+.nn-rpt .nn-rpt-head2 td { background: #fafcff; font-weight: 700; color: #334155; direction: rtl; text-align: start; padding-inline-start: 18px; }
+.nn-rpt .nn-rpt-sub td { font-weight: 700; background: #f8fafc; border-top: 2px solid #d6e4f2; }
+.nn-rpt .nn-rpt-sub td:first-child, .nn-rpt .nn-rpt-total td:first-child { direction: rtl; text-align: start; }
+.nn-rpt .nn-rpt-total td { font-weight: 800; background: #e8f2fc; color: var(--nn-head-text); border-top: 2px solid var(--nn-head-border); }
+.nn-rpt-fs { max-width: 880px; margin-inline: auto; }
+.nn-rpt-fs td:last-child { width: 180px; }
+.nn-rpt-scroll { overflow-x: auto; max-width: 100%; }
+.nn-rpt-matrix th, .nn-rpt-matrix td { white-space: nowrap; }
+.nn-rpt-matrix tbody td:nth-child(2) { position: sticky; inset-inline-start: 0; background: #fff; z-index: 1; }
+.nn-rpt .nn-rpt-rowtot { font-weight: 800; background: #f3f8fd; }
+.nn-words { margin: 14px 0 4px; padding: 10px 14px; border: 1px dashed var(--nn-head-border); border-radius: 10px;
+  background: #fafcff; font-weight: 700; color: var(--nn-head-text); }
+.nn-words-sub { margin-bottom: 12px; color: #334155; }
+.nn-sign { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; margin-top: 36px; text-align: center; font-weight: 700; }
+.nn-sign > div { border-top: 1px solid #94a3b8; padding-top: 8px; }
+.nn-sign span { display: block; font-weight: 500; color: var(--nn-muted); margin-top: 4px; }
+.nn-je-table select.nn-je-cc { width: 100%; height: 34px; border: 1px solid var(--nn-border); border-radius: 8px; padding: 0 6px;
+  background: #fff; font: inherit; }
+.nn-je-table .nn-je-amt { direction: ltr; text-align: right; max-width: 160px; }
+.nn-je-table .is-required { border-color: var(--nn-warning) !important; background: #fffbeb; }
+@media (max-width: 640px) { .nn-sign { grid-template-columns: 1fr; } .nn-je-table td:nth-child(2) { min-width: 180px; } }
 @media print {
   .t-Header, .t-Body-nav, .t-Body-actions, .t-Footer, .t-Alert, .t-Body-title, .nn-co-badge,
   .t-Region:not(.nn-print-area), .t-Body-contentInner > .container > .row:not(:has(.nn-print-area)) { display: none !important; }
