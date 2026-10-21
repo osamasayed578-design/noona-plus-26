@@ -534,7 +534,9 @@ CREATE OR REPLACE PACKAGE BODY NOONA_CSH_PKG AS
     UPDATE csh_transaction SET doc_no = l_no WHERE id = p_id;
     l_j := NOONA_ACE_PKG.post_source('CSH_TXN_SETTLED', 'CASH', c_entity, p_id, l_t.doc_date,
                                      type_label(l_t.txn_type) || ' ' || l_no || ': ' || l_t.description,
-                                     l_t.currency_code, l_t.exchange_rate, l_lines, l_no, l_t.branch_id);
+                                     l_t.currency_code, l_t.exchange_rate, l_lines, l_no, l_t.branch_id,
+                                     CASE l_t.txn_type WHEN 'RECEIPT' THEN 'RECEIPT' WHEN 'PAYMENT' THEN 'PAYMENT'
+                                                       WHEN 'EXPENSE' THEN 'EXPENSE' ELSE 'TRANSFER' END);
     SELECT accounting_event_id INTO l_ev FROM gl_journal WHERE id = l_j;
     UPDATE csh_transaction
        SET status_code = 'SETTLED', settled_at = SYSTIMESTAMP, posted_at = SYSTIMESTAMP,

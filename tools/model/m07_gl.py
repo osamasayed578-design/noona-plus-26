@@ -125,13 +125,25 @@ ALLOW_MANUAL    YN   NN D='N'    | يسمح بالإدخال اليدوي
 REQUIRES_APPROVAL YN NN D='Y'    | يتطلب اعتماداً
 ''', area='journal')
 
+table('GL_JOURNAL_TYPE', 'أنواع القيود', 'Journal Types', scope='TO', mix='code names active sort', cols='''
+TYPE_GROUP      CODE NN IN:MANUAL,SYSTEM | المجموعة: يدوي يدخله المحاسب، أو آلي من مستند مصدر
+MODULE_CODE     CODE NN          | الوحدة المصدرة
+ALLOW_MANUAL    YN   NN D='N'    | يسمح بالإدخال اليدوي
+IS_OPENING      YN   NN D='N'    | قيد افتتاحي (أول فترة في السنة المالية)
+IS_ADJUSTMENT   YN   NN D='N'    | قيد تسوية
+AUTO_REVERSE    YN   NN D='N'    | يعكس آلياً في أول يوم من الفترة التالية (الاستحقاقات)
+EXCLUDE_FROM_PL YN   NN D='N'    | يستبعد من قائمة الدخل (قيد الإقفال)
+REQUIRES_REFERENCE YN NN D='N'   | يتطلب رقماً مرجعياً
+DESCRIPTION     V1000            | الوصف ومتى يستخدم
+''', area='journal', purpose='نوع القيد يحدد قواعد إدخاله وظهوره في التقارير؛ GL_JOURNAL.JOURNAL_CATEGORY يحمل رمز النوع')
+
 table('GL_JOURNAL', 'القيود', 'Journal Entries', scope='C', mix='pub branch doc cur wf conf status',
       status='DRAFT SUBMITTED APPROVED POSTED REVERSED CANCELLED', cols='''
 LEDGER_ID       ID   NN >GL_LEDGER | الدفتر
 PERIOD_ID       ID   NN >GL_PERIOD | الفترة
 POSTING_DATE    DATE NN          | تاريخ القيد (قد يختلف عن تاريخ المعاملة)
 JOURNAL_SOURCE_ID ID NN >GL_JOURNAL_SOURCE | المصدر
-JOURNAL_CATEGORY CODE            | التصنيف
+JOURNAL_CATEGORY CODE            | نوع القيد (رمز من GL_JOURNAL_TYPE)
 ACCOUNTING_EVENT_ID ID >ACE_ACCOUNTING_EVENT | الحدث المحاسبي المولد
 RULE_VERSION_ID ID   >ACE_POSTING_RULE_VERSION | إصدار قاعدة الترحيل
 REFERENCE_NO    V100             | المرجع

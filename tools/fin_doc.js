@@ -3,12 +3,13 @@
 (function () {
     var root = document.getElementById('nnDoc'); if (!root) return;
     var data = function (id) { var el = document.getElementById(id); try { return JSON.parse(el ? el.textContent : 'null'); } catch (e) { return null; } };
-    var d = data('nnDocData') || {}, curs = data('nnDocCurs') || [], places = data('nnDocPlaces') || [];
+    var d = data('nnDocData') || {}, curs = data('nnDocCurs') || [], places = data('nnDocPlaces') || [], types = data('nnDocTypes') || [];
     var je = root.dataset.kind === 'JE', ro = root.dataset.ro === 'Y', fc = root.dataset.fc;
     var esc = function (s) { return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) { return {'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;'}[c]; }); };
     var titles = {RECEIPT: 'سند قبض', PAYMENT: 'سند صرف', EXPENSE: 'سند مصروفات'};
     var stl = {DRAFT: 'مسودة', SUBMITTED: 'بانتظار الاعتماد', APPROVED: 'معتمد', POSTED: 'مرحل', SETTLED: 'مرحل', REVERSED: 'معكوس', CANCELLED: 'ملغى'};
-    var title = je ? 'قيد يومية' : (titles[d.type] || 'سند');
+    var typeOf = function (c) { return types.filter(function (t) { return t.c === c; })[0] || null; };
+    var title = je ? (d.typeName || (typeOf(d.type) || {}).n || 'قيد يومية') : (titles[d.type] || 'سند');
     var rateOf = function (c) { if (!c || c === fc) return 1; var x = curs.filter(function (k) { return k.c === c; })[0]; return x ? x.r : null; };
     var placeOf = function (v) { return places.filter(function (p) { return p.v === v; })[0] || null; };
     var opt = function (v, t, sel) { return '<option value="' + esc(v) + '"' + (String(v) === String(sel == null ? '' : sel) ? ' selected' : '') + '>' + esc(t) + '</option>'; };
@@ -22,10 +23,16 @@
           + '<div class="nn-doc-no"><span>الرقم</span><b>' + esc(d.no || 'جديد') + '</b></div></div><div class="nn-doc-fields">';
     h += field('', 'التاريخ', inp('date', d.date, 'date'));
     if (je) {
+        // نوع القيد: يحدد قواعده (افتتاحي، مرجع إلزامي، عكس آلي للاستحقاقات)
+        var ts = ro ? '<b class="nn-doc-v">' + esc(d.typeName || d.type) + '</b>'
+                    : '<select data-k="type">' + types.map(function (t) { return opt(t.c, t.n, d.type || 'GENERAL'); }).join('') + '</select>';
+        h += field('nn-doc-type', 'نوع القيد', ts);
+        h += field('nn-doc-rev', 'يعكس آلياً في', inp('rev', d.rev, 'date'));
         var cs = ro ? '<b class="nn-doc-v">' + esc(d.cur) + '</b>'
                     : '<select data-k="cur">' + curs.map(function (c) { return opt(c.c, c.c + ' - ' + c.n, d.cur); }).join('') + '</select>';
         h += field('', 'العملة', cs) + field('nn-doc-rate', 'سعر الصرف', inp('rate', d.rate, 'number', ' step="0.000001" min="0"'));
-        h += field('', 'المرجع', inp('ref', d.ref)) + field('', 'البيان', inp('desc', d.desc), true);
+        h += field('nn-doc-refbox', 'المرجع', inp('ref', d.ref)) + field('', 'البيان', inp('desc', d.desc), true);
+        h += '<div class="nn-doc-typehint" aria-live="polite"></div>';
     } else {
         var ps = ro ? '<b class="nn-doc-v">' + esc((placeOf(d.place) || {}).n || '') + '</b>'
                     : '<select data-k="place">' + places.map(function (p) {
@@ -66,9 +73,27 @@
         if (chb && !je) chb.style.display = place.indexOf('BANK:') === 0 ? '' : 'none';
         var cur = root.querySelector('.nn-doc-total em'); if (cur) cur.textContent = c;
     }
+    // إظهار تاريخ العكس الآلي ووصف النوع حسب النوع المختار
+    function syncType() {
+        if (!je) return;
+        var t = typeOf((q('type') || {}).value || d.type) || {};
+        var rb = root.querySelector('.nn-doc-rev');
+        if (rb) rb.style.display = (t.rev === 'Y' || (ro && d.rev)) ? '' : 'none';
+        var ref = root.querySelector('.nn-doc-refbox > span');
+        if (ref) ref.textContent = t.ref === 'Y' ? 'المرجع (إلزامي لهذا النوع)' : 'المرجع';
+        var hint = root.querySelector('.nn-doc-typehint');
+        if (hint) hint.textContent = ro ? '' : (t.d || '') + (t.rev === 'Y' ? ' - يترك تاريخ العكس فارغاً ليكون أول يوم في الفترة التالية' : '')
+                                           + (t.opn === 'Y' ? ' - تاريخه في الفترة الأولى من السنة المالية' : '');
+        var tt = root.querySelector('.nn-doc-title');
+        if (tt && t.n) tt.firstChild.nodeValue = t.n;
+    }
     syncRate(false);
+    syncType();
     if (ro) return;
-    root.addEventListener('change', function (e) { if (e.target.dataset.k === 'cur' || e.target.dataset.k === 'place') syncRate(true); });
+    root.addEventListener('change', function (e) {
+        if (e.target.dataset.k === 'cur' || e.target.dataset.k === 'place') syncRate(true);
+        if (e.target.dataset.k === 'type') syncType();
+    });
     root.addEventListener('click', function (e) {
         var b = e.target.closest('.nn-doc-save'); if (!b) return;
         var doc = {id: d.id || null, action: b.dataset.a, lines: window.nnGrid ? window.nnGrid.collect() : []};

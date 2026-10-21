@@ -57,22 +57,39 @@ CREATE OR REPLACE PACKAGE NOONA_GL_PKG AUTHID DEFINER AS
   FUNCTION cc_rule(p_account_id IN NUMBER) RETURN VARCHAR2;
 
   -- ---------------------------------------------------------- للمحرك المحاسبي فقط (NOONA_ACE_PKG)
-  TYPE t_line IS RECORD (account_id NUMBER, debit NUMBER, credit NUMBER, cost_center_id NUMBER, description VARCHAR2(1000));
+  TYPE t_line IS RECORD (account_id NUMBER, debit NUMBER, credit NUMBER, cost_center_id NUMBER, description VARCHAR2(1000),
+                         party_id NUMBER, item_id NUMBER);
   TYPE t_lines IS TABLE OF t_line;
   -- قيد نظامي من مستند مصدر معتمد: يتحقق من كل القواعد ويرحل مباشرة (يقبل حسابات المراقبة)
   FUNCTION post_system(p_source_code IN VARCHAR2, p_doc_date IN DATE, p_description IN VARCHAR2, p_currency IN VARCHAR2,
                        p_rate IN NUMBER, p_lines IN t_lines, p_reference IN VARCHAR2, p_event_id IN NUMBER,
-                       p_branch_id IN NUMBER DEFAULT NULL) RETURN NUMBER ACCESSIBLE BY (PACKAGE NOONA_ACE_PKG);
+                       p_branch_id IN NUMBER DEFAULT NULL, p_journal_type IN VARCHAR2 DEFAULT NULL) RETURN NUMBER
+    ACCESSIBLE BY (PACKAGE NOONA_ACE_PKG);
   FUNCTION reverse_system(p_journal_id IN NUMBER, p_date IN DATE, p_reason IN VARCHAR2) RETURN NUMBER
     ACCESSIBLE BY (PACKAGE NOONA_ACE_PKG);
 
   -- ---------------------------------------------------------- القيود
   FUNCTION create_journal(p_doc_date IN DATE, p_description IN VARCHAR2, p_currency IN VARCHAR2 DEFAULT NULL,
                           p_exchange_rate IN NUMBER DEFAULT NULL, p_reference IN VARCHAR2 DEFAULT NULL,
-                          p_source_code IN VARCHAR2 DEFAULT 'MANUAL') RETURN NUMBER;
+                          p_source_code IN VARCHAR2 DEFAULT 'MANUAL', p_journal_type IN VARCHAR2 DEFAULT 'GENERAL',
+                          p_auto_reverse_date IN DATE DEFAULT NULL) RETURN NUMBER;
   PROCEDURE update_header(p_journal_id IN NUMBER, p_doc_date IN DATE, p_description IN VARCHAR2,
                           p_reference IN VARCHAR2 DEFAULT NULL, p_currency IN VARCHAR2 DEFAULT NULL,
-                          p_exchange_rate IN NUMBER DEFAULT NULL);
+                          p_exchange_rate IN NUMBER DEFAULT NULL, p_journal_type IN VARCHAR2 DEFAULT NULL,
+                          p_auto_reverse_date IN DATE DEFAULT NULL);
+
+  -- ---------------------------------------------------------- أنواع القيود
+  -- اسم نوع القيد (يستخدم في التقارير والاستعلامات)
+  FUNCTION type_label(p_code IN VARCHAR2) RETURN VARCHAR2;
+  -- الأنواع اليدوية المتاحة لشاشة القيد: [{"c":"ACCRUAL","n":"قيد استحقاق","rev":"Y","ref":"N","opn":"N"}, ...]
+  FUNCTION journal_types_json RETURN CLOB;
+  -- نوع يدوي خاص بالمؤسسة (إضافة أو تعديل)؛ أنواع المنصة لا تعدل
+  PROCEDURE save_journal_type(p_code IN VARCHAR2, p_name_ar IN VARCHAR2, p_name_en IN VARCHAR2 DEFAULT NULL,
+                              p_adjustment IN VARCHAR2 DEFAULT 'N', p_auto_reverse IN VARCHAR2 DEFAULT 'N',
+                              p_requires_reference IN VARCHAR2 DEFAULT 'N', p_active IN VARCHAR2 DEFAULT 'Y',
+                              p_description IN VARCHAR2 DEFAULT NULL);
+  -- عكس القيود المستحقة العكس الآلي (الاستحقاقات وإعادة التقييم) حتى تاريخ معين؛ يعيد عدد القيود المعكوسة
+  FUNCTION process_auto_reversals(p_as_of IN DATE DEFAULT NULL) RETURN NUMBER;
   -- مستند القيد كاملاً (رأس وسطور) من شاشة HTML في استدعاء واحد:
   -- {"id":null,"date":"2026-10-21","desc":"...","ref":"...","cur":"USD","rate":3.75,"action":"SAVE|SUBMIT","lines":[...]}
   FUNCTION save_journal_doc(p_doc IN CLOB) RETURN NUMBER;
@@ -445,9 +462,94 @@ CREATE OR REPLACE PACKAGE BODY NOONA_GL_PKG AS
                           'The accounting period is closed');
   END assert_period_open;
 
+  -- ================================================================ أنواع القيود
+  FUNCTION get_type(p_code VARCHAR2) RETURN gl_journal_type%ROWTYPE IS
+    l gl_journal_type%ROWTYPE;
+  BEGIN
+    -- نوع المؤسسة يتقدم على نوع المنصة بنفس الرمز
+    SELECT * INTO l FROM (SELECT * FROM gl_journal_type WHERE code = p_code AND is_active = 'Y' ORDER BY tenant_id NULLS LAST)
+     WHERE ROWNUM = 1;
+    RETURN l;
+  EXCEPTION WHEN NO_DATA_FOUND THEN
+    NOONA_CORE_PKG.raise_error('NOONA-GL-130', 'نوع القيد غير معرف أو موقوف: ' || p_code, 'Unknown or inactive journal type');
+  END get_type;
+
+  FUNCTION type_label(p_code IN VARCHAR2) RETURN VARCHAR2 IS
+    l VARCHAR2(200);
+  BEGIN
+    IF p_code IS NULL THEN RETURN NULL; END IF;
+    SELECT MAX(name_ar) KEEP (DENSE_RANK FIRST ORDER BY tenant_id NULLS LAST) INTO l FROM gl_journal_type WHERE code = p_code;
+    RETURN NVL(l, CASE p_code WHEN 'MANUAL' THEN 'قيد يومية عام' WHEN 'CASH' THEN 'النقدية والبنوك' ELSE p_code END);
+  END type_label;
+
+  FUNCTION journal_types_json RETURN CLOB IS
+    l_out CLOB;
+  BEGIN
+    SELECT JSON_ARRAYAGG(JSON_OBJECT('c' VALUE code, 'n' VALUE name_ar, 'rev' VALUE auto_reverse, 'ref' VALUE requires_reference,
+                                     'opn' VALUE is_opening, 'd' VALUE description) ORDER BY sort_order, code RETURNING CLOB)
+      INTO l_out
+      FROM (SELECT t.*, ROW_NUMBER() OVER (PARTITION BY code ORDER BY tenant_id NULLS LAST) rn
+              FROM gl_journal_type t WHERE is_active = 'Y')
+     WHERE rn = 1 AND allow_manual = 'Y';
+    RETURN NVL(l_out, '[]');
+  END journal_types_json;
+
+  PROCEDURE save_journal_type(p_code IN VARCHAR2, p_name_ar IN VARCHAR2, p_name_en IN VARCHAR2 DEFAULT NULL,
+                              p_adjustment IN VARCHAR2 DEFAULT 'N', p_auto_reverse IN VARCHAR2 DEFAULT 'N',
+                              p_requires_reference IN VARCHAR2 DEFAULT 'N', p_active IN VARCHAR2 DEFAULT 'Y',
+                              p_description IN VARCHAR2 DEFAULT NULL) IS
+    l_code VARCHAR2(30) := UPPER(TRIM(p_code));
+    l_n    NUMBER;
+  BEGIN
+    guard('GL_JOURNAL_TYPE.UPDATE');
+    NOONA_CORE_PKG.assert(REGEXP_LIKE(l_code, '^[A-Z][A-Z0-9_]{1,29}$'), 'NOONA-GL-131',
+      'رمز النوع حروف إنجليزية كبيرة وأرقام و _ ويبدأ بحرف', 'Invalid type code');
+    NOONA_CORE_PKG.assert(p_name_ar IS NOT NULL, 'NOONA-GL-132', 'اسم النوع إلزامي', 'Name is required');
+    SELECT COUNT(*) INTO l_n FROM gl_journal_type WHERE tenant_id IS NULL AND code = l_code;
+    NOONA_CORE_PKG.assert(l_n = 0, 'NOONA-GL-133', 'هذا الرمز لنوع نظامي؛ اختر رمزاً آخر', 'Code is reserved by a platform type');
+    MERGE INTO gl_journal_type t
+    USING (SELECT l_code code FROM dual) x ON (t.tenant_id = TO_NUMBER(SYS_CONTEXT('NOONA_CTX', 'TENANT_ID')) AND t.code = x.code)
+     WHEN MATCHED THEN UPDATE SET name_ar = p_name_ar, name_en = p_name_en, is_adjustment = NVL(p_adjustment, 'N'),
+                                  auto_reverse = NVL(p_auto_reverse, 'N'), requires_reference = NVL(p_requires_reference, 'N'),
+                                  is_active = NVL(p_active, 'Y'), description = p_description
+     WHEN NOT MATCHED THEN INSERT (code, name_ar, name_en, type_group, module_code, allow_manual, is_opening, is_adjustment, auto_reverse,
+                                   exclude_from_pl, requires_reference, is_active, sort_order, description)
+          VALUES (l_code, p_name_ar, p_name_en, 'MANUAL', 'GL', 'Y', 'N', NVL(p_adjustment, 'N'), NVL(p_auto_reverse, 'N'), 'N',
+                  NVL(p_requires_reference, 'N'), NVL(p_active, 'Y'), 150, p_description);
+    NOONA_AUDIT_PKG.log_event('CONFIG', 'GL_JOURNAL_TYPE', NULL, 'SAVE_' || l_code, 'SUCCESS');
+  END save_journal_type;
+
+  -- يطبق قواعد نوع القيد اليدوي على الرأس: نوع يدوي، افتتاحي في أول فترة، مرجع إلزامي، تاريخ العكس الآلي
+  PROCEDURE apply_type(p_journal_id NUMBER, p_type VARCHAR2, p_doc_date DATE, p_reference VARCHAR2, p_auto_reverse_date DATE) IS
+    l_t     gl_journal_type%ROWTYPE := get_type(NVL(p_type, 'GENERAL'));
+    l_per   gl_period%ROWTYPE;
+    l_first DATE;
+    l_rev   DATE;
+  BEGIN
+    NOONA_CORE_PKG.assert(l_t.allow_manual = 'Y', 'NOONA-GL-134',
+      'نوع القيد «' || l_t.name_ar || '» يولد آلياً من مستنده المصدر ولا يدخل يدوياً', 'This journal type is system generated');
+    SELECT * INTO l_per FROM gl_period WHERE id = period_for(p_doc_date);
+    IF l_t.is_opening = 'Y' THEN
+      SELECT MIN(start_date) INTO l_first FROM gl_period WHERE fiscal_year_id = l_per.fiscal_year_id;
+      NOONA_CORE_PKG.assert(l_per.start_date = l_first, 'NOONA-GL-135',
+        'القيد الافتتاحي يكون في الفترة الأولى من السنة المالية (من ' || TO_CHAR(l_first, 'YYYY-MM-DD') || ')',
+        'Opening entries belong to the first period of the fiscal year');
+    END IF;
+    NOONA_CORE_PKG.assert(l_t.requires_reference = 'N' OR TRIM(p_reference) IS NOT NULL, 'NOONA-GL-136',
+      'نوع القيد «' || l_t.name_ar || '» يتطلب رقماً مرجعياً (مثل رقم القيد المصحح أو المستند)', 'Reference is required for this type');
+    IF l_t.auto_reverse = 'Y' THEN
+      l_rev := TRUNC(NVL(p_auto_reverse_date, l_per.end_date + 1));
+      NOONA_CORE_PKG.assert(l_rev > TRUNC(p_doc_date), 'NOONA-GL-137', 'تاريخ العكس الآلي بعد تاريخ القيد', 'Auto-reverse date must follow the journal date');
+    END IF;
+    UPDATE gl_journal
+       SET journal_category = l_t.code, is_opening = l_t.is_opening, is_adjustment = l_t.is_adjustment, auto_reverse_date = l_rev
+     WHERE id = p_journal_id;
+  END apply_type;
+
   FUNCTION create_journal(p_doc_date IN DATE, p_description IN VARCHAR2, p_currency IN VARCHAR2 DEFAULT NULL,
                           p_exchange_rate IN NUMBER DEFAULT NULL, p_reference IN VARCHAR2 DEFAULT NULL,
-                          p_source_code IN VARCHAR2 DEFAULT 'MANUAL') RETURN NUMBER IS
+                          p_source_code IN VARCHAR2 DEFAULT 'MANUAL', p_journal_type IN VARCHAR2 DEFAULT 'GENERAL',
+                          p_auto_reverse_date IN DATE DEFAULT NULL) RETURN NUMBER IS
     l_ledger gl_ledger%ROWTYPE;
     l_src    gl_journal_source%ROWTYPE;
     l_cur    VARCHAR2(3);
@@ -473,9 +575,10 @@ CREATE OR REPLACE PACKAGE BODY NOONA_GL_PKG AS
                             is_adjustment, status_code)
     VALUES (company, TO_NUMBER(SYS_CONTEXT('NOONA_CTX', 'BRANCH_ID')), 'DRAFT-' || RAWTOHEX(SYS_GUID()), TRUNC(p_doc_date), l_cur,
             l_rate, TRUNC(p_doc_date), l_ledger.id,
-            period_for(p_doc_date), TRUNC(p_doc_date), l_src.id, 'MANUAL', p_reference, p_description, 'N', 'N', 'DRAFT')
+            period_for(p_doc_date), TRUNC(p_doc_date), l_src.id, 'GENERAL', p_reference, p_description, 'N', 'N', 'DRAFT')
     RETURNING id INTO l_id;
     UPDATE gl_journal SET doc_no = 'مسودة-' || l_id WHERE id = l_id;
+    apply_type(l_id, p_journal_type, p_doc_date, p_reference, p_auto_reverse_date);
     RETURN l_id;
   END create_journal;
 
@@ -486,7 +589,8 @@ CREATE OR REPLACE PACKAGE BODY NOONA_GL_PKG AS
 
   PROCEDURE update_header(p_journal_id IN NUMBER, p_doc_date IN DATE, p_description IN VARCHAR2,
                           p_reference IN VARCHAR2 DEFAULT NULL, p_currency IN VARCHAR2 DEFAULT NULL,
-                          p_exchange_rate IN NUMBER DEFAULT NULL) IS
+                          p_exchange_rate IN NUMBER DEFAULT NULL, p_journal_type IN VARCHAR2 DEFAULT NULL,
+                          p_auto_reverse_date IN DATE DEFAULT NULL) IS
     l_j    gl_journal%ROWTYPE := get_journal(p_journal_id, TRUE);
     l_cur  VARCHAR2(3) := NVL(p_currency, l_j.currency_code);
     l_rate NUMBER;
@@ -504,6 +608,9 @@ CREATE OR REPLACE PACKAGE BODY NOONA_GL_PKG AS
            period_id = period_for(p_doc_date), description = p_description, reference_no = p_reference,
            currency_code = l_cur, exchange_rate = l_rate
      WHERE id = p_journal_id;
+    apply_type(p_journal_id, NVL(p_journal_type, l_j.journal_category), p_doc_date, p_reference,
+               CASE WHEN p_journal_type IS NULL OR p_journal_type = l_j.journal_category THEN NVL(p_auto_reverse_date, l_j.auto_reverse_date)
+                    ELSE p_auto_reverse_date END);
   END update_header;
 
   -- ================================================================ مراكز التكلفة
@@ -757,14 +864,16 @@ CREATE OR REPLACE PACKAGE BODY NOONA_GL_PKG AS
                             is_adjustment, reversal_of_id, status_code, approved_by)
     VALUES (l_j.company_id, l_j.branch_id, 'REV-' || RAWTOHEX(SYS_GUID()), TRUNC(NVL(p_reversal_date, SYSDATE)), l_j.currency_code,
             l_j.exchange_rate, l_j.rate_date, l_j.ledger_id, period_for(NVL(p_reversal_date, SYSDATE)),
-            TRUNC(NVL(p_reversal_date, SYSDATE)), l_j.journal_source_id, 'REVERSAL', l_j.doc_no,
+            TRUNC(NVL(p_reversal_date, SYSDATE)), l_j.journal_source_id,
+            CASE WHEN l_j.journal_category = 'CLOSING' THEN 'CLOSING' ELSE 'REVERSAL' END, l_j.doc_no,
             'عكس القيد ' || l_j.doc_no || ': ' || p_reason, 'N', l_j.is_adjustment, l_j.id, 'APPROVED',
             NOONA_CTX_PKG.current_user_name)
     RETURNING id INTO l_new;
     INSERT INTO gl_journal_line (company_id, journal_id, line_no, account_id, account_code_snapshot, debit_amount, credit_amount,
-                                 currency_code, exchange_rate, debit_func, credit_func, branch_id, cost_center_id, description)
+                                 currency_code, exchange_rate, debit_func, credit_func, branch_id, cost_center_id, description,
+                                 party_id, item_id)
     SELECT company_id, l_new, line_no, account_id, account_code_snapshot, credit_amount, debit_amount, currency_code,
-           exchange_rate, credit_func, debit_func, branch_id, cost_center_id, description
+           exchange_rate, credit_func, debit_func, branch_id, cost_center_id, description, party_id, item_id
       FROM gl_journal_line WHERE journal_id = p_journal_id;
     UPDATE gl_journal SET total_debit_func = l_j.total_credit_func, total_credit_func = l_j.total_debit_func WHERE id = l_new;
     do_post(l_new);
@@ -784,6 +893,21 @@ CREATE OR REPLACE PACKAGE BODY NOONA_GL_PKG AS
     RETURN do_reverse(p_journal_id, p_reversal_date, p_reason);
   END reverse_journal;
 
+  FUNCTION process_auto_reversals(p_as_of IN DATE DEFAULT NULL) RETURN NUMBER IS
+    l_n   NUMBER := 0;
+    l_new NUMBER;
+  BEGIN
+    guard('GL_JOURNAL.REVERSE');
+    FOR r IN (SELECT id, journal_category, auto_reverse_date FROM gl_journal
+               WHERE company_id = company AND status_code = 'POSTED' AND reversed_by_id IS NULL AND reversal_of_id IS NULL
+                 AND auto_reverse_date IS NOT NULL AND auto_reverse_date <= TRUNC(NVL(p_as_of, SYSDATE))
+               ORDER BY auto_reverse_date, id) LOOP
+      l_new := do_reverse(r.id, r.auto_reverse_date, 'عكس آلي لـ' || type_label(r.journal_category) || ' في بداية الفترة التالية');
+      l_n := l_n + 1;
+    END LOOP;
+    RETURN l_n;
+  END process_auto_reversals;
+
   FUNCTION reverse_system(p_journal_id IN NUMBER, p_date IN DATE, p_reason IN VARCHAR2) RETURN NUMBER
     ACCESSIBLE BY (PACKAGE NOONA_ACE_PKG) IS
   BEGIN
@@ -792,7 +916,8 @@ CREATE OR REPLACE PACKAGE BODY NOONA_GL_PKG AS
 
   FUNCTION post_system(p_source_code IN VARCHAR2, p_doc_date IN DATE, p_description IN VARCHAR2, p_currency IN VARCHAR2,
                        p_rate IN NUMBER, p_lines IN t_lines, p_reference IN VARCHAR2, p_event_id IN NUMBER,
-                       p_branch_id IN NUMBER DEFAULT NULL) RETURN NUMBER ACCESSIBLE BY (PACKAGE NOONA_ACE_PKG) IS
+                       p_branch_id IN NUMBER DEFAULT NULL, p_journal_type IN VARCHAR2 DEFAULT NULL) RETURN NUMBER
+    ACCESSIBLE BY (PACKAGE NOONA_ACE_PKG) IS
     l_led gl_ledger%ROWTYPE;
     l_src NUMBER;
     l_id  NUMBER;
@@ -812,7 +937,7 @@ CREATE OR REPLACE PACKAGE BODY NOONA_GL_PKG AS
                             posting_date, journal_source_id, journal_category, accounting_event_id, reference_no, description,
                             is_opening, is_adjustment, status_code, approved_by)
     VALUES (l_led.company_id, p_branch_id, 'SYS-' || RAWTOHEX(SYS_GUID()), TRUNC(p_doc_date), p_currency, l_rate, TRUNC(p_doc_date),
-            l_led.id, period_for(p_doc_date), TRUNC(p_doc_date), l_src, p_source_code, p_event_id, p_reference,
+            l_led.id, period_for(p_doc_date), TRUNC(p_doc_date), l_src, NVL(p_journal_type, p_source_code), p_event_id, p_reference,
             p_description, 'N', 'N', 'APPROVED', NOONA_CTX_PKG.current_user_name)
     RETURNING id INTO l_id;
     FOR i IN 1 .. p_lines.COUNT LOOP
@@ -824,9 +949,11 @@ CREATE OR REPLACE PACKAGE BODY NOONA_GL_PKG AS
       l_drf := NOONA_REFERENCE_PKG.round_amount(NVL(p_lines(i).debit, 0) * l_rate, l_led.currency_code);
       l_crf := NOONA_REFERENCE_PKG.round_amount(NVL(p_lines(i).credit, 0) * l_rate, l_led.currency_code);
       INSERT INTO gl_journal_line (company_id, journal_id, line_no, account_id, account_code_snapshot, debit_amount, credit_amount,
-                                   currency_code, exchange_rate, debit_func, credit_func, branch_id, cost_center_id, description)
+                                   currency_code, exchange_rate, debit_func, credit_func, branch_id, cost_center_id, description,
+                                   party_id, item_id)
       VALUES (l_led.company_id, l_id, i, l_acc.id, l_acc.account_code, NVL(p_lines(i).debit, 0), NVL(p_lines(i).credit, 0),
-              p_currency, l_rate, l_drf, l_crf, p_branch_id, p_lines(i).cost_center_id, p_lines(i).description);
+              p_currency, l_rate, l_drf, l_crf, p_branch_id, p_lines(i).cost_center_id, p_lines(i).description,
+              p_lines(i).party_id, p_lines(i).item_id);
       l_dr := l_dr + l_drf; l_cr := l_cr + l_crf;
     END LOOP;
     UPDATE gl_journal SET total_debit_func = l_dr, total_credit_func = l_cr WHERE id = l_id;
@@ -956,9 +1083,11 @@ CREATE OR REPLACE PACKAGE BODY NOONA_GL_PKG AS
   BEGIN
     IF l_cur = ledger_currency THEN l_rate := NULL; END IF;
     IF l_id IS NULL THEN
-      l_id := create_journal(l_date, l_o.get_string('desc'), l_cur, l_rate, l_o.get_string('ref'));
+      l_id := create_journal(l_date, l_o.get_string('desc'), l_cur, l_rate, l_o.get_string('ref'), 'MANUAL',
+                             NVL(l_o.get_string('type'), 'GENERAL'), TO_DATE(l_o.get_string('rev'), 'YYYY-MM-DD'));
     ELSE
-      update_header(l_id, l_date, l_o.get_string('desc'), l_o.get_string('ref'), NVL(l_cur, ledger_currency), l_rate);
+      update_header(l_id, l_date, l_o.get_string('desc'), l_o.get_string('ref'), NVL(l_cur, ledger_currency), l_rate,
+                    NVL(l_o.get_string('type'), 'GENERAL'), TO_DATE(l_o.get_string('rev'), 'YYYY-MM-DD'));
     END IF;
     save_lines(l_id, CASE WHEN l_ln IS NULL THEN '[]' ELSE l_ln.to_clob END);
     IF l_o.get_string('action') = 'SUBMIT' THEN
@@ -971,11 +1100,13 @@ CREATE OR REPLACE PACKAGE BODY NOONA_GL_PKG AS
     l_j gl_journal%ROWTYPE;
   BEGIN
     IF p_journal_id IS NULL THEN
-      RETURN '{"id":null,"status":"DRAFT","date":"' || TO_CHAR(SYSDATE, 'YYYY-MM-DD') || '","cur":'
+      RETURN '{"id":null,"status":"DRAFT","type":"GENERAL","date":"' || TO_CHAR(SYSDATE, 'YYYY-MM-DD') || '","cur":'
           || NOONA_CORE_PKG.json_text(ledger_currency) || ',"rate":1,"lines":[]}';
     END IF;
     SELECT * INTO l_j FROM gl_journal WHERE id = p_journal_id AND company_id = company;
     RETURN '{"id":' || l_j.id || ',"no":' || NOONA_CORE_PKG.json_text(l_j.doc_no) || ',"status":' || NOONA_CORE_PKG.json_text(l_j.status_code)
+        || ',"type":' || NOONA_CORE_PKG.json_text(l_j.journal_category) || ',"typeName":' || NOONA_CORE_PKG.json_text(type_label(l_j.journal_category))
+        || ',"rev":' || NOONA_CORE_PKG.json_text(TO_CHAR(l_j.auto_reverse_date, 'YYYY-MM-DD'))
         || ',"date":"' || TO_CHAR(l_j.doc_date, 'YYYY-MM-DD') || '","desc":' || NOONA_CORE_PKG.json_text(l_j.description)
         || ',"ref":' || NOONA_CORE_PKG.json_text(l_j.reference_no) || ',"cur":' || NOONA_CORE_PKG.json_text(l_j.currency_code)
         || ',"rate":' || TO_CHAR(l_j.exchange_rate, 'TM9', 'NLS_NUMERIC_CHARACTERS=''.,''') || ',"lines":' || lines_json(p_journal_id) || '}';
@@ -1050,10 +1181,13 @@ CREATE OR REPLACE PACKAGE BODY NOONA_GL_PKG AS
     END IF;
     RETURN '<div class="nn-taskhead ' || CASE l_j.status_code WHEN 'POSTED' THEN 'is-success' WHEN 'SUBMITTED' THEN 'is-warning'
                                           WHEN 'REVERSED' THEN 'is-danger' ELSE '' END || '">'
-        || '<div class="nn-taskhead-top"><div><div class="nn-taskhead-title">قيد يومية ' || esc(l_j.doc_no) || '</div>'
+        || '<div class="nn-taskhead-top"><div><div class="nn-taskhead-title">' || esc(type_label(l_j.journal_category)) || ' ' || esc(l_j.doc_no) || '</div>'
         || '<div class="nn-taskhead-sub">' || esc(l_j.description) || '</div></div>'
         || NOONA_UI_PKG.status_badge(l_j.status_code) || '</div><div class="nn-fields">'
         || '<div class="nn-field"><div class="nn-field-label">التاريخ</div><div class="nn-field-value">' || TO_CHAR(l_j.doc_date, 'YYYY-MM-DD') || '</div></div>'
+        || '<div class="nn-field"><div class="nn-field-label">نوع القيد</div><div class="nn-field-value">' || esc(type_label(l_j.journal_category)) || '</div></div>'
+        || CASE WHEN l_j.auto_reverse_date IS NOT NULL THEN '<div class="nn-field"><div class="nn-field-label">يعكس آلياً في</div><div class="nn-field-value">'
+             || TO_CHAR(l_j.auto_reverse_date, 'YYYY-MM-DD') || '</div></div>' END
         || '<div class="nn-field"><div class="nn-field-label">العملة</div><div class="nn-field-value">' || esc(l_j.currency_code)
         || CASE WHEN l_j.exchange_rate <> 1 THEN ' @ ' || l_j.exchange_rate END || '</div></div>'
         || '<div class="nn-field"><div class="nn-field-label">المدين</div><div class="nn-field-value">' || fmt0(l_j.total_debit_func) || '</div></div>'
@@ -1121,10 +1255,12 @@ CREATE OR REPLACE PACKAGE BODY NOONA_GL_PKG AS
       WITH mv AS (
         SELECT l.account_id,
                -- الافتتاحي: الميزانية من البداية، والأرباح والخسائر من أول السنة المالية فقط
-               SUM(CASE WHEN j.doc_date < p_from AND (a.account_type IN ('ASSET', 'LIABILITY', 'EQUITY') OR j.doc_date >= l_fy)
+               -- القيد الافتتاحي داخل الفترة يظهر في عمود الافتتاحي لا في الحركة
+               SUM(CASE WHEN (j.doc_date < p_from AND (a.account_type IN ('ASSET', 'LIABILITY', 'EQUITY') OR j.doc_date >= l_fy))
+                          OR (j.is_opening = 'Y' AND j.doc_date BETWEEN p_from AND p_to)
                         THEN l.debit_func - l.credit_func END) AS opening,
-               SUM(CASE WHEN j.doc_date BETWEEN p_from AND p_to THEN l.debit_func END) AS pdr,
-               SUM(CASE WHEN j.doc_date BETWEEN p_from AND p_to THEN l.credit_func END) AS pcr
+               SUM(CASE WHEN j.doc_date BETWEEN p_from AND p_to AND j.is_opening = 'N' THEN l.debit_func END) AS pdr,
+               SUM(CASE WHEN j.doc_date BETWEEN p_from AND p_to AND j.is_opening = 'N' THEN l.credit_func END) AS pcr
           FROM gl_journal_line l JOIN gl_journal j ON j.id = l.journal_id JOIN gl_account a ON a.id = l.account_id
          WHERE j.ledger_id = l_led AND j.doc_date <= p_to
            AND (j.status_code IN ('POSTED', 'REVERSED') OR (l_all = 'Y' AND j.status_code IN ('SUBMITTED', 'APPROVED')))

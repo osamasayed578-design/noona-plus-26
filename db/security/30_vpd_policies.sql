@@ -184,6 +184,7 @@ BEGIN
   NOONA_VPD_PKG.add_tenant_policy('GL_JOURNAL');
   NOONA_VPD_PKG.add_tenant_policy('GL_JOURNAL_LINE');
   NOONA_VPD_PKG.add_shared_policy('GL_JOURNAL_SOURCE');
+  NOONA_VPD_PKG.add_shared_policy('GL_JOURNAL_TYPE');
   NOONA_VPD_PKG.add_tenant_policy('GL_LEDGER');
   NOONA_VPD_PKG.add_tenant_policy('GL_OPENING_BATCH');
   NOONA_VPD_PKG.add_tenant_policy('GL_OPENING_LINE');

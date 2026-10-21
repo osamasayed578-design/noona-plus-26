@@ -27,7 +27,7 @@
 | 04 | إدارة المستندات والأرشفة | Document Management & Archive | `NOONA_DMS_PKG` | 29 | [p04_dms](p04_dms.md) |
 | 05 | المراسلات والإشعارات والتدقيق | Correspondence, Notifications & Audit | `NOONA_CORRESPONDENCE_PKG` | 24 | [p05_cor](p05_cor.md) |
 | 06 | البيانات المرجعية المشتركة والأطراف | Shared Reference Data & Global Party Model | `NOONA_REFERENCE_PKG` | 29 | [p06_ref](p06_ref.md) |
-| 07 | المحاسبة العامة والمحرك المحاسبي | General Ledger & Accounting Engine | `NOONA_GL_PKG` | 40 | [p07_gl](p07_gl.md) |
+| 07 | المحاسبة العامة والمحرك المحاسبي | General Ledger & Accounting Engine | `NOONA_GL_PKG` | 41 | [p07_gl](p07_gl.md) |
 | 08 | العملاء والحسابات المدينة | Customers & Accounts Receivable | `NOONA_AR_PKG` | 19 | [p08_ar](p08_ar.md) |
 | 09 | الموردون والحسابات الدائنة | Suppliers & Accounts Payable | `NOONA_AP_PKG` | 12 | [p09_ap](p09_ap.md) |
 | 10 | النقدية والبنوك | Cash & Banks | `NOONA_CASH_PKG` | 13 | [p10_csh](p10_csh.md) |
@@ -52,5 +52,5 @@
 | 29 | النشر الإنتاجي والإصدارات | Deployment & Release Management | `NOONA_DEPLOYMENT_PKG` | 6 | [p29_dep](p29_dep.md) |
 | 30 | التشغيل والدعم والتطوير المستمر | Operations, Support & Continuous Improvement | `NOONA_OPERATIONS_PKG` | 12 | [p30_ops](p30_ops.md) |
 
-**الإجمالي:** 571 جدول · 9769 عمود.
+**الإجمالي:** 572 جدول · 9790 عمود.
 

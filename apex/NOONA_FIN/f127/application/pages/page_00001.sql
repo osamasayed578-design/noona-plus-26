@@ -141,7 +141,8 @@ wwv_flow_imp_page.create_page_plug(
 ,p_plug_display_sequence=>20
 ,p_query_type=>'SQL'
 ,p_plug_source=>wwv_flow_string.join(wwv_flow_t_varchar2(
-'select j.id, j.doc_no, to_char(j.doc_date, ''YYYY-MM-DD'') as doc_date, j.description, j.reference_no,',
+'select j.id, j.doc_no, to_char(j.doc_date, ''YYYY-MM-DD'') as doc_date, noona_gl_pkg.type_label(j.journal_category) as journal_type,',
+'       j.description, j.reference_no,',
 '       j.total_debit_func as amount, j.currency_code, j.created_by, j.approved_by,',
 '       noona_ui_pkg.status_badge(j.status_code) as status_html',
 '  from gl_journal j where j.company_id = noona_gl_pkg.company order by j.id desc fetch first 15 rows only'))
@@ -198,69 +199,79 @@ wwv_flow_imp_page.create_worksheet_column(
 );
 wwv_flow_imp_page.create_worksheet_column(
  p_id=>wwv_flow_imp.id(91820266000000023)
-,p_db_column_name=>'DESCRIPTION'
+,p_db_column_name=>'JOURNAL_TYPE'
 ,p_display_order=>40
 ,p_column_identifier=>'D'
-,p_column_label=>'البيان'
+,p_column_label=>'نوع القيد'
 ,p_column_type=>'STRING'
 ,p_heading_alignment=>'CENTER'
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
  p_id=>wwv_flow_imp.id(91820266000000024)
-,p_db_column_name=>'REFERENCE_NO'
+,p_db_column_name=>'DESCRIPTION'
 ,p_display_order=>50
 ,p_column_identifier=>'E'
-,p_column_label=>'المرجع'
+,p_column_label=>'البيان'
 ,p_column_type=>'STRING'
 ,p_heading_alignment=>'CENTER'
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
  p_id=>wwv_flow_imp.id(91820266000000025)
-,p_db_column_name=>'AMOUNT'
+,p_db_column_name=>'REFERENCE_NO'
 ,p_display_order=>60
 ,p_column_identifier=>'F'
+,p_column_label=>'المرجع'
+,p_column_type=>'STRING'
+,p_heading_alignment=>'CENTER'
+,p_use_as_row_header=>'N'
+);
+wwv_flow_imp_page.create_worksheet_column(
+ p_id=>wwv_flow_imp.id(91820266000000026)
+,p_db_column_name=>'AMOUNT'
+,p_display_order=>70
+,p_column_identifier=>'G'
 ,p_column_label=>'المبلغ'
 ,p_column_type=>'NUMBER'
 ,p_heading_alignment=>'CENTER'
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820266000000026)
+ p_id=>wwv_flow_imp.id(91820266000000027)
 ,p_db_column_name=>'CURRENCY_CODE'
-,p_display_order=>70
-,p_column_identifier=>'G'
+,p_display_order=>80
+,p_column_identifier=>'H'
 ,p_column_label=>'العملة'
 ,p_column_type=>'STRING'
 ,p_heading_alignment=>'CENTER'
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820266000000027)
+ p_id=>wwv_flow_imp.id(91820266000000028)
 ,p_db_column_name=>'CREATED_BY'
-,p_display_order=>80
-,p_column_identifier=>'H'
+,p_display_order=>90
+,p_column_identifier=>'I'
 ,p_column_label=>'أنشأه'
 ,p_column_type=>'STRING'
 ,p_heading_alignment=>'CENTER'
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820266000000028)
+ p_id=>wwv_flow_imp.id(91820266000000029)
 ,p_db_column_name=>'APPROVED_BY'
-,p_display_order=>90
-,p_column_identifier=>'I'
+,p_display_order=>100
+,p_column_identifier=>'J'
 ,p_column_label=>'اعتمده'
 ,p_column_type=>'STRING'
 ,p_heading_alignment=>'CENTER'
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820266000000029)
+ p_id=>wwv_flow_imp.id(91820266000000030)
 ,p_db_column_name=>'STATUS_HTML'
-,p_display_order=>100
-,p_column_identifier=>'J'
+,p_display_order=>110
+,p_column_identifier=>'K'
 ,p_column_label=>'الحالة'
 ,p_column_type=>'STRING'
 ,p_display_text_as=>'WITHOUT_MODIFICATION'
@@ -274,10 +285,10 @@ wwv_flow_imp_page.create_worksheet_rpt(
 ,p_report_alias=>'19'
 ,p_status=>'PUBLIC'
 ,p_is_default=>'Y'
-,p_report_columns=>'DOC_NO:DOC_DATE:DESCRIPTION:REFERENCE_NO:AMOUNT:CURRENCY_CODE:CREATED_BY:APPROVED_BY:STATUS_HTML'
+,p_report_columns=>'DOC_NO:DOC_DATE:JOURNAL_TYPE:DESCRIPTION:REFERENCE_NO:AMOUNT:CURRENCY_CODE:CREATED_BY:APPROVED_BY:STATUS_HTML'
 );
 wwv_flow_imp_page.create_page_button(
- p_id=>wwv_flow_imp.id(91820266000000030)
+ p_id=>wwv_flow_imp.id(91820266000000031)
 ,p_button_sequence=>10
 ,p_button_plug_id=>wwv_flow_imp.id(91820266000000017)
 ,p_button_name=>'NEW_JOURNAL'
@@ -290,7 +301,7 @@ wwv_flow_imp_page.create_page_button(
 ,p_button_redirect_url=>'f?p=&APP_ID.:21:&SESSION.::&DEBUG.:RP,21::'
 );
 wwv_flow_imp_page.create_page_branch(
- p_id=>wwv_flow_imp.id(91820266000000031)
+ p_id=>wwv_flow_imp.id(91820266000000032)
 ,p_branch_action=>'f?p=&APP_ID.:1:&SESSION.::&DEBUG.:::&success_msg=#SUCCESS_MSG#'
 ,p_branch_point=>'AFTER_PROCESSING'
 ,p_branch_type=>'REDIRECT_URL'

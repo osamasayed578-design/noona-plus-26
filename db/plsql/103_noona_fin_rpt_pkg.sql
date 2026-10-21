@@ -16,8 +16,11 @@ CREATE OR REPLACE PACKAGE NOONA_FIN_RPT_PKG AUTHID DEFINER AS
   FUNCTION general_ledger(p_from IN DATE, p_to IN DATE, p_acc_from IN VARCHAR2 DEFAULT NULL, p_acc_to IN VARCHAR2 DEFAULT NULL,
                           p_cost_center_id IN NUMBER DEFAULT NULL, p_link IN VARCHAR2 DEFAULT NULL) RETURN CLOB;
   -- p_status: POSTED (المرحلة) / UNPOSTED (غير المرحلة) / REVERSED (المعكوسة وقيود عكسها) / ALL
+  -- p_type: نوع القيد (فارغ = كل الأنواع)
   FUNCTION journal_register(p_from IN DATE, p_to IN DATE, p_status IN VARCHAR2 DEFAULT 'POSTED',
-                            p_link IN VARCHAR2 DEFAULT NULL) RETURN CLOB;
+                            p_link IN VARCHAR2 DEFAULT NULL, p_type IN VARCHAR2 DEFAULT NULL) RETURN CLOB;
+  -- ملخص القيود حسب النوع: العدد والمبالغ لكل نوع (المرحلة) مع تفصيل غير المرحلة
+  FUNCTION journal_type_summary(p_from IN DATE, p_to IN DATE, p_link IN VARCHAR2 DEFAULT NULL) RETURN CLOB;
   FUNCTION cash_flow(p_from IN DATE, p_to IN DATE) RETURN CLOB;
   FUNCTION equity_changes(p_from IN DATE, p_to IN DATE) RETURN CLOB;
   FUNCTION income_compare(p_from IN DATE, p_to IN DATE, p_from2 IN DATE, p_to2 IN DATE) RETURN CLOB;
@@ -207,7 +210,7 @@ CREATE OR REPLACE PACKAGE BODY NOONA_FIN_RPT_PKG AS
 
   -- ================================================================ يومية القيود
   FUNCTION journal_register(p_from IN DATE, p_to IN DATE, p_status IN VARCHAR2 DEFAULT 'POSTED',
-                            p_link IN VARCHAR2 DEFAULT NULL) RETURN CLOB IS
+                            p_link IN VARCHAR2 DEFAULT NULL, p_type IN VARCHAR2 DEFAULT NULL) RETURN CLOB IS
     l_led  NUMBER := NOONA_GL_PKG.primary_ledger;
     l_html CLOB;
     t_dr   NUMBER := 0; t_cr NUMBER := 0;
@@ -216,13 +219,16 @@ CREATE OR REPLACE PACKAGE BODY NOONA_FIN_RPT_PKG AS
   BEGIN
     NOONA_SECURITY_PKG.assert_permission('GL_JOURNAL.VIEW', NOONA_GL_PKG.company);
     l_html := NOONA_BRAND_PKG.report_header('يومية القيود - ' || CASE l_st WHEN 'POSTED' THEN 'المرحلة' WHEN 'UNPOSTED' THEN 'غير المرحلة'
-                WHEN 'REVERSED' THEN 'المعكوسة وقيود عكسها' ELSE 'كل القيود' END || period_text(p_from, p_to))
+                WHEN 'REVERSED' THEN 'المعكوسة وقيود عكسها' ELSE 'كل القيود' END
+                || CASE WHEN p_type IS NOT NULL THEN ' - ' || NOONA_GL_PKG.type_label(p_type) END || period_text(p_from, p_to))
            || '<table class="nn-rpt"><thead><tr><th>الحساب</th><th>اسم الحساب</th><th>مركز التكلفة</th><th>البيان</th><th>مدين</th>'
            || '<th>دائن</th></tr></thead><tbody>';
-    FOR j IN (SELECT j.id, j.doc_no, j.doc_date, j.description, j.status_code, j.created_by, j.approved_by, s.name_ar src,
+    FOR j IN (SELECT j.id, j.doc_no, j.doc_date, j.description, j.status_code, j.created_by, j.approved_by,
+                     NOONA_GL_PKG.type_label(j.journal_category) src,
                      j.total_debit_func, j.total_credit_func, j.reversal_of_id, j.reversed_by_id
-                FROM gl_journal j JOIN gl_journal_source s ON s.id = j.journal_source_id
+                FROM gl_journal j
                WHERE j.ledger_id = l_led AND j.doc_date BETWEEN p_from AND p_to
+                 AND (p_type IS NULL OR j.journal_category = p_type)
                  AND ((l_st = 'POSTED' AND j.status_code IN ('POSTED', 'REVERSED'))
                    OR (l_st = 'UNPOSTED' AND j.status_code IN ('DRAFT', 'SUBMITTED', 'APPROVED'))
                    OR (l_st = 'REVERSED' AND (j.status_code = 'REVERSED' OR j.reversal_of_id IS NOT NULL))
@@ -251,6 +257,48 @@ CREATE OR REPLACE PACKAGE BODY NOONA_FIN_RPT_PKG AS
         || NOONA_GL_PKG.report_footer(CASE l_st WHEN 'UNPOSTED' THEN 'القيود المسودة والمرسلة والمعتمدة غير المرحلة (لا تؤثر في الأرصدة)'
                                           WHEN 'ALL' THEN 'كل القيود عدا الملغاة' END);
   END journal_register;
+
+  FUNCTION journal_type_summary(p_from IN DATE, p_to IN DATE, p_link IN VARCHAR2 DEFAULT NULL) RETURN CLOB IS
+    l_led  NUMBER := NOONA_GL_PKG.primary_ledger;
+    l_html CLOB;
+    t_n NUMBER := 0; t_dr NUMBER := 0; t_un NUMBER := 0;
+    l_grp  VARCHAR2(20);
+  BEGIN
+    NOONA_SECURITY_PKG.assert_permission('GL_JOURNAL.VIEW', NOONA_GL_PKG.company);
+    l_html := NOONA_BRAND_PKG.report_header('القيود حسب النوع' || period_text(p_from, p_to))
+           || '<table class="nn-rpt"><thead><tr><th>نوع القيد</th><th>المصدر</th><th>عدد المرحلة</th><th>إجمالي المبالغ المرحلة</th>'
+           || '<th>منها معكوسة</th><th>غير مرحلة</th><th>تعكس آلياً ولم تعكس</th></tr></thead><tbody>';
+    FOR r IN (WITH t AS (SELECT code, name_ar, type_group, sort_order,
+                                ROW_NUMBER() OVER (PARTITION BY code ORDER BY tenant_id NULLS LAST) rn FROM gl_journal_type),
+                   j AS (SELECT NVL(journal_category, 'GENERAL') code,
+                                SUM(CASE WHEN status_code IN ('POSTED', 'REVERSED') THEN 1 ELSE 0 END) posted,
+                                SUM(CASE WHEN status_code IN ('POSTED', 'REVERSED') THEN total_debit_func ELSE 0 END) amt,
+                                SUM(CASE WHEN status_code = 'REVERSED' THEN 1 ELSE 0 END) reversed,
+                                SUM(CASE WHEN status_code IN ('DRAFT', 'SUBMITTED', 'APPROVED') THEN 1 ELSE 0 END) unposted,
+                                SUM(CASE WHEN status_code = 'POSTED' AND auto_reverse_date IS NOT NULL AND reversed_by_id IS NULL THEN 1 ELSE 0 END) due
+                           FROM gl_journal WHERE ledger_id = l_led AND doc_date BETWEEN p_from AND p_to
+                          GROUP BY NVL(journal_category, 'GENERAL'))
+              SELECT j.code, NVL(t.name_ar, NOONA_GL_PKG.type_label(j.code)) name_ar, NVL(t.type_group, 'MANUAL') grp, j.posted, j.amt,
+                     j.reversed, j.unposted, j.due
+                FROM j LEFT JOIN t ON t.code = j.code AND t.rn = 1
+               ORDER BY CASE NVL(t.type_group, 'MANUAL') WHEN 'MANUAL' THEN 1 ELSE 2 END, t.sort_order NULLS LAST, j.code) LOOP
+      IF l_grp IS NULL OR l_grp <> r.grp THEN
+        l_grp := r.grp;
+        l_html := l_html || '<tr class="nn-rpt-group"><td colspan="7">'
+               || CASE r.grp WHEN 'MANUAL' THEN 'القيود اليدوية' ELSE 'القيود الآلية من المستندات' END || '</td></tr>';
+      END IF;
+      l_html := l_html || '<tr><td class="nn-rpt-text">' || esc(r.name_ar) || '</td><td>'
+             || CASE r.grp WHEN 'MANUAL' THEN 'يدوي' ELSE 'آلي' END || '</td><td>'
+             || CASE WHEN p_link IS NOT NULL AND r.posted > 0
+                     THEN '<a href="' || REPLACE(p_link, '#ID#', r.code) || '">' || r.posted || '</a>' ELSE TO_CHAR(r.posted) END
+             || '</td><td>' || fmt(r.amt) || '</td><td>' || NULLIF(r.reversed, 0) || '</td><td>' || NULLIF(r.unposted, 0)
+             || '</td><td>' || NULLIF(r.due, 0) || '</td></tr>';
+      t_n := t_n + r.posted; t_dr := t_dr + r.amt; t_un := t_un + r.unposted;
+    END LOOP;
+    RETURN l_html || '</tbody><tfoot><tr><td colspan="2">الإجمالي</td><td>' || t_n || '</td><td>' || fmt0(t_dr) || '</td><td></td><td>'
+        || NULLIF(t_un, 0) || '</td><td></td></tr></tfoot></table>'
+        || NOONA_GL_PKG.report_footer('حسب تاريخ القيد؛ المبالغ بالعملة الوظيفية (المدين = الدائن لكل قيد)');
+  END journal_type_summary;
 
   -- ================================================================ التدفقات النقدية (الطريقة المباشرة)
   -- كل قيد يمس حسابات النقدية: سطوره غير النقدية تمثل مصدر التدفق (دائن - مدين)، وتصنف حسب الحساب المقابل

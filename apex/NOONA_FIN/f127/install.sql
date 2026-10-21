@@ -53,6 +53,7 @@ prompt --install
 @@application/pages/page_00011.sql
 @@application/pages/page_00012.sql
 @@application/pages/page_00013.sql
+@@application/pages/page_00014.sql
 @@application/pages/page_00020.sql
 @@application/pages/page_00021.sql
 @@application/pages/page_00022.sql
@@ -76,5 +77,6 @@ prompt --install
 @@application/pages/page_00047.sql
 @@application/pages/page_00048.sql
 @@application/pages/page_00049.sql
+@@application/pages/page_00050.sql
 @@application/pages/page_09999.sql
 @@application/end_environment.sql

@@ -14,7 +14,7 @@ CREATE OR REPLACE PACKAGE NOONA_ACE_PKG AUTHID DEFINER ACCESSIBLE BY (PACKAGE NO
   FUNCTION post_source(p_event_class IN VARCHAR2, p_journal_source IN VARCHAR2, p_entity_type IN VARCHAR2,
                        p_entity_id IN NUMBER, p_doc_date IN DATE, p_description IN VARCHAR2, p_currency IN VARCHAR2,
                        p_rate IN NUMBER, p_lines IN NOONA_GL_PKG.t_lines, p_reference IN VARCHAR2,
-                       p_branch_id IN NUMBER DEFAULT NULL) RETURN NUMBER;
+                       p_branch_id IN NUMBER DEFAULT NULL, p_journal_type IN VARCHAR2 DEFAULT NULL) RETURN NUMBER;
   -- يعكس قيد المستند المصدر؛ يعيد رقم قيد العكس
   FUNCTION reverse_source(p_entity_type IN VARCHAR2, p_entity_id IN NUMBER, p_date IN DATE, p_reason IN VARCHAR2) RETURN NUMBER;
   -- قيد المستند الحالي (NULL إن لم يرحل)
@@ -36,7 +36,7 @@ CREATE OR REPLACE PACKAGE BODY NOONA_ACE_PKG AS
   FUNCTION post_source(p_event_class IN VARCHAR2, p_journal_source IN VARCHAR2, p_entity_type IN VARCHAR2,
                        p_entity_id IN NUMBER, p_doc_date IN DATE, p_description IN VARCHAR2, p_currency IN VARCHAR2,
                        p_rate IN NUMBER, p_lines IN NOONA_GL_PKG.t_lines, p_reference IN VARCHAR2,
-                       p_branch_id IN NUMBER DEFAULT NULL) RETURN NUMBER IS
+                       p_branch_id IN NUMBER DEFAULT NULL, p_journal_type IN VARCHAR2 DEFAULT NULL) RETURN NUMBER IS
     l_class NUMBER;
     l_key   VARCHAR2(200);
     l_n     NUMBER;
@@ -80,7 +80,7 @@ CREATE OR REPLACE PACKAGE BODY NOONA_ACE_PKG AS
       NOONA_CORE_PKG.raise_error('NOONA-ACE-001', 'المستند مرحل سابقاً؛ لا يرحل مرتين', 'Document already posted');
     END;
     l_j := NOONA_GL_PKG.post_system(p_journal_source, p_doc_date, p_description, p_currency, p_rate, p_lines,
-                                    p_reference, l_ev, p_branch_id);
+                                    p_reference, l_ev, p_branch_id, p_journal_type);
     UPDATE ace_accounting_event SET journal_id = l_j, status_code = 'POSTED' WHERE id = l_ev;
     RETURN l_j;
   END post_source;

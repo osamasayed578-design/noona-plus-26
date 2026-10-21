@@ -1,6 +1,6 @@
 # ERD — الحزمة 07: المحاسبة العامة والمحرك المحاسبي
 
-**General Ledger & Accounting Engine** · الحزمة البرمجية `NOONA_GL_PKG` · عدد الجداول: **40**
+**General Ledger & Accounting Engine** · الحزمة البرمجية `NOONA_GL_PKG` · عدد الجداول: **41**
 
 الدفاتر ودليل الحسابات الهرمي والتقويم المالي والفترات وحالتها حسب الوحدة، والقيود والأرصدة والأبعاد ومراكز التكلفة والموازنات والتجميع؛ والمحرك المحاسبي المركزي (NOONA_POSTING_PKG): Business Transaction → Accounting Event → Posting Rule → Journal → GL مع Idempotency ومنع الازدواج.
 
@@ -125,6 +125,12 @@ erDiagram
     DATE EFFECTIVE_FROM UK
   }
   GL_JOURNAL_SOURCE {
+    NUMBER ID PK
+    NUMBER TENANT_ID FK,UK
+    VARCHAR2 CODE UK
+    VARCHAR2 NAME_AR
+  }
+  GL_JOURNAL_TYPE {
     NUMBER ID PK
     NUMBER TENANT_ID FK,UK
     VARCHAR2 CODE UK
@@ -637,6 +643,7 @@ erDiagram
 | `GL_DIMENSION_VALUE` | قيم الأبعاد المخصصة | Dimension Values | T |
 | `GL_ACCOUNT_DIM_RULE` | قواعد الأبعاد للحسابات | Account Dimension Rules | T |
 | `GL_JOURNAL_SOURCE` | مصادر القيود | Journal Sources | TO |
+| `GL_JOURNAL_TYPE` | أنواع القيود | Journal Types | TO |
 | `GL_JOURNAL` | القيود | Journal Entries | C |
 | `GL_JOURNAL_LINE` | أسطر القيود | Journal Lines | C |
 | `GL_BALANCE` | أرصدة الحسابات | Account Balances | C |

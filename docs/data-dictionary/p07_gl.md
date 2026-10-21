@@ -21,6 +21,7 @@
 | [`GL_DIMENSION_VALUE`](#gl_dimension_value) | قيم الأبعاد المخصصة | Dimension Values | T | INTERNAL |
 | [`GL_ACCOUNT_DIM_RULE`](#gl_account_dim_rule) | قواعد الأبعاد للحسابات | Account Dimension Rules | T | INTERNAL |
 | [`GL_JOURNAL_SOURCE`](#gl_journal_source) | مصادر القيود | Journal Sources | TO | INTERNAL |
+| [`GL_JOURNAL_TYPE`](#gl_journal_type) | أنواع القيود | Journal Types | TO | INTERNAL |
 | [`GL_JOURNAL`](#gl_journal) | القيود | Journal Entries | C | INTERNAL |
 | [`GL_JOURNAL_LINE`](#gl_journal_line) | أسطر القيود | Journal Lines | C | INTERNAL |
 | [`GL_BALANCE`](#gl_balance) | أرصدة الحسابات | Account Balances | C | INTERNAL |
@@ -468,6 +469,43 @@
 | 13 | `UPDATED_BY` | اسم مستخدم | `VARCHAR2(128 CHAR)` |  |  |  |  | Trigger |  | آخر من عدل السجل |
 | 14 | `UPDATED_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` |  |  |  |  | Trigger |  | وقت آخر تعديل |
 
+## GL_JOURNAL_TYPE
+
+| البند | القيمة |
+|---|---|
+| الاسم العربي | أنواع القيود |
+| English | Journal Types |
+| الحزمة المالكة | 07 — `NOONA_GL_PKG` |
+| نطاق الملكية | `TO` — منصة أو مؤسسة (TENANT_ID اختياري: فارغ = قيمة منصة افتراضية) |
+| الحساسية | INTERNAL |
+| النمط | قابل للتعديل وفق دورة الحياة |
+| الغرض | نوع القيد يحدد قواعد إدخاله وظهوره في التقارير؛ GL_JOURNAL.JOURNAL_CATEGORY يحمل رمز النوع |
+| مفاتيح فريدة | UK1: (TENANT_ID, CODE) |
+
+| # | العمود | النوع المنطقي | Oracle Type | إلزامي | افتراضي | مفاتيح | القيم المقبولة | المصدر | PII | الوصف |
+|---:|---|---|---|:---:|---|---|---|---|:---:|---|
+| 1 | `ID` | معرف | `NUMBER(19)` | ✔ |  | PK |  | النظام/الحزمة |  | المفتاح الداخلي الثابت (Identity) - لا يعاد استخدامه |
+| 2 | `TENANT_ID` | معرف | `NUMBER(19)` |  |  | FK→PLT_TENANT UK1 |  | Security Context |  | المؤسسة المالكة؛ فارغ = سجل منصة افتراضي متاح للجميع |
+| 3 | `CODE` | نص | `VARCHAR2(50 CHAR)` | ✔ |  | UK1 |  | إدخال المستخدم |  | الرمز الفريد ضمن النطاق |
+| 4 | `NAME_AR` | اسم | `VARCHAR2(200 CHAR)` | ✔ |  |  |  | إدخال المستخدم |  | الاسم بالعربية |
+| 5 | `NAME_EN` | اسم | `VARCHAR2(200 CHAR)` |  |  |  |  | إدخال المستخدم |  | الاسم بالإنجليزية |
+| 6 | `TYPE_GROUP` | رمز | `VARCHAR2(30 CHAR)` | ✔ |  |  | MANUAL, SYSTEM | إدخال المستخدم |  | المجموعة: يدوي يدخله المحاسب، أو آلي من مستند مصدر |
+| 7 | `MODULE_CODE` | رمز | `VARCHAR2(30 CHAR)` | ✔ |  |  |  | إدخال المستخدم |  | الوحدة المصدرة |
+| 8 | `ALLOW_MANUAL` | منطقي Y/N | `CHAR(1 CHAR)` | ✔ | 'N' |  | Y, N | إدخال المستخدم |  | يسمح بالإدخال اليدوي |
+| 9 | `IS_OPENING` | منطقي Y/N | `CHAR(1 CHAR)` | ✔ | 'N' |  | Y, N | إدخال المستخدم |  | قيد افتتاحي (أول فترة في السنة المالية) |
+| 10 | `IS_ADJUSTMENT` | منطقي Y/N | `CHAR(1 CHAR)` | ✔ | 'N' |  | Y, N | إدخال المستخدم |  | قيد تسوية |
+| 11 | `AUTO_REVERSE` | منطقي Y/N | `CHAR(1 CHAR)` | ✔ | 'N' |  | Y, N | إدخال المستخدم |  | يعكس آلياً في أول يوم من الفترة التالية (الاستحقاقات) |
+| 12 | `EXCLUDE_FROM_PL` | منطقي Y/N | `CHAR(1 CHAR)` | ✔ | 'N' |  | Y, N | إدخال المستخدم |  | يستبعد من قائمة الدخل (قيد الإقفال) |
+| 13 | `REQUIRES_REFERENCE` | منطقي Y/N | `CHAR(1 CHAR)` | ✔ | 'N' |  | Y, N | إدخال المستخدم |  | يتطلب رقماً مرجعياً |
+| 14 | `DESCRIPTION` | نص | `VARCHAR2(1000 CHAR)` |  |  |  |  | إدخال المستخدم |  | الوصف ومتى يستخدم |
+| 15 | `IS_ACTIVE` | منطقي Y/N | `CHAR(1 CHAR)` | ✔ | 'Y' |  | Y, N | إدخال المستخدم |  | نشط؟ |
+| 16 | `SORT_ORDER` | عدد صحيح | `NUMBER(10)` |  |  |  |  | إدخال المستخدم |  | ترتيب العرض |
+| 17 | `ROW_VERSION` | عدد صحيح | `NUMBER(10)` | ✔ | 1 |  |  | Trigger |  | رقم الإصدار للتحكم في التزامن المتفائل |
+| 18 | `CREATED_BY` | اسم مستخدم | `VARCHAR2(128 CHAR)` | ✔ |  |  |  | Trigger |  | منشئ السجل |
+| 19 | `CREATED_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` | ✔ | SYSTIMESTAMP |  |  | Trigger |  | وقت الإنشاء |
+| 20 | `UPDATED_BY` | اسم مستخدم | `VARCHAR2(128 CHAR)` |  |  |  |  | Trigger |  | آخر من عدل السجل |
+| 21 | `UPDATED_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` |  |  |  |  | Trigger |  | وقت آخر تعديل |
+
 ## GL_JOURNAL
 
 | البند | القيمة |
@@ -500,7 +538,7 @@
 | 13 | `PERIOD_ID` | معرف | `NUMBER(19)` | ✔ |  | FK→GL_PERIOD |  | إدخال المستخدم |  | الفترة |
 | 14 | `POSTING_DATE` | تاريخ | `DATE` | ✔ |  |  |  | إدخال المستخدم |  | تاريخ القيد (قد يختلف عن تاريخ المعاملة) |
 | 15 | `JOURNAL_SOURCE_ID` | معرف | `NUMBER(19)` | ✔ |  | FK→GL_JOURNAL_SOURCE |  | إدخال المستخدم |  | المصدر |
-| 16 | `JOURNAL_CATEGORY` | رمز | `VARCHAR2(30 CHAR)` |  |  |  |  | إدخال المستخدم |  | التصنيف |
+| 16 | `JOURNAL_CATEGORY` | رمز | `VARCHAR2(30 CHAR)` |  |  |  |  | إدخال المستخدم |  | نوع القيد (رمز من GL_JOURNAL_TYPE) |
 | 17 | `ACCOUNTING_EVENT_ID` | معرف | `NUMBER(19)` |  |  | FK→ACE_ACCOUNTING_EVENT |  | إدخال المستخدم |  | الحدث المحاسبي المولد |
 | 18 | `RULE_VERSION_ID` | معرف | `NUMBER(19)` |  |  | FK→ACE_POSTING_RULE_VERSION |  | إدخال المستخدم |  | إصدار قاعدة الترحيل |
 | 19 | `REFERENCE_NO` | نص | `VARCHAR2(100 CHAR)` |  |  |  |  | إدخال المستخدم |  | المرجع |

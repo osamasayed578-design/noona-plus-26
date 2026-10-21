@@ -25,11 +25,13 @@ LEDGER_ACCOUNTS = ("select a.account_code || ' - ' || a.name_ar d, a.id r from g
                    "join gl_ledger g on g.coa_id = a.coa_id where g.id = noona_gl_pkg.primary_ledger and a.is_postable = 'Y' "
                    "order by a.account_code")
 JOURNALS_SQL = [
-    "select j.id, j.doc_no, to_char(j.doc_date, 'YYYY-MM-DD') as doc_date, j.description, j.reference_no,",
+    "select j.id, j.doc_no, to_char(j.doc_date, 'YYYY-MM-DD') as doc_date, noona_gl_pkg.type_label(j.journal_category) as journal_type,",
+    '       j.description, j.reference_no,',
     '       j.total_debit_func as amount, j.currency_code, j.created_by, j.approved_by,',
     '       noona_ui_pkg.status_badge(j.status_code) as status_html',
     '  from gl_journal j where j.company_id = noona_gl_pkg.company']
 JOURNALS_COLS = [('ID', '#', {'hidden': True, 'type': 'NUMBER'}), ('DOC_NO', 'رقم القيد', {}), ('DOC_DATE', 'التاريخ', {}),
+                 ('JOURNAL_TYPE', 'نوع القيد', {}),
                  ('DESCRIPTION', 'البيان', {}), ('REFERENCE_NO', 'المرجع', {}), ('AMOUNT', 'المبلغ', {'type': 'NUMBER'}),
                  ('CURRENCY_CODE', 'العملة', {}), ('CREATED_BY', 'أنشأه', {}), ('APPROVED_BY', 'اعتمده', {}),
                  ('STATUS_HTML', 'الحالة', {'html': True})]
@@ -38,6 +40,8 @@ CC_LOV = ("select code || ' - ' || name_ar d, id r from gl_cost_center "
 CUR_LOV = ("select currency_code || ' - ' || name_ar d, currency_code r from ref_currency where is_active = 'Y' "
            "order by case when currency_code = noona_gl_pkg.ledger_currency then 0 else 1 end, currency_code")
 JOURNAL_LINK = 'f?p=&APP_ID.:21:&SESSION.::&DEBUG.:RP,21:P21_ID:#ID#'
+JTYPE_LOV = ("select name_ar d, code r from (select t.*, row_number() over (partition by code order by tenant_id nulls last) rn "
+             "from gl_journal_type t where is_active = 'Y') where rn = 1 order by case type_group when 'MANUAL' then 1 else 2 end, sort_order")
 
 # =============================================================== 1) لوحة المالية
 p = app.page(1, 'Home', 'HOME', 'المالية', scheme=TENANT)
@@ -144,7 +148,8 @@ p.process(10, 'BEFORE_HEADER', 'Load Journal', [
 p.dynamic('ملخص القيد', 5, 'return noona_gl_pkg.journal_header(:P21_ID);', hide_header=True,
           condition=":P21_ID is not null and :P21_STATUS <> 'DRAFT'")
 p.dynamic('مستند القيد', 10, doc_region('JE', 'noona_gl_pkg.journal_doc_json(:P21_ID)', 'noona_gl_pkg.accounts_json',
-                                        "case when :P21_ID is null or :P21_STATUS = 'DRAFT' then 'N' else 'Y' end"),
+                                        "case when :P21_ID is null or :P21_STATUS = 'DRAFT' then 'N' else 'Y' end",
+                                        extra=[('nnDocTypes', 'noona_gl_pkg.journal_types_json')]),
           hide_header=True, opts='#DEFAULT#:t-Region--noUI')
 p.process(1, 'ON_DEMAND', 'SAVE_DOC', doc_ajax('noona_gl_pkg.save_journal_doc', 21))
 ac = p.static('الإجراءات', 30, condition=":P21_ID is not null and :P21_STATUS in ('DRAFT', 'SUBMITTED', 'POSTED')")
@@ -501,19 +506,71 @@ p.dynamic('دفتر الأستاذ', 20, [
     f"    :P35_ACC_FROM, :P35_ACC_TO, :P35_CC, {JV_LINK});"], hide_header=True, opts='#DEFAULT#:t-Region--scrollBody:nn-print-area')
 
 # 36) يومية القيود
-p = app.page(36, 'Journal Register', 'JOURNAL-REGISTER', 'يومية القيود', scheme=TENANT)
+p = app.page(36, 'Journal Register', 'JOURNAL-REGISTER', 'يومية القيود', scheme=TENANT, protection='N')
 f = p.static('معايير التقرير', 10)
 p.date('P36_FROM', f, 10, 'من تاريخ')
 p.date('P36_TO', f, 20, 'إلى تاريخ')
 p.select('P36_STATUS', f, 30, 'القيود', null_text=None,
          lov_sql='STATIC2:المرحلة;POSTED,غير المرحلة (مسودة ومرسلة ومعتمدة);UNPOSTED,المعكوسة وقيود عكسها;REVERSED,الكل عدا الملغاة;ALL')
+p.select('P36_TYPE', f, 40, 'نوع القيد', null_text='- كل الأنواع -', lov_sql=JTYPE_LOV)
 p.button(f, 10, 'RUN', 'عرض', hot=True)
 p.button(f, 20, 'PRINT', 'طباعة', redirect='javascript:window.print();')
 p.process(10, 'BEFORE_HEADER', 'Defaults', [
     ":P36_FROM := nvl(:P36_FROM, to_char(trunc(sysdate, 'MM'), 'YYYY-MM-DD'));", TODAY.format('P36_TO')])
 p.dynamic('يومية القيود', 20, [
     "return noona_fin_rpt_pkg.journal_register(to_date(:P36_FROM, 'YYYY-MM-DD'), to_date(:P36_TO, 'YYYY-MM-DD'),",
-    f"    nvl(:P36_STATUS, 'POSTED'), {JV_LINK});"], hide_header=True, opts='#DEFAULT#:t-Region--scrollBody:nn-print-area')
+    f"    nvl(:P36_STATUS, 'POSTED'), {JV_LINK}, :P36_TYPE);"], hide_header=True, opts='#DEFAULT#:t-Region--scrollBody:nn-print-area')
+
+# 50) القيود حسب النوع (التفصيل يفتح يومية القيود مفلترة بالنوع)
+p = app.page(50, 'Journals by Type', 'JOURNALS-BY-TYPE', 'القيود حسب النوع', scheme=TENANT)
+f = p.static('معايير التقرير', 10)
+p.date('P50_FROM', f, 10, 'من تاريخ')
+p.date('P50_TO', f, 20, 'إلى تاريخ')
+p.button(f, 10, 'RUN', 'عرض', hot=True)
+p.button(f, 20, 'PRINT', 'طباعة', redirect='javascript:window.print();')
+p.process(10, 'BEFORE_HEADER', 'Defaults', [YEAR_START.format('P50_FROM'), TODAY.format('P50_TO')])
+p.dynamic('القيود حسب النوع', 20, [
+    "return noona_fin_rpt_pkg.journal_type_summary(to_date(:P50_FROM, 'YYYY-MM-DD'), to_date(:P50_TO, 'YYYY-MM-DD'),",
+    "    'f?p=' || :APP_ID || ':36:' || :APP_SESSION || '::NO:36:P36_FROM,P36_TO,P36_STATUS,P36_TYPE:' || :P50_FROM || ','",
+    "    || :P50_TO || ',POSTED,#ID#');"], hide_header=True, opts='#DEFAULT#:t-Region--scrollBody:nn-print-area')
+
+# 14) أنواع القيود
+p = app.page(14, 'Journal Types', 'JOURNAL-TYPES', 'أنواع القيود', scheme=TENANT)
+p.ir('أنواع القيود', 10, [
+    "select t.code, t.name_ar, case t.type_group when 'MANUAL' then 'يدوي' else 'آلي من مستند' end as grp,",
+    "       case when t.tenant_id is null then 'النظام' else 'المؤسسة' end as owner,",
+    "       noona_ui_pkg.code_label(t.allow_manual) as manual, noona_ui_pkg.code_label(t.is_opening) as opening,",
+    "       noona_ui_pkg.code_label(t.is_adjustment) as adjustment, noona_ui_pkg.code_label(t.auto_reverse) as auto_reverse,",
+    "       noona_ui_pkg.code_label(t.requires_reference) as req_ref, noona_ui_pkg.code_label(t.is_active) as active, t.description,",
+    "       (select count(*) from gl_journal j where j.company_id = noona_gl_pkg.company and j.journal_category = t.code) as journals",
+    '  from gl_journal_type t',
+    " order by case t.type_group when 'MANUAL' then 1 else 2 end, t.sort_order, t.code"],
+    [('CODE', 'الرمز', {}), ('NAME_AR', 'النوع', {}), ('GRP', 'المجموعة', {}), ('OWNER', 'المصدر', {}), ('MANUAL', 'إدخال يدوي', {}),
+     ('OPENING', 'افتتاحي', {}), ('ADJUSTMENT', 'تسوية', {}), ('AUTO_REVERSE', 'عكس آلي', {}), ('REQ_REF', 'مرجع إلزامي', {}),
+     ('ACTIVE', 'نشط', {}), ('DESCRIPTION', 'الوصف', {}), ('JOURNALS', 'عدد القيود', {'type': 'NUMBER'})])
+f = p.static('نوع يدوي خاص بالمؤسسة', 20, text=(
+    '<p class="nn-hint">أنواع النظام ثابتة. أضف نوعاً يدوياً خاصاً بمؤسستك (مثل استحقاق المكافآت) برمز إنجليزي؛ '
+    'تعديل نوع موجود بنفس الرمز يحدّثه.</p>'))
+p.text('P14_CODE', f, 10, 'الرمز (إنجليزي)', maxlen=30, width=20)
+p.text('P14_NAME', f, 20, 'الاسم')
+p.select('P14_ADJ', f, 30, 'قيد تسوية', null_text=None, lov_sql='STATIC2:لا;N,نعم;Y')
+p.select('P14_REV', f, 40, 'يعكس آلياً في الفترة التالية', null_text=None, lov_sql='STATIC2:لا;N,نعم;Y')
+p.select('P14_REF', f, 50, 'يتطلب مرجعاً', null_text=None, lov_sql='STATIC2:لا;N,نعم;Y')
+p.select('P14_ACTIVE', f, 60, 'الحالة', null_text=None, lov_sql='STATIC2:نشط;Y,موقوف;N')
+p.text('P14_DESC', f, 70, 'الوصف ومتى يستخدم', maxlen=1000)
+b1 = p.button(f, 10, 'SAVE_TYPE', 'حفظ النوع', hot=True)
+fr = p.static('العكس الآلي للاستحقاقات', 30, text=(
+    '<p class="nn-hint">قيود الاستحقاق وإعادة التقييم المرحلة تحمل تاريخ عكس آلي (أول يوم في الفترة التالية). '
+    'نفذ العكس بعد فتح الفترة الجديدة؛ القيود التي حل تاريخ عكسها فقط تعكس.</p>'))
+b2 = p.button(fr, 10, 'AUTO_REVERSE', 'عكس القيود المستحقة الآن')
+p.process(10, 'AFTER_SUBMIT', 'Save Type',
+          'noona_gl_pkg.save_journal_type(:P14_CODE, :P14_NAME, null, :P14_ADJ, :P14_REV, :P14_REF, :P14_ACTIVE, :P14_DESC);',
+          when_button=b1, success='تم حفظ نوع القيد')
+p.process(20, 'AFTER_SUBMIT', 'Auto Reverse', [
+    'declare l_n number;', 'begin', '    l_n := noona_gl_pkg.process_auto_reversals;',
+    "    apex_application.g_print_success_message := case when l_n > 0 then 'تم عكس ' || l_n || ' قيد' else 'لا توجد قيود حل تاريخ عكسها' end;",
+    'end;'], when_button=b2)
+p.branch(10, url(14, clear='14') + '&success_msg=#SUCCESS_MSG#')
 
 # 37) التدفقات النقدية  38) التغيرات في حقوق الملكية  45) النسب المالية
 for pid, alias, title, fn in [(37, 'CASH-FLOW', 'قائمة التدفقات النقدية', 'cash_flow'),
@@ -646,6 +703,7 @@ app.nav_item('قيد جديد', 21, 'fa-plus', 22, parent=gl)
 app.nav_item('دليل الحسابات', 10, 'fa-sitemap', 23, parent=gl)
 app.nav_item('مراكز التكلفة', 12, 'fa-crosshairs', 24, parent=gl)
 app.nav_item('الفترات المحاسبية', 11, 'fa-calendar', 25, parent=gl)
+app.nav_item('أنواع القيود', 14, 'fa-tags', 28, parent=gl)
 app.nav_item('إقفال السنة المالية', 13, 'fa-lock', 26, parent=gl)
 app.nav_item('أسعار الصرف', 48, 'fa-exchange', 27, parent=gl)
 cs = app.nav_item('النقدية والبنوك', None, 'fa-money', 30)
@@ -665,6 +723,7 @@ app.nav_item('ميزان المراجعة', 30, 'fa-balance-scale', 51, parent=l
 app.nav_item('دفتر الأستاذ', 35, 'fa-bookmark', 52, parent=lr)
 app.nav_item('كشف حساب', 31, 'fa-file-text-o', 53, parent=lr)
 app.nav_item('يومية القيود', 36, 'fa-list', 54, parent=lr)
+app.nav_item('القيود حسب النوع', 50, 'fa-tags', 55, parent=lr)
 an = app.nav_item('التحليل المالي', None, 'fa-bar-chart', 60)
 app.nav_item('تحليل الإيرادات والمصروفات', 34, 'fa-pie-chart', 61, parent=an)
 app.nav_item('مقارنة الفترات', 39, 'fa-sliders', 62, parent=an)

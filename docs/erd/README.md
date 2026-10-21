@@ -12,7 +12,7 @@
 | 04 | إدارة المستندات والأرشفة | Document Management & Archive | 29 | [p04_dms](p04_dms.md) |
 | 05 | المراسلات والإشعارات والتدقيق | Correspondence, Notifications & Audit | 24 | [p05_cor](p05_cor.md) |
 | 06 | البيانات المرجعية المشتركة والأطراف | Shared Reference Data & Global Party Model | 29 | [p06_ref](p06_ref.md) |
-| 07 | المحاسبة العامة والمحرك المحاسبي | General Ledger & Accounting Engine | 40 | [p07_gl](p07_gl.md) |
+| 07 | المحاسبة العامة والمحرك المحاسبي | General Ledger & Accounting Engine | 41 | [p07_gl](p07_gl.md) |
 | 08 | العملاء والحسابات المدينة | Customers & Accounts Receivable | 19 | [p08_ar](p08_ar.md) |
 | 09 | الموردون والحسابات الدائنة | Suppliers & Accounts Payable | 12 | [p09_ap](p09_ap.md) |
 | 10 | النقدية والبنوك | Cash & Banks | 13 | [p10_csh](p10_csh.md) |
@@ -37,7 +37,7 @@
 | 29 | النشر الإنتاجي والإصدارات | Deployment & Release Management | 6 | [p29_dep](p29_dep.md) |
 | 30 | التشغيل والدعم والتطوير المستمر | Operations, Support & Continuous Improvement | 12 | [p30_ops](p30_ops.md) |
 
-**الإجمالي: 571 جدول.**
+**الإجمالي: 572 جدول.**
 
 ## خريطة اعتماديات الحزم
 
