@@ -190,17 +190,21 @@ p.date('P30_FROM', f, 10, 'من تاريخ')
 p.date('P30_TO', f, 20, 'إلى تاريخ')
 p.yesno('P30_ZERO', f, 30, 'إظهار الحسابات الصفرية')
 p.select('P30_CC', f, 40, 'مركز التكلفة', lov_sql=CC_LOV, null_text='كل المراكز')
+p.select('P30_BASIS', f, 50, 'أساس الاحتساب', null_text=None,
+         lov_sql='STATIC2:القيود المرحلة فقط;POSTED,شامل المرسلة والمعتمدة غير المرحلة;ALL')
 p.button(f, 10, 'RUN', 'عرض', hot=True)
 p.button(f, 20, 'PRINT', 'طباعة', redirect='javascript:window.print();')
 p.process(10, 'BEFORE_HEADER', 'Defaults', [
     ":P30_FROM := nvl(:P30_FROM, to_char(trunc(sysdate, 'YYYY'), 'YYYY-MM-DD'));",
     ":P30_TO := nvl(:P30_TO, to_char(sysdate, 'YYYY-MM-DD'));"])
 p.dynamic('ميزان المراجعة', 20, [
-    "return noona_gl_pkg.trial_balance(to_date(:P30_FROM, 'YYYY-MM-DD'), to_date(:P30_TO, 'YYYY-MM-DD'), nvl(:P30_ZERO, 'N'), :P30_CC);"],
+    "return noona_gl_pkg.trial_balance(to_date(:P30_FROM, 'YYYY-MM-DD'), to_date(:P30_TO, 'YYYY-MM-DD'), nvl(:P30_ZERO, 'N'), :P30_CC,",
+    "    nvl(:P30_BASIS, 'POSTED'), 'f?p=' || :APP_ID || ':31:' || :APP_SESSION || '::NO:RP:P31_ACCOUNT,P31_FROM,P31_TO,P31_CC:#ID#,'",
+    "    || :P30_FROM || ',' || :P30_TO || ',' || :P30_CC);"],
     hide_header=True, opts='#DEFAULT#:t-Region--scrollBody:nn-print-area')
 
 # =============================================================== 31) كشف حساب
-p = app.page(31, 'Account Statement', 'STATEMENT', 'كشف حساب', scheme=TENANT)
+p = app.page(31, 'Account Statement', 'STATEMENT', 'كشف حساب', scheme=TENANT, protection='N')
 f = p.static('معايير التقرير', 10)
 p.select('P31_ACCOUNT', f, 10, 'الحساب', lov_sql=LEDGER_ACCOUNTS)
 p.date('P31_FROM', f, 20, 'من تاريخ')
@@ -212,7 +216,8 @@ p.process(10, 'BEFORE_HEADER', 'Defaults', [
     ":P31_FROM := nvl(:P31_FROM, to_char(trunc(sysdate, 'YYYY'), 'YYYY-MM-DD'));",
     ":P31_TO := nvl(:P31_TO, to_char(sysdate, 'YYYY-MM-DD'));"])
 p.dynamic('كشف الحساب', 20, [
-    "return noona_gl_pkg.account_statement(:P31_ACCOUNT, to_date(:P31_FROM, 'YYYY-MM-DD'), to_date(:P31_TO, 'YYYY-MM-DD'), :P31_CC);"],
+    "return noona_gl_pkg.account_statement(:P31_ACCOUNT, to_date(:P31_FROM, 'YYYY-MM-DD'), to_date(:P31_TO, 'YYYY-MM-DD'), :P31_CC,",
+    "    'f?p=' || :APP_ID || ':22:' || :APP_SESSION || '::NO:RP:P22_ID:#ID#');"],
     hide_header=True, opts='#DEFAULT#:t-Region--scrollBody:nn-print-area')
 
 # =============================================================== 12) مراكز التكلفة
@@ -465,6 +470,141 @@ p.dynamic('التحليل', 20, [
     "                             nvl(:P34_TYPE, 'EXPENSE'), nvl(:P34_BY, 'MONTH'));"],
     hide_header=True, opts='#DEFAULT#:t-Region--scrollBody:nn-print-area')
 
+# =============================================================== تقارير الأستاذ والقوائم والرقابة (روابط التفصيل)
+JV_LINK = "'f?p=' || :APP_ID || ':22:' || :APP_SESSION || '::NO:RP:P22_ID:#ID#'"
+ACC_CODES = ("select a.account_code || ' - ' || a.name_ar d, a.account_code r from gl_account a "
+             "where a.coa_id = noona_gl_pkg.primary_coa order by a.account_code")
+
+
+YEAR_START = ":{0} := nvl(:{0}, to_char(trunc(sysdate, 'YYYY'), 'YYYY-MM-DD'));"
+TODAY = ":{0} := nvl(:{0}, to_char(sysdate, 'YYYY-MM-DD'));"
+
+# 22) عرض القيد ومستند المصدر (نهاية مسار التفصيل)
+p = app.page(22, 'Journal View', 'JOURNAL-VIEW', 'عرض القيد', scheme=TENANT, protection='N')
+f = p.static('القيد', 5)
+p.hidden('P22_ID', f, 1, protected=False)
+p.button(f, 10, 'PRINT', 'طباعة', hot=True, redirect='javascript:window.print();')
+p.button(f, 20, 'BACK', 'رجوع', redirect='javascript:history.back();')
+p.button(f, 30, 'OPEN', 'فتح القيد للإجراءات', redirect='f?p=&APP_ID.:21:&SESSION.::&DEBUG.:RP,21:P21_ID:&P22_ID.')
+p.dynamic('القيد ومستند المصدر', 10, 'return noona_fin_rpt_pkg.journal_view(:P22_ID);', hide_header=True,
+          opts='#DEFAULT#:t-Region--scrollBody:nn-print-area')
+
+# 35) دفتر الأستاذ
+p = app.page(35, 'General Ledger', 'GENERAL-LEDGER', 'دفتر الأستاذ', scheme=TENANT)
+f = p.static('معايير التقرير', 10)
+p.date('P35_FROM', f, 10, 'من تاريخ')
+p.date('P35_TO', f, 20, 'إلى تاريخ')
+p.select('P35_ACC_FROM', f, 30, 'من حساب', lov_sql=ACC_CODES, null_text='الأول')
+p.select('P35_ACC_TO', f, 40, 'إلى حساب', lov_sql=ACC_CODES, null_text='الأخير')
+p.select('P35_CC', f, 50, 'مركز التكلفة', lov_sql=CC_LOV, null_text='كل المراكز')
+p.button(f, 10, 'RUN', 'عرض', hot=True)
+p.button(f, 20, 'PRINT', 'طباعة', redirect='javascript:window.print();')
+p.process(10, 'BEFORE_HEADER', 'Defaults', [YEAR_START.format('P35_FROM'), TODAY.format('P35_TO')])
+p.dynamic('دفتر الأستاذ', 20, [
+    "return noona_fin_rpt_pkg.general_ledger(to_date(:P35_FROM, 'YYYY-MM-DD'), to_date(:P35_TO, 'YYYY-MM-DD'),",
+    f"    :P35_ACC_FROM, :P35_ACC_TO, :P35_CC, {JV_LINK});"], hide_header=True, opts='#DEFAULT#:t-Region--scrollBody:nn-print-area')
+
+# 36) يومية القيود
+p = app.page(36, 'Journal Register', 'JOURNAL-REGISTER', 'يومية القيود', scheme=TENANT)
+f = p.static('معايير التقرير', 10)
+p.date('P36_FROM', f, 10, 'من تاريخ')
+p.date('P36_TO', f, 20, 'إلى تاريخ')
+p.select('P36_STATUS', f, 30, 'القيود', null_text=None,
+         lov_sql='STATIC2:المرحلة;POSTED,غير المرحلة (مسودة ومرسلة ومعتمدة);UNPOSTED,المعكوسة وقيود عكسها;REVERSED,الكل عدا الملغاة;ALL')
+p.button(f, 10, 'RUN', 'عرض', hot=True)
+p.button(f, 20, 'PRINT', 'طباعة', redirect='javascript:window.print();')
+p.process(10, 'BEFORE_HEADER', 'Defaults', [
+    ":P36_FROM := nvl(:P36_FROM, to_char(trunc(sysdate, 'MM'), 'YYYY-MM-DD'));", TODAY.format('P36_TO')])
+p.dynamic('يومية القيود', 20, [
+    "return noona_fin_rpt_pkg.journal_register(to_date(:P36_FROM, 'YYYY-MM-DD'), to_date(:P36_TO, 'YYYY-MM-DD'),",
+    f"    nvl(:P36_STATUS, 'POSTED'), {JV_LINK});"], hide_header=True, opts='#DEFAULT#:t-Region--scrollBody:nn-print-area')
+
+# 37) التدفقات النقدية  38) التغيرات في حقوق الملكية  45) النسب المالية
+for pid, alias, title, fn in [(37, 'CASH-FLOW', 'قائمة التدفقات النقدية', 'cash_flow'),
+                              (38, 'EQUITY-CHANGES', 'التغيرات في حقوق الملكية', 'equity_changes'),
+                              (45, 'RATIOS', 'النسب المالية', 'ratios')]:
+    p = app.page(pid, title, alias, title, scheme=TENANT)
+    f = p.static('معايير التقرير', 10)
+    p.date(f'P{pid}_FROM', f, 10, 'من تاريخ')
+    p.date(f'P{pid}_TO', f, 20, 'إلى تاريخ')
+    p.button(f, 10, 'RUN', 'عرض', hot=True)
+    p.button(f, 20, 'PRINT', 'طباعة', redirect='javascript:window.print();')
+    p.process(10, 'BEFORE_HEADER', 'Defaults', [YEAR_START.format(f'P{pid}_FROM'), TODAY.format(f'P{pid}_TO')])
+    p.dynamic(title, 20, [f"return noona_fin_rpt_pkg.{fn}(to_date(:P{pid}_FROM, 'YYYY-MM-DD'), to_date(:P{pid}_TO, 'YYYY-MM-DD'));"],
+              hide_header=True, opts='#DEFAULT#:t-Region--scrollBody:nn-print-area')
+
+# 39) قائمة الدخل المقارنة
+p = app.page(39, 'Income Comparison', 'INCOME-COMPARE', 'مقارنة الفترات', scheme=TENANT)
+f = p.static('الفترتان', 10)
+p.date('P39_FROM', f, 10, 'الفترة الحالية من')
+p.date('P39_TO', f, 20, 'الفترة الحالية إلى')
+p.date('P39_FROM2', f, 30, 'فترة المقارنة من')
+p.date('P39_TO2', f, 40, 'فترة المقارنة إلى')
+p.button(f, 10, 'RUN', 'عرض', hot=True)
+p.button(f, 20, 'PRINT', 'طباعة', redirect='javascript:window.print();')
+p.process(10, 'BEFORE_HEADER', 'Defaults', [
+    YEAR_START.format('P39_FROM'), TODAY.format('P39_TO'),
+    ":P39_FROM2 := nvl(:P39_FROM2, to_char(add_months(trunc(sysdate, 'YYYY'), -12), 'YYYY-MM-DD'));",
+    ":P39_TO2 := nvl(:P39_TO2, to_char(add_months(sysdate, -12), 'YYYY-MM-DD'));"])
+p.dynamic('مقارنة الفترات', 20, [
+    "return noona_fin_rpt_pkg.income_compare(to_date(:P39_FROM, 'YYYY-MM-DD'), to_date(:P39_TO, 'YYYY-MM-DD'),",
+    "    to_date(:P39_FROM2, 'YYYY-MM-DD'), to_date(:P39_TO2, 'YYYY-MM-DD'));"],
+    hide_header=True, opts='#DEFAULT#:t-Region--scrollBody:nn-print-area')
+
+# 46) الرقابة والتسويات
+p = app.page(46, 'Controls', 'CONTROLS', 'الرقابة والتسويات', scheme=TENANT)
+f = p.static('معايير التقرير', 10)
+p.date('P46_ASOF', f, 10, 'كما في تاريخ')
+p.button(f, 10, 'RUN', 'تشغيل الفحوص', hot=True)
+p.button(f, 20, 'PRINT', 'طباعة', redirect='javascript:window.print();')
+p.process(10, 'BEFORE_HEADER', 'Defaults', [TODAY.format('P46_ASOF')])
+p.dynamic('الرقابة والتسويات', 20, ["return noona_fin_rpt_pkg.controls(to_date(:P46_ASOF, 'YYYY-MM-DD'));"],
+          hide_header=True, opts='#DEFAULT#:t-Region--scrollBody:nn-print-area')
+
+# 47) سجل التدقيق المالي
+p = app.page(47, 'Financial Audit', 'FIN-AUDIT', 'سجل التدقيق المالي', scheme=TENANT)
+f = p.static('معايير التقرير', 10)
+p.date('P47_FROM', f, 10, 'من تاريخ')
+p.date('P47_TO', f, 20, 'إلى تاريخ')
+p.select('P47_SCOPE', f, 30, 'النطاق', null_text=None,
+         lov_sql='STATIC2:الكل;ALL,القيود;GL_JOURNAL,السندات;CSH_TRANSACTION,تغييرات الإعدادات المحاسبية;CONFIG')
+p.button(f, 10, 'RUN', 'عرض', hot=True)
+p.button(f, 20, 'PRINT', 'طباعة', redirect='javascript:window.print();')
+p.process(10, 'BEFORE_HEADER', 'Defaults', [":P47_FROM := nvl(:P47_FROM, to_char(trunc(sysdate, 'MM'), 'YYYY-MM-DD'));",
+                                            TODAY.format('P47_TO')])
+p.dynamic('سجل التدقيق', 20, [
+    "return noona_fin_rpt_pkg.audit_log(to_date(:P47_FROM, 'YYYY-MM-DD'), to_date(:P47_TO, 'YYYY-MM-DD'), nvl(:P47_SCOPE, 'ALL'));"],
+    hide_header=True, opts='#DEFAULT#:t-Region--scrollBody:nn-print-area')
+
+# 13) إقفال السنة المالية
+p = app.page(13, 'Year End', 'YEAR-END', 'إقفال السنة المالية', scheme=TENANT)
+p.ir('السنوات المالية', 10, [
+    "select y.id, y.code, y.name_ar, to_char(y.start_date, 'YYYY-MM-DD') as start_date, to_char(y.end_date, 'YYYY-MM-DD') as end_date,",
+    '       noona_ui_pkg.status_badge(y.status_code) as status_html,',
+    "       (select max(j.doc_no) from gl_journal j where j.ledger_id = noona_gl_pkg.primary_ledger and j.journal_category = 'CLOSING'",
+    "           and j.status_code = 'POSTED' and j.reversal_of_id is null and j.doc_date = y.end_date) as closing_jv",
+    '  from gl_fiscal_year y where y.company_id = noona_gl_pkg.company order by y.start_date'],
+    [('ID', '#', {'hidden': True, 'type': 'NUMBER'}), ('CODE', 'الرمز', {}), ('NAME_AR', 'السنة', {}), ('START_DATE', 'من', {}),
+     ('END_DATE', 'إلى', {}), ('STATUS_HTML', 'الحالة', {'html': True}), ('CLOSING_JV', 'قيد الإقفال', {})])
+f = p.static('الإقفال', 20, text=(
+    '<p class="nn-hint">الإقفال ينشئ قيداً آلياً بتاريخ نهاية السنة يصفّر الإيرادات والمصروفات (لكل مركز تكلفة) ويرحل صافي الربح '
+    'أو الخسارة إلى حساب الأرباح المبقاة، ثم يقفل كل فترات السنة. يشترط ألا توجد قيود أو سندات غير مرحلة في السنة، '
+    'وأن تقفل السنوات السابقة أولاً. إعادة الفتح لمسؤول المؤسسة فقط وتعكس قيد الإقفال.</p>'))
+YEARS = ("select name_ar || ' (' || to_char(start_date, 'YYYY-MM-DD') || ' - ' || to_char(end_date, 'YYYY-MM-DD') || ')' d, id r "
+         "from gl_fiscal_year where company_id = noona_gl_pkg.company order by start_date")
+p.select('P13_YEAR', f, 10, 'السنة المالية', lov_sql=YEARS, required=True)
+p.textarea('P13_REASON', f, 20, 'سبب إعادة الفتح', rows=2)
+b1 = p.button(f, 10, 'CLOSE_YEAR', 'إقفال السنة', hot=True)
+b2 = p.button(f, 20, 'REOPEN_YEAR', 'إعادة فتح السنة')
+p.process(10, 'AFTER_SUBMIT', 'Close Year', [
+    'declare l_id number;',
+    'begin',
+    '    l_id := noona_gl_pkg.close_year(:P13_YEAR);',
+    'end;'], when_button=b1, success='تم إقفال السنة وترحيل النتيجة إلى الأرباح المبقاة')
+p.process(20, 'AFTER_SUBMIT', 'Reopen Year', 'noona_gl_pkg.reopen_year(:P13_YEAR, :P13_REASON);', when_button=b2,
+          success='تمت إعادة فتح السنة وعكس قيد الإقفال')
+p.branch(10, url(13, clear='13') + '&success_msg=#SUCCESS_MSG#')
+
 app.nav_item('لوحة المالية', 1, 'fa-calculator', 10)
 gl = app.nav_item('الأستاذ العام', None, 'fa-book', 20)
 app.nav_item('القيود اليومية', 20, 'fa-list-alt', 21, parent=gl)
@@ -472,19 +612,31 @@ app.nav_item('قيد جديد', 21, 'fa-plus', 22, parent=gl)
 app.nav_item('دليل الحسابات', 10, 'fa-sitemap', 23, parent=gl)
 app.nav_item('مراكز التكلفة', 12, 'fa-crosshairs', 24, parent=gl)
 app.nav_item('الفترات المحاسبية', 11, 'fa-calendar', 25, parent=gl)
-cs = app.nav_item('النقدية والبنوك', None, 'fa-money', 25)
-app.nav_item('السندات', 41, 'fa-files-o', 26, parent=cs)
-app.nav_item('سند قبض جديد', new_voucher('RECEIPT'), 'fa-arrow-down', 27, parent=cs)
-app.nav_item('سند صرف جديد', new_voucher('PAYMENT'), 'fa-arrow-up', 28, parent=cs)
-app.nav_item('سند مصروفات جديد', new_voucher('EXPENSE'), 'fa-shopping-cart', 29, parent=cs)
-app.nav_item('الصناديق والبنوك', 40, 'fa-university', 30, parent=cs)
-app.nav_item('دفتر الصندوق والبنك', 44, 'fa-book', 31, parent=cs)
-rp = app.nav_item('التقارير', None, 'fa-bar-chart', 40)
-app.nav_item('ميزان المراجعة', 30, 'fa-balance-scale', 41, parent=rp)
-app.nav_item('كشف حساب', 31, 'fa-file-text-o', 42, parent=rp)
-app.nav_item('قائمة الدخل', 32, 'fa-line-chart', 43, parent=rp)
-app.nav_item('الميزانية العمومية', 33, 'fa-columns', 44, parent=rp)
-app.nav_item('تحليل الإيرادات والمصروفات', 34, 'fa-pie-chart', 45, parent=rp)
+app.nav_item('إقفال السنة المالية', 13, 'fa-lock', 26, parent=gl)
+cs = app.nav_item('النقدية والبنوك', None, 'fa-money', 30)
+app.nav_item('السندات', 41, 'fa-files-o', 31, parent=cs)
+app.nav_item('سند قبض جديد', new_voucher('RECEIPT'), 'fa-arrow-down', 32, parent=cs)
+app.nav_item('سند صرف جديد', new_voucher('PAYMENT'), 'fa-arrow-up', 33, parent=cs)
+app.nav_item('سند مصروفات جديد', new_voucher('EXPENSE'), 'fa-shopping-cart', 34, parent=cs)
+app.nav_item('الصناديق والبنوك', 40, 'fa-university', 35, parent=cs)
+app.nav_item('دفتر الصندوق والبنك', 44, 'fa-book', 36, parent=cs)
+fs = app.nav_item('القوائم المالية', None, 'fa-file-text', 40)
+app.nav_item('قائمة المركز المالي', 33, 'fa-columns', 41, parent=fs)
+app.nav_item('قائمة الربح أو الخسارة', 32, 'fa-line-chart', 42, parent=fs)
+app.nav_item('التدفقات النقدية', 37, 'fa-exchange', 43, parent=fs)
+app.nav_item('التغيرات في حقوق الملكية', 38, 'fa-users', 44, parent=fs)
+lr = app.nav_item('تقارير الأستاذ', None, 'fa-book', 50)
+app.nav_item('ميزان المراجعة', 30, 'fa-balance-scale', 51, parent=lr)
+app.nav_item('دفتر الأستاذ', 35, 'fa-bookmark', 52, parent=lr)
+app.nav_item('كشف حساب', 31, 'fa-file-text-o', 53, parent=lr)
+app.nav_item('يومية القيود', 36, 'fa-list', 54, parent=lr)
+an = app.nav_item('التحليل المالي', None, 'fa-bar-chart', 60)
+app.nav_item('تحليل الإيرادات والمصروفات', 34, 'fa-pie-chart', 61, parent=an)
+app.nav_item('مقارنة الفترات', 39, 'fa-sliders', 62, parent=an)
+app.nav_item('النسب المالية', 45, 'fa-percent', 63, parent=an)
+ct = app.nav_item('الرقابة والتدقيق', None, 'fa-shield', 70)
+app.nav_item('الرقابة والتسويات', 46, 'fa-check-square-o', 71, parent=ct)
+app.nav_item('سجل التدقيق المالي', 47, 'fa-history', 72, parent=ct)
 
 app.finalize()
 print('NOONA_FIN built:', len(app.pages), 'pages')

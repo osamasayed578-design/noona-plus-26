@@ -408,6 +408,16 @@ tr:hover .nn-badge { transform: scale(1.05); }
 .nn-rpt tfoot td:first-child { direction: rtl; text-align: start; }
 .nn-rpt tbody tr:hover td { background: #f7fbff; }
 .nn-rpt-check { margin-top: 12px; }
+.nn-rpt a.nn-drill { color: var(--nn-primary); font-weight: 700; text-decoration: none; border-bottom: 1px dashed currentColor; }
+.nn-rpt a.nn-drill:hover { color: #004a8f; border-bottom-style: solid; }
+.nn-rpt-foot { display: flex; flex-wrap: wrap; gap: 6px 18px; margin-top: 10px; padding: 8px 12px; border-radius: 8px;
+  background: #f8fafc; border: 1px solid #e5e9f0; color: #475569; font-size: .82rem; }
+.nn-rpt-foot b { color: #334155; }
+.nn-rpt-h { margin: 18px 0 8px; font-size: 1rem; font-weight: 800; color: var(--nn-head-text); }
+.nn-rpt .nn-rpt-net td { font-weight: 800; background: #dbeafe; color: var(--nn-head-text); }
+.nn-rpt .nn-rpt-net td:first-child { direction: rtl; text-align: start; }
+.nn-rpt-source { margin-top: 8px; padding: 12px; border: 1px dashed var(--nn-head-border); border-radius: 10px; background: #fff; }
+.nn-rpt-source .nn-rpt-head { margin-top: 0; }
 .nn-rpt .nn-rpt-head2 td { background: #fafcff; font-weight: 700; color: #334155; direction: rtl; text-align: start; padding-inline-start: 18px; }
 .nn-rpt .nn-rpt-sub td { font-weight: 700; background: #f8fafc; border-top: 2px solid #d6e4f2; }
 .nn-rpt .nn-rpt-sub td:first-child, .nn-rpt .nn-rpt-total td:first-child { direction: rtl; text-align: start; }
@@ -436,3 +446,5 @@ tr:hover .nn-badge { transform: scale(1.05); }
   .nn-print-area { border: 0 !important; box-shadow: none !important; animation: none !important; }
   .nn-rpt { font-size: 10pt; } .nn-rpt th { background: #e5f1fb !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
 }
+
+.nn-hint { color: #475569; line-height: 1.8; margin: 0 0 8px; }

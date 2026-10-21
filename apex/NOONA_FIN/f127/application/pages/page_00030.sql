@@ -104,8 +104,23 @@ wwv_flow_imp_page.create_page_item(
 ,p_attributes=>wwv_flow_t_plugin_attributes(wwv_flow_t_varchar2(
   'page_action_on_selection', 'NONE')).to_clob
 );
-wwv_flow_imp_page.create_page_button(
+wwv_flow_imp_page.create_page_item(
  p_id=>wwv_flow_imp.id(91820266000000131)
+,p_name=>'P30_BASIS'
+,p_item_sequence=>50
+,p_item_plug_id=>wwv_flow_imp.id(91820266000000126)
+,p_prompt=>'أساس الاحتساب'
+,p_display_as=>'NATIVE_SELECT_LIST'
+,p_lov=>'STATIC2:القيود المرحلة فقط;POSTED,شامل المرسلة والمعتمدة غير المرحلة;ALL'
+,p_cHeight=>1
+,p_lov_display_extra=>'NO'
+,p_field_template=>1609121967514267634
+,p_item_template_options=>'#DEFAULT#'
+,p_attributes=>wwv_flow_t_plugin_attributes(wwv_flow_t_varchar2(
+  'page_action_on_selection', 'NONE')).to_clob
+);
+wwv_flow_imp_page.create_page_button(
+ p_id=>wwv_flow_imp.id(91820266000000132)
 ,p_button_sequence=>10
 ,p_button_plug_id=>wwv_flow_imp.id(91820266000000126)
 ,p_button_name=>'RUN'
@@ -117,7 +132,7 @@ wwv_flow_imp_page.create_page_button(
 ,p_button_position=>'NEXT'
 );
 wwv_flow_imp_page.create_page_button(
- p_id=>wwv_flow_imp.id(91820266000000132)
+ p_id=>wwv_flow_imp.id(91820266000000133)
 ,p_button_sequence=>20
 ,p_button_plug_id=>wwv_flow_imp.id(91820266000000126)
 ,p_button_name=>'PRINT'
@@ -129,7 +144,7 @@ wwv_flow_imp_page.create_page_button(
 ,p_button_redirect_url=>'javascript:window.print();'
 );
 wwv_flow_imp_page.create_page_process(
- p_id=>wwv_flow_imp.id(91820266000000133)
+ p_id=>wwv_flow_imp.id(91820266000000134)
 ,p_process_sequence=>10
 ,p_process_point=>'BEFORE_HEADER'
 ,p_process_type=>'NATIVE_PLSQL'
@@ -139,17 +154,19 @@ wwv_flow_imp_page.create_page_process(
 ':P30_TO := nvl(:P30_TO, to_char(sysdate, ''YYYY-MM-DD''));'))
 ,p_process_clob_language=>'PLSQL'
 ,p_error_display_location=>'INLINE_IN_NOTIFICATION'
-,p_internal_uid=>91820266000000133
+,p_internal_uid=>91820266000000134
 );
 wwv_flow_imp_page.create_page_plug(
- p_id=>wwv_flow_imp.id(91820266000000134)
+ p_id=>wwv_flow_imp.id(91820266000000135)
 ,p_plug_name=>'ميزان المراجعة'
 ,p_region_template_options=>'#DEFAULT#:t-Region--scrollBody:nn-print-area:t-Region--removeHeader js-removeLandmark:t-Region--noUI'
 ,p_plug_template=>4072358936313175081
 ,p_plug_display_sequence=>20
 ,p_function_body_language=>'PLSQL'
 ,p_plug_source=>wwv_flow_string.join(wwv_flow_t_varchar2(
-'return noona_gl_pkg.trial_balance(to_date(:P30_FROM, ''YYYY-MM-DD''), to_date(:P30_TO, ''YYYY-MM-DD''), nvl(:P30_ZERO, ''N''), :P30_CC);'))
+'return noona_gl_pkg.trial_balance(to_date(:P30_FROM, ''YYYY-MM-DD''), to_date(:P30_TO, ''YYYY-MM-DD''), nvl(:P30_ZERO, ''N''), :P30_CC,',
+'    nvl(:P30_BASIS, ''POSTED''), ''f?p='' || :APP_ID || '':31:'' || :APP_SESSION || ''::NO:RP:P31_ACCOUNT,P31_FROM,P31_TO,P31_CC:#ID#,''',
+'    || :P30_FROM || '','' || :P30_TO || '','' || :P30_CC);'))
 ,p_plug_source_type=>'NATIVE_DYNAMIC_CONTENT'
 );
 

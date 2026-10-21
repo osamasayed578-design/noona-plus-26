@@ -303,6 +303,7 @@ CREATE OR REPLACE PACKAGE BODY NOONA_UI_PKG AS
       WHEN 'INVITED' THEN 'مدعو' WHEN 'ENDED' THEN 'منتهي' WHEN 'LOCKED' THEN 'مقفل'
       WHEN 'TRIAL' THEN 'تجريبي' WHEN 'READ_ONLY' THEN 'قراءة فقط' WHEN 'GRACE_PERIOD' THEN 'فترة سماح'
       WHEN 'POSTED' THEN 'مرحل' WHEN 'SETTLED' THEN 'مرحل' WHEN 'REVERSED' THEN 'معكوس'
+      WHEN 'OPEN' THEN 'مفتوحة' WHEN 'FUTURE' THEN 'مستقبلية' WHEN 'PERMANENTLY_CLOSED' THEN 'مقفلة نهائياً'
       ELSE p_code END;
   END status_label;
 
@@ -311,7 +312,7 @@ CREATE OR REPLACE PACKAGE BODY NOONA_UI_PKG AS
   BEGIN
     l_class := CASE
       WHEN p_code IN ('ACTIVE', 'PASSED', 'APPROVED', 'EFFECTIVE', 'COMPLETED', 'OCCUPIED', 'SUCCESS', 'PUBLISHED',
-                      'POSTED', 'SETTLED') THEN 'is-success'
+                      'POSTED', 'SETTLED', 'OPEN') THEN 'is-success'
       WHEN p_code IN ('FAILED', 'DENIED', 'REJECTED', 'SUSPENDED', 'CLOSED', 'REVOKED', 'CANCELLED', 'LOCKED', 'TRANSACTIONS_BLOCKED',
                       'REVERSED') THEN 'is-danger'
       WHEN p_code IN ('PENDING', 'SUBMITTED', 'UNDER_CONFIGURATION', 'READY_FOR_REVIEW', 'WAIVED', 'CLOSING', 'WAITING',
