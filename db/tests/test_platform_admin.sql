@@ -62,6 +62,12 @@ BEGIN
   ok('module matrix shows GL checked', REGEXP_LIKE(l_c, 'value="' || l_gl || '" checked'));
   ok('module matrix shows INV unchecked', NOT REGEXP_LIKE(l_c, 'value="' || l_inv || '" checked'));
   ok('platform audit chain intact', NOONA_PLATFORM_ADMIN_PKG.verify_tenant_chain(NULL) IS NULL);
+  -- حدود الاشتراك
+  l_n := TO_NUMBER(NOONA_PLATFORM_ADMIN_PKG.tenant_metric(l_tenant, 'USERS'));
+  BEGIN NOONA_PLATFORM_ADMIN_PKG.set_tenant_limit(l_tenant, 'USERS', l_n - 1); ok('limit below usage rejected', FALSE);
+  EXCEPTION WHEN OTHERS THEN expect('limit below usage rejected', 'NOONA-PLT-304', SQLERRM); END;
+  NOONA_PLATFORM_ADMIN_PKG.set_tenant_limit(l_tenant, 'USERS', l_n);
+  ok('user limit saved', NOONA_PLATFORM_ADMIN_PKG.tenant_limit(l_tenant, 'USERS') = l_n);
   NOONA_APEX_PKG.cleanup_request;
 
   -- المؤسسة ترى المالية فقط من الأنظمة غير الأساسية
@@ -70,6 +76,12 @@ BEGIN
   ok('subscribed system visible', l_n = 1);
   SELECT COUNT(*) INTO l_n FROM noona_v_apps WHERE app_alias IN ('NOONA_SCM', 'NOONA_HR', 'NOONA_MFG');
   ok('unsubscribed systems hidden', l_n = 0, l_n);
+  BEGIN l_n := NOONA_SEC_ADMIN_PKG.create_user('LIM' || TO_CHAR(SYSTIMESTAMP, 'HH24MISSFF3'), 'x', 'lim@x.local',
+                                                TO_NUMBER(SYS_CONTEXT('NOONA_CTX', 'COMPANY_ID')));
+        ok('user limit enforced for tenant admin', FALSE);
+  EXCEPTION WHEN OTHERS THEN expect('user limit enforced for tenant admin', 'NOONA-PLT-020', SQLERRM); END;
+  l_c := NOONA_UI_PKG.admin_summary('1');
+  ok('admin dashboard shows the limit', INSTR(l_c, 'الحد ') > 0);
   ROLLBACK;
   NOONA_APEX_PKG.cleanup_request;
   DBMS_OUTPUT.PUT_LINE('=== RESULT: ' || g_pass || ' passed, ' || g_fail || ' failed');

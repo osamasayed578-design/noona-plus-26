@@ -21,15 +21,19 @@ TENANT_STATUS = ("select noona_ui_pkg.status_label(column_value) d, column_value
                  "'TRIAL','PENDING_ACTIVATION','ACTIVE','GRACE_PERIOD','READ_ONLY','SUSPENDED','ARCHIVED','CLOSED'))")
 TENANTS_SQL = [
     'select t.id, t.tenant_code, t.name_ar, t.country_code, t.deployment_model,',
-    "       noona_platform_admin_pkg.tenant_metric(t.id, 'COMPANIES') as companies,",
-    "       noona_platform_admin_pkg.tenant_metric(t.id, 'USERS') as users,",
+    "       noona_platform_admin_pkg.tenant_metric(t.id, 'COMPANIES') || nvl2(noona_platform_admin_pkg.tenant_limit(t.id, 'COMPANIES'),",
+    "           ' / ' || noona_platform_admin_pkg.tenant_limit(t.id, 'COMPANIES'), '') as companies,",
+    "       noona_platform_admin_pkg.tenant_metric(t.id, 'BRANCHES') || nvl2(noona_platform_admin_pkg.tenant_limit(t.id, 'BRANCHES'),",
+    "           ' / ' || noona_platform_admin_pkg.tenant_limit(t.id, 'BRANCHES'), '') as branches,",
+    "       noona_platform_admin_pkg.tenant_metric(t.id, 'USERS') || nvl2(noona_platform_admin_pkg.tenant_limit(t.id, 'USERS'),",
+    "           ' / ' || noona_platform_admin_pkg.tenant_limit(t.id, 'USERS'), '') as users,",
     "       noona_platform_admin_pkg.tenant_metric(t.id, 'MODULES') as modules,",
     "       noona_platform_admin_pkg.tenant_metric(t.id, 'LAST_LOGIN') as last_login,",
     "       noona_ui_pkg.code_label(t.legal_hold) as legal_hold, noona_ui_pkg.status_badge(t.status_code) as status_html",
     '  from plt_tenant t']
 TENANTS_COLS = [('ID', '#', {'hidden': True, 'type': 'NUMBER'}), ('TENANT_CODE', 'الرمز', {}), ('NAME_AR', 'المؤسسة', {}),
-                ('COUNTRY_CODE', 'الدولة', {}), ('DEPLOYMENT_MODEL', 'نموذج التشغيل', {}), ('COMPANIES', 'شركات', {}),
-                ('USERS', 'مستخدمون', {}), ('MODULES', 'وحدات مشترك فيها', {}), ('LAST_LOGIN', 'آخر دخول', {}),
+                ('COUNTRY_CODE', 'الدولة', {}), ('DEPLOYMENT_MODEL', 'نموذج التشغيل', {}), ('COMPANIES', 'شركات (الحد)', {}),
+                ('BRANCHES', 'فروع (الحد)', {}), ('USERS', 'مستخدمون (الحد)', {}), ('MODULES', 'وحدات مشترك فيها', {}), ('LAST_LOGIN', 'آخر دخول', {}),
                 ('LEGAL_HOLD', 'حجز قانوني', {}), ('STATUS_HTML', 'الحالة', {'html': True})]
 TENANT_LINK = 'f?p=&APP_ID.:3:&SESSION.::&DEBUG.:RP,3:P3_ID:#ID#'
 
@@ -63,6 +67,28 @@ p.process(20, 'AFTER_SUBMIT', 'Legal Hold', "noona_platform_pkg.set_legal_hold(:
           when_button=b_hold, success='تم تفعيل الحجز القانوني')
 p.process(30, 'AFTER_SUBMIT', 'Release Hold', "noona_platform_pkg.set_legal_hold(:P3_ID, 'N', :P3_REASON);",
           when_button=b_unhold, success='تم رفع الحجز القانوني')
+# حدود الاشتراك: المؤسسة تدير بياناتها ومستخدميها بنفسها ضمن هذه الحدود
+lm = p.static('حدود الاشتراك (فارغ = بلا حد)', 15)
+p.number('P3_MAX_USERS', lm, 10, 'الحد الأقصى للمستخدمين')
+p.number('P3_MAX_BRANCHES', lm, 20, 'الحد الأقصى للفروع')
+p.number('P3_MAX_COMPANIES', lm, 30, 'الحد الأقصى للشركات')
+p.display('P3_USAGE', lm, 40, 'الاستخدام الحالي')
+b_lim = p.button(lm, 10, 'SAVE_LIMITS', 'حفظ الحدود', hot=True)
+p.process(15, 'BEFORE_HEADER', 'Load Limits', [
+    "if :REQUEST is null or :REQUEST <> 'SAVE_LIMITS' then",
+    "    :P3_MAX_USERS := noona_platform_admin_pkg.tenant_limit(:P3_ID, 'USERS');",
+    "    :P3_MAX_BRANCHES := noona_platform_admin_pkg.tenant_limit(:P3_ID, 'BRANCHES');",
+    "    :P3_MAX_COMPANIES := noona_platform_admin_pkg.tenant_limit(:P3_ID, 'COMPANIES');",
+    'end if;',
+    ":P3_USAGE := noona_platform_admin_pkg.tenant_metric(:P3_ID, 'USERS') || ' مستخدم · '",
+    "    || noona_platform_admin_pkg.tenant_metric(:P3_ID, 'BRANCHES') || ' فرع · '",
+    "    || noona_platform_admin_pkg.tenant_metric(:P3_ID, 'COMPANIES') || ' شركة';"])
+p.process(35, 'AFTER_SUBMIT', 'Save Limits', [
+    "noona_platform_admin_pkg.set_tenant_limit(:P3_ID, 'USERS', :P3_MAX_USERS);",
+    "noona_platform_admin_pkg.set_tenant_limit(:P3_ID, 'BRANCHES', :P3_MAX_BRANCHES);",
+    "noona_platform_admin_pkg.set_tenant_limit(:P3_ID, 'COMPANIES', :P3_MAX_COMPANIES);"],
+    when_button=b_lim, success='تم حفظ حدود الاشتراك')
+
 # الاشتراك في الوحدات: يحدد الأنظمة الظاهرة لمستخدمي المؤسسة في شاشة الأنظمة
 md = p.static('الوحدات المشترك فيها', 20)
 p.hidden('P3_MODS', md, 1, protected=False)
@@ -114,6 +140,9 @@ p.select('P4_CURRENCY', t, 60, 'العملة الأساسية', lov_name='NOONA_
 p.yesno('P4_TRIAL', t, 70, 'نسخة تجريبية')
 p.text('P4_COMPANY_CODE', t, 80, 'رمز الشركة الأولى', required=True, maxlen=50, width=15)
 p.text('P4_COMPANY_NAME', t, 90, 'اسم الشركة الأولى', required=True)
+p.number('P4_MAX_USERS', t, 100, 'الحد الأقصى للمستخدمين')
+p.number('P4_MAX_BRANCHES', t, 110, 'الحد الأقصى للفروع')
+p.number('P4_MAX_COMPANIES', t, 120, 'الحد الأقصى للشركات')
 a = p.static('مسؤول المؤسسة', 20)
 p.text('P4_ADMIN_USER', a, 10, 'اسم الدخول', required=True, maxlen=100, width=30)
 p.text('P4_ADMIN_NAME', a, 20, 'الاسم الكامل', required=True)
@@ -129,6 +158,9 @@ p.process(10, 'AFTER_SUBMIT', 'Provision Tenant', [
     '    p_admin_email => :P4_ADMIN_EMAIL, p_admin_name => :P4_ADMIN_NAME, p_company_code => :P4_COMPANY_CODE,',
     "    p_company_name_ar => :P4_COMPANY_NAME, p_idempotency_key => 'UI-' || upper(:P4_CODE), p_is_trial => nvl(:P4_TRIAL, 'N'));",
     "noona_sec_admin_pkg.platform_set_password(:P4_ADMIN_USER, :P4_ADMIN_PASSWORD, 'كلمة المرور الأولى عند التجهيز');",
+    "noona_platform_admin_pkg.set_tenant_limit(:P3_ID, 'USERS', :P4_MAX_USERS);",
+    "noona_platform_admin_pkg.set_tenant_limit(:P3_ID, 'BRANCHES', :P4_MAX_BRANCHES);",
+    "noona_platform_admin_pkg.set_tenant_limit(:P3_ID, 'COMPANIES', :P4_MAX_COMPANIES);",
     ':P4_ADMIN_PASSWORD := null;'], when_button=b, success='تم تجهيز المؤسسة؛ حدد الوحدات المشترك فيها')
 p.branch(10, 'f?p=&APP_ID.:3:&SESSION.::&DEBUG.:RP,3:P3_ID:&P3_ID.&success_msg=#SUCCESS_MSG#', when_button=b)
 

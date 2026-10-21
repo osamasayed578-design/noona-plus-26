@@ -42,8 +42,12 @@ wwv_flow_imp_page.create_page_plug(
 ,p_query_type=>'SQL'
 ,p_plug_source=>wwv_flow_string.join(wwv_flow_t_varchar2(
 'select t.id, t.tenant_code, t.name_ar, t.country_code, t.deployment_model,',
-'       noona_platform_admin_pkg.tenant_metric(t.id, ''COMPANIES'') as companies,',
-'       noona_platform_admin_pkg.tenant_metric(t.id, ''USERS'') as users,',
+'       noona_platform_admin_pkg.tenant_metric(t.id, ''COMPANIES'') || nvl2(noona_platform_admin_pkg.tenant_limit(t.id, ''COMPANIES''),',
+'           '' / '' || noona_platform_admin_pkg.tenant_limit(t.id, ''COMPANIES''), '''') as companies,',
+'       noona_platform_admin_pkg.tenant_metric(t.id, ''BRANCHES'') || nvl2(noona_platform_admin_pkg.tenant_limit(t.id, ''BRANCHES''),',
+'           '' / '' || noona_platform_admin_pkg.tenant_limit(t.id, ''BRANCHES''), '''') as branches,',
+'       noona_platform_admin_pkg.tenant_metric(t.id, ''USERS'') || nvl2(noona_platform_admin_pkg.tenant_limit(t.id, ''USERS''),',
+'           '' / '' || noona_platform_admin_pkg.tenant_limit(t.id, ''USERS''), '''') as users,',
 '       noona_platform_admin_pkg.tenant_metric(t.id, ''MODULES'') as modules,',
 '       noona_platform_admin_pkg.tenant_metric(t.id, ''LAST_LOGIN'') as last_login,',
 '       noona_ui_pkg.code_label(t.legal_hold) as legal_hold, noona_ui_pkg.status_badge(t.status_code) as status_html',
@@ -124,56 +128,66 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_db_column_name=>'COMPANIES'
 ,p_display_order=>60
 ,p_column_identifier=>'F'
-,p_column_label=>'شركات'
+,p_column_label=>'شركات (الحد)'
 ,p_column_type=>'STRING'
 ,p_heading_alignment=>'CENTER'
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
  p_id=>wwv_flow_imp.id(91820265000000019)
-,p_db_column_name=>'USERS'
+,p_db_column_name=>'BRANCHES'
 ,p_display_order=>70
 ,p_column_identifier=>'G'
-,p_column_label=>'مستخدمون'
+,p_column_label=>'فروع (الحد)'
 ,p_column_type=>'STRING'
 ,p_heading_alignment=>'CENTER'
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
  p_id=>wwv_flow_imp.id(91820265000000020)
-,p_db_column_name=>'MODULES'
+,p_db_column_name=>'USERS'
 ,p_display_order=>80
 ,p_column_identifier=>'H'
-,p_column_label=>'وحدات مشترك فيها'
+,p_column_label=>'مستخدمون (الحد)'
 ,p_column_type=>'STRING'
 ,p_heading_alignment=>'CENTER'
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
  p_id=>wwv_flow_imp.id(91820265000000021)
-,p_db_column_name=>'LAST_LOGIN'
+,p_db_column_name=>'MODULES'
 ,p_display_order=>90
 ,p_column_identifier=>'I'
-,p_column_label=>'آخر دخول'
+,p_column_label=>'وحدات مشترك فيها'
 ,p_column_type=>'STRING'
 ,p_heading_alignment=>'CENTER'
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
  p_id=>wwv_flow_imp.id(91820265000000022)
-,p_db_column_name=>'LEGAL_HOLD'
+,p_db_column_name=>'LAST_LOGIN'
 ,p_display_order=>100
 ,p_column_identifier=>'J'
-,p_column_label=>'حجز قانوني'
+,p_column_label=>'آخر دخول'
 ,p_column_type=>'STRING'
 ,p_heading_alignment=>'CENTER'
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
  p_id=>wwv_flow_imp.id(91820265000000023)
-,p_db_column_name=>'STATUS_HTML'
+,p_db_column_name=>'LEGAL_HOLD'
 ,p_display_order=>110
 ,p_column_identifier=>'K'
+,p_column_label=>'حجز قانوني'
+,p_column_type=>'STRING'
+,p_heading_alignment=>'CENTER'
+,p_use_as_row_header=>'N'
+);
+wwv_flow_imp_page.create_worksheet_column(
+ p_id=>wwv_flow_imp.id(91820265000000024)
+,p_db_column_name=>'STATUS_HTML'
+,p_display_order=>120
+,p_column_identifier=>'L'
 ,p_column_label=>'الحالة'
 ,p_column_type=>'STRING'
 ,p_display_text_as=>'WITHOUT_MODIFICATION'
@@ -187,10 +201,10 @@ wwv_flow_imp_page.create_worksheet_rpt(
 ,p_report_alias=>'12'
 ,p_status=>'PUBLIC'
 ,p_is_default=>'Y'
-,p_report_columns=>'TENANT_CODE:NAME_AR:COUNTRY_CODE:DEPLOYMENT_MODEL:COMPANIES:USERS:MODULES:LAST_LOGIN:LEGAL_HOLD:STATUS_HTML'
+,p_report_columns=>'TENANT_CODE:NAME_AR:COUNTRY_CODE:DEPLOYMENT_MODEL:COMPANIES:BRANCHES:USERS:MODULES:LAST_LOGIN:LEGAL_HOLD:STATUS_HTML'
 );
 wwv_flow_imp_page.create_page_button(
- p_id=>wwv_flow_imp.id(91820265000000024)
+ p_id=>wwv_flow_imp.id(91820265000000025)
 ,p_button_sequence=>10
 ,p_button_plug_id=>wwv_flow_imp.id(91820265000000010)
 ,p_button_name=>'NEW_TENANT'

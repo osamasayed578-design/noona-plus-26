@@ -21,6 +21,10 @@ CREATE OR REPLACE PACKAGE NOONA_PLATFORM_ADMIN_PKG AUTHID DEFINER AS
   -- حفظ الاشتراك: المختار مفعل وغير المختار موقوف (يعيد 'enabled:disabled')
   FUNCTION set_tenant_modules(p_tenant_id IN NUMBER, p_module_ids IN VARCHAR2) RETURN VARCHAR2;
 
+  -- حدود الاشتراك (USERS / BRANCHES / COMPANIES): رقم = حد أقصى، فارغ = بلا حد
+  PROCEDURE set_tenant_limit(p_tenant_id IN NUMBER, p_metric_code IN VARCHAR2, p_limit IN NUMBER);
+  FUNCTION tenant_limit(p_tenant_id IN NUMBER, p_metric_code IN VARCHAR2) RETURN NUMBER;
+
   -- مستخدمو المؤسسة المسؤولون (للدعم الفني: إعادة كلمة المرور)
   FUNCTION tenant_admins_html(p_tenant_id IN NUMBER) RETURN CLOB;
 
@@ -166,6 +170,62 @@ CREATE OR REPLACE PACKAGE BODY NOONA_PLATFORM_ADMIN_PKG AS
     NOONA_CORE_PKG.end_system;
     RAISE;
   END set_tenant_modules;
+
+  FUNCTION tenant_limit(p_tenant_id IN NUMBER, p_metric_code IN VARCHAR2) RETURN NUMBER IS
+    l_v NUMBER;
+  BEGIN
+    IF NVL(SYS_CONTEXT('NOONA_CTX', 'PLATFORM_ADMIN'), 'N') <> 'Y' THEN
+      RETURN NULL;
+    END IF;
+    NOONA_CORE_PKG.begin_system;
+    SELECT MIN(NVL(e.hard_limit, e.limit_qty)) INTO l_v
+      FROM plt_entitlement e JOIN plt_usage_metric m ON m.id = e.metric_id
+     WHERE e.tenant_id = p_tenant_id AND m.code = p_metric_code AND e.is_enabled = 'Y'
+       AND TRUNC(SYSDATE) BETWEEN e.effective_from AND NVL(e.effective_to, DATE '9999-12-31');
+    NOONA_CORE_PKG.end_system;
+    RETURN l_v;
+  EXCEPTION WHEN OTHERS THEN
+    NOONA_CORE_PKG.end_system;
+    RAISE;
+  END tenant_limit;
+
+  PROCEDURE set_tenant_limit(p_tenant_id IN NUMBER, p_metric_code IN VARCHAR2, p_limit IN NUMBER) IS
+    l_metric NUMBER;
+    l_id     NUMBER;
+    l_used   NUMBER;
+  BEGIN
+    NOONA_CORE_PKG.require_platform_admin;
+    NOONA_CORE_PKG.assert(p_metric_code IN ('USERS', 'BRANCHES', 'COMPANIES'), 'NOONA-PLT-302',
+      'مقياس غير مدعوم', 'Unsupported metric');
+    NOONA_CORE_PKG.assert(p_limit IS NULL OR p_limit >= 1, 'NOONA-PLT-303', 'الحد يجب أن يكون 1 على الأقل', 'Limit must be at least 1');
+    NOONA_CORE_PKG.begin_system;
+    SELECT id INTO l_metric FROM plt_usage_metric WHERE code = p_metric_code;
+    -- لا يقل الحد عن الاستخدام الحالي (لا تتعطل المؤسسة فجأة)
+    l_used := TO_NUMBER(CASE p_metric_code
+                          WHEN 'USERS' THEN tenant_metric(p_tenant_id, 'USERS')
+                          WHEN 'BRANCHES' THEN tenant_metric(p_tenant_id, 'BRANCHES')
+                          ELSE tenant_metric(p_tenant_id, 'COMPANIES') END);
+    NOONA_CORE_PKG.assert(p_limit IS NULL OR p_limit >= NVL(l_used, 0), 'NOONA-PLT-304',
+      'الحد أقل من الاستخدام الحالي (' || l_used || ')', 'Limit is below current usage');
+    SELECT MIN(id) INTO l_id FROM plt_entitlement
+     WHERE tenant_id = p_tenant_id AND metric_id = l_metric AND module_id IS NULL AND feature_id IS NULL
+       AND TRUNC(SYSDATE) BETWEEN effective_from AND NVL(effective_to, DATE '9999-12-31');
+    IF l_id IS NULL THEN
+      INSERT INTO plt_entitlement (tenant_id, metric_id, is_enabled, limit_qty, hard_limit, source_code)
+      VALUES (p_tenant_id, l_metric, CASE WHEN p_limit IS NULL THEN 'N' ELSE 'Y' END, p_limit, p_limit, 'CONTRACT_OVERRIDE');
+    ELSE
+      UPDATE plt_entitlement
+         SET limit_qty = p_limit, hard_limit = p_limit, is_enabled = CASE WHEN p_limit IS NULL THEN 'N' ELSE 'Y' END,
+             computed_at = SYSTIMESTAMP
+       WHERE id = l_id;
+    END IF;
+    NOONA_CORE_PKG.end_system;
+    NOONA_AUDIT_PKG.log_event('CONFIG', 'PLT_TENANT', p_tenant_id, 'SET_LIMIT:' || p_metric_code, 'SUCCESS',
+      p_new_values => '{"limit":' || NVL(TO_CHAR(p_limit), 'null') || '}');
+  EXCEPTION WHEN OTHERS THEN
+    NOONA_CORE_PKG.end_system;
+    RAISE;
+  END set_tenant_limit;
 
   FUNCTION tenant_admins_html(p_tenant_id IN NUMBER) RETURN CLOB IS
     l_html CLOB := '<table class="nn-table"><thead><tr><th>اسم الدخول</th><th>الاسم</th><th>البريد</th><th>آخر دخول</th><th>الحالة</th></tr></thead><tbody>';

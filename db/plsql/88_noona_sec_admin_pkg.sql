@@ -115,6 +115,9 @@ CREATE OR REPLACE PACKAGE BODY NOONA_SEC_ADMIN_PKG AS
 
     SELECT COUNT(*) INTO l_n FROM sec_user_membership WHERE user_id = l_user.id;
     NOONA_CORE_PKG.assert(l_n = 0, 'NOONA-SEC-203', 'المستخدم عضو في هذه المؤسسة بالفعل', 'User is already a member');
+    -- حد المستخدمين في الاشتراك (يحدده مالك المنصة)
+    SELECT COUNT(*) INTO l_n FROM sec_user_membership WHERE status_code = 'ACTIVE';
+    NOONA_PLATFORM_PKG.assert_within_limit('USERS', l_n);
     INSERT INTO pty_party (party_no, party_type, display_name_ar)
     VALUES ('U-' || l_name, 'PERSON', p_display_name)
     RETURNING id INTO l_party;
@@ -156,6 +159,18 @@ CREATE OR REPLACE PACKAGE BODY NOONA_SEC_ADMIN_PKG AS
     NOONA_CORE_PKG.assert(p_reason IS NOT NULL, 'NOONA-SEC-211', 'السبب إلزامي', 'Reason is required');
     NOONA_CORE_PKG.assert(p_membership_id <> NOONA_CTX_PKG.membership_id OR p_status = 'ACTIVE', 'NOONA-SEC-212',
       'لا يمكنك إيقاف حسابك بنفسك', 'You cannot suspend your own membership');
+    IF p_status = 'ACTIVE' THEN
+      DECLARE
+        l_cur VARCHAR2(30);
+        l_n   NUMBER;
+      BEGIN
+        SELECT status_code INTO l_cur FROM sec_user_membership WHERE id = p_membership_id;
+        IF l_cur <> 'ACTIVE' THEN          -- إعادة تفعيل حساب تحتسب ضمن حد المستخدمين
+          SELECT COUNT(*) INTO l_n FROM sec_user_membership WHERE status_code = 'ACTIVE';
+          NOONA_PLATFORM_PKG.assert_within_limit('USERS', l_n);
+        END IF;
+      END;
+    END IF;
     UPDATE sec_user_membership
        SET status_code = p_status, effective_to = CASE WHEN p_status = 'ENDED' THEN TRUNC(SYSDATE) END
      WHERE id = p_membership_id;

@@ -319,6 +319,22 @@ CREATE OR REPLACE PACKAGE BODY NOONA_UI_PKG AS
   END status_badge;
 
   -- ---------------------------------------------------------------- لوحة الإدارة
+  -- حدود الاشتراك التي يحددها مالك المنصة: " (الحد 10)" ولون تحذيري عند الاقتراب
+  FUNCTION limit_text(p_metric VARCHAR2, p_used NUMBER) RETURN VARCHAR2 IS
+    l_limit NUMBER := NOONA_PLATFORM_PKG.hard_limit(p_metric);
+  BEGIN
+    RETURN CASE WHEN l_limit IS NOT NULL THEN ' (الحد ' || l_limit || ')' END;
+  END limit_text;
+
+  FUNCTION limit_class(p_metric VARCHAR2, p_used NUMBER) RETURN VARCHAR2 IS
+    l_limit NUMBER := NOONA_PLATFORM_PKG.hard_limit(p_metric);
+  BEGIN
+    RETURN CASE WHEN l_limit IS NULL THEN 'is-info'
+                WHEN p_used >= l_limit THEN 'is-danger'
+                WHEN p_used >= l_limit * 0.8 THEN 'is-warning'
+                ELSE 'is-info' END;
+  END limit_class;
+
   FUNCTION admin_summary(p_session IN VARCHAR2) RETURN CLOB IS
     l_comp NUMBER; l_comp_act NUMBER; l_br NUMBER; l_users NUMBER; l_roles NUMBER;
     l_dlg_pending NUMBER; l_wf NUMBER; l_checks NUMBER;
@@ -337,9 +353,9 @@ CREATE OR REPLACE PACKAGE BODY NOONA_UI_PKG AS
         || '<div class="nn-hello-sub"><span class="fa fa-building-o" aria-hidden="true"></span> '
         || esc(NOONA_APEX_PKG.tenant_name) || ' &middot; ' || esc(NOONA_APEX_PKG.display_name) || '</div></div>'
         || '<div class="nn-kpis">'
-        || kpi('شركات نشطة من ' || l_comp, l_comp_act, 'fa-building-o', 'is-success')
-        || kpi('فروع نشطة', l_br, 'fa-map-marker', 'is-info')
-        || kpi('مستخدمون نشطون', l_users, 'fa-users', 'is-info')
+        || kpi('شركات نشطة من ' || l_comp || limit_text('COMPANIES', l_comp), l_comp_act, 'fa-building-o', 'is-success')
+        || kpi('فروع نشطة' || limit_text('BRANCHES', l_br), l_br, 'fa-map-marker', limit_class('BRANCHES', l_br))
+        || kpi('مستخدمون نشطون' || limit_text('USERS', l_users), l_users, 'fa-users', limit_class('USERS', l_users))
         || kpi('أدوار', l_roles, 'fa-key', 'is-muted')
         || kpi('تفويضات بانتظار الاعتماد', l_dlg_pending, 'fa-share', CASE WHEN l_dlg_pending > 0 THEN 'is-warning' ELSE 'is-muted' END)
         || kpi('مسارات اعتماد منشورة', l_wf, 'fa-sitemap', 'is-info')

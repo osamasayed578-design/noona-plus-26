@@ -406,10 +406,13 @@ CREATE OR REPLACE PACKAGE BODY NOONA_PLATFORM_PKG AS
 
   PROCEDURE assert_within_limit(p_metric_code IN VARCHAR2, p_current_count IN NUMBER) IS
     l_limit NUMBER := hard_limit(p_metric_code);
+    l_name  plt_usage_metric.name_ar%TYPE;
   BEGIN
     IF l_limit IS NOT NULL AND p_current_count >= l_limit THEN
+      SELECT MAX(name_ar) INTO l_name FROM plt_usage_metric WHERE code = p_metric_code;
       NOONA_CORE_PKG.raise_error('NOONA-PLT-020',
-        'تم بلوغ حد الاشتراك (' || p_metric_code || ' = ' || l_limit || '). البيانات الحالية لا تتأثر',
+        'تم بلوغ الحد الأقصى في الاشتراك: ' || NVL(l_name, p_metric_code) || ' = ' || l_limit
+        || '. لزيادته تواصل مع مزود الخدمة؛ البيانات الحالية لا تتأثر',
         'Subscription limit reached (' || p_metric_code || ' = ' || l_limit || ')');
     END IF;
   END assert_within_limit;
