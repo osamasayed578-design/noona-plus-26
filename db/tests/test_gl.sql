@@ -47,6 +47,8 @@ DECLARE
   END login;
 BEGIN
   login('ADMIN');
+  -- قواعد الأرشفة (المرجع الورقي) لها اختبارها الخاص test_dms؛ تعطل هنا داخل المعاملة
+  UPDATE dms_archive_rule SET is_active = 'N';
   l_led := NOONA_GL_PKG.quick_setup;
   l_led2 := NOONA_GL_PKG.quick_setup;
   ok('quick setup creates ledger (idempotent)', l_led IS NOT NULL AND l_led = l_led2);

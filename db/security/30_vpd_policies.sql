@@ -123,6 +123,7 @@ BEGIN
   NOONA_VPD_PKG.add_shared_policy('DLG_TEMPLATE');
   NOONA_VPD_PKG.add_tenant_policy('DMS_ACCESS_LOG');
   NOONA_VPD_PKG.add_tenant_policy('DMS_ACL');
+  NOONA_VPD_PKG.add_tenant_policy('DMS_ARCHIVE_RULE');
   NOONA_VPD_PKG.add_shared_policy('DMS_CATEGORY');
   NOONA_VPD_PKG.add_tenant_policy('DMS_COMMENT');
   NOONA_VPD_PKG.add_tenant_policy('DMS_DISPOSAL_BATCH');

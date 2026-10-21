@@ -121,6 +121,10 @@ CREATE OR REPLACE PACKAGE BODY NOONA_FIN_RPT_PKG AS
     ELSE
       l_html := l_html || '<div class="nn-empty">قيد يومية مباشر (المستند هو القيد نفسه)</div>';
     END IF;
+    -- المستندات المؤرشفة (المرجع الورقي)
+    l_html := l_html || '<h3 class="nn-rpt-h">المستندات المؤرشفة</h3>'
+           || NOONA_DMS_PKG.attachments_html(CASE WHEN l_ev.source_entity_type = 'CSH_TRANSACTION' THEN 'CSH_TRANSACTION' ELSE 'GL_JOURNAL' END,
+                                             CASE WHEN l_ev.source_entity_type = 'CSH_TRANSACTION' THEN l_ev.source_entity_id ELSE p_journal_id END);
     -- مسار المستند
     l_html := l_html || '<h3 class="nn-rpt-h">مسار القيد</h3><table class="nn-rpt"><thead><tr><th>الوقت</th><th>الإجراء</th>'
            || '<th>المستخدم</th><th>السبب / الملاحظة</th></tr></thead><tbody>'

@@ -1,6 +1,6 @@
 # ERD — الحزمة 04: إدارة المستندات والأرشفة
 
-**Document Management & Archive** · الحزمة البرمجية `NOONA_DMS_PKG` · عدد الجداول: **26**
+**Document Management & Archive** · الحزمة البرمجية `NOONA_DMS_PKG` · عدد الجداول: **27**
 
 محرك DMS مركزي (BR-004): المستند سجل عمل وهوية ثابتة، والإصدارات 1..n غير قابلة للمحو، والمحتوى الثنائي في SecureFiles أو Object Storage، والربط بكيانات ERP عبر Document Link منضبط بسجل الأنواع، مع ACL والسرية والاحتفاظ والحجز القانوني والتوقيع.
 
@@ -44,6 +44,13 @@ erDiagram
     NUMBER TENANT_ID FK,UK
     VARCHAR2 CODE UK
     VARCHAR2 NAME_AR
+  }
+  DMS_ARCHIVE_RULE {
+    NUMBER ID PK
+    NUMBER TENANT_ID FK
+    NUMBER COMPANY_ID FK,UK
+    VARCHAR2 ENTITY_TYPE UK
+    NUMBER DOCUMENT_TYPE_ID FK
   }
   DMS_DOCUMENT {
     NUMBER ID PK
@@ -217,10 +224,10 @@ erDiagram
   REF_COUNTRY {
     NUMBER ID PK
   }
-  ORG_BRANCH {
+  ORG_COMPANY {
     NUMBER ID PK
   }
-  ORG_COMPANY {
+  ORG_BRANCH {
     NUMBER ID PK
   }
   REF_LANGUAGE {
@@ -270,6 +277,7 @@ erDiagram
   DMS_DOCUMENT ||--o{ DMS_METADATA_VALUE : "DOCUMENT_ID"
   DMS_DOCUMENT ||--o{ DMS_SHARE : "DOCUMENT_ID"
   DMS_DOCUMENT_TYPE |o--o{ DMS_TEMPLATE : "DOCUMENT_TYPE_ID"
+  DMS_DOCUMENT_TYPE ||--o{ DMS_ARCHIVE_RULE : "DOCUMENT_TYPE_ID"
   DMS_DOCUMENT_TYPE ||--o{ DMS_DOCUMENT : "DOCUMENT_TYPE_ID"
   DMS_DOCUMENT_TYPE ||--o{ DMS_METADATA_FIELD : "DOCUMENT_TYPE_ID"
   DMS_DOCUMENT_VERSION |o--o{ DMS_ACCESS_LOG : "VERSION_ID"
@@ -293,6 +301,7 @@ erDiagram
   ORG_BRANCH |o--o{ DMS_DOCUMENT : "BRANCH_ID"
   ORG_COMPANY |o--o{ DMS_DOCUMENT : "COMPANY_ID"
   ORG_COMPANY |o--o{ DMS_DOCUMENT_LINK : "COMPANY_ID"
+  ORG_COMPANY ||--o{ DMS_ARCHIVE_RULE : "COMPANY_ID"
   ORG_UNIT |o--o{ DMS_DOCUMENT : "OWNER_UNIT_ID"
   PTY_PARTY |o--o{ DMS_SIGNATURE : "SIGNER_PARTY_ID"
   REF_COUNTRY |o--o{ DMS_RETENTION_POLICY : "COUNTRY_CODE"
@@ -323,6 +332,7 @@ erDiagram
 | `DMS_DOCUMENT_TYPE` | أنواع المستندات وسياساتها | Document Types & Policies | TO |
 | `DMS_METADATA_FIELD` | حقول البيانات الوصفية | Metadata Field Definitions | TO |
 | `DMS_TAG` | الوسوم | Tags | T |
+| `DMS_ARCHIVE_RULE` | قواعد الأرشفة | Archiving Rules | C |
 | `DMS_DOCUMENT` | المستندات | Documents | T |
 | `DMS_FILE_CONTENT` | محتوى الملفات | File Content | T |
 | `DMS_DOCUMENT_VERSION` | إصدارات المستندات | Document Versions | T |

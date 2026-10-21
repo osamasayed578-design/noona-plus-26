@@ -718,6 +718,7 @@ CREATE OR REPLACE PACKAGE BODY NOONA_GL_PKG AS
     NOONA_CORE_PKG.assert(l_j.status_code = 'SUBMITTED', 'NOONA-GL-070', 'القيد ليس بانتظار الاعتماد', 'Journal is not pending approval');
     NOONA_CORE_PKG.assert(l_j.created_by <> NOONA_CTX_PKG.current_user_name, 'NOONA-GL-071',
       'لا يعتمد القيد من أنشأه (فصل المهام)', 'Maker cannot approve their own journal');
+    NOONA_DMS_PKG.assert_reference('GL_JOURNAL', p_journal_id);  -- المرجع الورقي حسب قاعدة الأرشفة
     UPDATE gl_journal SET approved_by = NOONA_CTX_PKG.current_user_name, status_code = 'APPROVED' WHERE id = p_journal_id;
     NOONA_AUDIT_PKG.log_event('APPROVAL', 'GL_JOURNAL', p_journal_id, 'APPROVE', 'SUCCESS', p_reason => p_comment);
     do_post(p_journal_id);

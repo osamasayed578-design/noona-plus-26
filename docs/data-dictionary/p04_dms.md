@@ -13,6 +13,7 @@
 | [`DMS_DOCUMENT_TYPE`](#dms_document_type) | أنواع المستندات وسياساتها | Document Types & Policies | TO | INTERNAL |
 | [`DMS_METADATA_FIELD`](#dms_metadata_field) | حقول البيانات الوصفية | Metadata Field Definitions | TO | INTERNAL |
 | [`DMS_TAG`](#dms_tag) | الوسوم | Tags | T | INTERNAL |
+| [`DMS_ARCHIVE_RULE`](#dms_archive_rule) | قواعد الأرشفة | Archiving Rules | C | INTERNAL |
 | [`DMS_DOCUMENT`](#dms_document) | المستندات | Documents | T | CONFIDENTIAL |
 | [`DMS_FILE_CONTENT`](#dms_file_content) | محتوى الملفات | File Content | T | CONFIDENTIAL |
 | [`DMS_DOCUMENT_VERSION`](#dms_document_version) | إصدارات المستندات | Document Versions | T | INTERNAL |
@@ -197,6 +198,35 @@
 | 9 | `UPDATED_BY` | اسم مستخدم | `VARCHAR2(128 CHAR)` |  |  |  |  | Trigger |  | آخر من عدل السجل |
 | 10 | `UPDATED_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` |  |  |  |  | Trigger |  | وقت آخر تعديل |
 
+## DMS_ARCHIVE_RULE
+
+| البند | القيمة |
+|---|---|
+| الاسم العربي | قواعد الأرشفة |
+| English | Archiving Rules |
+| الحزمة المالكة | 04 — `NOONA_DMS_PKG` |
+| نطاق الملكية | `C` — مملوك للشركة Company-Owned |
+| الحساسية | INTERNAL |
+| النمط | قابل للتعديل وفق دورة الحياة |
+| الغرض | كل إجراء مستندي له مرجع ورقي: تحدد القاعدة ما يلزم قبل اعتماد المستند |
+| مفاتيح فريدة | UK1: (COMPANY_ID, ENTITY_TYPE) |
+
+| # | العمود | النوع المنطقي | Oracle Type | إلزامي | افتراضي | مفاتيح | القيم المقبولة | المصدر | PII | الوصف |
+|---:|---|---|---|:---:|---|---|---|---|:---:|---|
+| 1 | `ID` | معرف | `NUMBER(19)` | ✔ |  | PK |  | النظام/الحزمة |  | المفتاح الداخلي الثابت (Identity) - لا يعاد استخدامه |
+| 2 | `TENANT_ID` | معرف | `NUMBER(19)` | ✔ |  | FK→PLT_TENANT |  | Security Context |  | المؤسسة المالكة؛ يملأ من Security Context الموثوق لا من مدخلات المستخدم |
+| 3 | `COMPANY_ID` | معرف | `NUMBER(19)` | ✔ |  | FK→ORG_COMPANY UK1 |  | Security Context |  | الشركة (الكيان القانوني) المالكة للسجل |
+| 4 | `ENTITY_TYPE` | نص | `VARCHAR2(50 CHAR)` | ✔ |  | UK1 |  | إدخال المستخدم |  | نوع المستند الأصلي (مثل CSH_TRANSACTION، GL_JOURNAL) |
+| 5 | `DOCUMENT_TYPE_ID` | معرف | `NUMBER(19)` | ✔ |  | FK→DMS_DOCUMENT_TYPE |  | إدخال المستخدم |  | نوع المستند المؤرشف الافتراضي |
+| 6 | `IS_REQUIRED` | منطقي Y/N | `CHAR(1 CHAR)` | ✔ | 'Y' |  | Y, N | إدخال المستخدم |  | المرجع الورقي إلزامي قبل الاعتماد |
+| 7 | `REQUIRE_FILE` | منطقي Y/N | `CHAR(1 CHAR)` | ✔ | 'N' |  | Y, N | إدخال المستخدم |  | صورة الأصل (ملف) إلزامية |
+| 8 | `IS_ACTIVE` | منطقي Y/N | `CHAR(1 CHAR)` | ✔ | 'Y' |  | Y, N | إدخال المستخدم |  | نشط؟ |
+| 9 | `ROW_VERSION` | عدد صحيح | `NUMBER(10)` | ✔ | 1 |  |  | Trigger |  | رقم الإصدار للتحكم في التزامن المتفائل |
+| 10 | `CREATED_BY` | اسم مستخدم | `VARCHAR2(128 CHAR)` | ✔ |  |  |  | Trigger |  | منشئ السجل |
+| 11 | `CREATED_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` | ✔ | SYSTIMESTAMP |  |  | Trigger |  | وقت الإنشاء |
+| 12 | `UPDATED_BY` | اسم مستخدم | `VARCHAR2(128 CHAR)` |  |  |  |  | Trigger |  | آخر من عدل السجل |
+| 13 | `UPDATED_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` |  |  |  |  | Trigger |  | وقت آخر تعديل |
+
 ## DMS_DOCUMENT
 
 | البند | القيمة |
@@ -218,33 +248,35 @@
 | 4 | `BRANCH_ID` | معرف | `NUMBER(19)` |  |  | FK→ORG_BRANCH |  | إدخال المستخدم |  | الفرع |
 | 5 | `COMPANY_ID` | معرف | `NUMBER(19)` |  |  | FK→ORG_COMPANY |  | إدخال المستخدم |  | الشركة |
 | 6 | `DOCUMENT_TYPE_ID` | معرف | `NUMBER(19)` | ✔ |  | FK→DMS_DOCUMENT_TYPE |  | إدخال المستخدم |  | النوع |
-| 7 | `REFERENCE_NO` | نص | `VARCHAR2(100 CHAR)` |  |  |  |  | إدخال المستخدم |  | الرقم المرجعي الاختياري |
-| 8 | `TITLE` | نص | `VARCHAR2(500 CHAR)` | ✔ |  |  |  | إدخال المستخدم |  | العنوان |
-| 9 | `DESCRIPTION` | نص | `VARCHAR2(4000 CHAR)` |  |  |  |  | إدخال المستخدم |  | الوصف |
-| 10 | `LANGUAGE_CODE` | رمز لغة | `VARCHAR2(10 CHAR)` |  |  | FK→REF_LANGUAGE |  | إدخال المستخدم |  | لغة المستند |
-| 11 | `ORIGIN_TYPE` | رمز | `VARCHAR2(30 CHAR)` | ✔ | 'AUTHENTIC' |  | AUTHENTIC, COPY, DERIVED, SYSTEM_GENERATED, EXTERNAL_INBOUND | إدخال المستخدم |  | الأصالة (يقرر مرة واحدة) |
-| 12 | `OWNER_MEMBER_ID` | معرف | `NUMBER(19)` |  |  | FK→SEC_USER_MEMBERSHIP |  | إدخال المستخدم |  | المالك |
-| 13 | `OWNER_UNIT_ID` | معرف | `NUMBER(19)` |  |  | FK→ORG_UNIT |  | إدخال المستخدم |  | الوحدة المالكة |
-| 14 | `CURRENT_VERSION_ID` | معرف | `NUMBER(19)` |  |  | FK→DMS_DOCUMENT_VERSION |  | إدخال المستخدم |  | الإصدار الساري (مؤشر صريح) |
-| 15 | `DOCUMENT_DATE` | تاريخ | `DATE` |  |  |  |  | إدخال المستخدم |  | تاريخ المستند |
-| 16 | `VALID_FROM` | تاريخ | `DATE` |  |  |  |  | إدخال المستخدم |  | السريان من |
-| 17 | `VALID_TO` | تاريخ | `DATE` |  |  |  |  | إدخال المستخدم |  | الانتهاء |
-| 18 | `LEGAL_HOLD` | منطقي Y/N | `CHAR(1 CHAR)` | ✔ | 'N' |  | Y, N | إدخال المستخدم |  | تحت حجز قانوني |
-| 19 | `RETENTION_POLICY_ID` | معرف | `NUMBER(19)` |  |  | FK→DMS_RETENTION_POLICY |  | إدخال المستخدم |  | سياسة الاحتفاظ المطبقة |
-| 20 | `RETENTION_TRIGGER_DATE` | تاريخ | `DATE` |  |  |  |  | إدخال المستخدم |  | تاريخ الحدث المرجعي |
-| 21 | `RETENTION_END_DATE` | تاريخ | `DATE` |  |  |  |  | محسوب |  | نهاية الاحتفاظ المحسوبة |
-| 22 | `CHECKED_OUT_BY_MEMBER_ID` | معرف | `NUMBER(19)` |  |  | FK→SEC_USER_MEMBERSHIP |  | إدخال المستخدم |  | المستخدم الحاجز (Check-out) |
-| 23 | `CHECKED_OUT_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` |  |  |  |  | إدخال المستخدم |  | وقت الحجز |
-| 24 | `CHECKOUT_EXPIRES_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` |  |  |  |  | إدخال المستخدم |  | انتهاء الحجز |
-| 25 | `SOURCE_TEMPLATE_ID` | معرف | `NUMBER(19)` |  |  | FK→DMS_TEMPLATE |  | إدخال المستخدم |  | القالب المولد منه |
-| 26 | `IS_DELETED` | منطقي Y/N | `CHAR(1 CHAR)` | ✔ | 'N' |  | Y, N | إدخال المستخدم |  | حذف منطقي قابل للاستعادة |
-| 27 | `STATUS_CODE` | رمز | `VARCHAR2(30 CHAR)` | ✔ | 'DRAFT' |  | DRAFT, UPLOADING, QUARANTINED, AVAILABLE, UNDER_REVIEW, APPROVED, ACTIVE, ARCHIVED, DISPOSED, REJECTED, EXPIRED, SUPERSEDED, UPLOAD_FAILED, BLOCKED | النظام/الحزمة |  | الحالة ضمن دورة الحياة المعتمدة |
-| 28 | `CONFIDENTIALITY_LEVEL` | رمز | `VARCHAR2(30 CHAR)` | ✔ | 'INTERNAL' |  | PUBLIC, INTERNAL, CONFIDENTIAL, SECRET, HIGHLY_RESTRICTED | إدخال المستخدم |  | درجة السرية؛ لا تمنح الوصول منفردة |
-| 29 | `ROW_VERSION` | عدد صحيح | `NUMBER(10)` | ✔ | 1 |  |  | Trigger |  | رقم الإصدار للتحكم في التزامن المتفائل |
-| 30 | `CREATED_BY` | اسم مستخدم | `VARCHAR2(128 CHAR)` | ✔ |  |  |  | Trigger |  | منشئ السجل |
-| 31 | `CREATED_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` | ✔ | SYSTIMESTAMP |  |  | Trigger |  | وقت الإنشاء |
-| 32 | `UPDATED_BY` | اسم مستخدم | `VARCHAR2(128 CHAR)` |  |  |  |  | Trigger |  | آخر من عدل السجل |
-| 33 | `UPDATED_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` |  |  |  |  | Trigger |  | وقت آخر تعديل |
+| 7 | `REFERENCE_NO` | نص | `VARCHAR2(100 CHAR)` |  |  |  |  | إدخال المستخدم |  | رقم الأرشيف (يصدر من تسلسل DMS_ARCHIVE ويكتب على الأصل الورقي) |
+| 8 | `EXTERNAL_REF` | نص | `VARCHAR2(100 CHAR)` |  |  |  |  | إدخال المستخدم |  | المرجع الورقي/الخارجي (رقم الفاتورة أو الشيك أو الخطاب) |
+| 9 | `PHYSICAL_LOCATION` | نص | `VARCHAR2(200 CHAR)` |  |  |  |  | إدخال المستخدم |  | موقع الأصل الورقي (الملف/الرف/الصندوق) |
+| 10 | `TITLE` | نص | `VARCHAR2(500 CHAR)` | ✔ |  |  |  | إدخال المستخدم |  | العنوان |
+| 11 | `DESCRIPTION` | نص | `VARCHAR2(4000 CHAR)` |  |  |  |  | إدخال المستخدم |  | الوصف |
+| 12 | `LANGUAGE_CODE` | رمز لغة | `VARCHAR2(10 CHAR)` |  |  | FK→REF_LANGUAGE |  | إدخال المستخدم |  | لغة المستند |
+| 13 | `ORIGIN_TYPE` | رمز | `VARCHAR2(30 CHAR)` | ✔ | 'AUTHENTIC' |  | AUTHENTIC, COPY, DERIVED, SYSTEM_GENERATED, EXTERNAL_INBOUND | إدخال المستخدم |  | الأصالة (يقرر مرة واحدة) |
+| 14 | `OWNER_MEMBER_ID` | معرف | `NUMBER(19)` |  |  | FK→SEC_USER_MEMBERSHIP |  | إدخال المستخدم |  | المالك |
+| 15 | `OWNER_UNIT_ID` | معرف | `NUMBER(19)` |  |  | FK→ORG_UNIT |  | إدخال المستخدم |  | الوحدة المالكة |
+| 16 | `CURRENT_VERSION_ID` | معرف | `NUMBER(19)` |  |  | FK→DMS_DOCUMENT_VERSION |  | إدخال المستخدم |  | الإصدار الساري (مؤشر صريح) |
+| 17 | `DOCUMENT_DATE` | تاريخ | `DATE` |  |  |  |  | إدخال المستخدم |  | تاريخ المستند |
+| 18 | `VALID_FROM` | تاريخ | `DATE` |  |  |  |  | إدخال المستخدم |  | السريان من |
+| 19 | `VALID_TO` | تاريخ | `DATE` |  |  |  |  | إدخال المستخدم |  | الانتهاء |
+| 20 | `LEGAL_HOLD` | منطقي Y/N | `CHAR(1 CHAR)` | ✔ | 'N' |  | Y, N | إدخال المستخدم |  | تحت حجز قانوني |
+| 21 | `RETENTION_POLICY_ID` | معرف | `NUMBER(19)` |  |  | FK→DMS_RETENTION_POLICY |  | إدخال المستخدم |  | سياسة الاحتفاظ المطبقة |
+| 22 | `RETENTION_TRIGGER_DATE` | تاريخ | `DATE` |  |  |  |  | إدخال المستخدم |  | تاريخ الحدث المرجعي |
+| 23 | `RETENTION_END_DATE` | تاريخ | `DATE` |  |  |  |  | محسوب |  | نهاية الاحتفاظ المحسوبة |
+| 24 | `CHECKED_OUT_BY_MEMBER_ID` | معرف | `NUMBER(19)` |  |  | FK→SEC_USER_MEMBERSHIP |  | إدخال المستخدم |  | المستخدم الحاجز (Check-out) |
+| 25 | `CHECKED_OUT_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` |  |  |  |  | إدخال المستخدم |  | وقت الحجز |
+| 26 | `CHECKOUT_EXPIRES_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` |  |  |  |  | إدخال المستخدم |  | انتهاء الحجز |
+| 27 | `SOURCE_TEMPLATE_ID` | معرف | `NUMBER(19)` |  |  | FK→DMS_TEMPLATE |  | إدخال المستخدم |  | القالب المولد منه |
+| 28 | `IS_DELETED` | منطقي Y/N | `CHAR(1 CHAR)` | ✔ | 'N' |  | Y, N | إدخال المستخدم |  | حذف منطقي قابل للاستعادة |
+| 29 | `STATUS_CODE` | رمز | `VARCHAR2(30 CHAR)` | ✔ | 'DRAFT' |  | DRAFT, UPLOADING, QUARANTINED, AVAILABLE, UNDER_REVIEW, APPROVED, ACTIVE, ARCHIVED, DISPOSED, REJECTED, EXPIRED, SUPERSEDED, UPLOAD_FAILED, BLOCKED | النظام/الحزمة |  | الحالة ضمن دورة الحياة المعتمدة |
+| 30 | `CONFIDENTIALITY_LEVEL` | رمز | `VARCHAR2(30 CHAR)` | ✔ | 'INTERNAL' |  | PUBLIC, INTERNAL, CONFIDENTIAL, SECRET, HIGHLY_RESTRICTED | إدخال المستخدم |  | درجة السرية؛ لا تمنح الوصول منفردة |
+| 31 | `ROW_VERSION` | عدد صحيح | `NUMBER(10)` | ✔ | 1 |  |  | Trigger |  | رقم الإصدار للتحكم في التزامن المتفائل |
+| 32 | `CREATED_BY` | اسم مستخدم | `VARCHAR2(128 CHAR)` | ✔ |  |  |  | Trigger |  | منشئ السجل |
+| 33 | `CREATED_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` | ✔ | SYSTIMESTAMP |  |  | Trigger |  | وقت الإنشاء |
+| 34 | `UPDATED_BY` | اسم مستخدم | `VARCHAR2(128 CHAR)` |  |  |  |  | Trigger |  | آخر من عدل السجل |
+| 35 | `UPDATED_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` |  |  |  |  | Trigger |  | وقت آخر تعديل |
 
 ## DMS_FILE_CONTENT
 

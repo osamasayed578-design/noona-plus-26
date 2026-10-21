@@ -51,10 +51,20 @@ VERSION_NO      INT  NN D=1      | إصدار التعريف
 table('DMS_TAG', 'الوسوم', 'Tags', scope='T', mix='code names', area='classification',
       purpose='لا تخزن بيانات حساسة في الوسوم العامة')
 
+table('DMS_ARCHIVE_RULE', 'قواعد الأرشفة', 'Archiving Rules', scope='C', mix='active', cols='''
+ENTITY_TYPE     V50  NN          | نوع المستند الأصلي (مثل CSH_TRANSACTION، GL_JOURNAL)
+DOCUMENT_TYPE_ID ID  NN >DMS_DOCUMENT_TYPE | نوع المستند المؤرشف الافتراضي
+IS_REQUIRED     YN   NN D='Y'    | المرجع الورقي إلزامي قبل الاعتماد
+REQUIRE_FILE    YN   NN D='N'    | صورة الأصل (ملف) إلزامية
+''', uk=[('COMPANY_ID', 'ENTITY_TYPE')], area='document',
+      purpose='كل إجراء مستندي له مرجع ورقي: تحدد القاعدة ما يلزم قبل اعتماد المستند')
+
 table('DMS_DOCUMENT', 'المستندات', 'Documents', scope='T', mix='pub branch conf status', status=DOC_STATUS, cols='''
 COMPANY_ID      ID   >ORG_COMPANY | الشركة
 DOCUMENT_TYPE_ID ID  NN >DMS_DOCUMENT_TYPE | النوع
-REFERENCE_NO    V100             | الرقم المرجعي الاختياري
+REFERENCE_NO    V100             | رقم الأرشيف (يصدر من تسلسل DMS_ARCHIVE ويكتب على الأصل الورقي)
+EXTERNAL_REF    V100             | المرجع الورقي/الخارجي (رقم الفاتورة أو الشيك أو الخطاب)
+PHYSICAL_LOCATION V200           | موقع الأصل الورقي (الملف/الرف/الصندوق)
 TITLE           V500 NN          | العنوان
 DESCRIPTION     V4000            | الوصف
 LANGUAGE_CODE   LANG             | لغة المستند

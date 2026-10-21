@@ -497,6 +497,7 @@ CREATE OR REPLACE PACKAGE BODY NOONA_CSH_PKG AS
     NOONA_CORE_PKG.assert(l_t.status_code = 'SUBMITTED', 'NOONA-CSH-030', 'السند ليس بانتظار الاعتماد', 'Voucher is not pending approval');
     NOONA_CORE_PKG.assert(l_t.created_by <> NOONA_CTX_PKG.current_user_name, 'NOONA-CSH-031',
       'لا يعتمد السند من أنشأه (فصل المهام)', 'Maker cannot approve their own voucher');
+    NOONA_DMS_PKG.assert_reference(c_entity, p_id);            -- المرجع الورقي حسب قاعدة الأرشفة
     IF l_t.cash_box_id IS NOT NULL THEN
       SELECT gl_account_id, status_code INTO l_cash, l_st FROM csh_cash_box WHERE id = l_t.cash_box_id FOR UPDATE;
     ELSE
@@ -768,6 +769,7 @@ CREATE OR REPLACE PACKAGE BODY NOONA_CSH_PKG AS
            || field('طريقة الدفع', esc(NOONA_UI_PKG.code_label(l_t.channel)) || ' - ' || esc(place_name(l_t)))
            || field('المرجع', esc(l_t.external_reference))
            || field('القيد المحاسبي', esc(journal_no(l_t)))
+           || field('مرجع الأرشيف', esc(NOONA_DMS_PKG.refs_text(c_entity, l_t.id)))
            || '</div><div class="nn-words">' || esc(amount_words(l_t.amount, l_t.currency_code)) || '</div>'
            || '<div class="nn-words-sub">وذلك عن: ' || esc(l_t.description) || '</div>'
            || '<table class="nn-rpt"><thead><tr><th>#</th><th>الحساب</th><th>مركز التكلفة</th><th>البيان</th><th>المبلغ</th></tr></thead><tbody>';

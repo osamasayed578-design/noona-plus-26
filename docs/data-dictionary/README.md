@@ -24,7 +24,7 @@
 | 01 | نواة المنصة والمؤسسات والترخيص | Platform Core, Tenancy, Licensing & Companies | `NOONA_PLATFORM_PKG` | 65 | [p01_plt](p01_plt.md) |
 | 02 | الهيكل التنظيمي والهوية والأمن | Organization Structure, Identity & Security | `NOONA_SECURITY_PKG` | 37 | [p02_sec](p02_sec.md) |
 | 03 | سير العمل والطلبات والاعتمادات والتفويض | Workflow, Requests, Approvals & Delegation | `NOONA_WORKFLOW_PKG` | 27 | [p03_wf](p03_wf.md) |
-| 04 | إدارة المستندات والأرشفة | Document Management & Archive | `NOONA_DMS_PKG` | 26 | [p04_dms](p04_dms.md) |
+| 04 | إدارة المستندات والأرشفة | Document Management & Archive | `NOONA_DMS_PKG` | 27 | [p04_dms](p04_dms.md) |
 | 05 | المراسلات والإشعارات والتدقيق | Correspondence, Notifications & Audit | `NOONA_CORRESPONDENCE_PKG` | 24 | [p05_cor](p05_cor.md) |
 | 06 | البيانات المرجعية المشتركة والأطراف | Shared Reference Data & Global Party Model | `NOONA_REFERENCE_PKG` | 29 | [p06_ref](p06_ref.md) |
 | 07 | المحاسبة العامة والمحرك المحاسبي | General Ledger & Accounting Engine | `NOONA_GL_PKG` | 40 | [p07_gl](p07_gl.md) |
@@ -52,5 +52,5 @@
 | 29 | النشر الإنتاجي والإصدارات | Deployment & Release Management | `NOONA_DEPLOYMENT_PKG` | 6 | [p29_dep](p29_dep.md) |
 | 30 | التشغيل والدعم والتطوير المستمر | Operations, Support & Continuous Improvement | `NOONA_OPERATIONS_PKG` | 12 | [p30_ops](p30_ops.md) |
 
-**الإجمالي:** 568 جدول · 9723 عمود.
+**الإجمالي:** 569 جدول · 9738 عمود.
 
