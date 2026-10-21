@@ -15,9 +15,10 @@ f?p=NOONA_PORTAL:TASK:&SESSION.::NO::P2_TASK_ID:123
 | 115 | `NOONA_MASTER` | NOONA PLUS (الرئيسي) | **الدخول الموحد** وشاشة الأنظمة المشترك فيها وتغيير كلمة المرور | `tools/build_master.py` |
 | 119 | `NOONA_PORTAL` | مهامي وإشعاراتي | المهام والاعتماد، طلباتي، تفويضاتي (خدمة ذاتية)، تبديل الشركة | `tools/build_portal.py` |
 | 123 | `NOONA_ADMIN` | إدارة المؤسسة | الشركات والفروع، الهيكل، المستخدمون والأدوار ومصفوفة الصلاحيات، مسارات الاعتماد، التفويض، البيانات المرجعية، سجل التدقيق | `tools/build_admin.py` |
-| 125 | `NOONA_PLATFORM` | لوحة المنصة | المؤسسات المشتركة وتجهيزها، الاشتراك في الوحدات، الحالة والحجز القانوني، تدقيق المنصة | `tools/build_platform.py` |
+| 125 | `NOONA_PLATFORM` | لوحة المنصة | المؤسسات المشتركة وتجهيزها، حدود الاشتراك (المستخدمون والفروع والشركات)، الوحدات، الحالة والحجز القانوني، تدقيق المنصة | `tools/build_platform.py` |
+| 127 | `NOONA_FIN` | المالية | المرحلة 1 الأستاذ العام: تجهيز بخطوة، دليل الحسابات، الفترات، القيود (اعتماد بفصل المهام وترحيل وعكس)، ميزان المراجعة، كشف الحساب | `tools/build_fin.py` |
 
-الأنظمة التالية (المالية، سلسلة الإمداد، المبيعات، الموارد البشرية، المشروعات، التصنيع، المستندات، التقارير)
+الأنظمة التالية (سلسلة الإمداد، المبيعات، الموارد البشرية، المشروعات، التصنيع، المستندات، التقارير)
 تظهر في شاشة الأنظمة "قيد الإنشاء" حتى تستورد تطبيقاتها.
 
 ## الدخول الموحد
@@ -46,7 +47,7 @@ f?p=NOONA_PORTAL:TASK:&SESSION.::NO::P2_TASK_ID:123
 ## إعادة البناء من المصدر
 
 ```bash
-python3 tools/build_master.py && python3 tools/build_portal.py && python3 tools/build_admin.py && python3 tools/build_platform.py
+python3 tools/build_master.py && python3 tools/build_portal.py && python3 tools/build_admin.py && python3 tools/build_platform.py && python3 tools/build_fin.py
 ```
 
 القالب الأساسي لكل التطبيقات: `apex/_templates/f119_original` (تصدير تطبيق فارغ من APEX 24.2).

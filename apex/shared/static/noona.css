@@ -378,3 +378,40 @@ tr:hover .nn-badge { transform: scale(1.05); }
 .nn-table { width: 100%; border-collapse: collapse; }
 .nn-table th { background: #f0f6fd; color: var(--nn-head-text); padding: 8px; border-bottom: 1px solid var(--nn-head-border); }
 .nn-table td { padding: 7px 8px; border-bottom: 1px solid #edf2f7; text-align: center; }
+
+/* ================================================================ شبكة سطور القيد */
+.nn-je-table { width: 100%; border-collapse: collapse; }
+.nn-je-table th { background: var(--nn-head-bg); color: var(--nn-head-text); padding: 8px; border-bottom: 1px solid var(--nn-head-border); }
+.nn-je-table td { padding: 4px 6px; border-bottom: 1px solid #edf2f7; vertical-align: top; }
+.nn-je-table td:first-child { width: 36px; text-align: center; color: var(--nn-muted); padding-top: 10px; }
+.nn-je-table input { width: 100%; height: 34px; border: 1px solid var(--nn-border); border-radius: 8px; padding: 0 8px;
+  font: inherit; background: #fff; transition: border-color .15s ease, box-shadow .15s ease; }
+.nn-je-table input:focus { outline: none; border-color: var(--nn-primary); box-shadow: 0 0 0 3px rgba(0, 103, 192, .15); }
+.nn-je-table .nn-je-dr, .nn-je-table .nn-je-cr { direction: ltr; text-align: right; max-width: 150px; }
+.nn-je-table td:nth-child(2) { min-width: 260px; }
+.nn-je-name { display: block; color: var(--nn-muted); font-size: .8rem; min-height: 1em; padding: 2px 4px 0; }
+.nn-je-table tfoot td { font-weight: 800; background: #f8fafc; padding: 10px 8px; direction: ltr; text-align: right; }
+.nn-je-table tfoot td:nth-child(2) { direction: rtl; text-align: start; }
+.nn-je-diff { margin-inline-start: 8px; font-size: .9rem; }
+.nn-je-diff.is-ok { color: var(--nn-success); } .nn-je-diff.is-bad { color: var(--nn-danger); }
+.nn-je-add { margin-top: 10px; }
+.nn-je-del .fa { color: var(--nn-danger); }
+
+/* ================================================================ التقارير المالية والطباعة */
+.nn-rpt { width: 100%; border-collapse: collapse; font-size: .92rem; }
+.nn-rpt th { background: var(--nn-head-bg); color: var(--nn-head-text); padding: 7px 6px; border: 1px solid var(--nn-head-border); text-align: center; }
+.nn-rpt td { padding: 5px 6px; border: 1px solid #e5e9f0; direction: ltr; text-align: right; }
+.nn-rpt td:nth-child(2), .nn-rpt td.nn-rpt-text { direction: rtl; text-align: start; }
+.nn-rpt .nn-num-code { text-align: center; font-weight: 700; color: var(--nn-head-text); }
+.nn-rpt .nn-rpt-group td { background: #f3f8fd; font-weight: 800; color: var(--nn-head-text); direction: rtl; text-align: start; }
+.nn-rpt tfoot td { font-weight: 800; background: #eef4fb; }
+.nn-rpt tfoot td:first-child { direction: rtl; text-align: start; }
+.nn-rpt tbody tr:hover td { background: #f7fbff; }
+.nn-rpt-check { margin-top: 12px; }
+@media print {
+  .t-Header, .t-Body-nav, .t-Body-actions, .t-Footer, .t-Alert, .t-Body-title, .nn-co-badge,
+  .t-Region:not(.nn-print-area), .t-Body-contentInner > .container > .row:not(:has(.nn-print-area)) { display: none !important; }
+  .t-Body-main, .t-Body-content, .t-Body-contentInner { margin: 0 !important; padding: 0 !important; }
+  .nn-print-area { border: 0 !important; box-shadow: none !important; animation: none !important; }
+  .nn-rpt { font-size: 10pt; } .nn-rpt th { background: #e5f1fb !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+}
