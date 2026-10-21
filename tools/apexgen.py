@@ -531,13 +531,13 @@ wwv_flow_imp_page.create_worksheet(
         return self._item(name, region, seq, prompt, 'NATIVE_PASSWORD', "\n,p_cSize=>30\n,p_cMaxlength=>100", required,
                           attrs(submit_when_enter_pressed='N'))
 
-    def file(self, name, region, seq, prompt, file_types='image/png,image/jpeg,image/gif,image/webp', max_kb=512):
+    def file(self, name, region, seq, prompt, file_types='image/png,image/jpeg,image/gif,image/webp', max_kb=512,
+             title='اسحب الشعار هنا أو اضغط للاختيار', hint='PNG أو JPG أو GIF أو WEBP حتى 512 كيلوبايت'):
         """رفع ملف إلى APEX_APPLICATION_TEMP_FILES (يحذف بنهاية الطلب)؛ تقرأه العملية بالاسم المخزن في العنصر."""
         return self._item(name, region, seq, prompt, 'NATIVE_FILE', '', False,
                           attrs(storage_type='APEX_APPLICATION_TEMP_FILES', purge_file_at='REQUEST',
                                 allow_multiple_files='N', file_types=file_types, display_as='DROPZONE_BLOCK',
-                                dropzone_title='اسحب الشعار هنا أو اضغط للاختيار',
-                                dropzone_description='PNG أو JPG أو GIF أو WEBP حتى 512 كيلوبايت',
+                                dropzone_title=title, dropzone_description=hint,
                                 max_file_size=max_kb), full=True)
 
     def yesno(self, name, region, seq, prompt):

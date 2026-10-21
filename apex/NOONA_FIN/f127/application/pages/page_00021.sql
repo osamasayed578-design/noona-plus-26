@@ -497,8 +497,163 @@ wwv_flow_imp_page.create_page_process(
 ,p_process_success_message=>'تم إلغاء المسودة'
 ,p_internal_uid=>91820266000000111
 );
-wwv_flow_imp_page.create_page_branch(
+wwv_flow_imp_page.create_page_plug(
  p_id=>wwv_flow_imp.id(91820266000000112)
+,p_plug_name=>'المستندات المؤرشفة (المرجع الورقي)'
+,p_region_template_options=>'#DEFAULT#:t-Region--scrollBody'
+,p_plug_template=>4072358936313175081
+,p_plug_display_sequence=>40
+,p_plug_display_condition_type=>'EXPRESSION'
+,p_plug_display_when_condition=>':P21_ID is not null'
+,p_plug_display_when_cond2=>'PLSQL'
+,p_function_body_language=>'PLSQL'
+,p_plug_source=>wwv_flow_string.join(wwv_flow_t_varchar2(
+'return noona_dms_pkg.attachments_html(''GL_JOURNAL'', :P21_ID, replace(apex_page.get_url(p_page => 49, p_items => ''P49_DOC'', p_values => ''990000000001''), ''990000000001'', ''#ID#''));'))
+,p_plug_source_type=>'NATIVE_DYNAMIC_CONTENT'
+);
+wwv_flow_imp_page.create_page_plug(
+ p_id=>wwv_flow_imp.id(91820266000000113)
+,p_plug_name=>'أرشفة المرجع الورقي'
+,p_region_template_options=>'#DEFAULT#'
+,p_plug_template=>4072358936313175081
+,p_plug_display_sequence=>41
+,p_plug_display_condition_type=>'EXPRESSION'
+,p_plug_display_when_condition=>':P21_ID is not null'
+,p_plug_display_when_cond2=>'PLSQL'
+,p_attributes=>wwv_flow_t_plugin_attributes(wwv_flow_t_varchar2(
+  'expand_shortcuts', 'N',
+  'output_as', 'HTML',
+  'show_line_breaks', 'Y')).to_clob
+);
+wwv_flow_imp_page.create_page_item(
+ p_id=>wwv_flow_imp.id(91820266000000114)
+,p_name=>'P21_ARC_REF'
+,p_item_sequence=>10
+,p_item_plug_id=>wwv_flow_imp.id(91820266000000113)
+,p_prompt=>'رقم الأصل الورقي (فاتورة / شيك / خطاب)'
+,p_display_as=>'NATIVE_TEXT_FIELD'
+,p_cSize=>25
+,p_cMaxlength=>100
+,p_field_template=>1609121967514267634
+,p_item_template_options=>'#DEFAULT#'
+,p_attributes=>wwv_flow_t_plugin_attributes(wwv_flow_t_varchar2(
+  'disabled', 'N',
+  'submit_when_enter_pressed', 'N',
+  'subtype', 'TEXT',
+  'trim_spaces', 'BOTH')).to_clob
+);
+wwv_flow_imp_page.create_page_item(
+ p_id=>wwv_flow_imp.id(91820266000000115)
+,p_name=>'P21_ARC_LOC'
+,p_item_sequence=>20
+,p_item_plug_id=>wwv_flow_imp.id(91820266000000113)
+,p_prompt=>'موقع الأصل (الملف / الرف)'
+,p_display_as=>'NATIVE_TEXT_FIELD'
+,p_cSize=>30
+,p_cMaxlength=>200
+,p_begin_on_new_line=>'N'
+,p_field_template=>1609121967514267634
+,p_item_template_options=>'#DEFAULT#'
+,p_attributes=>wwv_flow_t_plugin_attributes(wwv_flow_t_varchar2(
+  'disabled', 'N',
+  'submit_when_enter_pressed', 'N',
+  'subtype', 'TEXT',
+  'trim_spaces', 'BOTH')).to_clob
+);
+wwv_flow_imp_page.create_page_item(
+ p_id=>wwv_flow_imp.id(91820266000000116)
+,p_name=>'P21_ARC_TYPE'
+,p_item_sequence=>30
+,p_item_plug_id=>wwv_flow_imp.id(91820266000000113)
+,p_prompt=>'نوع المستند'
+,p_display_as=>'NATIVE_SELECT_LIST'
+,p_lov=>'select t.name_ar d, t.code r from dms_document_type t where t.is_active = ''Y'' and t.code <> ''COMPANY_LOGO'' order by t.name_ar'
+,p_lov_display_null=>'YES'
+,p_lov_null_text=>'- تلقائي حسب المستند -'
+,p_cHeight=>1
+,p_lov_display_extra=>'NO'
+,p_field_template=>1609121967514267634
+,p_item_template_options=>'#DEFAULT#'
+,p_attributes=>wwv_flow_t_plugin_attributes(wwv_flow_t_varchar2(
+  'page_action_on_selection', 'NONE')).to_clob
+);
+wwv_flow_imp_page.create_page_item(
+ p_id=>wwv_flow_imp.id(91820266000000117)
+,p_name=>'P21_ARC_TITLE'
+,p_item_sequence=>40
+,p_item_plug_id=>wwv_flow_imp.id(91820266000000113)
+,p_prompt=>'العنوان (اختياري)'
+,p_display_as=>'NATIVE_TEXT_FIELD'
+,p_cSize=>40
+,p_cMaxlength=>500
+,p_begin_on_new_line=>'N'
+,p_field_template=>1609121967514267634
+,p_item_template_options=>'#DEFAULT#'
+,p_attributes=>wwv_flow_t_plugin_attributes(wwv_flow_t_varchar2(
+  'disabled', 'N',
+  'submit_when_enter_pressed', 'N',
+  'subtype', 'TEXT',
+  'trim_spaces', 'BOTH')).to_clob
+);
+wwv_flow_imp_page.create_page_item(
+ p_id=>wwv_flow_imp.id(91820266000000118)
+,p_name=>'P21_ARC_FILE'
+,p_item_sequence=>50
+,p_item_plug_id=>wwv_flow_imp.id(91820266000000113)
+,p_prompt=>'صورة الأصل (اختياري)'
+,p_display_as=>'NATIVE_FILE'
+,p_field_template=>1609121967514267634
+,p_item_template_options=>'#DEFAULT#'
+,p_attributes=>wwv_flow_t_plugin_attributes(wwv_flow_t_varchar2(
+  'storage_type', 'APEX_APPLICATION_TEMP_FILES',
+  'purge_file_at', 'REQUEST',
+  'allow_multiple_files', 'N',
+  'file_types', 'application/pdf,image/png,image/jpeg,image/tiff,image/webp,.docx,.xlsx',
+  'display_as', 'DROPZONE_BLOCK',
+  'dropzone_title', 'اسحب صورة الأصل أو ملف PDF هنا',
+  'dropzone_description', 'PDF أو صورة أو Word/Excel حتى 20 ميجابايت',
+  'max_file_size', '20480')).to_clob
+);
+wwv_flow_imp_page.create_page_button(
+ p_id=>wwv_flow_imp.id(91820266000000119)
+,p_button_sequence=>10
+,p_button_plug_id=>wwv_flow_imp.id(91820266000000113)
+,p_button_name=>'ARCHIVE'
+,p_button_action=>'SUBMIT'
+,p_button_template_options=>'#DEFAULT#'
+,p_button_template_id=>4072362960822175091
+,p_button_is_hot=>'Y'
+,p_button_image_alt=>'أرشفة'
+,p_button_position=>'NEXT'
+);
+wwv_flow_imp_page.create_page_process(
+ p_id=>wwv_flow_imp.id(91820266000000120)
+,p_process_sequence=>90
+,p_process_point=>'AFTER_SUBMIT'
+,p_process_type=>'NATIVE_PLSQL'
+,p_process_name=>'Archive Reference'
+,p_process_sql_clob=>wwv_flow_string.join(wwv_flow_t_varchar2(
+'declare',
+'    l_blob blob;',
+'    l_name varchar2(400);',
+'    l_mime varchar2(255);',
+'    l_id   number;',
+'begin',
+'    if :P21_ARC_FILE is not null then',
+'        select blob_content, filename, mime_type into l_blob, l_name, l_mime from apex_application_temp_files where name = :P21_ARC_FILE;',
+'    end if;',
+'    l_id := noona_dms_pkg.archive_document(p_entity_type => ''GL_JOURNAL'', p_entity_id => :P21_ID,',
+'                p_type_code => :P21_ARC_TYPE, p_title => :P21_ARC_TITLE, p_external_ref => :P21_ARC_REF,',
+'                p_location => :P21_ARC_LOC, p_file_name => l_name, p_mime => l_mime, p_content => l_blob);',
+'end;'))
+,p_process_clob_language=>'PLSQL'
+,p_error_display_location=>'INLINE_IN_NOTIFICATION'
+,p_process_when_button_id=>wwv_flow_imp.id(91820266000000119)
+,p_process_success_message=>'تمت الأرشفة وصدر رقم الأرشيف'
+,p_internal_uid=>91820266000000120
+);
+wwv_flow_imp_page.create_page_branch(
+ p_id=>wwv_flow_imp.id(91820266000000121)
 ,p_branch_action=>'f?p=&APP_ID.:21:&SESSION.::&DEBUG.:21:P21_ID:&P21_ID.&success_msg=#SUCCESS_MSG#'
 ,p_branch_point=>'AFTER_PROCESSING'
 ,p_branch_type=>'REDIRECT_URL'
