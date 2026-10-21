@@ -60,18 +60,24 @@ BEGIN
   l_box := NOONA_CSH_PKG.quick_setup;
   DELETE FROM dms_archive_rule;                                   -- حالة نظيفة داخل المعاملة
   DELETE FROM dms_storage_profile;                                -- الحفظ داخل قاعدة البيانات في بداية الاختبار
-  l_n := NOONA_DMS_PKG.quick_setup;
-  ok('archive setup adds default rules', l_n >= 2, l_n);
-  ok('archive setup idempotent', NOONA_DMS_PKG.quick_setup = 0 AND NOONA_DMS_PKG.is_ready = 'Y');
-  SELECT COUNT(*) INTO l_n FROM dms_document_type WHERE tenant_id IS NULL AND code IN ('RECEIPT_VOUCHER', 'PAYMENT_VOUCHER', 'JOURNAL_SUPPORT', 'GENERAL');
-  ok('platform document types seeded', l_n = 4, l_n);
-
   l_user := 'DMA' || l_sfx;
   l_mem := NOONA_SEC_ADMIN_PKG.create_user(l_user, 'معتمد مالي', LOWER(l_user) || '@x.local', TO_NUMBER(SYS_CONTEXT('NOONA_CTX', 'COMPANY_ID')));
   l_role := NOONA_SEC_ADMIN_PKG.create_role('DMR' || l_sfx, 'معتمد');
   l_n := NOONA_SEC_ADMIN_PKG.add_module_permissions(l_role, 'CSH', 'VIEW,APPROVE,POST');
   l_n := NOONA_SEC_ADMIN_PKG.add_module_permissions(l_role, 'GL', 'VIEW,APPROVE,POST');
   l_n := NOONA_SEC_ADMIN_PKG.grant_role(l_mem, l_role, NULL, 'اختبار');
+  -- تمويل الصندوق قبل اختبارات الصرف (قاعدة بيانات جديدة رصيد صندوقها صفر)
+  l_v := NOONA_CSH_PKG.save_voucher(NULL, 'RECEIPT', l_date, l_box, NULL, NULL, 'الشريك', 'تمويل الصندوق', NULL, '[{"a":"3101","m":1000}]');
+  NOONA_CSH_PKG.submit_voucher(l_v);
+  login(l_user);
+  NOONA_CSH_PKG.approve_voucher(l_v);
+  login('ADMIN');
+  l_n := NOONA_DMS_PKG.quick_setup;
+  ok('archive setup adds default rules', l_n >= 2, l_n);
+  ok('archive setup idempotent', NOONA_DMS_PKG.quick_setup = 0 AND NOONA_DMS_PKG.is_ready = 'Y');
+  SELECT COUNT(*) INTO l_n FROM dms_document_type WHERE tenant_id IS NULL AND code IN ('RECEIPT_VOUCHER', 'PAYMENT_VOUCHER', 'JOURNAL_SUPPORT', 'GENERAL');
+  ok('platform document types seeded', l_n = 4, l_n);
+
 
   -- سند بلا مرجع ورقي لا يعتمد
   l_v := NOONA_CSH_PKG.save_voucher(NULL, 'PAYMENT', l_date, l_box, NULL, NULL, 'مؤسسة الصيانة', 'صيانة المكيفات', 'INV-55',

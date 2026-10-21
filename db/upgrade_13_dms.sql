@@ -18,12 +18,15 @@ END;
 /
 PROMPT ========== قواعد الأرشفة وأعمدة المرجع الورقي
 @@upgrade_parts/13_dms_rule.sql
+@@upgrade_parts/14_dms_required.sql
 PROMPT ========== فئات وأنواع المستندات
 @@seed/04_dms_types.sql
 PROMPT ========== صلاحيات مسؤول المؤسسة
 @@upgrade_parts/sync_admin_roles.sql
 PROMPT ========== NOONA_DMS_PKG / NOONA_GL_PKG / NOONA_CSH_PKG / NOONA_FIN_RPT_PKG
 @@plsql/95_noona_dms_pkg.sql
+@@plsql/96_noona_pty_pkg.sql
+GRANT EXECUTE ON NOONA_PTY_PKG TO NOONA_APP;
 @@plsql/100_noona_gl_pkg.sql
 @@plsql/101_noona_ace_pkg.sql
 @@plsql/102_noona_csh_pkg.sql

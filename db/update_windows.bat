@@ -43,8 +43,8 @@ sqlplus -S -L NOONA_APP/"%APP_PWD%"@%CONN% @tests/test_fin_docs.sql < nul | find
 sqlplus -S -L NOONA_APP/"%APP_PWD%"@%CONN% @tests/test_dms.sql < nul | findstr /c:"RESULT" /c:"FAIL" /c:"ORA-"
 
 echo.
-echo ===== Database updated. Expected: 79 / 26 / 21 / 25 / 10 / 16 / 18 / 19 / 43 / 29 / 26 / 44 passed, 0 failed.
-echo ===== Next: import apex\NOONA_MASTER\f115, NOONA_PORTAL\f119, NOONA_ADMIN\f123, NOONA_PLATFORM\f125, NOONA_FIN\f127 zips (Reuse Application ID)
+echo ===== Database updated. Expected: 79 / 26 / 21 / 25 / 10 / 16 / 18 / 19 / 43 / 29 / 26 / 44 passed, 0 failed (test_dms shows 38 when no NOONA_DMS_T<tenant> server folder exists).
+echo ===== Next: import apex\NOONA_MASTER\f115, NOONA_PORTAL\f119, NOONA_ADMIN\f123, NOONA_PLATFORM\f125, NOONA_FIN\f127, NOONA_DOC\f129 zips (Reuse Application ID)
 pause
 exit /b 0
 

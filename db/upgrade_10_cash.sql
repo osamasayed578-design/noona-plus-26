@@ -33,6 +33,15 @@ END;
 /
 PROMPT ========== البنوك المحلية
 @@seed/03_banks.sql
+PROMPT ========== متطلبات محرك المستندات (جداول وأنواع وحزم) قبل حزم المالية - قابلة للتكرار
+@@upgrade_parts/13_dms_rule.sql
+@@upgrade_parts/14_dms_required.sql
+@@seed/04_dms_types.sql
+@@upgrade_parts/sync_admin_roles.sql
+@@plsql/95_noona_dms_pkg.sql
+@@plsql/96_noona_pty_pkg.sql
+GRANT EXECUTE ON NOONA_DMS_PKG TO NOONA_APP;
+GRANT EXECUTE ON NOONA_PTY_PKG TO NOONA_APP;
 PROMPT ========== NOONA_UI_PKG / NOONA_GL_PKG / NOONA_ACE_PKG / NOONA_CSH_PKG
 @@plsql/86_noona_ui_pkg.sql
 @@plsql/100_noona_gl_pkg.sql
@@ -41,6 +50,7 @@ PROMPT ========== NOONA_UI_PKG / NOONA_GL_PKG / NOONA_ACE_PKG / NOONA_CSH_PKG
 GRANT EXECUTE ON NOONA_UI_PKG TO NOONA_APP;
 GRANT EXECUTE ON NOONA_GL_PKG TO NOONA_APP;
 GRANT EXECUTE ON NOONA_CSH_PKG TO NOONA_APP;
+EXEC DBMS_UTILITY.COMPILE_SCHEMA(USER, FALSE)
 SELECT object_type, object_name FROM user_objects WHERE status <> 'VALID';
 PROMPT ========== Upgrade 10 done. Now run security/41_synonyms_noona_app.sql as NOONA_APP
 SELECT name||' '||line||':'||position||' '||substr(text,1,140) err FROM user_errors ORDER BY name, type, sequence;
