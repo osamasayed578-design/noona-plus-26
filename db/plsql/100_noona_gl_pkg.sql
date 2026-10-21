@@ -25,6 +25,19 @@ CREATE OR REPLACE PACKAGE NOONA_GL_PKG AUTHID DEFINER AS
   FUNCTION primary_coa RETURN NUMBER;
   FUNCTION period_for(p_date DATE) RETURN NUMBER;
   FUNCTION fy_start(p_date DATE) RETURN DATE;
+  FUNCTION ledger_currency RETURN VARCHAR2;
+
+  -- ---------------------------------------------------------- أسعار الصرف
+  -- نوع السعر المحاسبي للمؤسسة (ACCOUNTING)؛ ينشأ عند أول استخدام
+  FUNCTION rate_type RETURN NUMBER;
+  -- سعر تحويل العملة إلى العملة الوظيفية في تاريخ (آخر سعر معتمد)؛ NULL إن لم يوجد
+  FUNCTION rate_for(p_currency IN VARCHAR2, p_date IN DATE) RETURN NUMBER;
+  -- العملات النشطة مع السعر الحالي: [{"c":"USD","n":"دولار أمريكي","r":3.75}]
+  FUNCTION currencies_json(p_date IN DATE DEFAULT NULL) RETURN CLOB;
+  -- أسعار الربط الرسمية الافتراضية للعملات الخليجية والدولار (للريال السعودي)؛ يعيد عدد الأسعار المضافة
+  FUNCTION seed_rates RETURN NUMBER;
+  -- مراكز تكلفة وربحية افتراضية (إن لم توجد مراكز)؛ يعيد عدد المراكز المضافة
+  FUNCTION seed_cost_centers RETURN NUMBER;
 
   -- ---------------------------------------------------------- إقفال السنة المالية
   -- قيد إقفال الإيرادات والمصروفات في حساب الأرباح المبقاة (حساب الأرباح والخسائر المرحلة) بتاريخ نهاية السنة،
@@ -58,7 +71,13 @@ CREATE OR REPLACE PACKAGE NOONA_GL_PKG AUTHID DEFINER AS
                           p_exchange_rate IN NUMBER DEFAULT NULL, p_reference IN VARCHAR2 DEFAULT NULL,
                           p_source_code IN VARCHAR2 DEFAULT 'MANUAL') RETURN NUMBER;
   PROCEDURE update_header(p_journal_id IN NUMBER, p_doc_date IN DATE, p_description IN VARCHAR2,
-                          p_reference IN VARCHAR2 DEFAULT NULL);
+                          p_reference IN VARCHAR2 DEFAULT NULL, p_currency IN VARCHAR2 DEFAULT NULL,
+                          p_exchange_rate IN NUMBER DEFAULT NULL);
+  -- مستند القيد كاملاً (رأس وسطور) من شاشة HTML في استدعاء واحد:
+  -- {"id":null,"date":"2026-10-21","desc":"...","ref":"...","cur":"USD","rate":3.75,"action":"SAVE|SUBMIT","lines":[...]}
+  FUNCTION save_journal_doc(p_doc IN CLOB) RETURN NUMBER;
+  -- بيانات القيد للشاشة: {"id","no","status","date","desc","ref","cur","rate","lines":[...]}
+  FUNCTION journal_doc_json(p_journal_id IN NUMBER) RETURN CLOB;
   -- استبدال سطور المسودة من JSON: [{"a":"1101","d":100,"c":0,"cc":12,"t":"وصف"}, ...]
   PROCEDURE save_lines(p_journal_id IN NUMBER, p_lines IN CLOB);
   PROCEDURE submit_journal(p_journal_id IN NUMBER);
@@ -145,6 +164,66 @@ CREATE OR REPLACE PACKAGE BODY NOONA_GL_PKG AS
     SELECT MAX(coa_id) INTO l_id FROM gl_ledger WHERE id = primary_ledger;
     RETURN l_id;
   END primary_coa;
+
+  FUNCTION ledger_currency RETURN VARCHAR2 IS
+    l VARCHAR2(3);
+  BEGIN
+    SELECT MAX(currency_code) INTO l FROM gl_ledger WHERE id = primary_ledger;
+    RETURN l;
+  END ledger_currency;
+
+  FUNCTION rate_type RETURN NUMBER IS
+    l_id NUMBER;
+  BEGIN
+    SELECT MIN(id) INTO l_id FROM ref_rate_type WHERE code = 'ACCOUNTING';
+    IF l_id IS NULL THEN
+      INSERT INTO ref_rate_type (code, name_ar, name_en, rate_category, requires_approval, is_active)
+      VALUES ('ACCOUNTING', 'سعر الصرف المحاسبي', 'Accounting rate', 'OFFICIAL', 'N', 'Y')
+      RETURNING id INTO l_id;
+    END IF;
+    RETURN l_id;
+  END rate_type;
+
+  FUNCTION rate_for(p_currency IN VARCHAR2, p_date IN DATE) RETURN NUMBER IS
+    l_cur VARCHAR2(3) := ledger_currency;
+    l_type NUMBER;
+  BEGIN
+    IF p_currency IS NULL OR p_currency = l_cur THEN RETURN 1; END IF;
+    SELECT MIN(id) INTO l_type FROM ref_rate_type WHERE code = 'ACCOUNTING';
+    IF l_type IS NULL THEN RETURN NULL; END IF;
+    RETURN NOONA_REFERENCE_PKG.get_rate(p_currency, l_cur, l_type, CAST(TRUNC(NVL(p_date, SYSDATE)) + 1 - 1/86400 AS TIMESTAMP));
+  END rate_for;
+
+  FUNCTION currencies_json(p_date IN DATE DEFAULT NULL) RETURN CLOB IS
+    l_out CLOB := '[';
+    l_first BOOLEAN := TRUE;
+  BEGIN
+    FOR c IN (SELECT currency_code, name_ar FROM ref_currency WHERE is_active = 'Y' ORDER BY CASE WHEN currency_code = ledger_currency THEN 0 ELSE 1 END, currency_code) LOOP
+      l_out := l_out || CASE WHEN NOT l_first THEN ',' END
+            || '{"c":' || NOONA_CORE_PKG.json_text(c.currency_code) || ',"n":' || NOONA_CORE_PKG.json_text(c.name_ar)
+            || ',"r":' || NVL(TO_CHAR(rate_for(c.currency_code, NVL(p_date, SYSDATE)), 'TM9', 'NLS_NUMERIC_CHARACTERS=''.,'''), 'null') || '}';
+      l_first := FALSE;
+    END LOOP;
+    RETURN l_out || ']';
+  END currencies_json;
+
+  FUNCTION seed_rates RETURN NUMBER IS
+    l_n    NUMBER := 0;
+    l_id   NUMBER;
+    l_type NUMBER;
+    l_d    DATE := TRUNC(SYSDATE, 'YYYY');
+  BEGIN
+    IF ledger_currency <> 'SAR' THEN RETURN 0; END IF;
+    l_type := rate_type;
+    FOR r IN (SELECT 'USD' c, 3.75 v FROM dual UNION ALL SELECT 'AED', 1.021 FROM dual UNION ALL SELECT 'QAR', 1.0302 FROM dual
+              UNION ALL SELECT 'BHD', 9.9734 FROM dual UNION ALL SELECT 'OMR', 9.7403 FROM dual) LOOP
+      IF rate_for(r.c, SYSDATE) IS NULL THEN
+        l_id := NOONA_REFDATA_PKG.add_rate(l_type, r.c, 'SAR', l_d, r.v, 'سعر الربط الرسمي (افتراضي - راجعه)');
+        l_n := l_n + 1;
+      END IF;
+    END LOOP;
+    RETURN l_n;
+  END seed_rates;
 
   FUNCTION standard_chart RETURN t_accs IS
     l t_accs := t_accs();
@@ -318,6 +397,9 @@ CREATE OR REPLACE PACKAGE BODY NOONA_GL_PKG AS
       FROM gl_period p JOIN gl_fiscal_year y ON y.id = p.fiscal_year_id
      WHERE y.company_id = l_co.id AND y.status_code = 'OPEN'
        AND NOT EXISTS (SELECT 1 FROM gl_period_status s WHERE s.period_id = p.id AND s.ledger_id = l_ledger AND s.module_code = 'GL');
+    -- الإعدادات الافتراضية: مراكز التكلفة والربحية، ونوع السعر المحاسبي وأسعار الربط
+    l_id := seed_cost_centers;
+    l_id := seed_rates;
     RETURN l_ledger;
   END quick_setup;
 
@@ -369,6 +451,7 @@ CREATE OR REPLACE PACKAGE BODY NOONA_GL_PKG AS
     l_ledger gl_ledger%ROWTYPE;
     l_src    gl_journal_source%ROWTYPE;
     l_cur    VARCHAR2(3);
+    l_rate   NUMBER;
     l_id     NUMBER;
   BEGIN
     guard('GL_JOURNAL.CREATE');
@@ -381,13 +464,15 @@ CREATE OR REPLACE PACKAGE BODY NOONA_GL_PKG AS
     NOONA_CORE_PKG.assert(l_src.allow_manual = 'Y', 'NOONA-GL-043', 'هذا المصدر لا يقبل قيوداً يدوية', 'Source does not allow manual journals');
     NOONA_CORE_PKG.assert(p_description IS NOT NULL, 'NOONA-GL-044', 'البيان إلزامي', 'Description is required');
     l_cur := NVL(p_currency, l_ledger.currency_code);
-    NOONA_CORE_PKG.assert(l_cur = l_ledger.currency_code OR p_exchange_rate > 0, 'NOONA-GL-045',
-      'سعر الصرف إلزامي للقيود بعملة أجنبية', 'Exchange rate required for foreign currency');
+    l_rate := CASE WHEN l_cur = l_ledger.currency_code THEN 1 ELSE NVL(p_exchange_rate, rate_for(l_cur, p_doc_date)) END;
+    NOONA_CORE_PKG.assert(l_rate > 0, 'NOONA-GL-045',
+      'لا يوجد سعر صرف معتمد للعملة ' || l_cur || ' في هذا التاريخ؛ أدخل السعر أو أضفه في أسعار الصرف',
+      'Exchange rate required for foreign currency');
     INSERT INTO gl_journal (company_id, branch_id, doc_no, doc_date, currency_code, exchange_rate, rate_date, ledger_id, period_id,
                             posting_date, journal_source_id, journal_category, reference_no, description, is_opening,
                             is_adjustment, status_code)
     VALUES (company, TO_NUMBER(SYS_CONTEXT('NOONA_CTX', 'BRANCH_ID')), 'DRAFT-' || RAWTOHEX(SYS_GUID()), TRUNC(p_doc_date), l_cur,
-            CASE WHEN l_cur = l_ledger.currency_code THEN 1 ELSE p_exchange_rate END, TRUNC(p_doc_date), l_ledger.id,
+            l_rate, TRUNC(p_doc_date), l_ledger.id,
             period_for(p_doc_date), TRUNC(p_doc_date), l_src.id, 'MANUAL', p_reference, p_description, 'N', 'N', 'DRAFT')
     RETURNING id INTO l_id;
     UPDATE gl_journal SET doc_no = 'مسودة-' || l_id WHERE id = l_id;
@@ -400,15 +485,24 @@ CREATE OR REPLACE PACKAGE BODY NOONA_GL_PKG AS
   END assert_draft;
 
   PROCEDURE update_header(p_journal_id IN NUMBER, p_doc_date IN DATE, p_description IN VARCHAR2,
-                          p_reference IN VARCHAR2 DEFAULT NULL) IS
-    l_j gl_journal%ROWTYPE := get_journal(p_journal_id, TRUE);
+                          p_reference IN VARCHAR2 DEFAULT NULL, p_currency IN VARCHAR2 DEFAULT NULL,
+                          p_exchange_rate IN NUMBER DEFAULT NULL) IS
+    l_j    gl_journal%ROWTYPE := get_journal(p_journal_id, TRUE);
+    l_cur  VARCHAR2(3) := NVL(p_currency, l_j.currency_code);
+    l_rate NUMBER;
   BEGIN
     guard('GL_JOURNAL.UPDATE');
     assert_draft(l_j);
     NOONA_CORE_PKG.assert(p_description IS NOT NULL, 'NOONA-GL-044', 'البيان إلزامي', 'Description is required');
+    l_rate := CASE WHEN l_cur = ledger_currency THEN 1
+                   WHEN p_currency IS NULL AND p_exchange_rate IS NULL THEN l_j.exchange_rate
+                   ELSE NVL(p_exchange_rate, rate_for(l_cur, p_doc_date)) END;
+    NOONA_CORE_PKG.assert(l_rate > 0, 'NOONA-GL-045',
+      'لا يوجد سعر صرف معتمد للعملة ' || l_cur || ' في هذا التاريخ؛ أدخل السعر أو أضفه في أسعار الصرف', 'Exchange rate required');
     UPDATE gl_journal
        SET doc_date = TRUNC(p_doc_date), posting_date = TRUNC(p_doc_date), rate_date = TRUNC(p_doc_date),
-           period_id = period_for(p_doc_date), description = p_description, reference_no = p_reference
+           period_id = period_for(p_doc_date), description = p_description, reference_no = p_reference,
+           currency_code = l_cur, exchange_rate = l_rate
      WHERE id = p_journal_id;
   END update_header;
 
@@ -443,6 +537,29 @@ CREATE OR REPLACE PACKAGE BODY NOONA_GL_PKG AS
   EXCEPTION WHEN DUP_VAL_ON_INDEX THEN
     NOONA_CORE_PKG.raise_error('NOONA-GL-091', 'رمز مركز التكلفة مستخدم', 'Cost center code already exists');
   END create_cost_center;
+
+  FUNCTION seed_cost_centers RETURN NUMBER IS
+    l_n  NUMBER;
+    l_id NUMBER;
+  BEGIN
+    SELECT COUNT(*) INTO l_n FROM gl_cost_center WHERE company_id = company;
+    IF l_n > 0 THEN RETURN 0; END IF;
+    l_n := 0;
+    FOR r IN (SELECT 'PC-100' c, 'الشركة - المركز الرئيسي' n, 'PROFIT' t, NULL p, 1 o FROM dual
+              UNION ALL SELECT 'CC-100', 'الإدارة العامة', 'COST', 'PC-100', 2 FROM dual
+              UNION ALL SELECT 'CC-200', 'المالية والمحاسبة', 'COST', 'PC-100', 3 FROM dual
+              UNION ALL SELECT 'CC-300', 'الموارد البشرية', 'COST', 'PC-100', 4 FROM dual
+              UNION ALL SELECT 'CC-400', 'تقنية المعلومات', 'COST', 'PC-100', 5 FROM dual
+              UNION ALL SELECT 'CC-500', 'المشتريات والمخازن', 'COST', 'PC-100', 6 FROM dual
+              UNION ALL SELECT 'CC-600', 'العمليات والخدمات', 'COST', 'PC-100', 7 FROM dual
+              UNION ALL SELECT 'RC-100', 'المبيعات والتسويق', 'REVENUE', 'PC-100', 8 FROM dual
+              UNION ALL SELECT 'IC-100', 'المشروعات الاستثمارية', 'INVESTMENT', 'PC-100', 9 FROM dual
+              ORDER BY 5) LOOP
+      l_id := create_cost_center(r.c, r.n, r.t, r.p);
+      l_n := l_n + 1;
+    END LOOP;
+    RETURN l_n;
+  END seed_cost_centers;
 
   PROCEDURE set_cost_center_status(p_cost_center_id IN NUMBER, p_status IN VARCHAR2) IS
   BEGIN
@@ -826,6 +943,44 @@ CREATE OR REPLACE PACKAGE BODY NOONA_GL_PKG AS
     END IF;
     NOONA_AUDIT_PKG.log_event('POSTING', 'GL_FISCAL_YEAR', l_y.id, 'YEAR_REOPEN', 'SUCCESS', p_reason => p_reason);
   END reopen_year;
+
+  -- ================================================================ مستند القيد (HTML + JSON)
+  FUNCTION save_journal_doc(p_doc IN CLOB) RETURN NUMBER IS
+    l_o    JSON_OBJECT_T := JSON_OBJECT_T.parse(p_doc);
+    l_id   NUMBER := l_o.get_number('id');
+    l_date DATE := TO_DATE(l_o.get_string('date'), 'YYYY-MM-DD');
+    l_cur  VARCHAR2(3) := l_o.get_string('cur');
+    l_rate NUMBER := l_o.get_number('rate');
+    l_ln   JSON_ARRAY_T := l_o.get_array('lines');
+  BEGIN
+    IF l_cur = ledger_currency THEN l_rate := NULL; END IF;
+    IF l_id IS NULL THEN
+      l_id := create_journal(l_date, l_o.get_string('desc'), l_cur, l_rate, l_o.get_string('ref'));
+    ELSE
+      update_header(l_id, l_date, l_o.get_string('desc'), l_o.get_string('ref'), NVL(l_cur, ledger_currency), l_rate);
+    END IF;
+    save_lines(l_id, CASE WHEN l_ln IS NULL THEN '[]' ELSE l_ln.to_clob END);
+    IF l_o.get_string('action') = 'SUBMIT' THEN
+      submit_journal(l_id);
+    END IF;
+    RETURN l_id;
+  END save_journal_doc;
+
+  FUNCTION journal_doc_json(p_journal_id IN NUMBER) RETURN CLOB IS
+    l_j gl_journal%ROWTYPE;
+  BEGIN
+    IF p_journal_id IS NULL THEN
+      RETURN '{"id":null,"status":"DRAFT","date":"' || TO_CHAR(SYSDATE, 'YYYY-MM-DD') || '","cur":'
+          || NOONA_CORE_PKG.json_text(ledger_currency) || ',"rate":1,"lines":[]}';
+    END IF;
+    SELECT * INTO l_j FROM gl_journal WHERE id = p_journal_id AND company_id = company;
+    RETURN '{"id":' || l_j.id || ',"no":' || NOONA_CORE_PKG.json_text(l_j.doc_no) || ',"status":' || NOONA_CORE_PKG.json_text(l_j.status_code)
+        || ',"date":"' || TO_CHAR(l_j.doc_date, 'YYYY-MM-DD') || '","desc":' || NOONA_CORE_PKG.json_text(l_j.description)
+        || ',"ref":' || NOONA_CORE_PKG.json_text(l_j.reference_no) || ',"cur":' || NOONA_CORE_PKG.json_text(l_j.currency_code)
+        || ',"rate":' || TO_CHAR(l_j.exchange_rate, 'TM9', 'NLS_NUMERIC_CHARACTERS=''.,''') || ',"lines":' || lines_json(p_journal_id) || '}';
+  EXCEPTION WHEN NO_DATA_FOUND THEN
+    NOONA_CORE_PKG.raise_error('NOONA-GL-001', 'القيد غير موجود', 'Journal not found');
+  END journal_doc_json;
 
   -- ================================================================ الواجهة
   FUNCTION lines_json(p_journal_id IN NUMBER) RETURN CLOB IS

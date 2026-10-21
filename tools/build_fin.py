@@ -7,6 +7,7 @@ import os, sys
 sys.path.insert(0, os.path.dirname(__file__))
 from apexgen import App
 from fin_grid import GRID_JS, grid_region
+from fin_doc import DOC_JS, doc_region, doc_ajax
 
 ROOT = os.path.join(os.path.dirname(__file__), '..')
 app = App(template_dir=os.path.join(ROOT, 'apex/_templates/f119_original'),
@@ -33,6 +34,8 @@ JOURNALS_COLS = [('ID', '#', {'hidden': True, 'type': 'NUMBER'}), ('DOC_NO', 'ر
                  ('STATUS_HTML', 'الحالة', {'html': True})]
 CC_LOV = ("select code || ' - ' || name_ar d, id r from gl_cost_center "
           "where company_id = noona_gl_pkg.company order by code")
+CUR_LOV = ("select currency_code || ' - ' || name_ar d, currency_code r from ref_currency where is_active = 'Y' "
+           "order by case when currency_code = noona_gl_pkg.ledger_currency then 0 else 1 end, currency_code")
 JOURNAL_LINK = 'f?p=&APP_ID.:21:&SESSION.::&DEBUG.:RP,21:P21_ID:#ID#'
 
 # =============================================================== 1) لوحة المالية
@@ -130,40 +133,20 @@ p.button(r, 10, 'NEW_JOURNAL', 'قيد جديد', hot=True, redirect=url(21, cle
 
 # =============================================================== 21) القيد
 p = app.page(21, 'Journal', 'JOURNAL', 'قيد يومية', scheme=TENANT)
-hdr = p.static('بيانات القيد', 10, condition=":P21_ID is null or :P21_STATUS = 'DRAFT'")
-p.hidden('P21_ID', hdr, 1)
-p.hidden('P21_STATUS', hdr, 2)
-p.hidden('P21_LINES', hdr, 3, protected=False)
-p.date('P21_DATE', hdr, 10, 'تاريخ القيد', required=True)
-p.text('P21_REF', hdr, 20, 'المرجع (اختياري)', maxlen=100)
-p.textarea('P21_DESC', hdr, 30, 'البيان', required=True, rows=2)
-p.select('P21_CURRENCY', hdr, 40, 'العملة', lov_name='NOONA_CURRENCIES', null_text='عملة الشركة')
-p.number('P21_RATE', hdr, 50, 'سعر الصرف (للعملة الأجنبية)')
-b_create = p.button(hdr, 10, 'CREATE', 'إنشاء القيد', hot=True, condition=':P21_ID is null')
+hd = p.static('القيد', 1, hide_header=True, opts='#DEFAULT#:t-Region--noUI')
+p.hidden('P21_ID', hd, 1)
+p.hidden('P21_STATUS', hd, 2)
 p.process(10, 'BEFORE_HEADER', 'Load Journal', [
     'if :P21_ID is not null then',
-    "    select status_code, to_char(doc_date, 'YYYY-MM-DD'), description, reference_no, currency_code, exchange_rate",
-    '      into :P21_STATUS, :P21_DATE, :P21_DESC, :P21_REF, :P21_CURRENCY, :P21_RATE from gl_journal where id = :P21_ID;',
-    'else',
-    "    :P21_DATE := nvl(:P21_DATE, to_char(sysdate, 'YYYY-MM-DD'));",
+    '    select status_code into :P21_STATUS from gl_journal where id = :P21_ID and company_id = noona_gl_pkg.company;',
     'end if;'])
-p.process(10, 'AFTER_SUBMIT', 'Create Journal', [
-    ":P21_ID := noona_gl_pkg.create_journal(to_date(:P21_DATE, 'YYYY-MM-DD'), :P21_DESC, :P21_CURRENCY, :P21_RATE, :P21_REF);"],
-    when_button=b_create, success='تم إنشاء القيد؛ أدخل السطور ثم احفظ')
-p.dynamic('ملخص القيد', 5, 'return noona_gl_pkg.journal_header(:P21_ID);', hide_header=True, condition=':P21_ID is not null')
-ln = p.dynamic('سطور القيد', 20, grid_region('noona_gl_pkg.lines_json(:P21_ID)', 'noona_gl_pkg.accounts_json',
-                                            "case when :P21_STATUS = 'DRAFT' then 'N' else 'Y' end", 'JE', 'P21_LINES'),
-               condition=':P21_ID is not null')
-b_save = p.button(ln, 10, 'SAVE', 'حفظ', condition=":P21_STATUS = 'DRAFT'")
-b_submit = p.button(ln, 20, 'SUBMIT', 'حفظ وإرسال للاعتماد', hot=True, condition=":P21_STATUS = 'DRAFT'")
-for seq, btn, code, msg in [
-        (20, b_save, ['noona_gl_pkg.update_header(:P21_ID, to_date(:P21_DATE, \'YYYY-MM-DD\'), :P21_DESC, :P21_REF);',
-                      'noona_gl_pkg.save_lines(:P21_ID, :P21_LINES);'], 'تم حفظ القيد'),
-        (30, b_submit, ['noona_gl_pkg.update_header(:P21_ID, to_date(:P21_DATE, \'YYYY-MM-DD\'), :P21_DESC, :P21_REF);',
-                        'noona_gl_pkg.save_lines(:P21_ID, :P21_LINES);', 'noona_gl_pkg.submit_journal(:P21_ID);'],
-         'تم إرسال القيد للاعتماد')]:
-    p.process(seq, 'AFTER_SUBMIT', f'Journal Save {seq}', code, when_button=btn, success=msg)
-ac = p.static('الإجراءات', 30, condition=":P21_STATUS in ('DRAFT', 'SUBMITTED', 'POSTED')")
+p.dynamic('ملخص القيد', 5, 'return noona_gl_pkg.journal_header(:P21_ID);', hide_header=True,
+          condition=":P21_ID is not null and :P21_STATUS <> 'DRAFT'")
+p.dynamic('مستند القيد', 10, doc_region('JE', 'noona_gl_pkg.journal_doc_json(:P21_ID)', 'noona_gl_pkg.accounts_json',
+                                        "case when :P21_ID is null or :P21_STATUS = 'DRAFT' then 'N' else 'Y' end"),
+          hide_header=True, opts='#DEFAULT#:t-Region--noUI')
+p.process(1, 'ON_DEMAND', 'SAVE_DOC', doc_ajax('noona_gl_pkg.save_journal_doc', 21))
+ac = p.static('الإجراءات', 30, condition=":P21_ID is not null and :P21_STATUS in ('DRAFT', 'SUBMITTED', 'POSTED')")
 p.textarea('P21_REASON', ac, 10, 'الملاحظة أو السبب (إلزامي للرفض والعكس والإلغاء)', rows=2)
 p.date('P21_REV_DATE', ac, 20, 'تاريخ العكس')
 b_app = p.button(ac, 10, 'APPROVE', 'اعتماد وترحيل', hot=True, condition=":P21_STATUS = 'SUBMITTED'")
@@ -180,7 +163,7 @@ p.process(60, 'AFTER_SUBMIT', 'Reverse', [
     when_button=b_rev, success='تم عكس القيد بقيد مقابل مرحل')
 p.process(70, 'AFTER_SUBMIT', 'Cancel', 'noona_gl_pkg.cancel_journal(:P21_ID, :P21_REASON);', when_button=b_can,
           success='تم إلغاء المسودة')
-p.onload(GRID_JS)
+p.onload(DOC_JS + GRID_JS)
 p.branch(10, 'f?p=&APP_ID.:21:&SESSION.::&DEBUG.:21:P21_ID:&P21_ID.&success_msg=#SUCCESS_MSG#')
 
 # =============================================================== 30) ميزان المراجعة
@@ -231,12 +214,20 @@ p.ir('مراكز التكلفة', 10, [
     [('ID', '#', {'hidden': True, 'type': 'NUMBER'}), ('CODE', 'الرمز', {}), ('NAME_AR', 'مركز التكلفة', {}),
      ('CC_TYPE', 'النوع', {}), ('PARENT_NAME', 'يتبع', {}), ('STATUS_HTML', 'الحالة', {'html': True})])
 f = p.static('مركز تكلفة جديد', 20)
-p.text('P12_CODE', f, 10, 'الرمز', required=True, maxlen=30, width=15)
-p.text('P12_NAME', f, 20, 'الاسم', required=True)
+p.text('P12_CODE', f, 10, 'الرمز', maxlen=30, width=15)
+p.text('P12_NAME', f, 20, 'الاسم')
 p.select('P12_TYPE', f, 30, 'النوع', null_text=None, lov_sql='STATIC2:تكلفة;COST,ربحية;PROFIT,إيراد;REVENUE,استثمار;INVESTMENT')
 p.select('P12_PARENT', f, 40, 'يتبع المركز', lov_sql=("select code || ' - ' || name_ar d, code r from gl_cost_center "
                                                     "where company_id = noona_gl_pkg.company order by code"), null_text='- رئيسي -')
 b = p.button(f, 10, 'ADD_CC', 'إضافة المركز', hot=True)
+b0 = p.button(f, 20, 'SEED_CC', 'إضافة المراكز الافتراضية')
+p.process(5, 'AFTER_SUBMIT', 'Seed Cost Centers', [
+    'declare l_n number;',
+    'begin',
+    '    l_n := noona_gl_pkg.seed_cost_centers;',
+    "    apex_application.g_print_success_message := case when l_n > 0 then 'أضيفت ' || l_n || ' مراكز تكلفة وربحية افتراضية'",
+    "                                                     else 'توجد مراكز للشركة؛ لم يضف شيء' end;",
+    'end;'], when_button=b0)
 p.process(10, 'AFTER_SUBMIT', 'Add Cost Center', [
     'declare l_id number;',
     'begin',
@@ -277,11 +268,12 @@ p.select('P40_BOX_TYPE', f, 30, 'النوع', null_text=None,
          lov_sql='STATIC2:صندوق رئيسي;MAIN,عهدة نثرية;PETTY_CASH,درج نقاط بيع;POS_DRAWER,صندوق استقبال;FRONT_DESK,عهدة;CUSTODY')
 p.select('P40_BOX_ACC', f, 40, 'حساب النقدية', lov_sql=CASH_ACCOUNTS, null_text=None)
 p.number('P40_BOX_MAX', f, 50, 'الحد الأعلى للرصيد (اختياري)')
+p.select('P40_BOX_CUR', f, 60, 'العملة', lov_sql=CUR_LOV, null_text=None)
 b = p.button(f, 10, 'ADD_BOX', 'إضافة الصندوق', hot=True)
 p.process(10, 'AFTER_SUBMIT', 'Add Box', [
     'declare l_id number;',
     'begin',
-    '    l_id := noona_csh_pkg.create_cash_box(:P40_BOX_CODE, :P40_BOX_NAME, :P40_BOX_ACC, :P40_BOX_TYPE, :P40_BOX_MAX);',
+    '    l_id := noona_csh_pkg.create_cash_box(:P40_BOX_CODE, :P40_BOX_NAME, :P40_BOX_ACC, :P40_BOX_TYPE, :P40_BOX_MAX, :P40_BOX_CUR);',
     'end;'], when_button=b, success='تمت إضافة الصندوق')
 f2 = p.static('حساب بنكي جديد', 30)
 p.text('P40_BANK_CODE', f2, 10, 'الرمز', maxlen=30, width=15)
@@ -291,13 +283,36 @@ p.text('P40_ACC_NO', f2, 40, 'رقم الحساب', maxlen=40, width=25)
 p.text('P40_IBAN', f2, 50, 'الآيبان', maxlen=40, width=30)
 p.select('P40_BANK_ACC', f2, 60, 'حساب النقدية في الدليل', lov_sql=CASH_ACCOUNTS, null_text=None)
 p.number('P40_BANK_MAX', f2, 70, 'حد الدفع للسند الواحد (اختياري)')
+p.select('P40_BANK_CUR', f2, 80, 'العملة', lov_sql=CUR_LOV, null_text=None)
 b2 = p.button(f2, 10, 'ADD_BANK', 'إضافة الحساب البنكي', hot=True)
 p.process(20, 'AFTER_SUBMIT', 'Add Bank', [
     'declare l_id number;',
     'begin',
     '    l_id := noona_csh_pkg.create_bank_account(:P40_BANK_CODE, :P40_BANK_NAME, :P40_BANK, :P40_ACC_NO, :P40_IBAN,',
-    '                                               :P40_BANK_ACC, :P40_BANK_MAX);',
+    '                                               :P40_BANK_ACC, :P40_BANK_MAX, :P40_BANK_CUR);',
     'end;'], when_button=b2, success='تمت إضافة الحساب البنكي (يحفظ الرقم مقنعاً)')
+fe = p.static('تعديل حساب بنكي', 35)
+p.select('P40_EDIT_BANK', fe, 10, 'الحساب البنكي', lov_sql=(
+    "select code || ' ' || name_ar || ' ' || account_no_masked d, id r from csh_bank_account "
+    "where company_id = noona_gl_pkg.company order by code"))
+p.text('P40_EDIT_NAME', fe, 20, 'الاسم')
+p.select('P40_EDIT_BNK', fe, 30, 'البنك', lov_sql="select name_ar d, id r from ref_bank where is_active = 'Y' order by name_ar")
+p.text('P40_EDIT_NO', fe, 40, 'رقم الحساب الجديد (اتركه فارغاً للإبقاء)', maxlen=40, width=25)
+p.text('P40_EDIT_IBAN', fe, 50, 'الآيبان الجديد', maxlen=40, width=30)
+p.number('P40_EDIT_MAX', fe, 60, 'حد الدفع للسند')
+be = p.button(fe, 10, 'EDIT_BANK', 'حفظ التعديل', hot=True)
+p.process(25, 'AFTER_SUBMIT', 'Edit Bank', [
+    'noona_csh_pkg.update_bank_account(:P40_EDIT_BANK, :P40_EDIT_NAME, :P40_EDIT_BNK, :P40_EDIT_NO, :P40_EDIT_IBAN, :P40_EDIT_MAX);'],
+    when_button=be, success='تم تعديل الحساب البنكي')
+fd = p.static('الإعدادات الافتراضية', 38, text='<p class="nn-hint">يضيف صندوق العهد النثرية وحساباً بنكياً جارياً افتراضياً (عدّل رقمه من "تعديل حساب بنكي") إن لم توجد.</p>')
+bd = p.button(fd, 10, 'SEED_CASH', 'إضافة الصناديق والبنوك الافتراضية')
+p.process(26, 'AFTER_SUBMIT', 'Seed Cash', [
+    'declare l_n number;',
+    'begin',
+    '    l_n := noona_csh_pkg.seed_defaults;',
+    "    apex_application.g_print_success_message := case when l_n > 0 then 'أضيف ' || l_n || ' (صندوق/حساب بنكي) افتراضي'",
+    "                                                     else 'موجودة مسبقاً؛ لم يضف شيء' end;",
+    'end;'], when_button=bd)
 f3 = p.static('حالة صندوق أو حساب بنكي', 40)
 PLACES_ALL = ("select 'صندوق: ' || code || ' ' || name_ar d, 'BOX:' || id r from csh_cash_box where company_id = noona_gl_pkg.company "
               "union all select 'بنك: ' || code || ' ' || name_ar || ' ' || account_no_masked, 'BANK:' || id from csh_bank_account "
@@ -338,47 +353,24 @@ PLACES = ("select 'صندوق: ' || name_ar d, 'BOX:' || id r from csh_cash_box 
           "and status_code = 'ACTIVE' union all select 'بنك: ' || name_ar || ' ' || account_no_masked, 'BANK:' || id "
           "from csh_bank_account where company_id = noona_gl_pkg.company and status_code = 'ACTIVE' order by 2 desc, 1")
 p = app.page(42, 'Voucher', 'VOUCHER', 'سند', scheme=TENANT)
-p.dynamic('ملخص السند', 5, 'return noona_csh_pkg.voucher_header(:P42_ID);', hide_header=True, condition=':P42_ID is not null')
-hdr = p.static('بيانات السند', 10, condition=":P42_ID is null or :P42_STATUS = 'DRAFT'")
-p.hidden('P42_ID', hdr, 1)
-p.hidden('P42_STATUS', hdr, 2)
-p.hidden('P42_TYPE', hdr, 3)
-p.hidden('P42_LINES', hdr, 4, protected=False)
-p.date('P42_DATE', hdr, 10, 'التاريخ', required=True)
-p.select('P42_PLACE', hdr, 20, 'الصندوق / الحساب البنكي', lov_sql=PLACES, required=True)
-p.select('P42_CHANNEL', hdr, 30, 'طريقة الدفع (للبنك)', null_text=None,
-         lov_sql='STATIC2:تحويل بنكي;BANK_TRANSFER,شيك;CHEQUE,بطاقة;CARD,محفظة إلكترونية;WALLET,بوابة دفع;GATEWAY,خصم مباشر;DIRECT_DEBIT')
-p.text('P42_PARTY', hdr, 40, 'الطرف (استلمنا من / صرفنا إلى)', maxlen=200)
-p.text('P42_REF', hdr, 50, 'المرجع (رقم الشيك أو الحوالة)', maxlen=200)
-p.textarea('P42_DESC', hdr, 60, 'البيان (وذلك عن)', required=True, rows=2)
-p.number('P42_RATE', hdr, 70, 'سعر الصرف (لحساب بعملة أجنبية)')
+hd = p.static('السند', 1, hide_header=True, opts='#DEFAULT#:t-Region--noUI')
+p.hidden('P42_ID', hd, 1)
+p.hidden('P42_STATUS', hd, 2)
+p.hidden('P42_TYPE', hd, 3)
 p.process(10, 'BEFORE_HEADER', 'Load Voucher', [
     'if :P42_ID is not null then',
-    "    select status_code, txn_type, to_char(doc_date, 'YYYY-MM-DD'),",
-    "           case when cash_box_id is not null then 'BOX:' || cash_box_id else 'BANK:' || bank_account_id end,",
-    '           channel, counterparty_name, external_reference, description, exchange_rate',
-    '      into :P42_STATUS, :P42_TYPE, :P42_DATE, :P42_PLACE, :P42_CHANNEL, :P42_PARTY, :P42_REF, :P42_DESC, :P42_RATE',
-    '      from csh_transaction where id = :P42_ID and company_id = noona_gl_pkg.company;',
+    '    select status_code, txn_type into :P42_STATUS, :P42_TYPE from csh_transaction',
+    '     where id = :P42_ID and company_id = noona_gl_pkg.company;',
     'else',
     "    :P42_TYPE := case when :P42_TYPE in ('RECEIPT', 'PAYMENT', 'EXPENSE') then :P42_TYPE else 'RECEIPT' end;",
-    "    :P42_DATE := nvl(:P42_DATE, to_char(sysdate, 'YYYY-MM-DD'));",
     'end if;'])
-ln = p.dynamic('تفاصيل السند', 20, grid_region('noona_csh_pkg.lines_json(:P42_ID)', 'noona_csh_pkg.accounts_json(:P42_TYPE)',
-                                              "case when :P42_ID is null or :P42_STATUS = 'DRAFT' then 'N' else 'Y' end",
-                                              'CV', 'P42_LINES')
-               )
-b_save = p.button(ln, 10, 'SAVE', 'حفظ', condition=":P42_ID is null or :P42_STATUS = 'DRAFT'")
-b_submit = p.button(ln, 20, 'SUBMIT', 'حفظ وإرسال للاعتماد', hot=True, condition=":P42_ID is null or :P42_STATUS = 'DRAFT'")
-SAVE_CODE = [
-    ':P42_ID := noona_csh_pkg.save_voucher(',
-    "    p_id => :P42_ID, p_type => :P42_TYPE, p_date => to_date(:P42_DATE, 'YYYY-MM-DD'),",
-    "    p_box_id => case when :P42_PLACE like 'BOX:%' then to_number(substr(:P42_PLACE, 5)) end,",
-    "    p_bank_id => case when :P42_PLACE like 'BANK:%' then to_number(substr(:P42_PLACE, 6)) end,",
-    '    p_channel => :P42_CHANNEL, p_party => :P42_PARTY, p_description => :P42_DESC, p_reference => :P42_REF,',
-    '    p_lines => :P42_LINES, p_rate => :P42_RATE);']
-p.process(20, 'AFTER_SUBMIT', 'Save Voucher', SAVE_CODE, when_button=b_save, success='تم حفظ السند')
-p.process(30, 'AFTER_SUBMIT', 'Save Submit Voucher', SAVE_CODE + ['noona_csh_pkg.submit_voucher(:P42_ID);'],
-          when_button=b_submit, success='تم إرسال السند للاعتماد')
+p.dynamic('ملخص السند', 5, 'return noona_csh_pkg.voucher_header(:P42_ID);', hide_header=True,
+          condition=":P42_ID is not null and :P42_STATUS <> 'DRAFT'")
+p.dynamic('مستند السند', 10, doc_region('CV', 'noona_csh_pkg.voucher_doc_json(:P42_ID, :P42_TYPE)', 'noona_csh_pkg.accounts_json(:P42_TYPE)',
+                                         "case when :P42_ID is null or :P42_STATUS = 'DRAFT' then 'N' else 'Y' end",
+                                         extra=[('nnDocPlaces', 'noona_csh_pkg.places_json')]),
+          hide_header=True, opts='#DEFAULT#:t-Region--noUI')
+p.process(1, 'ON_DEMAND', 'SAVE_DOC', doc_ajax('noona_csh_pkg.save_voucher_doc', 42))
 ac = p.static('الإجراءات', 30, condition=":P42_ID is not null")
 p.textarea('P42_REASON', ac, 10, 'الملاحظة أو السبب (إلزامي للرفض والعكس)', rows=2)
 p.date('P42_REV_DATE', ac, 20, 'تاريخ العكس')
@@ -400,7 +392,7 @@ p.process(60, 'AFTER_SUBMIT', 'Reverse', [
     'end;'], when_button=b_rev, success='تم عكس السند بقيد مقابل مرحل')
 p.process(70, 'AFTER_SUBMIT', 'Cancel', 'noona_csh_pkg.cancel_voucher(:P42_ID, :P42_REASON);', when_button=b_can,
           success='تم إلغاء المسودة')
-p.onload(GRID_JS)
+p.onload(DOC_JS + GRID_JS)
 p.branch(10, 'f?p=&APP_ID.:42:&SESSION.::&DEBUG.:42:P42_ID:&P42_ID.&success_msg=#SUCCESS_MSG#')
 
 # =============================================================== 43) طباعة السند
@@ -605,6 +597,42 @@ p.process(20, 'AFTER_SUBMIT', 'Reopen Year', 'noona_gl_pkg.reopen_year(:P13_YEAR
           success='تمت إعادة فتح السنة وعكس قيد الإقفال')
 p.branch(10, url(13, clear='13') + '&success_msg=#SUCCESS_MSG#')
 
+# =============================================================== 48) أسعار الصرف
+p = app.page(48, 'Exchange Rates', 'EXCHANGE-RATES', 'أسعار الصرف', scheme=TENANT)
+p.ir('أسعار الصرف المحاسبية', 10, [
+    "select r.id, r.from_currency || ' - ' || c.name_ar as cur, r.to_currency, to_char(r.rate_date, 'YYYY-MM-DD') as rate_date,",
+    "       r.rate, round(1 / r.rate, 6) as inverse_rate, noona_ui_pkg.status_badge(r.status_code) as status_html, r.reason,",
+    '       r.created_by, r.approved_by',
+    '  from ref_exchange_rate r join ref_rate_type t on t.id = r.rate_type_id left join ref_currency c on c.currency_code = r.from_currency',
+    " where t.code = 'ACCOUNTING' order by r.rate_date desc, r.from_currency"],
+    [('ID', '#', {'hidden': True, 'type': 'NUMBER'}), ('CUR', 'العملة', {}), ('TO_CURRENCY', 'مقابل', {}), ('RATE_DATE', 'ساري من', {}),
+     ('RATE', 'السعر', {'type': 'NUMBER'}), ('INVERSE_RATE', 'العكسي', {'type': 'NUMBER'}), ('STATUS_HTML', 'الحالة', {'html': True}),
+     ('REASON', 'المصدر / الملاحظة', {}), ('CREATED_BY', 'أدخله', {}), ('APPROVED_BY', 'اعتمده', {})])
+f = p.static('سعر جديد', 20, text='<p class="nn-hint">السعر = عدد وحدات العملة الوظيفية لوحدة واحدة من العملة الأجنبية، ويسري من تاريخه '
+                                   'حتى يضاف سعر أحدث. يستخدم آلياً في القيود والسندات بالعملات الأجنبية.</p>')
+p.select('P48_CUR', f, 10, 'العملة', lov_sql=(
+    "select currency_code || ' - ' || name_ar d, currency_code r from ref_currency where is_active = 'Y' "
+    "and currency_code <> noona_gl_pkg.ledger_currency order by currency_code"))
+p.date('P48_DATE', f, 20, 'ساري من تاريخ')
+p.number('P48_RATE', f, 30, 'السعر')
+p.text('P48_REASON', f, 40, 'المصدر (مثل: البنك المركزي)')
+b1 = p.button(f, 10, 'ADD_RATE', 'إضافة السعر', hot=True)
+b2 = p.button(f, 20, 'SEED_RATES', 'إضافة أسعار الربط الافتراضية')
+p.process(10, 'AFTER_SUBMIT', 'Add Rate', [
+    'declare l_id number;',
+    'begin',
+    "    l_id := noona_refdata_pkg.add_rate(noona_gl_pkg.rate_type, :P48_CUR, noona_gl_pkg.ledger_currency,",
+    "                                       to_date(:P48_DATE, 'YYYY-MM-DD'), :P48_RATE, :P48_REASON);",
+    'end;'], when_button=b1, success='تمت إضافة السعر')
+p.process(20, 'AFTER_SUBMIT', 'Seed Rates', [
+    'declare l_n number;',
+    'begin',
+    '    l_n := noona_gl_pkg.seed_rates;',
+    "    apex_application.g_print_success_message := case when l_n > 0 then 'أضيف ' || l_n || ' سعر ربط رسمي (راجعها)'",
+    "                                                     else 'لا توجد أسعار ناقصة (أو العملة الوظيفية ليست الريال)' end;",
+    'end;'], when_button=b2)
+p.branch(10, url(48, clear='48') + '&success_msg=#SUCCESS_MSG#')
+
 app.nav_item('لوحة المالية', 1, 'fa-calculator', 10)
 gl = app.nav_item('الأستاذ العام', None, 'fa-book', 20)
 app.nav_item('القيود اليومية', 20, 'fa-list-alt', 21, parent=gl)
@@ -613,6 +641,7 @@ app.nav_item('دليل الحسابات', 10, 'fa-sitemap', 23, parent=gl)
 app.nav_item('مراكز التكلفة', 12, 'fa-crosshairs', 24, parent=gl)
 app.nav_item('الفترات المحاسبية', 11, 'fa-calendar', 25, parent=gl)
 app.nav_item('إقفال السنة المالية', 13, 'fa-lock', 26, parent=gl)
+app.nav_item('أسعار الصرف', 48, 'fa-exchange', 27, parent=gl)
 cs = app.nav_item('النقدية والبنوك', None, 'fa-money', 30)
 app.nav_item('السندات', 41, 'fa-files-o', 31, parent=cs)
 app.nav_item('سند قبض جديد', new_voucher('RECEIPT'), 'fa-arrow-down', 32, parent=cs)

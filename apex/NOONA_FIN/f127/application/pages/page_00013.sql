@@ -22,7 +22,7 @@ wwv_flow_imp_page.create_page(
 ,p_protection_level=>'C'
 );
 wwv_flow_imp_page.create_page_plug(
- p_id=>wwv_flow_imp.id(91820266000000361)
+ p_id=>wwv_flow_imp.id(91820266000000351)
 ,p_plug_name=>'السنوات المالية'
 ,p_region_template_options=>'#DEFAULT#'
 ,p_component_template_options=>'#DEFAULT#'
@@ -39,7 +39,7 @@ wwv_flow_imp_page.create_page_plug(
 ,p_prn_page_header=>'السنوات المالية'
 );
 wwv_flow_imp_page.create_worksheet(
- p_id=>wwv_flow_imp.id(91820266000000362)
+ p_id=>wwv_flow_imp.id(91820266000000352)
 ,p_max_row_count=>'1000000'
 ,p_no_data_found_message=>'لا توجد بيانات'
 ,p_pagination_type=>'ROWS_X_TO_Y'
@@ -51,10 +51,10 @@ wwv_flow_imp_page.create_worksheet(
 ,p_download_formats=>'CSV:HTML:XLSX:PDF'
 ,p_enable_mail_download=>'N'
 ,p_owner=>'NOONA'
-,p_internal_uid=>91820266000000362
+,p_internal_uid=>91820266000000352
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820266000000364)
+ p_id=>wwv_flow_imp.id(91820266000000354)
 ,p_db_column_name=>'ID'
 ,p_display_order=>10
 ,p_column_identifier=>'A'
@@ -65,7 +65,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820266000000365)
+ p_id=>wwv_flow_imp.id(91820266000000355)
 ,p_db_column_name=>'CODE'
 ,p_display_order=>20
 ,p_column_identifier=>'B'
@@ -75,7 +75,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820266000000366)
+ p_id=>wwv_flow_imp.id(91820266000000356)
 ,p_db_column_name=>'NAME_AR'
 ,p_display_order=>30
 ,p_column_identifier=>'C'
@@ -85,7 +85,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820266000000367)
+ p_id=>wwv_flow_imp.id(91820266000000357)
 ,p_db_column_name=>'START_DATE'
 ,p_display_order=>40
 ,p_column_identifier=>'D'
@@ -95,7 +95,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820266000000368)
+ p_id=>wwv_flow_imp.id(91820266000000358)
 ,p_db_column_name=>'END_DATE'
 ,p_display_order=>50
 ,p_column_identifier=>'E'
@@ -105,7 +105,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820266000000369)
+ p_id=>wwv_flow_imp.id(91820266000000359)
 ,p_db_column_name=>'STATUS_HTML'
 ,p_display_order=>60
 ,p_column_identifier=>'F'
@@ -116,7 +116,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820266000000370)
+ p_id=>wwv_flow_imp.id(91820266000000360)
 ,p_db_column_name=>'CLOSING_JV'
 ,p_display_order=>70
 ,p_column_identifier=>'G'
@@ -126,16 +126,16 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_rpt(
- p_id=>wwv_flow_imp.id(91820266000000363)
+ p_id=>wwv_flow_imp.id(91820266000000353)
 ,p_application_user=>'APXWS_DEFAULT'
 ,p_report_seq=>10
-,p_report_alias=>'363'
+,p_report_alias=>'353'
 ,p_status=>'PUBLIC'
 ,p_is_default=>'Y'
 ,p_report_columns=>'CODE:NAME_AR:START_DATE:END_DATE:STATUS_HTML:CLOSING_JV'
 );
 wwv_flow_imp_page.create_page_plug(
- p_id=>wwv_flow_imp.id(91820266000000371)
+ p_id=>wwv_flow_imp.id(91820266000000361)
 ,p_plug_name=>'الإقفال'
 ,p_region_template_options=>'#DEFAULT#'
 ,p_plug_template=>4072358936313175081
@@ -148,10 +148,10 @@ wwv_flow_imp_page.create_page_plug(
   'show_line_breaks', 'Y')).to_clob
 );
 wwv_flow_imp_page.create_page_item(
- p_id=>wwv_flow_imp.id(91820266000000372)
+ p_id=>wwv_flow_imp.id(91820266000000362)
 ,p_name=>'P13_YEAR'
 ,p_item_sequence=>10
-,p_item_plug_id=>wwv_flow_imp.id(91820266000000371)
+,p_item_plug_id=>wwv_flow_imp.id(91820266000000361)
 ,p_prompt=>'السنة المالية'
 ,p_display_as=>'NATIVE_SELECT_LIST'
 ,p_lov=>'select name_ar || '' ('' || to_char(start_date, ''YYYY-MM-DD'') || '' - '' || to_char(end_date, ''YYYY-MM-DD'') || '')'' d, id r from gl_fiscal_year where company_id = noona_gl_pkg.company order by start_date'
@@ -165,10 +165,10 @@ wwv_flow_imp_page.create_page_item(
   'page_action_on_selection', 'NONE')).to_clob
 );
 wwv_flow_imp_page.create_page_item(
- p_id=>wwv_flow_imp.id(91820266000000373)
+ p_id=>wwv_flow_imp.id(91820266000000363)
 ,p_name=>'P13_REASON'
 ,p_item_sequence=>20
-,p_item_plug_id=>wwv_flow_imp.id(91820266000000371)
+,p_item_plug_id=>wwv_flow_imp.id(91820266000000361)
 ,p_prompt=>'سبب إعادة الفتح'
 ,p_display_as=>'NATIVE_TEXTAREA'
 ,p_cSize=>60
@@ -183,20 +183,20 @@ wwv_flow_imp_page.create_page_item(
   'trim_spaces', 'BOTH')).to_clob
 );
 wwv_flow_imp_page.create_page_validation(
- p_id=>wwv_flow_imp.id(91820266000000375)
+ p_id=>wwv_flow_imp.id(91820266000000365)
 ,p_validation_name=>'P13_YEAR required (CLOSE_YEAR)'
 ,p_validation_sequence=>12
 ,p_validation=>'P13_YEAR'
 ,p_validation_type=>'ITEM_NOT_NULL'
 ,p_error_message=>'#LABEL#: قيمة مطلوبة'
-,p_when_button_pressed=>wwv_flow_imp.id(91820266000000374)
-,p_associated_item=>wwv_flow_imp.id(91820266000000372)
+,p_when_button_pressed=>wwv_flow_imp.id(91820266000000364)
+,p_associated_item=>wwv_flow_imp.id(91820266000000362)
 ,p_error_display_location=>'INLINE_WITH_FIELD_AND_NOTIFICATION'
 );
 wwv_flow_imp_page.create_page_button(
- p_id=>wwv_flow_imp.id(91820266000000374)
+ p_id=>wwv_flow_imp.id(91820266000000364)
 ,p_button_sequence=>10
-,p_button_plug_id=>wwv_flow_imp.id(91820266000000371)
+,p_button_plug_id=>wwv_flow_imp.id(91820266000000361)
 ,p_button_name=>'CLOSE_YEAR'
 ,p_button_action=>'SUBMIT'
 ,p_button_template_options=>'#DEFAULT#'
@@ -206,20 +206,20 @@ wwv_flow_imp_page.create_page_button(
 ,p_button_position=>'NEXT'
 );
 wwv_flow_imp_page.create_page_validation(
- p_id=>wwv_flow_imp.id(91820266000000377)
+ p_id=>wwv_flow_imp.id(91820266000000367)
 ,p_validation_name=>'P13_YEAR required (REOPEN_YEAR)'
 ,p_validation_sequence=>14
 ,p_validation=>'P13_YEAR'
 ,p_validation_type=>'ITEM_NOT_NULL'
 ,p_error_message=>'#LABEL#: قيمة مطلوبة'
-,p_when_button_pressed=>wwv_flow_imp.id(91820266000000376)
-,p_associated_item=>wwv_flow_imp.id(91820266000000372)
+,p_when_button_pressed=>wwv_flow_imp.id(91820266000000366)
+,p_associated_item=>wwv_flow_imp.id(91820266000000362)
 ,p_error_display_location=>'INLINE_WITH_FIELD_AND_NOTIFICATION'
 );
 wwv_flow_imp_page.create_page_button(
- p_id=>wwv_flow_imp.id(91820266000000376)
+ p_id=>wwv_flow_imp.id(91820266000000366)
 ,p_button_sequence=>20
-,p_button_plug_id=>wwv_flow_imp.id(91820266000000371)
+,p_button_plug_id=>wwv_flow_imp.id(91820266000000361)
 ,p_button_name=>'REOPEN_YEAR'
 ,p_button_action=>'SUBMIT'
 ,p_button_template_options=>'#DEFAULT#'
@@ -228,7 +228,7 @@ wwv_flow_imp_page.create_page_button(
 ,p_button_position=>'NEXT'
 );
 wwv_flow_imp_page.create_page_process(
- p_id=>wwv_flow_imp.id(91820266000000378)
+ p_id=>wwv_flow_imp.id(91820266000000368)
 ,p_process_sequence=>10
 ,p_process_point=>'AFTER_SUBMIT'
 ,p_process_type=>'NATIVE_PLSQL'
@@ -240,12 +240,12 @@ wwv_flow_imp_page.create_page_process(
 'end;'))
 ,p_process_clob_language=>'PLSQL'
 ,p_error_display_location=>'INLINE_IN_NOTIFICATION'
-,p_process_when_button_id=>wwv_flow_imp.id(91820266000000374)
+,p_process_when_button_id=>wwv_flow_imp.id(91820266000000364)
 ,p_process_success_message=>'تم إقفال السنة وترحيل النتيجة إلى الأرباح المبقاة'
-,p_internal_uid=>91820266000000378
+,p_internal_uid=>91820266000000368
 );
 wwv_flow_imp_page.create_page_process(
- p_id=>wwv_flow_imp.id(91820266000000379)
+ p_id=>wwv_flow_imp.id(91820266000000369)
 ,p_process_sequence=>20
 ,p_process_point=>'AFTER_SUBMIT'
 ,p_process_type=>'NATIVE_PLSQL'
@@ -254,12 +254,12 @@ wwv_flow_imp_page.create_page_process(
 'noona_gl_pkg.reopen_year(:P13_YEAR, :P13_REASON);'))
 ,p_process_clob_language=>'PLSQL'
 ,p_error_display_location=>'INLINE_IN_NOTIFICATION'
-,p_process_when_button_id=>wwv_flow_imp.id(91820266000000376)
+,p_process_when_button_id=>wwv_flow_imp.id(91820266000000366)
 ,p_process_success_message=>'تمت إعادة فتح السنة وعكس قيد الإقفال'
-,p_internal_uid=>91820266000000379
+,p_internal_uid=>91820266000000369
 );
 wwv_flow_imp_page.create_page_branch(
- p_id=>wwv_flow_imp.id(91820266000000380)
+ p_id=>wwv_flow_imp.id(91820266000000370)
 ,p_branch_action=>'f?p=&APP_ID.:13:&SESSION.::&DEBUG.:13::&success_msg=#SUCCESS_MSG#'
 ,p_branch_point=>'AFTER_PROCESSING'
 ,p_branch_type=>'REDIRECT_URL'

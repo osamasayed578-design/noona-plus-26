@@ -106,7 +106,7 @@ GRID_JS = [
     "            var tr = e.target.closest('tr');",
     "            if (!tr.nextElementSibling) addRow().querySelector('.nn-je-acc').focus(); else tr.nextElementSibling.querySelector('.nn-je-acc').focus(); }",
     '    });',
-    "    $(document).on('apexbeforepagesubmit', function () {",
+    '    function collect() {',
     '        var out = [];',
     "        tbody.querySelectorAll('tr').forEach(function (tr) {",
     "            var a = tr.querySelector('.nn-je-acc').value.trim(), t = tr.querySelector('.nn-je-txt').value.trim(),",
@@ -119,6 +119,9 @@ GRID_JS = [
     '                if (a || m) out.push({a: a, m: m, cc: cc, t: t || null});',
     '            }',
     '        });',
-    '        $s(item, JSON.stringify(out));',
-    '    });',
+    '        return out;',
+    '    }',
+    '    window.nnGrid = {collect: collect, totals: totals};',
+    "    if (item) $(document).on('apexbeforepagesubmit', function () { $s(item, JSON.stringify(collect())); });",
     '})();']
+

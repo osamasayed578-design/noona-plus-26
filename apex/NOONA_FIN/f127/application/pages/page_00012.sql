@@ -22,7 +22,7 @@ wwv_flow_imp_page.create_page(
 ,p_protection_level=>'C'
 );
 wwv_flow_imp_page.create_page_plug(
- p_id=>wwv_flow_imp.id(91820266000000145)
+ p_id=>wwv_flow_imp.id(91820266000000132)
 ,p_plug_name=>'مراكز التكلفة'
 ,p_region_template_options=>'#DEFAULT#'
 ,p_component_template_options=>'#DEFAULT#'
@@ -39,7 +39,7 @@ wwv_flow_imp_page.create_page_plug(
 ,p_prn_page_header=>'مراكز التكلفة'
 );
 wwv_flow_imp_page.create_worksheet(
- p_id=>wwv_flow_imp.id(91820266000000146)
+ p_id=>wwv_flow_imp.id(91820266000000133)
 ,p_max_row_count=>'1000000'
 ,p_no_data_found_message=>'لا توجد بيانات'
 ,p_pagination_type=>'ROWS_X_TO_Y'
@@ -51,10 +51,10 @@ wwv_flow_imp_page.create_worksheet(
 ,p_download_formats=>'CSV:HTML:XLSX:PDF'
 ,p_enable_mail_download=>'N'
 ,p_owner=>'NOONA'
-,p_internal_uid=>91820266000000146
+,p_internal_uid=>91820266000000133
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820266000000148)
+ p_id=>wwv_flow_imp.id(91820266000000135)
 ,p_db_column_name=>'ID'
 ,p_display_order=>10
 ,p_column_identifier=>'A'
@@ -65,7 +65,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820266000000149)
+ p_id=>wwv_flow_imp.id(91820266000000136)
 ,p_db_column_name=>'CODE'
 ,p_display_order=>20
 ,p_column_identifier=>'B'
@@ -75,7 +75,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820266000000150)
+ p_id=>wwv_flow_imp.id(91820266000000137)
 ,p_db_column_name=>'NAME_AR'
 ,p_display_order=>30
 ,p_column_identifier=>'C'
@@ -85,7 +85,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820266000000151)
+ p_id=>wwv_flow_imp.id(91820266000000138)
 ,p_db_column_name=>'CC_TYPE'
 ,p_display_order=>40
 ,p_column_identifier=>'D'
@@ -95,7 +95,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820266000000152)
+ p_id=>wwv_flow_imp.id(91820266000000139)
 ,p_db_column_name=>'PARENT_NAME'
 ,p_display_order=>50
 ,p_column_identifier=>'E'
@@ -105,7 +105,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820266000000153)
+ p_id=>wwv_flow_imp.id(91820266000000140)
 ,p_db_column_name=>'STATUS_HTML'
 ,p_display_order=>60
 ,p_column_identifier=>'F'
@@ -116,16 +116,16 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_rpt(
- p_id=>wwv_flow_imp.id(91820266000000147)
+ p_id=>wwv_flow_imp.id(91820266000000134)
 ,p_application_user=>'APXWS_DEFAULT'
 ,p_report_seq=>10
-,p_report_alias=>'147'
+,p_report_alias=>'134'
 ,p_status=>'PUBLIC'
 ,p_is_default=>'Y'
 ,p_report_columns=>'CODE:NAME_AR:CC_TYPE:PARENT_NAME:STATUS_HTML'
 );
 wwv_flow_imp_page.create_page_plug(
- p_id=>wwv_flow_imp.id(91820266000000154)
+ p_id=>wwv_flow_imp.id(91820266000000141)
 ,p_plug_name=>'مركز تكلفة جديد'
 ,p_region_template_options=>'#DEFAULT#'
 ,p_plug_template=>4072358936313175081
@@ -136,15 +136,15 @@ wwv_flow_imp_page.create_page_plug(
   'show_line_breaks', 'Y')).to_clob
 );
 wwv_flow_imp_page.create_page_item(
- p_id=>wwv_flow_imp.id(91820266000000155)
+ p_id=>wwv_flow_imp.id(91820266000000142)
 ,p_name=>'P12_CODE'
 ,p_item_sequence=>10
-,p_item_plug_id=>wwv_flow_imp.id(91820266000000154)
+,p_item_plug_id=>wwv_flow_imp.id(91820266000000141)
 ,p_prompt=>'الرمز'
 ,p_display_as=>'NATIVE_TEXT_FIELD'
 ,p_cSize=>15
 ,p_cMaxlength=>30
-,p_field_template=>1609122147107268652
+,p_field_template=>1609121967514267634
 ,p_item_template_options=>'#DEFAULT#'
 ,p_attributes=>wwv_flow_t_plugin_attributes(wwv_flow_t_varchar2(
   'disabled', 'N',
@@ -153,16 +153,16 @@ wwv_flow_imp_page.create_page_item(
   'trim_spaces', 'BOTH')).to_clob
 );
 wwv_flow_imp_page.create_page_item(
- p_id=>wwv_flow_imp.id(91820266000000156)
+ p_id=>wwv_flow_imp.id(91820266000000143)
 ,p_name=>'P12_NAME'
 ,p_item_sequence=>20
-,p_item_plug_id=>wwv_flow_imp.id(91820266000000154)
+,p_item_plug_id=>wwv_flow_imp.id(91820266000000141)
 ,p_prompt=>'الاسم'
 ,p_display_as=>'NATIVE_TEXT_FIELD'
 ,p_cSize=>40
 ,p_cMaxlength=>200
 ,p_begin_on_new_line=>'N'
-,p_field_template=>1609122147107268652
+,p_field_template=>1609121967514267634
 ,p_item_template_options=>'#DEFAULT#'
 ,p_attributes=>wwv_flow_t_plugin_attributes(wwv_flow_t_varchar2(
   'disabled', 'N',
@@ -171,10 +171,10 @@ wwv_flow_imp_page.create_page_item(
   'trim_spaces', 'BOTH')).to_clob
 );
 wwv_flow_imp_page.create_page_item(
- p_id=>wwv_flow_imp.id(91820266000000157)
+ p_id=>wwv_flow_imp.id(91820266000000144)
 ,p_name=>'P12_TYPE'
 ,p_item_sequence=>30
-,p_item_plug_id=>wwv_flow_imp.id(91820266000000154)
+,p_item_plug_id=>wwv_flow_imp.id(91820266000000141)
 ,p_prompt=>'النوع'
 ,p_display_as=>'NATIVE_SELECT_LIST'
 ,p_lov=>'STATIC2:تكلفة;COST,ربحية;PROFIT,إيراد;REVENUE,استثمار;INVESTMENT'
@@ -186,10 +186,10 @@ wwv_flow_imp_page.create_page_item(
   'page_action_on_selection', 'NONE')).to_clob
 );
 wwv_flow_imp_page.create_page_item(
- p_id=>wwv_flow_imp.id(91820266000000158)
+ p_id=>wwv_flow_imp.id(91820266000000145)
 ,p_name=>'P12_PARENT'
 ,p_item_sequence=>40
-,p_item_plug_id=>wwv_flow_imp.id(91820266000000154)
+,p_item_plug_id=>wwv_flow_imp.id(91820266000000141)
 ,p_prompt=>'يتبع المركز'
 ,p_display_as=>'NATIVE_SELECT_LIST'
 ,p_lov=>'select code || '' - '' || name_ar d, code r from gl_cost_center where company_id = noona_gl_pkg.company order by code'
@@ -203,32 +203,10 @@ wwv_flow_imp_page.create_page_item(
 ,p_attributes=>wwv_flow_t_plugin_attributes(wwv_flow_t_varchar2(
   'page_action_on_selection', 'NONE')).to_clob
 );
-wwv_flow_imp_page.create_page_validation(
- p_id=>wwv_flow_imp.id(91820266000000160)
-,p_validation_name=>'P12_CODE required (ADD_CC)'
-,p_validation_sequence=>13
-,p_validation=>'P12_CODE'
-,p_validation_type=>'ITEM_NOT_NULL'
-,p_error_message=>'#LABEL#: قيمة مطلوبة'
-,p_when_button_pressed=>wwv_flow_imp.id(91820266000000159)
-,p_associated_item=>wwv_flow_imp.id(91820266000000155)
-,p_error_display_location=>'INLINE_WITH_FIELD_AND_NOTIFICATION'
-);
-wwv_flow_imp_page.create_page_validation(
- p_id=>wwv_flow_imp.id(91820266000000161)
-,p_validation_name=>'P12_NAME required (ADD_CC)'
-,p_validation_sequence=>14
-,p_validation=>'P12_NAME'
-,p_validation_type=>'ITEM_NOT_NULL'
-,p_error_message=>'#LABEL#: قيمة مطلوبة'
-,p_when_button_pressed=>wwv_flow_imp.id(91820266000000159)
-,p_associated_item=>wwv_flow_imp.id(91820266000000156)
-,p_error_display_location=>'INLINE_WITH_FIELD_AND_NOTIFICATION'
-);
 wwv_flow_imp_page.create_page_button(
- p_id=>wwv_flow_imp.id(91820266000000159)
+ p_id=>wwv_flow_imp.id(91820266000000146)
 ,p_button_sequence=>10
-,p_button_plug_id=>wwv_flow_imp.id(91820266000000154)
+,p_button_plug_id=>wwv_flow_imp.id(91820266000000141)
 ,p_button_name=>'ADD_CC'
 ,p_button_action=>'SUBMIT'
 ,p_button_template_options=>'#DEFAULT#'
@@ -237,8 +215,37 @@ wwv_flow_imp_page.create_page_button(
 ,p_button_image_alt=>'إضافة المركز'
 ,p_button_position=>'NEXT'
 );
+wwv_flow_imp_page.create_page_button(
+ p_id=>wwv_flow_imp.id(91820266000000147)
+,p_button_sequence=>20
+,p_button_plug_id=>wwv_flow_imp.id(91820266000000141)
+,p_button_name=>'SEED_CC'
+,p_button_action=>'SUBMIT'
+,p_button_template_options=>'#DEFAULT#'
+,p_button_template_id=>4072362960822175091
+,p_button_image_alt=>'إضافة المراكز الافتراضية'
+,p_button_position=>'NEXT'
+);
 wwv_flow_imp_page.create_page_process(
- p_id=>wwv_flow_imp.id(91820266000000162)
+ p_id=>wwv_flow_imp.id(91820266000000148)
+,p_process_sequence=>5
+,p_process_point=>'AFTER_SUBMIT'
+,p_process_type=>'NATIVE_PLSQL'
+,p_process_name=>'Seed Cost Centers'
+,p_process_sql_clob=>wwv_flow_string.join(wwv_flow_t_varchar2(
+'declare l_n number;',
+'begin',
+'    l_n := noona_gl_pkg.seed_cost_centers;',
+'    apex_application.g_print_success_message := case when l_n > 0 then ''أضيفت '' || l_n || '' مراكز تكلفة وربحية افتراضية''',
+'                                                     else ''توجد مراكز للشركة؛ لم يضف شيء'' end;',
+'end;'))
+,p_process_clob_language=>'PLSQL'
+,p_error_display_location=>'INLINE_IN_NOTIFICATION'
+,p_process_when_button_id=>wwv_flow_imp.id(91820266000000147)
+,p_internal_uid=>91820266000000148
+);
+wwv_flow_imp_page.create_page_process(
+ p_id=>wwv_flow_imp.id(91820266000000149)
 ,p_process_sequence=>10
 ,p_process_point=>'AFTER_SUBMIT'
 ,p_process_type=>'NATIVE_PLSQL'
@@ -250,12 +257,12 @@ wwv_flow_imp_page.create_page_process(
 'end;'))
 ,p_process_clob_language=>'PLSQL'
 ,p_error_display_location=>'INLINE_IN_NOTIFICATION'
-,p_process_when_button_id=>wwv_flow_imp.id(91820266000000159)
+,p_process_when_button_id=>wwv_flow_imp.id(91820266000000146)
 ,p_process_success_message=>'تمت إضافة مركز التكلفة'
-,p_internal_uid=>91820266000000162
+,p_internal_uid=>91820266000000149
 );
 wwv_flow_imp_page.create_page_plug(
- p_id=>wwv_flow_imp.id(91820266000000163)
+ p_id=>wwv_flow_imp.id(91820266000000150)
 ,p_plug_name=>'إيقاف أو تفعيل مركز'
 ,p_region_template_options=>'#DEFAULT#'
 ,p_plug_template=>4072358936313175081
@@ -266,10 +273,10 @@ wwv_flow_imp_page.create_page_plug(
   'show_line_breaks', 'Y')).to_clob
 );
 wwv_flow_imp_page.create_page_item(
- p_id=>wwv_flow_imp.id(91820266000000164)
+ p_id=>wwv_flow_imp.id(91820266000000151)
 ,p_name=>'P12_CC'
 ,p_item_sequence=>10
-,p_item_plug_id=>wwv_flow_imp.id(91820266000000163)
+,p_item_plug_id=>wwv_flow_imp.id(91820266000000150)
 ,p_prompt=>'المركز'
 ,p_display_as=>'NATIVE_SELECT_LIST'
 ,p_lov=>'select code || '' - '' || name_ar d, id r from gl_cost_center where company_id = noona_gl_pkg.company order by code'
@@ -283,10 +290,10 @@ wwv_flow_imp_page.create_page_item(
   'page_action_on_selection', 'NONE')).to_clob
 );
 wwv_flow_imp_page.create_page_item(
- p_id=>wwv_flow_imp.id(91820266000000165)
+ p_id=>wwv_flow_imp.id(91820266000000152)
 ,p_name=>'P12_STATUS'
 ,p_item_sequence=>20
-,p_item_plug_id=>wwv_flow_imp.id(91820266000000163)
+,p_item_plug_id=>wwv_flow_imp.id(91820266000000150)
 ,p_prompt=>'الحالة'
 ,p_display_as=>'NATIVE_SELECT_LIST'
 ,p_lov=>'STATIC2:موقوف;BLOCKED,مغلق;CLOSED,نشط;ACTIVE'
@@ -299,9 +306,9 @@ wwv_flow_imp_page.create_page_item(
   'page_action_on_selection', 'NONE')).to_clob
 );
 wwv_flow_imp_page.create_page_button(
- p_id=>wwv_flow_imp.id(91820266000000166)
+ p_id=>wwv_flow_imp.id(91820266000000153)
 ,p_button_sequence=>10
-,p_button_plug_id=>wwv_flow_imp.id(91820266000000163)
+,p_button_plug_id=>wwv_flow_imp.id(91820266000000150)
 ,p_button_name=>'SET_STATUS'
 ,p_button_action=>'SUBMIT'
 ,p_button_template_options=>'#DEFAULT#'
@@ -310,7 +317,7 @@ wwv_flow_imp_page.create_page_button(
 ,p_button_position=>'NEXT'
 );
 wwv_flow_imp_page.create_page_process(
- p_id=>wwv_flow_imp.id(91820266000000167)
+ p_id=>wwv_flow_imp.id(91820266000000154)
 ,p_process_sequence=>20
 ,p_process_point=>'AFTER_SUBMIT'
 ,p_process_type=>'NATIVE_PLSQL'
@@ -319,12 +326,12 @@ wwv_flow_imp_page.create_page_process(
 'noona_gl_pkg.set_cost_center_status(:P12_CC, :P12_STATUS);'))
 ,p_process_clob_language=>'PLSQL'
 ,p_error_display_location=>'INLINE_IN_NOTIFICATION'
-,p_process_when_button_id=>wwv_flow_imp.id(91820266000000166)
+,p_process_when_button_id=>wwv_flow_imp.id(91820266000000153)
 ,p_process_success_message=>'تم تغيير حالة المركز'
-,p_internal_uid=>91820266000000167
+,p_internal_uid=>91820266000000154
 );
 wwv_flow_imp_page.create_page_plug(
- p_id=>wwv_flow_imp.id(91820266000000168)
+ p_id=>wwv_flow_imp.id(91820266000000155)
 ,p_plug_name=>'قاعدة مركز التكلفة للحساب'
 ,p_region_template_options=>'#DEFAULT#'
 ,p_plug_template=>4072358936313175081
@@ -335,10 +342,10 @@ wwv_flow_imp_page.create_page_plug(
   'show_line_breaks', 'Y')).to_clob
 );
 wwv_flow_imp_page.create_page_item(
- p_id=>wwv_flow_imp.id(91820266000000169)
+ p_id=>wwv_flow_imp.id(91820266000000156)
 ,p_name=>'P12_ACCOUNT'
 ,p_item_sequence=>10
-,p_item_plug_id=>wwv_flow_imp.id(91820266000000168)
+,p_item_plug_id=>wwv_flow_imp.id(91820266000000155)
 ,p_prompt=>'الحساب'
 ,p_display_as=>'NATIVE_SELECT_LIST'
 ,p_lov=>'select a.account_code || '' - '' || a.name_ar d, a.id r from gl_account a join gl_ledger g on g.coa_id = a.coa_id where g.id = noona_gl_pkg.primary_ledger and a.is_postable = ''Y'' order by a.account_code'
@@ -352,10 +359,10 @@ wwv_flow_imp_page.create_page_item(
   'page_action_on_selection', 'NONE')).to_clob
 );
 wwv_flow_imp_page.create_page_item(
- p_id=>wwv_flow_imp.id(91820266000000170)
+ p_id=>wwv_flow_imp.id(91820266000000157)
 ,p_name=>'P12_RULE'
 ,p_item_sequence=>20
-,p_item_plug_id=>wwv_flow_imp.id(91820266000000168)
+,p_item_plug_id=>wwv_flow_imp.id(91820266000000155)
 ,p_prompt=>'القاعدة'
 ,p_display_as=>'NATIVE_SELECT_LIST'
 ,p_lov=>'STATIC2:إلزامي في كل قيد;REQUIRED,اختياري;OPTIONAL,ممنوع;FORBIDDEN'
@@ -368,9 +375,9 @@ wwv_flow_imp_page.create_page_item(
   'page_action_on_selection', 'NONE')).to_clob
 );
 wwv_flow_imp_page.create_page_button(
- p_id=>wwv_flow_imp.id(91820266000000171)
+ p_id=>wwv_flow_imp.id(91820266000000158)
 ,p_button_sequence=>10
-,p_button_plug_id=>wwv_flow_imp.id(91820266000000168)
+,p_button_plug_id=>wwv_flow_imp.id(91820266000000155)
 ,p_button_name=>'SET_RULE'
 ,p_button_action=>'SUBMIT'
 ,p_button_template_options=>'#DEFAULT#'
@@ -379,7 +386,7 @@ wwv_flow_imp_page.create_page_button(
 ,p_button_position=>'NEXT'
 );
 wwv_flow_imp_page.create_page_process(
- p_id=>wwv_flow_imp.id(91820266000000172)
+ p_id=>wwv_flow_imp.id(91820266000000159)
 ,p_process_sequence=>30
 ,p_process_point=>'AFTER_SUBMIT'
 ,p_process_type=>'NATIVE_PLSQL'
@@ -388,12 +395,12 @@ wwv_flow_imp_page.create_page_process(
 'noona_gl_pkg.set_cc_rule(:P12_ACCOUNT, :P12_RULE);'))
 ,p_process_clob_language=>'PLSQL'
 ,p_error_display_location=>'INLINE_IN_NOTIFICATION'
-,p_process_when_button_id=>wwv_flow_imp.id(91820266000000171)
+,p_process_when_button_id=>wwv_flow_imp.id(91820266000000158)
 ,p_process_success_message=>'تم حفظ قاعدة مركز التكلفة للحساب'
-,p_internal_uid=>91820266000000172
+,p_internal_uid=>91820266000000159
 );
 wwv_flow_imp_page.create_page_plug(
- p_id=>wwv_flow_imp.id(91820266000000173)
+ p_id=>wwv_flow_imp.id(91820266000000160)
 ,p_plug_name=>'حسابات لها قاعدة مركز تكلفة'
 ,p_region_template_options=>'#DEFAULT#:t-Region--scrollBody'
 ,p_component_template_options=>'#DEFAULT#'
@@ -409,7 +416,7 @@ wwv_flow_imp_page.create_page_plug(
 ,p_prn_page_header=>'حسابات لها قاعدة مركز تكلفة'
 );
 wwv_flow_imp_page.create_worksheet(
- p_id=>wwv_flow_imp.id(91820266000000174)
+ p_id=>wwv_flow_imp.id(91820266000000161)
 ,p_max_row_count=>'1000000'
 ,p_no_data_found_message=>'لا توجد بيانات'
 ,p_pagination_type=>'ROWS_X_TO_Y'
@@ -421,10 +428,10 @@ wwv_flow_imp_page.create_worksheet(
 ,p_download_formats=>'CSV:HTML:XLSX:PDF'
 ,p_enable_mail_download=>'N'
 ,p_owner=>'NOONA'
-,p_internal_uid=>91820266000000174
+,p_internal_uid=>91820266000000161
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820266000000176)
+ p_id=>wwv_flow_imp.id(91820266000000163)
 ,p_db_column_name=>'ID'
 ,p_display_order=>10
 ,p_column_identifier=>'A'
@@ -435,7 +442,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820266000000177)
+ p_id=>wwv_flow_imp.id(91820266000000164)
 ,p_db_column_name=>'ACCOUNT_CODE'
 ,p_display_order=>20
 ,p_column_identifier=>'B'
@@ -445,7 +452,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820266000000178)
+ p_id=>wwv_flow_imp.id(91820266000000165)
 ,p_db_column_name=>'NAME_AR'
 ,p_display_order=>30
 ,p_column_identifier=>'C'
@@ -455,7 +462,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820266000000179)
+ p_id=>wwv_flow_imp.id(91820266000000166)
 ,p_db_column_name=>'RULE_NAME'
 ,p_display_order=>40
 ,p_column_identifier=>'D'
@@ -465,16 +472,16 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_rpt(
- p_id=>wwv_flow_imp.id(91820266000000175)
+ p_id=>wwv_flow_imp.id(91820266000000162)
 ,p_application_user=>'APXWS_DEFAULT'
 ,p_report_seq=>10
-,p_report_alias=>'175'
+,p_report_alias=>'162'
 ,p_status=>'PUBLIC'
 ,p_is_default=>'Y'
 ,p_report_columns=>'ACCOUNT_CODE:NAME_AR:RULE_NAME'
 );
 wwv_flow_imp_page.create_page_branch(
- p_id=>wwv_flow_imp.id(91820266000000180)
+ p_id=>wwv_flow_imp.id(91820266000000167)
 ,p_branch_action=>'f?p=&APP_ID.:12:&SESSION.::&DEBUG.:12::&success_msg=#SUCCESS_MSG#'
 ,p_branch_point=>'AFTER_PROCESSING'
 ,p_branch_type=>'REDIRECT_URL'

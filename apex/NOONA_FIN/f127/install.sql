@@ -74,5 +74,6 @@ prompt --install
 @@application/pages/page_00045.sql
 @@application/pages/page_00046.sql
 @@application/pages/page_00047.sql
+@@application/pages/page_00048.sql
 @@application/pages/page_09999.sql
 @@application/end_environment.sql

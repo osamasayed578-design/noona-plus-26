@@ -17,10 +17,17 @@ CREATE OR REPLACE PACKAGE NOONA_CSH_PKG AUTHID DEFINER AS
   -- Y إن جهزت النقدية للشركة الحالية (يوجد صندوق)
   FUNCTION is_ready RETURN VARCHAR2;
   FUNCTION create_cash_box(p_code IN VARCHAR2, p_name_ar IN VARCHAR2, p_account_code IN VARCHAR2 DEFAULT '1101',
-                           p_box_type IN VARCHAR2 DEFAULT 'MAIN', p_max_balance IN NUMBER DEFAULT NULL) RETURN NUMBER;
+                           p_box_type IN VARCHAR2 DEFAULT 'MAIN', p_max_balance IN NUMBER DEFAULT NULL,
+                           p_currency IN VARCHAR2 DEFAULT NULL) RETURN NUMBER;
   FUNCTION create_bank_account(p_code IN VARCHAR2, p_name_ar IN VARCHAR2, p_bank_id IN NUMBER, p_account_no IN VARCHAR2,
                                p_iban IN VARCHAR2 DEFAULT NULL, p_account_code IN VARCHAR2 DEFAULT '1102',
-                               p_max_payment IN NUMBER DEFAULT NULL) RETURN NUMBER;
+                               p_max_payment IN NUMBER DEFAULT NULL, p_currency IN VARCHAR2 DEFAULT NULL) RETURN NUMBER;
+  -- تعديل بيانات حساب بنكي (رقم الحساب يحفظ مقنعاً؛ يبقى كما هو إن ترك فارغاً)
+  PROCEDURE update_bank_account(p_bank_account_id IN NUMBER, p_name_ar IN VARCHAR2, p_bank_id IN NUMBER,
+                                p_account_no IN VARCHAR2 DEFAULT NULL, p_iban IN VARCHAR2 DEFAULT NULL,
+                                p_max_payment IN NUMBER DEFAULT NULL);
+  -- صندوق العهد النثرية وحساب بنكي افتراضي (إن لم توجد)؛ يعيد عدد ما أضيف
+  FUNCTION seed_defaults RETURN NUMBER;
   PROCEDURE set_box_status(p_box_id IN NUMBER, p_status IN VARCHAR2);
   PROCEDURE set_bank_status(p_bank_account_id IN NUMBER, p_status IN VARCHAR2);
 
@@ -31,6 +38,13 @@ CREATE OR REPLACE PACKAGE NOONA_CSH_PKG AUTHID DEFINER AS
                         p_channel IN VARCHAR2, p_party IN VARCHAR2, p_description IN VARCHAR2, p_reference IN VARCHAR2,
                         p_lines IN CLOB, p_rate IN NUMBER DEFAULT NULL) RETURN NUMBER;
   PROCEDURE submit_voucher(p_id IN NUMBER);
+  -- مستند السند كاملاً من شاشة HTML في استدعاء واحد:
+  -- {"id":null,"type":"RECEIPT","date":"2026-10-21","place":"BOX:1","channel":"CASH","party":"...","desc":"...",
+  --  "ref":"...","rate":null,"action":"SAVE|SUBMIT","lines":[{"a":"4201","m":100,"cc":3,"t":"..."}]}
+  FUNCTION save_voucher_doc(p_doc IN CLOB) RETURN NUMBER;
+  FUNCTION voucher_doc_json(p_id IN NUMBER, p_type IN VARCHAR2 DEFAULT 'RECEIPT') RETURN CLOB;
+  -- الصناديق والحسابات البنكية النشطة: [{"v":"BOX:1","n":"...","c":"SAR","k":"BOX"}]
+  FUNCTION places_json RETURN CLOB;
   PROCEDURE approve_voucher(p_id IN NUMBER, p_comment IN VARCHAR2 DEFAULT NULL);
   PROCEDURE reject_voucher(p_id IN NUMBER, p_reason IN VARCHAR2);
   PROCEDURE cancel_voucher(p_id IN NUMBER, p_reason IN VARCHAR2);
@@ -113,9 +127,19 @@ CREATE OR REPLACE PACKAGE BODY NOONA_CSH_PKG AS
     NOONA_CORE_PKG.raise_error('NOONA-CSH-011', 'الحساب غير موجود: ' || p_code, 'Account not found');
   END cash_account;
 
+  FUNCTION currency_or_ledger(p_currency VARCHAR2) RETURN VARCHAR2 IS
+    l_n NUMBER;
+  BEGIN
+    IF p_currency IS NULL THEN RETURN ledger_currency; END IF;
+    SELECT COUNT(*) INTO l_n FROM ref_currency WHERE currency_code = UPPER(p_currency) AND is_active = 'Y';
+    NOONA_CORE_PKG.assert(l_n = 1, 'NOONA-CSH-019', 'العملة غير معرفة أو غير نشطة: ' || p_currency, 'Unknown currency');
+    RETURN UPPER(p_currency);
+  END currency_or_ledger;
+
   -- ================================================================ التجهيز
   FUNCTION create_cash_box(p_code IN VARCHAR2, p_name_ar IN VARCHAR2, p_account_code IN VARCHAR2 DEFAULT '1101',
-                           p_box_type IN VARCHAR2 DEFAULT 'MAIN', p_max_balance IN NUMBER DEFAULT NULL) RETURN NUMBER IS
+                           p_box_type IN VARCHAR2 DEFAULT 'MAIN', p_max_balance IN NUMBER DEFAULT NULL,
+                           p_currency IN VARCHAR2 DEFAULT NULL) RETURN NUMBER IS
     l_id  NUMBER;
     l_acc NUMBER;
     l_cur VARCHAR2(3);
@@ -123,7 +147,7 @@ CREATE OR REPLACE PACKAGE BODY NOONA_CSH_PKG AS
     guard('CSH_CASH_BOX.CREATE');
     NOONA_CORE_PKG.assert(p_code IS NOT NULL AND p_name_ar IS NOT NULL, 'NOONA-CSH-012', 'الرمز والاسم إلزاميان', 'Code and name are required');
     l_acc := cash_account(p_account_code);
-    l_cur := ledger_currency;
+    l_cur := currency_or_ledger(p_currency);
     INSERT INTO csh_cash_box (company_id, branch_id, code, name_ar, box_type, currency_code, gl_account_id, max_balance, status_code)
     VALUES (NOONA_GL_PKG.company, TO_NUMBER(SYS_CONTEXT('NOONA_CTX', 'BRANCH_ID')), UPPER(TRIM(p_code)), p_name_ar, NVL(p_box_type, 'MAIN'),
             l_cur, l_acc, p_max_balance, 'ACTIVE')
@@ -136,7 +160,7 @@ CREATE OR REPLACE PACKAGE BODY NOONA_CSH_PKG AS
 
   FUNCTION create_bank_account(p_code IN VARCHAR2, p_name_ar IN VARCHAR2, p_bank_id IN NUMBER, p_account_no IN VARCHAR2,
                                p_iban IN VARCHAR2 DEFAULT NULL, p_account_code IN VARCHAR2 DEFAULT '1102',
-                               p_max_payment IN NUMBER DEFAULT NULL) RETURN NUMBER IS
+                               p_max_payment IN NUMBER DEFAULT NULL, p_currency IN VARCHAR2 DEFAULT NULL) RETURN NUMBER IS
     l_id  NUMBER;
     l_no  VARCHAR2(100) := REPLACE(TRIM(p_account_no), ' ');
     l_ib  VARCHAR2(100) := UPPER(REPLACE(TRIM(p_iban), ' '));
@@ -149,7 +173,7 @@ CREATE OR REPLACE PACKAGE BODY NOONA_CSH_PKG AS
     NOONA_CORE_PKG.assert(l_ib IS NULL OR REGEXP_LIKE(l_ib, '^[A-Z]{2}[0-9]{2}[A-Z0-9]{10,30}$'), 'NOONA-CSH-015',
       'رقم الآيبان غير صالح', 'Invalid IBAN');
     l_acc := cash_account(p_account_code);
-    l_cur := ledger_currency;
+    l_cur := currency_or_ledger(p_currency);
     -- لا يخزن الرقم الكامل: آخر 4 أرقام فقط
     INSERT INTO csh_bank_account (company_id, branch_id, code, name_ar, bank_id, account_no_masked, iban_masked, currency_code,
                                   gl_account_id, max_payment_amount, status_code)
@@ -183,6 +207,49 @@ CREATE OR REPLACE PACKAGE BODY NOONA_CSH_PKG AS
     NOONA_AUDIT_PKG.log_event('CONFIG', 'CSH_BANK_ACCOUNT', p_bank_account_id, 'STATUS_' || p_status, 'SUCCESS');
   END set_bank_status;
 
+  PROCEDURE update_bank_account(p_bank_account_id IN NUMBER, p_name_ar IN VARCHAR2, p_bank_id IN NUMBER,
+                                p_account_no IN VARCHAR2 DEFAULT NULL, p_iban IN VARCHAR2 DEFAULT NULL,
+                                p_max_payment IN NUMBER DEFAULT NULL) IS
+    l_no VARCHAR2(100) := REPLACE(TRIM(p_account_no), ' ');
+    l_ib VARCHAR2(100) := UPPER(REPLACE(TRIM(p_iban), ' '));
+  BEGIN
+    guard('CSH_BANK_ACCOUNT.UPDATE');
+    NOONA_CORE_PKG.assert(p_name_ar IS NOT NULL AND p_bank_id IS NOT NULL, 'NOONA-CSH-014', 'الاسم والبنك إلزاميان',
+                          'Name and bank are required');
+    NOONA_CORE_PKG.assert(l_ib IS NULL OR REGEXP_LIKE(l_ib, '^[A-Z]{2}[0-9]{2}[A-Z0-9]{10,30}$'), 'NOONA-CSH-015',
+      'رقم الآيبان غير صالح', 'Invalid IBAN');
+    UPDATE csh_bank_account
+       SET name_ar = p_name_ar, bank_id = p_bank_id,
+           account_no_masked = CASE WHEN l_no IS NOT NULL THEN '****' || SUBSTR(l_no, -4) ELSE account_no_masked END,
+           iban_masked = CASE WHEN l_ib IS NOT NULL THEN SUBSTR(l_ib, 1, 4) || '****' || SUBSTR(l_ib, -4) ELSE iban_masked END,
+           max_payment_amount = p_max_payment
+     WHERE id = p_bank_account_id AND company_id = NOONA_GL_PKG.company;
+    NOONA_AUDIT_PKG.log_event('CONFIG', 'CSH_BANK_ACCOUNT', p_bank_account_id, 'UPDATE', 'SUCCESS');
+  END update_bank_account;
+
+  FUNCTION seed_defaults RETURN NUMBER IS
+    l_n    NUMBER := 0;
+    l_c    NUMBER;
+    l_id   NUMBER;
+    l_bank NUMBER;
+  BEGIN
+    SELECT COUNT(*) INTO l_c FROM csh_cash_box WHERE company_id = NOONA_GL_PKG.company AND box_type = 'PETTY_CASH';
+    IF l_c = 0 THEN
+      l_id := create_cash_box('PETTY-01', 'صندوق العهد النثرية', '1101', 'PETTY_CASH', 5000);
+      l_n := l_n + 1;
+    END IF;
+    SELECT COUNT(*) INTO l_c FROM csh_bank_account WHERE company_id = NOONA_GL_PKG.company;
+    IF l_c = 0 THEN
+      SELECT MIN(id) KEEP (DENSE_RANK FIRST ORDER BY CASE code WHEN 'SA-RJHI' THEN 0 ELSE 1 END, id) INTO l_bank
+        FROM ref_bank WHERE is_active = 'Y';
+      IF l_bank IS NOT NULL THEN
+        l_id := create_bank_account('BNK-01', 'الحساب الجاري الرئيسي (عدّل رقم الحساب)', l_bank, '0000', NULL, '1102');
+        l_n := l_n + 1;
+      END IF;
+    END IF;
+    RETURN l_n;
+  END seed_defaults;
+
   FUNCTION is_ready RETURN VARCHAR2 IS
     l_n NUMBER;
   BEGIN
@@ -207,6 +274,7 @@ CREATE OR REPLACE PACKAGE BODY NOONA_CSH_PKG AS
     IF l_box IS NULL THEN
       l_box := create_cash_box('BOX-01', 'الصندوق الرئيسي', '1101', 'MAIN');
     END IF;
+    IF seed_defaults >= 0 THEN NULL; END IF;
     RETURN l_box;
   END quick_setup;
 
@@ -330,8 +398,9 @@ CREATE OR REPLACE PACKAGE BODY NOONA_CSH_PKG AS
         FROM csh_bank_account WHERE id = p_bank_id AND company_id = NOONA_GL_PKG.company;
     END IF;
     NOONA_CORE_PKG.assert(l_st = 'ACTIVE', 'NOONA-CSH-025', 'الصندوق أو الحساب البنكي غير نشط', 'Cash box or bank account is not active');
-    l_rate := CASE WHEN l_cur = l_led THEN 1 ELSE p_rate END;
-    NOONA_CORE_PKG.assert(l_rate > 0, 'NOONA-GL-045', 'سعر الصرف إلزامي للعملة الأجنبية', 'Exchange rate required');
+    l_rate := CASE WHEN l_cur = l_led THEN 1 ELSE NVL(p_rate, NOONA_GL_PKG.rate_for(l_cur, p_date)) END;
+    NOONA_CORE_PKG.assert(l_rate > 0, 'NOONA-GL-045',
+      'لا يوجد سعر صرف معتمد للعملة ' || l_cur || ' في هذا التاريخ؛ أدخل السعر أو أضفه في أسعار الصرف', 'Exchange rate required');
     l_n := NOONA_GL_PKG.period_for(p_date);                   -- يتحقق من وجود فترة مفتوحة للتاريخ
 
     -- السطور
@@ -512,6 +581,57 @@ CREATE OR REPLACE PACKAGE BODY NOONA_CSH_PKG AS
     NOONA_AUDIT_PKG.log_event('PAYMENT', c_entity, p_id, 'REVERSE', 'SUCCESS', p_reason => p_reason);
     RETURN l_rev;
   END reverse_voucher;
+
+  -- ================================================================ مستند السند (HTML + JSON)
+  FUNCTION save_voucher_doc(p_doc IN CLOB) RETURN NUMBER IS
+    l_o     JSON_OBJECT_T := JSON_OBJECT_T.parse(p_doc);
+    l_place VARCHAR2(50) := l_o.get_string('place');
+    l_ln    JSON_ARRAY_T := l_o.get_array('lines');
+    l_id    NUMBER;
+  BEGIN
+    l_id := save_voucher(
+      p_id => l_o.get_number('id'), p_type => l_o.get_string('type'), p_date => TO_DATE(l_o.get_string('date'), 'YYYY-MM-DD'),
+      p_box_id => CASE WHEN l_place LIKE 'BOX:%' THEN TO_NUMBER(SUBSTR(l_place, 5)) END,
+      p_bank_id => CASE WHEN l_place LIKE 'BANK:%' THEN TO_NUMBER(SUBSTR(l_place, 6)) END,
+      p_channel => l_o.get_string('channel'), p_party => l_o.get_string('party'), p_description => l_o.get_string('desc'),
+      p_reference => l_o.get_string('ref'), p_lines => CASE WHEN l_ln IS NULL THEN '[]' ELSE l_ln.to_clob END,
+      p_rate => l_o.get_number('rate'));
+    IF l_o.get_string('action') = 'SUBMIT' THEN
+      submit_voucher(l_id);
+    END IF;
+    RETURN l_id;
+  END save_voucher_doc;
+
+  FUNCTION voucher_doc_json(p_id IN NUMBER, p_type IN VARCHAR2 DEFAULT 'RECEIPT') RETURN CLOB IS
+    l_t csh_transaction%ROWTYPE;
+  BEGIN
+    IF p_id IS NULL THEN
+      RETURN '{"id":null,"type":' || NOONA_CORE_PKG.json_text(CASE WHEN p_type IN ('RECEIPT', 'PAYMENT', 'EXPENSE') THEN p_type ELSE 'RECEIPT' END)
+          || ',"status":"DRAFT","date":"' || TO_CHAR(SYSDATE, 'YYYY-MM-DD') || '","lines":[]}';
+    END IF;
+    l_t := get_txn(p_id);
+    RETURN '{"id":' || l_t.id || ',"type":' || NOONA_CORE_PKG.json_text(l_t.txn_type) || ',"no":' || NOONA_CORE_PKG.json_text(l_t.doc_no)
+        || ',"status":' || NOONA_CORE_PKG.json_text(l_t.status_code) || ',"date":"' || TO_CHAR(l_t.doc_date, 'YYYY-MM-DD') || '"'
+        || ',"place":' || NOONA_CORE_PKG.json_text(CASE WHEN l_t.cash_box_id IS NOT NULL THEN 'BOX:' || l_t.cash_box_id ELSE 'BANK:' || l_t.bank_account_id END)
+        || ',"channel":' || NOONA_CORE_PKG.json_text(l_t.channel) || ',"party":' || NOONA_CORE_PKG.json_text(l_t.counterparty_name)
+        || ',"desc":' || NOONA_CORE_PKG.json_text(l_t.description) || ',"ref":' || NOONA_CORE_PKG.json_text(l_t.external_reference)
+        || ',"cur":' || NOONA_CORE_PKG.json_text(l_t.currency_code)
+        || ',"rate":' || TO_CHAR(l_t.exchange_rate, 'TM9', 'NLS_NUMERIC_CHARACTERS=''.,''')
+        || ',"words":' || NOONA_CORE_PKG.json_text(amount_words(l_t.amount, l_t.currency_code))
+        || ',"lines":' || lines_json(p_id) || '}';
+  END voucher_doc_json;
+
+  FUNCTION places_json RETURN CLOB IS
+    l_out CLOB;
+  BEGIN
+    SELECT JSON_ARRAYAGG(JSON_OBJECT('v' VALUE v, 'n' VALUE n, 'c' VALUE c, 'k' VALUE k) ORDER BY o, n RETURNING CLOB) INTO l_out
+      FROM (SELECT 'BOX:' || id v, name_ar n, currency_code c, 'BOX' k, 1 o FROM csh_cash_box
+             WHERE company_id = NOONA_GL_PKG.company AND status_code = 'ACTIVE'
+            UNION ALL
+            SELECT 'BANK:' || id, name_ar || ' ' || account_no_masked, currency_code, 'BANK', 2 FROM csh_bank_account
+             WHERE company_id = NOONA_GL_PKG.company AND status_code = 'ACTIVE');
+    RETURN NVL(l_out, '[]');
+  END places_json;
 
   -- ================================================================ الواجهة
   FUNCTION accounts_json(p_type IN VARCHAR2) RETURN CLOB IS
