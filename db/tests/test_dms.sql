@@ -172,7 +172,10 @@ BEGIN
   IF l_n > 0 THEN
     SELECT MIN(column_value) INTO l_s FROM TABLE(NOONA_DMS_PKG.storage_directories);
     NOONA_DMS_PKG.set_storage('SERVER_FOLDER', l_s, '/opt/noona/files', 'TEST_');
-    ok('server folder test passes', NOONA_DMS_PKG.test_storage = 'OK', NOONA_DMS_PKG.test_storage);
+    l_s := NOONA_DMS_PKG.test_storage;
+    ok('server folder test passes', l_s = 'OK', l_s);
+  END IF;
+  IF l_n > 0 AND l_s = 'OK' THEN
     l_doc := NOONA_DMS_PKG.archive_document(NULL, NULL, 'GENERAL', 'ملف في المجلد', 'EXT-1', NULL, NULL, NULL,
                                             'folder.pdf', 'application/pdf', l_pdf);
     SELECT c.id, c.storage_medium || '|' || NVL2(c.content_blob, 'BLOB', 'NOBLOB') || '|' || c.storage_bucket_ref INTO l_cid, l_s
@@ -190,10 +193,12 @@ BEGIN
     ok('moved file still readable', DBMS_LOB.COMPARE(NOONA_DMS_PKG.read_content(l_cid), l_pdf) = 0);
     l_c := NOONA_DMS_PKG.storage_html;
     ok('storage settings summary', INSTR(l_c, 'مجلد على الخادم') > 0);
-    NOONA_DMS_PKG.set_storage('DATABASE');
+  ELSIF l_n > 0 THEN
+    DBMS_OUTPUT.PUT_LINE('SKIP  remaining server folder tests: fix the folder path/permissions first');
   ELSE
     DBMS_OUTPUT.PUT_LINE('SKIP  server folder tests (no NOONA_DMS_T<tenant> directory)');
   END IF;
+  NOONA_DMS_PKG.set_storage('DATABASE');
 
   -- الأطراف ومستنداتهم
   BEGIN l_pty := NOONA_PTY_PKG.create_party('ORGANIZATION', 'مورد خطأ', 'SUPPLIER', NULL, '123'); ok('Saudi VAT format checked', FALSE);

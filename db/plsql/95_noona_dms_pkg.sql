@@ -304,8 +304,15 @@ CREATE OR REPLACE PACKAGE BODY NOONA_DMS_PKG AS
     UTL_FILE.FCLOSE(l_f);
   EXCEPTION WHEN OTHERS THEN
     IF UTL_FILE.IS_OPEN(l_f) THEN UTL_FILE.FCLOSE(l_f); END IF;
-    NOONA_CORE_PKG.raise_error('NOONA-DMS-143', 'تعذر حفظ الملف في مجلد التخزين (' || p_dir || '): ' || SUBSTR(SQLERRM, 1, 200),
-                               'Cannot write the file to the storage folder');
+    DECLARE
+      l_path all_directories.directory_path%TYPE;
+      l_err  VARCHAR2(400) := SUBSTR(SQLERRM, 1, 200);
+    BEGIN
+      SELECT MAX(directory_path) INTO l_path FROM all_directories WHERE directory_name = p_dir;
+      NOONA_CORE_PKG.raise_error('NOONA-DMS-143', 'تعذر حفظ الملف في مجلد التخزين ' || p_dir || ' [' || l_path || ']: ' || l_err
+        || ' - تأكد أن المسار موجود على خادم قاعدة البيانات نفسه وأن حساب خدمة Oracle له صلاحية الكتابة عليه',
+        'Cannot write to storage folder ' || p_dir || ' [' || l_path || ']: check the path exists on the database server and the Oracle service account can write to it');
+    END;
   END write_file;
 
   FUNCTION file_ext(p_mime VARCHAR2) RETURN VARCHAR2 IS
