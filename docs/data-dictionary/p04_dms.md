@@ -14,6 +14,8 @@
 | [`DMS_METADATA_FIELD`](#dms_metadata_field) | حقول البيانات الوصفية | Metadata Field Definitions | TO | INTERNAL |
 | [`DMS_TAG`](#dms_tag) | الوسوم | Tags | T | INTERNAL |
 | [`DMS_ARCHIVE_RULE`](#dms_archive_rule) | قواعد الأرشفة | Archiving Rules | C | INTERNAL |
+| [`DMS_REQUIRED_DOCUMENT`](#dms_required_document) | المستندات المطلوبة للأطراف | Required Party Documents | C | INTERNAL |
+| [`DMS_STORAGE_PROFILE`](#dms_storage_profile) | إعدادات تخزين الملفات | File Storage Profiles | C | INTERNAL |
 | [`DMS_DOCUMENT`](#dms_document) | المستندات | Documents | T | CONFIDENTIAL |
 | [`DMS_FILE_CONTENT`](#dms_file_content) | محتوى الملفات | File Content | T | CONFIDENTIAL |
 | [`DMS_DOCUMENT_VERSION`](#dms_document_version) | إصدارات المستندات | Document Versions | T | INTERNAL |
@@ -226,6 +228,69 @@
 | 11 | `CREATED_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` | ✔ | SYSTIMESTAMP |  |  | Trigger |  | وقت الإنشاء |
 | 12 | `UPDATED_BY` | اسم مستخدم | `VARCHAR2(128 CHAR)` |  |  |  |  | Trigger |  | آخر من عدل السجل |
 | 13 | `UPDATED_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` |  |  |  |  | Trigger |  | وقت آخر تعديل |
+
+## DMS_REQUIRED_DOCUMENT
+
+| البند | القيمة |
+|---|---|
+| الاسم العربي | المستندات المطلوبة للأطراف |
+| English | Required Party Documents |
+| الحزمة المالكة | 04 — `NOONA_DMS_PKG` |
+| نطاق الملكية | `C` — مملوك للشركة Company-Owned |
+| الحساسية | INTERNAL |
+| النمط | قابل للتعديل وفق دورة الحياة |
+| الغرض | مستندات وشهادات الموردين والعملاء (السجل التجاري، الضريبة، الزكاة...) وصلاحيتها |
+| مفاتيح فريدة | UK1: (COMPANY_ID, ROLE_CODE, DOCUMENT_TYPE_ID) |
+
+| # | العمود | النوع المنطقي | Oracle Type | إلزامي | افتراضي | مفاتيح | القيم المقبولة | المصدر | PII | الوصف |
+|---:|---|---|---|:---:|---|---|---|---|:---:|---|
+| 1 | `ID` | معرف | `NUMBER(19)` | ✔ |  | PK |  | النظام/الحزمة |  | المفتاح الداخلي الثابت (Identity) - لا يعاد استخدامه |
+| 2 | `TENANT_ID` | معرف | `NUMBER(19)` | ✔ |  | FK→PLT_TENANT |  | Security Context |  | المؤسسة المالكة؛ يملأ من Security Context الموثوق لا من مدخلات المستخدم |
+| 3 | `COMPANY_ID` | معرف | `NUMBER(19)` | ✔ |  | FK→ORG_COMPANY UK1 |  | Security Context |  | الشركة (الكيان القانوني) المالكة للسجل |
+| 4 | `ROLE_CODE` | رمز | `VARCHAR2(30 CHAR)` | ✔ |  | UK1 | SUPPLIER, CUSTOMER, CONTRACTOR, EMPLOYEE, LESSEE, PARTNER, OTHER | إدخال المستخدم |  | دور الطرف |
+| 5 | `DOCUMENT_TYPE_ID` | معرف | `NUMBER(19)` | ✔ |  | FK→DMS_DOCUMENT_TYPE UK1 |  | إدخال المستخدم |  | نوع المستند |
+| 6 | `IS_MANDATORY` | منطقي Y/N | `CHAR(1 CHAR)` | ✔ | 'Y' |  | Y, N | إدخال المستخدم |  | إلزامي لاعتماد الطرف |
+| 7 | `REQUIRES_VALIDITY` | منطقي Y/N | `CHAR(1 CHAR)` | ✔ | 'Y' |  | Y, N | إدخال المستخدم |  | له تاريخ انتهاء يجب أن يكون سارياً |
+| 8 | `SORT_ORDER` | عدد صحيح | `NUMBER(10)` |  |  |  |  | إدخال المستخدم |  | الترتيب |
+| 9 | `IS_ACTIVE` | منطقي Y/N | `CHAR(1 CHAR)` | ✔ | 'Y' |  | Y, N | إدخال المستخدم |  | نشط؟ |
+| 10 | `ROW_VERSION` | عدد صحيح | `NUMBER(10)` | ✔ | 1 |  |  | Trigger |  | رقم الإصدار للتحكم في التزامن المتفائل |
+| 11 | `CREATED_BY` | اسم مستخدم | `VARCHAR2(128 CHAR)` | ✔ |  |  |  | Trigger |  | منشئ السجل |
+| 12 | `CREATED_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` | ✔ | SYSTIMESTAMP |  |  | Trigger |  | وقت الإنشاء |
+| 13 | `UPDATED_BY` | اسم مستخدم | `VARCHAR2(128 CHAR)` |  |  |  |  | Trigger |  | آخر من عدل السجل |
+| 14 | `UPDATED_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` |  |  |  |  | Trigger |  | وقت آخر تعديل |
+
+## DMS_STORAGE_PROFILE
+
+| البند | القيمة |
+|---|---|
+| الاسم العربي | إعدادات تخزين الملفات |
+| English | File Storage Profiles |
+| الحزمة المالكة | 04 — `NOONA_DMS_PKG` |
+| نطاق الملكية | `C` — مملوك للشركة Company-Owned |
+| الحساسية | INTERNAL |
+| النمط | قابل للتعديل وفق دورة الحياة |
+| الغرض | مكان حفظ ملفات الأرشيف لكل شركة: داخل قاعدة البيانات أو مجلد على الخادم/NAS أو تخزين سحابي؛ الملفات السابقة تبقى في مكانها |
+| مفاتيح فريدة | UK1: (COMPANY_ID) |
+
+| # | العمود | النوع المنطقي | Oracle Type | إلزامي | افتراضي | مفاتيح | القيم المقبولة | المصدر | PII | الوصف |
+|---:|---|---|---|:---:|---|---|---|---|:---:|---|
+| 1 | `ID` | معرف | `NUMBER(19)` | ✔ |  | PK |  | النظام/الحزمة |  | المفتاح الداخلي الثابت (Identity) - لا يعاد استخدامه |
+| 2 | `TENANT_ID` | معرف | `NUMBER(19)` | ✔ |  | FK→PLT_TENANT |  | Security Context |  | المؤسسة المالكة؛ يملأ من Security Context الموثوق لا من مدخلات المستخدم |
+| 3 | `COMPANY_ID` | معرف | `NUMBER(19)` | ✔ |  | FK→ORG_COMPANY UK1 |  | Security Context |  | الشركة (الكيان القانوني) المالكة للسجل |
+| 4 | `STORAGE_MEDIUM` | رمز | `VARCHAR2(30 CHAR)` | ✔ | 'DATABASE' |  | DATABASE, SERVER_FOLDER, OBJECT_STORAGE | إدخال المستخدم |  | مكان الحفظ |
+| 5 | `DIRECTORY_NAME` | نص | `VARCHAR2(128 CHAR)` |  |  |  |  | إدخال المستخدم |  | كائن Oracle DIRECTORY للمجلد (يخصصه مسؤول النظام للمؤسسة: NOONA_DMS_T<رقم المؤسسة>...) |
+| 6 | `BASE_PATH` | نص | `VARCHAR2(500 CHAR)` |  |  |  |  | إدخال المستخدم |  | المسار الفعلي للمجلد (للعرض والتوثيق) |
+| 7 | `FILE_PREFIX` | نص | `VARCHAR2(50 CHAR)` |  |  |  |  | إدخال المستخدم |  | بادئة أسماء الملفات |
+| 8 | `BUCKET_URL` | نص | `VARCHAR2(1000 CHAR)` |  |  |  |  | إدخال المستخدم |  | رابط حاوية التخزين السحابي (OCI/S3) |
+| 9 | `CREDENTIAL_ID` | نص | `VARCHAR2(128 CHAR)` |  |  |  |  | إدخال المستخدم |  | معرف بيانات اعتماد APEX للتخزين السحابي |
+| 10 | `LAST_TEST_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` |  |  |  |  | إدخال المستخدم |  | آخر اختبار للاتصال |
+| 11 | `LAST_TEST_RESULT` | نص | `VARCHAR2(1000 CHAR)` |  |  |  |  | إدخال المستخدم |  | نتيجة آخر اختبار |
+| 12 | `IS_ACTIVE` | منطقي Y/N | `CHAR(1 CHAR)` | ✔ | 'Y' |  | Y, N | إدخال المستخدم |  | نشط؟ |
+| 13 | `ROW_VERSION` | عدد صحيح | `NUMBER(10)` | ✔ | 1 |  |  | Trigger |  | رقم الإصدار للتحكم في التزامن المتفائل |
+| 14 | `CREATED_BY` | اسم مستخدم | `VARCHAR2(128 CHAR)` | ✔ |  |  |  | Trigger |  | منشئ السجل |
+| 15 | `CREATED_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` | ✔ | SYSTIMESTAMP |  |  | Trigger |  | وقت الإنشاء |
+| 16 | `UPDATED_BY` | اسم مستخدم | `VARCHAR2(128 CHAR)` |  |  |  |  | Trigger |  | آخر من عدل السجل |
+| 17 | `UPDATED_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` |  |  |  |  | Trigger |  | وقت آخر تعديل |
 
 ## DMS_DOCUMENT
 

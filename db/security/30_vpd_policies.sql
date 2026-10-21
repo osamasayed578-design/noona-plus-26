@@ -140,10 +140,12 @@ BEGIN
   NOONA_VPD_PKG.add_tenant_policy('DMS_METADATA_REVISION');
   NOONA_VPD_PKG.add_tenant_policy('DMS_METADATA_VALUE');
   NOONA_VPD_PKG.add_tenant_policy('DMS_OCR_TEXT');
+  NOONA_VPD_PKG.add_tenant_policy('DMS_REQUIRED_DOCUMENT');
   NOONA_VPD_PKG.add_shared_policy('DMS_RETENTION_POLICY');
   NOONA_VPD_PKG.add_tenant_policy('DMS_SHARE');
   NOONA_VPD_PKG.add_tenant_policy('DMS_SIGNATURE');
   NOONA_VPD_PKG.add_tenant_policy('DMS_SIGNATURE_REQUEST');
+  NOONA_VPD_PKG.add_tenant_policy('DMS_STORAGE_PROFILE');
   NOONA_VPD_PKG.add_tenant_policy('DMS_STORAGE_USAGE');
   NOONA_VPD_PKG.add_tenant_policy('DMS_TAG');
   NOONA_VPD_PKG.add_shared_policy('DMS_TEMPLATE');

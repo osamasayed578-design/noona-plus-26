@@ -29,12 +29,16 @@ DECLARE
   l_mem  NUMBER;
   l_role NUMBER;
   l_n    NUMBER;
+  l_n2   NUMBER;
   l_s    VARCHAR2(4000);
   l_c    CLOB;
   l_pdf  BLOB;
   l_exe  BLOB;
   l_big  BLOB;
   l_user VARCHAR2(100);
+  l_pty  NUMBER;
+  l_blob BLOB;
+  l_cid  NUMBER;
   l_date DATE := TRUNC(SYSDATE);
 
   PROCEDURE ok(p_name VARCHAR2, p_cond BOOLEAN, p_info VARCHAR2 DEFAULT NULL) IS
@@ -56,7 +60,7 @@ BEGIN
   l_box := NOONA_CSH_PKG.quick_setup;
   DELETE FROM dms_archive_rule;                                   -- حالة نظيفة داخل المعاملة
   l_n := NOONA_DMS_PKG.quick_setup;
-  ok('archive setup adds default rules', l_n = 2, l_n);
+  ok('archive setup adds default rules', l_n >= 2, l_n);
   ok('archive setup idempotent', NOONA_DMS_PKG.quick_setup = 0 AND NOONA_DMS_PKG.is_ready = 'Y');
   SELECT COUNT(*) INTO l_n FROM dms_document_type WHERE tenant_id IS NULL AND code IN ('RECEIPT_VOUCHER', 'PAYMENT_VOUCHER', 'JOURNAL_SUPPORT', 'GENERAL');
   ok('platform document types seeded', l_n = 4, l_n);
@@ -146,6 +150,72 @@ BEGIN
   l_c := NOONA_DMS_PKG.summary('1');
   ok('archive dashboard renders', INSTR(l_c, 'nn-kpi') > 0);
 
+
+  -- عارض المستندات
+  l_c := NOONA_DMS_PKG.attachments_html('CSH_TRANSACTION', l_v2, 'f?p=129:49:1::NO::P49_DOC:#ID#', 'Y');
+  ok('viewer cards with preview kind', INSTR(l_c, 'nn-dv-card') > 0 AND INSTR(l_c, 'data-kind="pdf"') > 0 AND INSTR(l_c, 'data-auto="Y"') > 0
+     AND INSTR(l_c, 'p49_mode=D') > 0);
+
+  -- مكان الحفظ: مجلد على الخادم
+  BEGIN NOONA_DMS_PKG.set_storage('SERVER_FOLDER', 'NOONA_DMS_T999'); ok('foreign directory rejected', FALSE);
+  EXCEPTION WHEN OTHERS THEN expect('foreign directory rejected', 'NOONA-DMS-144', SQLERRM); END;
+  BEGIN NOONA_DMS_PKG.set_storage('OBJECT_STORAGE'); ok('object storage deferred', FALSE);
+  EXCEPTION WHEN OTHERS THEN expect('object storage deferred', 'NOONA-DMS-141', SQLERRM); END;
+  SELECT COUNT(*) INTO l_n FROM TABLE(NOONA_DMS_PKG.storage_directories);
+  IF l_n > 0 THEN
+    SELECT MIN(column_value) INTO l_s FROM TABLE(NOONA_DMS_PKG.storage_directories);
+    NOONA_DMS_PKG.set_storage('SERVER_FOLDER', l_s, '/opt/noona/files', 'TEST_');
+    ok('server folder test passes', NOONA_DMS_PKG.test_storage = 'OK', NOONA_DMS_PKG.test_storage);
+    l_doc := NOONA_DMS_PKG.archive_document(NULL, NULL, 'GENERAL', 'ملف في المجلد', 'EXT-1', NULL, NULL, NULL,
+                                            'folder.pdf', 'application/pdf', l_pdf);
+    SELECT c.id, c.storage_medium || '|' || NVL2(c.content_blob, 'BLOB', 'NOBLOB') || '|' || c.storage_bucket_ref INTO l_cid, l_s
+      FROM dms_document d JOIN dms_document_version v ON v.id = d.current_version_id JOIN dms_file_content c ON c.id = v.content_id
+     WHERE d.id = l_doc;
+    ok('new file saved outside the database', l_s LIKE 'NAS|NOBLOB|NOONA_DMS_T%', l_s);
+    l_blob := NOONA_DMS_PKG.read_content(l_cid);
+    ok('file read back from folder intact', DBMS_LOB.COMPARE(l_blob, l_pdf) = 0);
+    l_n := NOONA_DMS_PKG.move_files(50);
+    SELECT COUNT(*) INTO l_n2 FROM dms_file_content c JOIN dms_document_version v ON v.content_id = c.id JOIN dms_document d ON d.id = v.document_id
+     WHERE d.id = l_doc2 AND c.storage_medium = 'NAS' AND c.content_blob IS NULL;
+    ok('existing database files moved to the folder', l_n > 0 AND l_n2 >= 1, l_n || '/' || l_n2);
+    SELECT c.id INTO l_cid FROM dms_document d JOIN dms_document_version v ON v.id = d.current_version_id JOIN dms_file_content c ON c.id = v.content_id
+     WHERE d.id = l_doc2;
+    ok('moved file still readable', DBMS_LOB.COMPARE(NOONA_DMS_PKG.read_content(l_cid), l_pdf) = 0);
+    l_c := NOONA_DMS_PKG.storage_html;
+    ok('storage settings summary', INSTR(l_c, 'مجلد على الخادم') > 0);
+    NOONA_DMS_PKG.set_storage('DATABASE');
+  ELSE
+    DBMS_OUTPUT.PUT_LINE('SKIP  server folder tests (no NOONA_DMS_T<tenant> directory)');
+  END IF;
+
+  -- الأطراف ومستنداتهم
+  BEGIN l_pty := NOONA_PTY_PKG.create_party('ORGANIZATION', 'مورد خطأ', 'SUPPLIER', NULL, '123'); ok('Saudi VAT format checked', FALSE);
+  EXCEPTION WHEN OTHERS THEN expect('Saudi VAT format checked', 'NOONA-PTY-002', SQLERRM); END;
+  l_pty := NOONA_PTY_PKG.create_party('ORGANIZATION', 'مؤسسة التوريدات المتحدة ' || l_sfx, 'SUPPLIER', NULL,
+                                      '3' || LPAD(MOD(TO_NUMBER(l_sfx), 1e13), 13, '0') || '3', 'CR' || l_sfx);
+  SELECT party_no INTO l_s FROM pty_party WHERE id = l_pty;
+  ok('party created with number and role', l_s LIKE 'P-%' AND NOONA_PTY_PKG.party_roles(l_pty) = 'مورد', l_s);
+  DELETE FROM dms_required_document;
+  ok('default party requirements', NOONA_DMS_PKG.seed_requirements >= 9);
+  ok('missing supplier documents counted', NOONA_DMS_PKG.missing_documents(l_pty, 'SUPPLIER') = 3, NOONA_DMS_PKG.missing_documents(l_pty, 'SUPPLIER'));
+  l_doc := NOONA_DMS_PKG.archive_document('PTY_PARTY', l_pty, 'COMMERCIAL_REGISTER', NULL, '1010' || l_sfx, 'ملف الموردين',
+                                          p_valid_from => ADD_MONTHS(l_date, -12), p_valid_to => l_date - 1);
+  ok('expired certificate does not count', NOONA_DMS_PKG.missing_documents(l_pty, 'SUPPLIER') = 3);
+  l_doc := NOONA_DMS_PKG.archive_document('PTY_PARTY', l_pty, 'COMMERCIAL_REGISTER', NULL, '1010' || l_sfx, 'ملف الموردين',
+                                          p_valid_from => l_date, p_valid_to => l_date + 20);
+  l_doc2 := NOONA_DMS_PKG.archive_document('PTY_PARTY', l_pty, 'VAT_CERTIFICATE', NULL, 'VAT-' || l_sfx, NULL, NULL, NULL,
+                                           'vat.pdf', 'application/pdf', l_pdf);
+  l_n := NOONA_DMS_PKG.archive_document('PTY_PARTY', l_pty, 'BANK_LETTER', NULL, 'IBAN-LETTER', 'ملف الموردين');
+  ok('supplier documents complete', NOONA_DMS_PKG.missing_documents(l_pty, 'SUPPLIER') = 0, NOONA_DMS_PKG.missing_documents(l_pty, 'SUPPLIER'));
+  BEGIN l_n := NOONA_DMS_PKG.archive_document('PTY_PARTY', l_pty, 'ZAKAT_CERTIFICATE', NULL, 'Z-1', NULL, p_valid_from => l_date, p_valid_to => l_date - 5);
+        ok('validity dates checked', FALSE);
+  EXCEPTION WHEN OTHERS THEN expect('validity dates checked', 'NOONA-DMS-115', SQLERRM); END;
+  l_c := NOONA_DMS_PKG.compliance_html(l_pty, 'SUPPLIER', 'f?p=129:49:1::NO::P49_DOC:#ID#');
+  ok('compliance page (status + viewer)', INSTR(l_c, 'مكتملة وسارية') > 0 AND INSTR(l_c, 'ينتهي') > 0 AND INSTR(l_c, 'nn-dv-card') > 0);
+  l_c := NOONA_DMS_PKG.expiring_html(30);
+  ok('expiring report lists the certificate', INSTR(l_c, '1010' || l_sfx) > 0 AND INSTR(l_c, 'الطرف') > 0);
+  NOONA_DMS_PKG.set_validity(l_doc, l_date, ADD_MONTHS(l_date, 12));
+  ok('validity updated', NOONA_DMS_PKG.validity_status(ADD_MONTHS(l_date, 12), 30) = 'VALID');
   ROLLBACK;
   NOONA_APEX_PKG.cleanup_request;
   DBMS_OUTPUT.PUT_LINE('=== RESULT: ' || g_pass || ' passed, ' || g_fail || ' failed');

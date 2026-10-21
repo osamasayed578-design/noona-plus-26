@@ -9,7 +9,7 @@
 | 01 | نواة المنصة والمؤسسات والترخيص | Platform Core, Tenancy, Licensing & Companies | 65 | [p01_plt](p01_plt.md) |
 | 02 | الهيكل التنظيمي والهوية والأمن | Organization Structure, Identity & Security | 37 | [p02_sec](p02_sec.md) |
 | 03 | سير العمل والطلبات والاعتمادات والتفويض | Workflow, Requests, Approvals & Delegation | 27 | [p03_wf](p03_wf.md) |
-| 04 | إدارة المستندات والأرشفة | Document Management & Archive | 27 | [p04_dms](p04_dms.md) |
+| 04 | إدارة المستندات والأرشفة | Document Management & Archive | 29 | [p04_dms](p04_dms.md) |
 | 05 | المراسلات والإشعارات والتدقيق | Correspondence, Notifications & Audit | 24 | [p05_cor](p05_cor.md) |
 | 06 | البيانات المرجعية المشتركة والأطراف | Shared Reference Data & Global Party Model | 29 | [p06_ref](p06_ref.md) |
 | 07 | المحاسبة العامة والمحرك المحاسبي | General Ledger & Accounting Engine | 40 | [p07_gl](p07_gl.md) |
@@ -37,7 +37,7 @@
 | 29 | النشر الإنتاجي والإصدارات | Deployment & Release Management | 6 | [p29_dep](p29_dep.md) |
 | 30 | التشغيل والدعم والتطوير المستمر | Operations, Support & Continuous Improvement | 12 | [p30_ops](p30_ops.md) |
 
-**الإجمالي: 569 جدول.**
+**الإجمالي: 571 جدول.**
 
 ## خريطة اعتماديات الحزم
 

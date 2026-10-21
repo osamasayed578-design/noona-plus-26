@@ -59,6 +59,27 @@ REQUIRE_FILE    YN   NN D='N'    | صورة الأصل (ملف) إلزامية
 ''', uk=[('COMPANY_ID', 'ENTITY_TYPE')], area='document',
       purpose='كل إجراء مستندي له مرجع ورقي: تحدد القاعدة ما يلزم قبل اعتماد المستند')
 
+table('DMS_REQUIRED_DOCUMENT', 'المستندات المطلوبة للأطراف', 'Required Party Documents', scope='C', mix='active', cols='''
+ROLE_CODE       CODE NN IN:SUPPLIER,CUSTOMER,CONTRACTOR,EMPLOYEE,LESSEE,PARTNER,OTHER | دور الطرف
+DOCUMENT_TYPE_ID ID  NN >DMS_DOCUMENT_TYPE | نوع المستند
+IS_MANDATORY    YN   NN D='Y'    | إلزامي لاعتماد الطرف
+REQUIRES_VALIDITY YN NN D='Y'    | له تاريخ انتهاء يجب أن يكون سارياً
+SORT_ORDER      INT              | الترتيب
+''', uk=[('COMPANY_ID', 'ROLE_CODE', 'DOCUMENT_TYPE_ID')], area='document',
+      purpose='مستندات وشهادات الموردين والعملاء (السجل التجاري، الضريبة، الزكاة...) وصلاحيتها')
+
+table('DMS_STORAGE_PROFILE', 'إعدادات تخزين الملفات', 'File Storage Profiles', scope='C', mix='active', cols='''
+STORAGE_MEDIUM  CODE NN D='DATABASE' IN:DATABASE,SERVER_FOLDER,OBJECT_STORAGE | مكان الحفظ
+DIRECTORY_NAME  V128             | كائن Oracle DIRECTORY للمجلد (يخصصه مسؤول النظام للمؤسسة: NOONA_DMS_T<رقم المؤسسة>...)
+BASE_PATH       V500             | المسار الفعلي للمجلد (للعرض والتوثيق)
+FILE_PREFIX     V50              | بادئة أسماء الملفات
+BUCKET_URL      V1000            | رابط حاوية التخزين السحابي (OCI/S3)
+CREDENTIAL_ID   V128             | معرف بيانات اعتماد APEX للتخزين السحابي
+LAST_TEST_AT    TS               | آخر اختبار للاتصال
+LAST_TEST_RESULT V1000           | نتيجة آخر اختبار
+''', uk=[('COMPANY_ID',)], area='document',
+      purpose='مكان حفظ ملفات الأرشيف لكل شركة: داخل قاعدة البيانات أو مجلد على الخادم/NAS أو تخزين سحابي؛ الملفات السابقة تبقى في مكانها')
+
 table('DMS_DOCUMENT', 'المستندات', 'Documents', scope='T', mix='pub branch conf status', status=DOC_STATUS, cols='''
 COMPANY_ID      ID   >ORG_COMPANY | الشركة
 DOCUMENT_TYPE_ID ID  NN >DMS_DOCUMENT_TYPE | النوع

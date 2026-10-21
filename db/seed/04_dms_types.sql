@@ -10,7 +10,8 @@ BEGIN
          UNION ALL SELECT 'SAL', 'المبيعات والعملاء', 'Sales', 3 FROM dual
          UNION ALL SELECT 'HR', 'الموارد البشرية', 'Human Resources', 4 FROM dual
          UNION ALL SELECT 'ADM', 'الإدارة والشؤون القانونية', 'Administration & Legal', 5 FROM dual
-         UNION ALL SELECT 'COR', 'المراسلات', 'Correspondence', 6 FROM dual) x
+         UNION ALL SELECT 'COR', 'المراسلات', 'Correspondence', 6 FROM dual
+         UNION ALL SELECT 'PTY', 'مستندات وشهادات الأطراف', 'Party documents & certificates', 7 FROM dual) x
      ON (c.tenant_id IS NULL AND c.code = x.code)
    WHEN NOT MATCHED THEN INSERT (tenant_id, code, name_ar, name_en, is_active, sort_order, created_by)
         VALUES (NULL, x.code, x.name_ar, x.name_en, 'Y', x.o, 'SYSTEM');
@@ -39,6 +40,27 @@ BEGIN
                        || 'application/vnd.openxmlformats-officedocument.wordprocessingml.document,'
                        || 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' END,
                 x.mb, 'N', 'N', 'Y', 'SYSTEM');
+  -- مستندات وشهادات الموردين والعملاء: لها تاريخ انتهاء وتنبيه قبل الانتهاء
+  MERGE INTO dms_document_type t
+  USING (SELECT x.code, x.name_ar, x.name_en, c.id category_id, x.days
+           FROM (SELECT 'COMMERCIAL_REGISTER' code, 'السجل التجاري' name_ar, 'Commercial registration' name_en, 30 days FROM dual
+                 UNION ALL SELECT 'VAT_CERTIFICATE', 'شهادة التسجيل في ضريبة القيمة المضافة', 'VAT certificate', 30 FROM dual
+                 UNION ALL SELECT 'ZAKAT_CERTIFICATE', 'شهادة الزكاة والدخل', 'Zakat certificate', 30 FROM dual
+                 UNION ALL SELECT 'GOSI_CERTIFICATE', 'شهادة التأمينات الاجتماعية', 'GOSI certificate', 30 FROM dual
+                 UNION ALL SELECT 'SAUDIZATION_CERTIFICATE', 'شهادة السعودة (نطاقات)', 'Saudization certificate', 30 FROM dual
+                 UNION ALL SELECT 'CHAMBER_CERTIFICATE', 'شهادة الغرفة التجارية', 'Chamber of commerce', 30 FROM dual
+                 UNION ALL SELECT 'MUNICIPAL_LICENSE', 'رخصة البلدية', 'Municipal license', 30 FROM dual
+                 UNION ALL SELECT 'BANK_LETTER', 'خطاب الحساب البنكي (الآيبان)', 'Bank account letter', NULL FROM dual
+                 UNION ALL SELECT 'NATIONAL_ADDRESS', 'العنوان الوطني', 'National address', NULL FROM dual
+                 UNION ALL SELECT 'ISO_CERTIFICATE', 'شهادة جودة (ISO)', 'Quality certificate', 60 FROM dual
+                 UNION ALL SELECT 'ID_COPY', 'صورة الهوية / الإقامة', 'ID copy', 30 FROM dual
+                 UNION ALL SELECT 'AUTHORIZATION_LETTER', 'خطاب تفويض بالتوقيع', 'Signing authorization', 30 FROM dual) x
+           JOIN dms_category c ON c.tenant_id IS NULL AND c.code = 'PTY') x
+     ON (t.tenant_id IS NULL AND t.code = x.code)
+   WHEN NOT MATCHED THEN INSERT (tenant_id, code, name_ar, name_en, category_id, default_confidentiality, allowed_mime_types,
+                                 max_file_mb, expiry_alert_days, allow_ocr, allow_ai_index, is_active, created_by)
+        VALUES (NULL, x.code, x.name_ar, x.name_en, x.category_id, 'CONFIDENTIAL',
+                'application/pdf,image/png,image/jpeg,image/tiff,image/webp', 20, x.days, 'N', 'N', 'Y', 'SYSTEM');
   NOONA_CORE_PKG.end_system;
   COMMIT;
 EXCEPTION WHEN OTHERS THEN

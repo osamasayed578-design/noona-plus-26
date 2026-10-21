@@ -50,6 +50,7 @@ PROMPT ========== 4/7 Core PL/SQL services
 @@plsql/90_noona_refdata_pkg.sql
 @@plsql/91_noona_platform_admin_pkg.sql
 @@plsql/95_noona_dms_pkg.sql
+@@plsql/96_noona_pty_pkg.sql
 @@plsql/100_noona_gl_pkg.sql
 @@plsql/101_noona_ace_pkg.sql
 @@plsql/102_noona_csh_pkg.sql
@@ -68,6 +69,8 @@ PROMPT ========== 6/7 Row-Level Security (VPD)
 PROMPT ========== 7/7 Grants to NOONA_APP
 @@security/40_grants_noona_app.sql
 
+PROMPT ========== Compile (cross-package dependencies)
+EXEC DBMS_UTILITY.COMPILE_SCHEMA(USER, FALSE)
 PROMPT ========== Invalid objects (should be none)
 SELECT object_type, object_name FROM user_objects WHERE status <> 'VALID';
 
