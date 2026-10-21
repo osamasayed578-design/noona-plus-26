@@ -2,6 +2,10 @@
 تستخدم في صفحات القيود والسندات وأي مستند أعمال لاحقاً؛ التنزيل عبر صفحة download_page.
 """
 
+import os
+
+VIEWER_JS = open(os.path.join(os.path.dirname(__file__), 'dms_viewer.js'), encoding='utf-8').read().splitlines()
+
 DOC_FILE_TYPES = ('application/pdf,image/png,image/jpeg,image/tiff,image/webp,'
                   '.docx,.xlsx')
 DOC_TYPES_LOV = ("select t.name_ar d, t.code r from dms_document_type t where t.is_active = 'Y' "
@@ -21,8 +25,10 @@ def dms_panel(p, seq, entity_type, id_item, download_page, condition=None, proce
     """منطقة الأرشفة: قائمة المستندات + نموذج الأرشفة؛ يعيد زر الأرشفة."""
     pre = id_item.split('_')[0]
     link = dl_link(download_page)
-    r = p.dynamic('المستندات المؤرشفة (المرجع الورقي)', seq,
-                  f"return noona_dms_pkg.attachments_html('{entity_type}', :{id_item}, {link});",
+    status_item = id_item.replace('_ID', '_STATUS')
+    r = p.dynamic('المستندات المؤرشفة ومعاينتها', seq,
+                  f"return noona_dms_pkg.attachments_html('{entity_type}', :{id_item}, {link}, "
+                  f"case when :{status_item} = 'SUBMITTED' then 'Y' else 'N' end);",
                   condition=condition or f':{id_item} is not null')
     f = p.static('أرشفة المرجع الورقي', seq + 1, condition=condition or f':{id_item} is not null')
     p.text(f'{pre}_ARC_REF', f, 10, 'رقم الأصل الورقي (فاتورة / شيك / خطاب)', maxlen=100, width=25)
@@ -55,9 +61,10 @@ def download_page(app, pid, scheme):
     f = p.static('الملف', 10, hide_header=True)
     p.hidden(f'P{pid}_DOC', f, 1, protected=False)
     p.hidden(f'P{pid}_VER', f, 2, protected=False)
+    p.hidden(f'P{pid}_MODE', f, 3, protected=False)
     p.process(10, 'BEFORE_HEADER', 'Download', [
         'begin',
-        f'    noona_dms_pkg.download(:P{pid}_DOC, :P{pid}_VER);',
+        f"    noona_dms_pkg.download(:P{pid}_DOC, :P{pid}_VER, case :P{pid}_MODE when 'D' then 'DOWNLOAD' else 'VIEW' end);",
         '    apex_application.stop_apex_engine;',
         'exception',
         '    when apex_application.e_stop_apex_engine then',

@@ -11,7 +11,8 @@ SET DEFINE OFF
 
 CREATE OR REPLACE PACKAGE NOONA_FIN_RPT_PKG AUTHID DEFINER AS
   -- p_link: رابط التفصيل؛ #ID# يستبدل برقم القيد
-  FUNCTION journal_view(p_journal_id IN NUMBER) RETURN CLOB;
+  -- p_link: رابط صفحة ملف المستند (#ID#) لمعاينة المستندات المؤرشفة
+  FUNCTION journal_view(p_journal_id IN NUMBER, p_link IN VARCHAR2 DEFAULT NULL) RETURN CLOB;
   FUNCTION general_ledger(p_from IN DATE, p_to IN DATE, p_acc_from IN VARCHAR2 DEFAULT NULL, p_acc_to IN VARCHAR2 DEFAULT NULL,
                           p_cost_center_id IN NUMBER DEFAULT NULL, p_link IN VARCHAR2 DEFAULT NULL) RETURN CLOB;
   -- p_status: POSTED (المرحلة) / UNPOSTED (غير المرحلة) / REVERSED (المعكوسة وقيود عكسها) / ALL
@@ -80,7 +81,7 @@ CREATE OR REPLACE PACKAGE BODY NOONA_FIN_RPT_PKG AS
   END view_guard;
 
   -- ================================================================ عرض القيد ومستند المصدر
-  FUNCTION journal_view(p_journal_id IN NUMBER) RETURN CLOB IS
+  FUNCTION journal_view(p_journal_id IN NUMBER, p_link IN VARCHAR2 DEFAULT NULL) RETURN CLOB IS
     l_j    gl_journal%ROWTYPE;
     l_html CLOB;
     l_src  VARCHAR2(200);
@@ -124,7 +125,8 @@ CREATE OR REPLACE PACKAGE BODY NOONA_FIN_RPT_PKG AS
     -- المستندات المؤرشفة (المرجع الورقي)
     l_html := l_html || '<h3 class="nn-rpt-h">المستندات المؤرشفة</h3>'
            || NOONA_DMS_PKG.attachments_html(CASE WHEN l_ev.source_entity_type = 'CSH_TRANSACTION' THEN 'CSH_TRANSACTION' ELSE 'GL_JOURNAL' END,
-                                             CASE WHEN l_ev.source_entity_type = 'CSH_TRANSACTION' THEN l_ev.source_entity_id ELSE p_journal_id END);
+                                             CASE WHEN l_ev.source_entity_type = 'CSH_TRANSACTION' THEN l_ev.source_entity_id ELSE p_journal_id END,
+                                             p_link, 'Y');
     -- مسار المستند
     l_html := l_html || '<h3 class="nn-rpt-h">مسار القيد</h3><table class="nn-rpt"><thead><tr><th>الوقت</th><th>الإجراء</th>'
            || '<th>المستخدم</th><th>السبب / الملاحظة</th></tr></thead><tbody>'

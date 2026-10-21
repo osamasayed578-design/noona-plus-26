@@ -59,6 +59,7 @@ BEGIN
   l_n := NOONA_GL_PKG.quick_setup;
   l_box := NOONA_CSH_PKG.quick_setup;
   DELETE FROM dms_archive_rule;                                   -- حالة نظيفة داخل المعاملة
+  DELETE FROM dms_storage_profile;                                -- الحفظ داخل قاعدة البيانات في بداية الاختبار
   l_n := NOONA_DMS_PKG.quick_setup;
   ok('archive setup adds default rules', l_n >= 2, l_n);
   ok('archive setup idempotent', NOONA_DMS_PKG.quick_setup = 0 AND NOONA_DMS_PKG.is_ready = 'Y');

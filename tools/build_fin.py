@@ -8,7 +8,7 @@ sys.path.insert(0, os.path.dirname(__file__))
 from apexgen import App
 from fin_grid import GRID_JS, grid_region
 from fin_doc import DOC_JS, doc_region, doc_ajax
-from dms_panel import dms_panel, download_page
+from dms_panel import dms_panel, download_page, dl_link, VIEWER_JS
 
 ROOT = os.path.join(os.path.dirname(__file__), '..')
 app = App(template_dir=os.path.join(ROOT, 'apex/_templates/f119_original'),
@@ -165,7 +165,7 @@ p.process(60, 'AFTER_SUBMIT', 'Reverse', [
 p.process(70, 'AFTER_SUBMIT', 'Cancel', 'noona_gl_pkg.cancel_journal(:P21_ID, :P21_REASON);', when_button=b_can,
           success='تم إلغاء المسودة')
 dms_panel(p, 40, 'GL_JOURNAL', 'P21_ID', 49)
-p.onload(DOC_JS + GRID_JS)
+p.onload(DOC_JS + GRID_JS + VIEWER_JS)
 p.branch(10, 'f?p=&APP_ID.:21:&SESSION.::&DEBUG.:21:P21_ID:&P21_ID.&success_msg=#SUCCESS_MSG#')
 
 # =============================================================== 30) ميزان المراجعة
@@ -395,7 +395,7 @@ p.process(60, 'AFTER_SUBMIT', 'Reverse', [
 p.process(70, 'AFTER_SUBMIT', 'Cancel', 'noona_csh_pkg.cancel_voucher(:P42_ID, :P42_REASON);', when_button=b_can,
           success='تم إلغاء المسودة')
 dms_panel(p, 40, 'CSH_TRANSACTION', 'P42_ID', 49)
-p.onload(DOC_JS + GRID_JS)
+p.onload(DOC_JS + GRID_JS + VIEWER_JS)
 p.branch(10, 'f?p=&APP_ID.:42:&SESSION.::&DEBUG.:42:P42_ID:&P42_ID.&success_msg=#SUCCESS_MSG#')
 
 # =============================================================== 43) طباعة السند
@@ -481,7 +481,8 @@ p.hidden('P22_ID', f, 1, protected=False)
 p.button(f, 10, 'PRINT', 'طباعة', hot=True, redirect='javascript:window.print();')
 p.button(f, 20, 'BACK', 'رجوع', redirect='javascript:history.back();')
 p.button(f, 30, 'OPEN', 'فتح القيد للإجراءات', redirect='f?p=&APP_ID.:21:&SESSION.::&DEBUG.:RP,21:P21_ID:&P22_ID.')
-p.dynamic('القيد ومستند المصدر', 10, 'return noona_fin_rpt_pkg.journal_view(:P22_ID);', hide_header=True,
+p.onload(VIEWER_JS)
+p.dynamic('القيد ومستند المصدر', 10, f'return noona_fin_rpt_pkg.journal_view(:P22_ID, {dl_link(49)});', hide_header=True,
           opts='#DEFAULT#:t-Region--scrollBody:nn-print-area')
 
 # 35) دفتر الأستاذ

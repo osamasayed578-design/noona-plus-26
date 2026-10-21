@@ -22,7 +22,7 @@ wwv_flow_imp_page.create_page(
 ,p_protection_level=>'N'
 );
 wwv_flow_imp_page.create_page_plug(
- p_id=>wwv_flow_imp.id(91820267000000124)
+ p_id=>wwv_flow_imp.id(91820267000000192)
 ,p_plug_name=>'الملف'
 ,p_region_template_options=>'#DEFAULT#:t-Region--removeHeader js-removeLandmark'
 ,p_plug_template=>4072358936313175081
@@ -33,34 +33,44 @@ wwv_flow_imp_page.create_page_plug(
   'show_line_breaks', 'Y')).to_clob
 );
 wwv_flow_imp_page.create_page_item(
- p_id=>wwv_flow_imp.id(91820267000000125)
+ p_id=>wwv_flow_imp.id(91820267000000193)
 ,p_name=>'P49_DOC'
 ,p_item_sequence=>1
-,p_item_plug_id=>wwv_flow_imp.id(91820267000000124)
+,p_item_plug_id=>wwv_flow_imp.id(91820267000000192)
 ,p_display_as=>'NATIVE_HIDDEN'
 ,p_protection_level=>'N'
 ,p_attributes=>wwv_flow_t_plugin_attributes(wwv_flow_t_varchar2(
   'value_protected', 'N')).to_clob
 );
 wwv_flow_imp_page.create_page_item(
- p_id=>wwv_flow_imp.id(91820267000000126)
+ p_id=>wwv_flow_imp.id(91820267000000194)
 ,p_name=>'P49_VER'
 ,p_item_sequence=>2
-,p_item_plug_id=>wwv_flow_imp.id(91820267000000124)
+,p_item_plug_id=>wwv_flow_imp.id(91820267000000192)
+,p_display_as=>'NATIVE_HIDDEN'
+,p_protection_level=>'N'
+,p_attributes=>wwv_flow_t_plugin_attributes(wwv_flow_t_varchar2(
+  'value_protected', 'N')).to_clob
+);
+wwv_flow_imp_page.create_page_item(
+ p_id=>wwv_flow_imp.id(91820267000000195)
+,p_name=>'P49_MODE'
+,p_item_sequence=>3
+,p_item_plug_id=>wwv_flow_imp.id(91820267000000192)
 ,p_display_as=>'NATIVE_HIDDEN'
 ,p_protection_level=>'N'
 ,p_attributes=>wwv_flow_t_plugin_attributes(wwv_flow_t_varchar2(
   'value_protected', 'N')).to_clob
 );
 wwv_flow_imp_page.create_page_process(
- p_id=>wwv_flow_imp.id(91820267000000127)
+ p_id=>wwv_flow_imp.id(91820267000000196)
 ,p_process_sequence=>10
 ,p_process_point=>'BEFORE_HEADER'
 ,p_process_type=>'NATIVE_PLSQL'
 ,p_process_name=>'Download'
 ,p_process_sql_clob=>wwv_flow_string.join(wwv_flow_t_varchar2(
 'begin',
-'    noona_dms_pkg.download(:P49_DOC, :P49_VER);',
+'    noona_dms_pkg.download(:P49_DOC, :P49_VER, case :P49_MODE when ''D'' then ''DOWNLOAD'' else ''VIEW'' end);',
 '    apex_application.stop_apex_engine;',
 'exception',
 '    when apex_application.e_stop_apex_engine then',
@@ -68,7 +78,7 @@ wwv_flow_imp_page.create_page_process(
 'end;'))
 ,p_process_clob_language=>'PLSQL'
 ,p_error_display_location=>'INLINE_IN_NOTIFICATION'
-,p_internal_uid=>91820267000000127
+,p_internal_uid=>91820267000000196
 );
 
 wwv_flow_imp.component_end;

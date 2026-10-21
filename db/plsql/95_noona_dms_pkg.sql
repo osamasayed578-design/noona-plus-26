@@ -907,8 +907,12 @@ CREATE OR REPLACE PACKAGE BODY NOONA_DMS_PKG AS
       END IF;
     END LOOP;
     l_miss := missing_documents(p_party_id, p_role);
+    SELECT COUNT(*) INTO l_doc FROM dms_required_document WHERE company_id = company AND role_code = p_role AND is_active = 'Y';
     l_html := l_html || '</tbody></table>'
-           || CASE WHEN l_miss = 0
+           || CASE WHEN l_doc = 0
+                   THEN '<div class="nn-chain is-bad nn-rpt-check"><span class="fa fa-info-circle" aria-hidden="true"></span><div><b>'
+                        || 'لم تحدد مستندات مطلوبة لهذا الدور بعد؛ أضفها من الإعدادات ← المستندات المطلوبة للأطراف</b></div></div>'
+                   WHEN l_miss = 0
                    THEN '<div class="nn-chain is-ok nn-rpt-check"><span class="fa fa-check-circle" aria-hidden="true"></span><div><b>مستندات الطرف الإلزامية مكتملة وسارية</b></div></div>'
                    ELSE '<div class="nn-chain is-bad nn-rpt-check"><span class="fa fa-exclamation-triangle" aria-hidden="true"></span><div><b>'
                         || l_miss || ' مستند إلزامي ناقص أو منتهي</b></div></div>' END

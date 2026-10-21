@@ -52,15 +52,25 @@ wwv_flow_imp_page.create_page_item(
 ,p_attributes=>wwv_flow_t_plugin_attributes(wwv_flow_t_varchar2(
   'value_protected', 'N')).to_clob
 );
-wwv_flow_imp_page.create_page_process(
+wwv_flow_imp_page.create_page_item(
  p_id=>wwv_flow_imp.id(91820266000000415)
+,p_name=>'P49_MODE'
+,p_item_sequence=>3
+,p_item_plug_id=>wwv_flow_imp.id(91820266000000412)
+,p_display_as=>'NATIVE_HIDDEN'
+,p_protection_level=>'N'
+,p_attributes=>wwv_flow_t_plugin_attributes(wwv_flow_t_varchar2(
+  'value_protected', 'N')).to_clob
+);
+wwv_flow_imp_page.create_page_process(
+ p_id=>wwv_flow_imp.id(91820266000000416)
 ,p_process_sequence=>10
 ,p_process_point=>'BEFORE_HEADER'
 ,p_process_type=>'NATIVE_PLSQL'
 ,p_process_name=>'Download'
 ,p_process_sql_clob=>wwv_flow_string.join(wwv_flow_t_varchar2(
 'begin',
-'    noona_dms_pkg.download(:P49_DOC, :P49_VER);',
+'    noona_dms_pkg.download(:P49_DOC, :P49_VER, case :P49_MODE when ''D'' then ''DOWNLOAD'' else ''VIEW'' end);',
 '    apex_application.stop_apex_engine;',
 'exception',
 '    when apex_application.e_stop_apex_engine then',
@@ -68,7 +78,7 @@ wwv_flow_imp_page.create_page_process(
 'end;'))
 ,p_process_clob_language=>'PLSQL'
 ,p_error_display_location=>'INLINE_IN_NOTIFICATION'
-,p_internal_uid=>91820266000000415
+,p_internal_uid=>91820266000000416
 );
 
 wwv_flow_imp.component_end;

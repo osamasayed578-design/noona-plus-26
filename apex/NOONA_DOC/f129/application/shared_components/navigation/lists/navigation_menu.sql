@@ -18,7 +18,7 @@ wwv_flow_imp_shared.create_list(
 ,p_version_scn=>137120771
 );
 wwv_flow_imp_shared.create_list_item(
- p_id=>wwv_flow_imp.id(91820267000000128)
+ p_id=>wwv_flow_imp.id(91820267000000197)
 ,p_list_item_display_sequence=>10
 ,p_list_item_link_text=>'لوحة الأرشيف'
 ,p_list_item_link_target=>'f?p=&APP_ID.:1:&APP_SESSION.::&DEBUG.:::'
@@ -26,7 +26,7 @@ wwv_flow_imp_shared.create_list_item(
 ,p_list_item_current_type=>'TARGET_PAGE'
 );
 wwv_flow_imp_shared.create_list_item(
- p_id=>wwv_flow_imp.id(91820267000000129)
+ p_id=>wwv_flow_imp.id(91820267000000198)
 ,p_list_item_display_sequence=>20
 ,p_list_item_link_text=>'البحث في الأرشيف'
 ,p_list_item_link_target=>'f?p=&APP_ID.:10:&APP_SESSION.::&DEBUG.:::'
@@ -34,7 +34,7 @@ wwv_flow_imp_shared.create_list_item(
 ,p_list_item_current_type=>'TARGET_PAGE'
 );
 wwv_flow_imp_shared.create_list_item(
- p_id=>wwv_flow_imp.id(91820267000000130)
+ p_id=>wwv_flow_imp.id(91820267000000199)
 ,p_list_item_display_sequence=>30
 ,p_list_item_link_text=>'أرشفة مستند'
 ,p_list_item_link_target=>'f?p=&APP_ID.:12:&APP_SESSION.::&DEBUG.:::'
@@ -42,37 +42,71 @@ wwv_flow_imp_shared.create_list_item(
 ,p_list_item_current_type=>'TARGET_PAGE'
 );
 wwv_flow_imp_shared.create_list_item(
- p_id=>wwv_flow_imp.id(91820267000000131)
+ p_id=>wwv_flow_imp.id(91820267000000200)
+,p_list_item_display_sequence=>32
+,p_list_item_link_text=>'مستندات الأطراف'
+,p_list_item_link_target=>'f?p=&APP_ID.:40:&APP_SESSION.::&DEBUG.:::'
+,p_list_item_icon=>'fa-id-card-o'
+,p_list_item_current_type=>'TARGET_PAGE'
+);
+wwv_flow_imp_shared.create_list_item(
+ p_id=>wwv_flow_imp.id(91820267000000201)
+,p_list_item_display_sequence=>34
+,p_list_item_link_text=>'المنتهية والقريبة الانتهاء'
+,p_list_item_link_target=>'f?p=&APP_ID.:41:&APP_SESSION.::&DEBUG.:::'
+,p_list_item_icon=>'fa-clock-o'
+,p_list_item_current_type=>'TARGET_PAGE'
+);
+wwv_flow_imp_shared.create_list_item(
+ p_id=>wwv_flow_imp.id(91820267000000202)
 ,p_list_item_display_sequence=>40
 ,p_list_item_link_text=>'الإعدادات'
 ,p_list_item_link_target=>''
 ,p_list_item_icon=>'fa-cog'
 );
 wwv_flow_imp_shared.create_list_item(
- p_id=>wwv_flow_imp.id(91820267000000132)
+ p_id=>wwv_flow_imp.id(91820267000000203)
 ,p_list_item_display_sequence=>41
 ,p_list_item_link_text=>'أنواع المستندات'
 ,p_list_item_link_target=>'f?p=&APP_ID.:20:&APP_SESSION.::&DEBUG.:::'
 ,p_list_item_icon=>'fa-files-o'
-,p_parent_list_item_id=>wwv_flow_imp.id(91820267000000131)
+,p_parent_list_item_id=>wwv_flow_imp.id(91820267000000202)
 ,p_list_item_current_type=>'TARGET_PAGE'
 );
 wwv_flow_imp_shared.create_list_item(
- p_id=>wwv_flow_imp.id(91820267000000133)
+ p_id=>wwv_flow_imp.id(91820267000000204)
 ,p_list_item_display_sequence=>42
 ,p_list_item_link_text=>'قواعد الأرشفة'
 ,p_list_item_link_target=>'f?p=&APP_ID.:21:&APP_SESSION.::&DEBUG.:::'
 ,p_list_item_icon=>'fa-gavel'
-,p_parent_list_item_id=>wwv_flow_imp.id(91820267000000131)
+,p_parent_list_item_id=>wwv_flow_imp.id(91820267000000202)
 ,p_list_item_current_type=>'TARGET_PAGE'
 );
 wwv_flow_imp_shared.create_list_item(
- p_id=>wwv_flow_imp.id(91820267000000134)
+ p_id=>wwv_flow_imp.id(91820267000000205)
+,p_list_item_display_sequence=>44
+,p_list_item_link_text=>'المستندات المطلوبة للأطراف'
+,p_list_item_link_target=>'f?p=&APP_ID.:22:&APP_SESSION.::&DEBUG.:::'
+,p_list_item_icon=>'fa-list-ol'
+,p_parent_list_item_id=>wwv_flow_imp.id(91820267000000202)
+,p_list_item_current_type=>'TARGET_PAGE'
+);
+wwv_flow_imp_shared.create_list_item(
+ p_id=>wwv_flow_imp.id(91820267000000206)
+,p_list_item_display_sequence=>45
+,p_list_item_link_text=>'مكان حفظ الملفات'
+,p_list_item_link_target=>'f?p=&APP_ID.:23:&APP_SESSION.::&DEBUG.:::'
+,p_list_item_icon=>'fa-hdd-o'
+,p_parent_list_item_id=>wwv_flow_imp.id(91820267000000202)
+,p_list_item_current_type=>'TARGET_PAGE'
+);
+wwv_flow_imp_shared.create_list_item(
+ p_id=>wwv_flow_imp.id(91820267000000207)
 ,p_list_item_display_sequence=>43
 ,p_list_item_link_text=>'سجل الوصول'
 ,p_list_item_link_target=>'f?p=&APP_ID.:30:&APP_SESSION.::&DEBUG.:::'
 ,p_list_item_icon=>'fa-eye'
-,p_parent_list_item_id=>wwv_flow_imp.id(91820267000000131)
+,p_parent_list_item_id=>wwv_flow_imp.id(91820267000000202)
 ,p_list_item_current_type=>'TARGET_PAGE'
 );
 wwv_flow_imp.component_end;
