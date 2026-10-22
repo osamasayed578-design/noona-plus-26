@@ -43,6 +43,7 @@ PROMPT ========== NOONA_ACE_PKG / NOONA_CSH_PKG / NOONA_INV_PKG / NOONA_PUR_PKG 
 @@plsql/105_noona_pur_pkg.sql
 @@plsql/106_noona_sal_pkg.sql
 @@plsql/107_noona_pos_pkg.sql
+@@plsql/103_noona_fin_rpt_pkg.sql
 GRANT EXECUTE ON NOONA_INV_PKG TO NOONA_APP;
 GRANT EXECUTE ON NOONA_PUR_PKG TO NOONA_APP;
 GRANT EXECUTE ON NOONA_SAL_PKG TO NOONA_APP;

@@ -68,11 +68,15 @@ CREATE OR REPLACE PACKAGE NOONA_INV_PKG AUTHID DEFINER AS
   PROCEDURE post_stock_doc(p_txn_id IN NUMBER);
   PROCEDURE cancel_stock_doc(p_txn_id IN NUMBER);
   FUNCTION txn_type_label(p_code IN VARCHAR2) RETURN VARCHAR2;
+  -- قوائم الشاشات بطلب واحد: {"taxes":[{v,n,r}],"whs","ccs","accts","revs","cats","uoms","sups","custs","places","stypes","methods"}
+  FUNCTION lists_json(p_names IN VARCHAR2) RETURN CLOB;
 
   -- ---------------------------------------------------------- التصنيع
   -- قائمة المواد الافتراضية للمنتج: [{"i":compId,"q":2,"s":5}] (الكمية لكل p_base_qty من المنتج، s = نسبة الهالك)
   FUNCTION save_bom(p_item_id IN NUMBER, p_lines IN CLOB, p_base_qty IN NUMBER DEFAULT 1) RETURN NUMBER;
   FUNCTION bom_json(p_item_id IN NUMBER) RETURN CLOB;
+  -- شاشة قائمة المواد: {"id":itemId,"base":1,"lines":[{"i","q","s"}]}
+  FUNCTION save_bom_doc(p_doc IN CLOB) RETURN NUMBER;
   -- إنتاج: صرف المكونات بالمتوسط واستلام المنتج بتكلفتها؛ يعيد حركة الاستلام
   FUNCTION produce(p_item_id IN NUMBER, p_qty IN NUMBER, p_warehouse_id IN NUMBER, p_date IN DATE,
                    p_description IN VARCHAR2 DEFAULT NULL, p_lot_no IN VARCHAR2 DEFAULT NULL, p_expiry IN DATE DEFAULT NULL) RETURN NUMBER;
@@ -1070,7 +1074,8 @@ CREATE OR REPLACE PACKAGE BODY NOONA_INV_PKG AS
   FUNCTION bom_json(p_item_id IN NUMBER) RETURN CLOB IS
     l_out CLOB;
   BEGIN
-    SELECT JSON_OBJECT('bom' VALUE b.id, 'version' VALUE b.version_no, 'base' VALUE b.base_quantity,
+    SELECT JSON_OBJECT('id' VALUE p_item_id, 'title' VALUE 'قائمة مواد: ' || item_label(p_item_id), 'no' VALUE 'v' || b.version_no,
+             'bom' VALUE b.id, 'version' VALUE b.version_no, 'base' VALUE b.base_quantity,
              'lines' VALUE (SELECT JSON_ARRAYAGG(JSON_OBJECT('i' VALUE l.component_item_id, 'n' VALUE i.item_no || ' - ' || i.name_ar,
                                     'q' VALUE l.quantity, 's' VALUE l.scrap_pct, 'c' VALUE avg_cost(l.component_item_id),
                                     'oh' VALUE on_hand(l.component_item_id)) ORDER BY l.line_no RETURNING CLOB)
@@ -1080,8 +1085,17 @@ CREATE OR REPLACE PACKAGE BODY NOONA_INV_PKG AS
       FROM mfg_bom b WHERE b.company_id = company AND b.item_id = p_item_id AND b.is_default = 'Y' AND ROWNUM = 1;
     RETURN l_out;
   EXCEPTION WHEN NO_DATA_FOUND THEN
-    RETURN '{"bom":null,"lines":[]}';
+    RETURN '{"id":' || NVL(TO_CHAR(p_item_id), 'null') || ',"title":' || jt('قائمة مواد: ' || item_label(p_item_id)) || ',"base":1,"bom":null,"lines":[]}';
   END bom_json;
+
+  FUNCTION save_bom_doc(p_doc IN CLOB) RETURN NUMBER IS
+    l_bom NUMBER;
+    l_item NUMBER := JSON_VALUE(p_doc, '$.id' RETURNING NUMBER);
+  BEGIN
+    NOONA_CORE_PKG.assert(l_item IS NOT NULL, 'NOONA-INV-044', 'اختر المنتج أولاً', 'Choose the product');
+    l_bom := save_bom(l_item, JSON_QUERY(p_doc, '$.lines' RETURNING CLOB), NVL(JSON_VALUE(p_doc, '$.base' RETURNING NUMBER), 1));
+    RETURN l_item;
+  END save_bom_doc;
 
   FUNCTION produce(p_item_id IN NUMBER, p_qty IN NUMBER, p_warehouse_id IN NUMBER, p_date IN DATE,
                    p_description IN VARCHAR2 DEFAULT NULL, p_lot_no IN VARCHAR2 DEFAULT NULL, p_expiry IN DATE DEFAULT NULL) RETURN NUMBER IS
@@ -1336,6 +1350,100 @@ CREATE OR REPLACE PACKAGE BODY NOONA_INV_PKG AS
     END IF;
     RETURN l_html || '</tbody></table>' || NOONA_GL_PKG.report_footer;
   END fitment_search;
+
+  -- ================================================================ قوائم الشاشات
+  FUNCTION lists_json(p_names IN VARCHAR2) RETURN CLOB IS
+    l_out   CLOB := '{';
+    l_c     CLOB;
+    l_co    NUMBER := company;
+    l_d     DATE := TRUNC(SYSDATE);
+    l_coa   NUMBER := NOONA_GL_PKG.primary_coa;
+    l_first BOOLEAN := TRUE;
+    FUNCTION want(p VARCHAR2) RETURN BOOLEAN IS BEGIN RETURN INSTR(',' || REPLACE(p_names, ' ') || ',', ',' || p || ',') > 0; END;
+    PROCEDURE put(p_name VARCHAR2, p_json CLOB) IS
+    BEGIN
+      l_out := l_out || CASE WHEN l_first THEN '' ELSE ',' END || '"' || p_name || '":' || NVL(p_json, TO_CLOB('[]'));
+      l_first := FALSE;
+    END put;
+  BEGIN
+    IF want('taxes') THEN
+      SELECT JSON_ARRAYAGG(JSON_OBJECT('v' VALUE c.code,
+               'n' VALUE CASE c.tax_nature WHEN 'STANDARD' THEN 'ضريبة ' || TO_CHAR(NVL((SELECT MAX(r.rate_pct) KEEP (DENSE_RANK LAST ORDER BY r.version_no)
+                               FROM loc_tax_rate r WHERE r.tax_code_id = c.id AND r.effective_from <= l_d
+                               AND (r.effective_to IS NULL OR r.effective_to >= l_d)), 0), 'TM9') || '%'
+                                           WHEN 'ZERO_RATED' THEN 'صفرية 0%' WHEN 'EXEMPT' THEN 'معفاة' WHEN 'OUT_OF_SCOPE' THEN 'خارج النطاق'
+                                           ELSE c.name_ar END,
+               'r' VALUE NVL((SELECT MAX(r.rate_pct) KEEP (DENSE_RANK LAST ORDER BY r.version_no) FROM loc_tax_rate r
+                               WHERE r.tax_code_id = c.id AND r.effective_from <= l_d AND (r.effective_to IS NULL OR r.effective_to >= l_d)), 0))
+               ORDER BY c.code DESC RETURNING CLOB) INTO l_c
+        FROM loc_tax_code c WHERE c.status_code = 'ACTIVE';
+      put('taxes', l_c);
+    END IF;
+    IF want('whs') THEN
+      SELECT JSON_ARRAYAGG(JSON_OBJECT('v' VALUE id, 'n' VALUE code || ' - ' || name_ar) ORDER BY DECODE(warehouse_type, 'MAIN', 0, 1), code RETURNING CLOB)
+        INTO l_c FROM inv_warehouse WHERE company_id = l_co AND status_code = 'ACTIVE';
+      put('whs', l_c);
+    END IF;
+    IF want('ccs') THEN
+      SELECT JSON_ARRAYAGG(JSON_OBJECT('v' VALUE id, 'n' VALUE code || ' - ' || name_ar) ORDER BY code RETURNING CLOB)
+        INTO l_c FROM gl_cost_center WHERE company_id = l_co;
+      put('ccs', l_c);
+    END IF;
+    IF want('accts') THEN
+      SELECT JSON_ARRAYAGG(JSON_OBJECT('v' VALUE a.account_code, 'n' VALUE a.account_code || ' - ' || a.name_ar) ORDER BY a.account_code RETURNING CLOB)
+        INTO l_c FROM gl_account a
+       WHERE a.coa_id = l_coa AND a.is_postable = 'Y' AND a.status_code = 'ACTIVE' AND a.account_type = 'EXPENSE';
+      put('accts', l_c);
+    END IF;
+    IF want('revs') THEN
+      SELECT JSON_ARRAYAGG(JSON_OBJECT('v' VALUE a.account_code, 'n' VALUE a.account_code || ' - ' || a.name_ar) ORDER BY a.account_code RETURNING CLOB)
+        INTO l_c FROM gl_account a
+       WHERE a.coa_id = l_coa AND a.is_postable = 'Y' AND a.status_code = 'ACTIVE' AND a.account_type = 'REVENUE';
+      put('revs', l_c);
+    END IF;
+    IF want('cats') THEN
+      SELECT JSON_ARRAYAGG(JSON_OBJECT('v' VALUE id, 'n' VALUE name_ar, 'p' VALUE product_profile) ORDER BY name_ar RETURNING CLOB)
+        INTO l_c FROM inv_item_category WHERE is_active = 'Y';
+      put('cats', l_c);
+    END IF;
+    IF want('uoms') THEN
+      SELECT JSON_ARRAYAGG(JSON_OBJECT('v' VALUE id, 'n' VALUE name_ar || ' (' || code || ')') ORDER BY DECODE(code, 'PCS', 0, 1), name_ar RETURNING CLOB)
+        INTO l_c FROM inv_uom WHERE is_active = 'Y';
+      put('uoms', l_c);
+    END IF;
+    IF want('sups') THEN
+      SELECT JSON_ARRAYAGG(JSON_OBJECT('v' VALUE a.id, 'n' VALUE s.supplier_no || ' - ' || p.display_name_ar) ORDER BY p.display_name_ar RETURNING CLOB)
+        INTO l_c FROM ap_supplier_account a JOIN ap_supplier s ON s.id = a.supplier_id JOIN pty_party p ON p.id = s.party_id
+       WHERE a.company_id = l_co AND a.status_code = 'ACTIVE';
+      put('sups', l_c);
+    END IF;
+    IF want('custs') THEN
+      SELECT JSON_ARRAYAGG(JSON_OBJECT('v' VALUE a.id, 'n' VALUE c.customer_no || ' - ' || p.display_name_ar) ORDER BY c.is_walk_in DESC, p.display_name_ar
+                           RETURNING CLOB)
+        INTO l_c FROM ar_customer_account a JOIN ar_customer c ON c.id = a.customer_id JOIN pty_party p ON p.id = c.party_id
+       WHERE a.company_id = l_co AND a.status_code = 'ACTIVE';
+      put('custs', l_c);
+    END IF;
+    IF want('places') THEN
+      SELECT JSON_ARRAYAGG(JSON_OBJECT('v' VALUE v, 'n' VALUE n) ORDER BY o, n RETURNING CLOB) INTO l_c
+        FROM (SELECT 'BOX:' || id v, 'صندوق: ' || name_ar n, 1 o FROM csh_cash_box WHERE company_id = l_co AND status_code = 'ACTIVE'
+              UNION ALL
+              SELECT 'BANK:' || id, 'بنك: ' || name_ar || ' ' || account_no_masked, 2 FROM csh_bank_account WHERE company_id = l_co AND status_code = 'ACTIVE');
+      put('places', l_c);
+    END IF;
+    IF want('stypes') THEN
+      SELECT JSON_ARRAYAGG(JSON_OBJECT('v' VALUE code, 'n' VALUE name_ar)
+                           ORDER BY DECODE(code, 'OPENING', 1, 'ADJ_IN', 2, 'ADJ_OUT', 3, 'SCRAP', 4, 'CONSUMPTION', 5, 6) RETURNING CLOB)
+        INTO l_c FROM inv_txn_type WHERE tenant_id IS NULL AND code IN ('OPENING', 'ADJ_IN', 'ADJ_OUT', 'SCRAP', 'CONSUMPTION', 'TRANSFER_OUT');
+      put('stypes', l_c);
+    END IF;
+    IF want('methods') THEN
+      SELECT JSON_ARRAYAGG(JSON_OBJECT('v' VALUE code, 'n' VALUE name_ar) ORDER BY sort_order RETURNING CLOB)
+        INTO l_c FROM ref_payment_method WHERE is_active = 'Y' AND method_type <> 'CREDIT';
+      put('methods', l_c);
+    END IF;
+    RETURN l_out || '}';
+  END lists_json;
 
 END NOONA_INV_PKG;
 /

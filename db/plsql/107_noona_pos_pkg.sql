@@ -12,6 +12,7 @@ CREATE OR REPLACE PACKAGE NOONA_POS_PKG AUTHID DEFINER AS
   FUNCTION cashier_member RETURN NUMBER;
   -- درج نقدي ومحطة افتراضية على المستودع الرئيسي
   FUNCTION quick_setup RETURN NUMBER;
+  FUNCTION is_ready RETURN VARCHAR2;
   FUNCTION create_terminal(p_code IN VARCHAR2, p_name_ar IN VARCHAR2, p_warehouse_id IN NUMBER, p_cash_box_id IN NUMBER,
                            p_bank_account_id IN NUMBER DEFAULT NULL, p_cost_center_id IN NUMBER DEFAULT NULL) RETURN NUMBER;
   FUNCTION terminals_json RETURN CLOB;
@@ -91,6 +92,13 @@ CREATE OR REPLACE PACKAGE BODY NOONA_POS_PKG AS
   EXCEPTION WHEN DUP_VAL_ON_INDEX THEN
     NOONA_CORE_PKG.raise_error('NOONA-POS-002', 'رمز المحطة مستخدم', 'Terminal code already exists');
   END create_terminal;
+
+  FUNCTION is_ready RETURN VARCHAR2 IS
+    l NUMBER;
+  BEGIN
+    SELECT COUNT(*) INTO l FROM pos_terminal WHERE company_id = company AND status_code = 'ACTIVE';
+    RETURN CASE WHEN l > 0 AND NOONA_SAL_PKG.is_ready = 'Y' THEN 'Y' ELSE 'N' END;
+  END is_ready;
 
   FUNCTION quick_setup RETURN NUMBER IS
     l_n    NUMBER;
@@ -474,8 +482,15 @@ CREATE OR REPLACE PACKAGE BODY NOONA_POS_PKG AS
       INSERT INTO pos_payment (company_id, sale_id, payment_method_id, amount, status_code) VALUES (company, l_id, l_mid, ROUND(r.a, 2), 'REFUNDED');
     END LOOP;
     IF l_paid = 0 THEN
-      l_mid := method_id('CASH');
-      l_cash := l_total;
+      -- بلا تحديد: الآجل يخفض ذمة الإيصال، وغيره نقداً
+      SELECT NVL(SUM(open_amount), 0) INTO l_x FROM ar_open_item WHERE source_entity_type = c_sale AND source_entity_id = l_orig;
+      IF l_x >= l_total THEN
+        l_mid := method_id('CREDIT');
+        l_cred := l_total;
+      ELSE
+        l_mid := method_id('CASH');
+        l_cash := l_total;
+      END IF;
       INSERT INTO pos_payment (company_id, sale_id, payment_method_id, amount, status_code) VALUES (company, l_id, l_mid, l_total, 'REFUNDED');
       l_paid := l_total;
     END IF;

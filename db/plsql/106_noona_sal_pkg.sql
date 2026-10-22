@@ -10,6 +10,7 @@ CREATE OR REPLACE PACKAGE NOONA_SAL_PKG AUTHID DEFINER AS
 
   FUNCTION company RETURN NUMBER;
   FUNCTION quick_setup RETURN NUMBER;
+  FUNCTION is_ready RETURN VARCHAR2;
 
   -- ---------------------------------------------------------- العملاء
   -- {"id":accountId,"name","nameEn","person":"Y","tax","cr","phone","email","address","term":"NET30","limit":5000,"status"}
@@ -45,6 +46,8 @@ CREATE OR REPLACE PACKAGE NOONA_SAL_PKG AUTHID DEFINER AS
   -- المرتجع: {"inv","date","reason","place","lines":[{"l":lineId,"q"}]}
   FUNCTION post_return(p_doc IN CLOB) RETURN NUMBER;
   FUNCTION returnable_json(p_invoice_id IN NUMBER) RETURN CLOB;
+  -- شاشة المرتجع: {"inv","no","date","lines":[...]}
+  FUNCTION return_doc_json(p_invoice_id IN NUMBER) RETURN CLOB;
 
   -- ---------------------------------------------------------- التحصيل
   -- {"cust","date","amount","place","method":"CASH|MADA|BANK_APP...","ref","notes","alloc":[{"inv":id,"a":100}]}
@@ -105,6 +108,13 @@ CREATE OR REPLACE PACKAGE BODY NOONA_SAL_PKG AS
   END status_label;
 
   -- ================================================================ التجهيز
+  FUNCTION is_ready RETURN VARCHAR2 IS
+    l NUMBER;
+  BEGIN
+    SELECT COUNT(*) INTO l FROM ref_doc_sequence WHERE company_id = company AND doc_type_code IN ('SAL_INVOICE', 'AR_RECEIPT', 'AR_CUSTOMER');
+    RETURN CASE WHEN l = 3 AND NOONA_INV_PKG.is_ready = 'Y' THEN 'Y' ELSE 'N' END;
+  END is_ready;
+
   FUNCTION quick_setup RETURN NUMBER IS
     l_n NUMBER;
     l_x NUMBER;
@@ -686,6 +696,16 @@ CREATE OR REPLACE PACKAGE BODY NOONA_SAL_PKG AS
   END cancel_invoice;
 
   -- ================================================================ المرتجع
+  FUNCTION return_doc_json(p_invoice_id IN NUMBER) RETURN CLOB IS
+    l_no VARCHAR2(100);
+  BEGIN
+    SELECT doc_no INTO l_no FROM sal_invoice WHERE id = p_invoice_id AND company_id = company;
+    RETURN '{"inv":' || p_invoice_id || ',"no":' || NOONA_CORE_PKG.json_text(l_no) || ',"date":"' || TO_CHAR(SYSDATE, 'YYYY-MM-DD')
+        || '","lines":' || returnable_json(p_invoice_id) || '}';
+  EXCEPTION WHEN NO_DATA_FOUND THEN
+    RETURN '{"lines":[]}';
+  END return_doc_json;
+
   FUNCTION returnable_json(p_invoice_id IN NUMBER) RETURN CLOB IS
     l CLOB;
   BEGIN

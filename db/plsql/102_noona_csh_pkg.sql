@@ -341,7 +341,11 @@ CREATE OR REPLACE PACKAGE BODY NOONA_CSH_PKG AS
     INSERT INTO csh_transaction (company_id, branch_id, doc_no, doc_date, source_entity_type, source_entity_id, currency_code, exchange_rate,
                                  txn_type, channel, bank_account_id, cash_box_id, counterparty_party_id, counterparty_name, amount, amount_func,
                                  value_date, description, settled_at, status_code, accounting_event_id, posted_at, posted_by)
-    VALUES (NOONA_GL_PKG.company, TO_NUMBER(SYS_CONTEXT('NOONA_CTX', 'BRANCH_ID')), p_doc_no, TRUNC(p_date), p_source_type, p_source_id,
+    -- رقم المستند المصدر بلاحقة مصدره حتى لا يتعارض مع ترقيم سندات النقدية
+    VALUES (NOONA_GL_PKG.company, TO_NUMBER(SYS_CONTEXT('NOONA_CTX', 'BRANCH_ID')),
+            SUBSTR(p_doc_no, 1, 80) || '/' || CASE p_source_type WHEN 'AP_INVOICE' THEN 'PI' WHEN 'AP_PAYMENT' THEN 'SP' WHEN 'SAL_INVOICE' THEN 'SI'
+                                                   WHEN 'AR_RECEIPT' THEN 'RC' WHEN 'POS_SHIFT' THEN 'POS' ELSE 'SRC' END,
+            TRUNC(p_date), p_source_type, p_source_id,
             l_cur, 1, p_type, NVL(p_channel, CASE WHEN l_box IS NOT NULL THEN 'CASH' ELSE 'BANK_TRANSFER' END), l_bnk, l_box, p_party_id,
             p_party_name, ROUND(p_amount, 2), ROUND(p_amount, 2), TRUNC(p_date), SUBSTR(p_description, 1, 1000), SYSTIMESTAMP, 'SETTLED',
             p_event_id, SYSTIMESTAMP, NOONA_CTX_PKG.current_user_name)

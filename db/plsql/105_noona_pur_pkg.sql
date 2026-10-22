@@ -9,6 +9,7 @@ CREATE OR REPLACE PACKAGE NOONA_PUR_PKG AUTHID DEFINER AS
 
   FUNCTION company RETURN NUMBER;
   FUNCTION quick_setup RETURN NUMBER;
+  FUNCTION is_ready RETURN VARCHAR2;
 
   -- ---------------------------------------------------------- الموردون
   -- {"id":accountId,"name","nameEn","person":"N","type":"GOODS","tax","cr","phone","email","address","term":"NET30","status"}
@@ -39,6 +40,8 @@ CREATE OR REPLACE PACKAGE NOONA_PUR_PKG AUTHID DEFINER AS
   -- {"inv":originalId,"date","reason","place":"BOX:1 (للفاتورة النقدية)","lines":[{"l":invoiceLineId,"q":2}]}
   FUNCTION post_return(p_doc IN CLOB) RETURN NUMBER;
   FUNCTION returnable_json(p_invoice_id IN NUMBER) RETURN CLOB;
+  -- شاشة المرتجع: {"inv","no","date","lines":[...]}
+  FUNCTION return_doc_json(p_invoice_id IN NUMBER) RETURN CLOB;
 
   -- ---------------------------------------------------------- سداد الموردين
   -- {"sup","date","amount","place":"BOX:1|BANK:2","method":"CASH","ref","notes","alloc":[{"inv":id,"a":100}]}  (بلا alloc: الأقدم أولاً)
@@ -97,6 +100,13 @@ CREATE OR REPLACE PACKAGE BODY NOONA_PUR_PKG AS
   END status_label;
 
   -- ================================================================ التجهيز
+  FUNCTION is_ready RETURN VARCHAR2 IS
+    l NUMBER;
+  BEGIN
+    SELECT COUNT(*) INTO l FROM ref_doc_sequence WHERE company_id = company AND doc_type_code IN ('AP_INVOICE', 'AP_PAYMENT', 'AP_SUPPLIER');
+    RETURN CASE WHEN l = 3 AND NOONA_INV_PKG.is_ready = 'Y' THEN 'Y' ELSE 'N' END;
+  END is_ready;
+
   FUNCTION quick_setup RETURN NUMBER IS
     l_n NUMBER := 0;
   BEGIN
@@ -698,6 +708,16 @@ CREATE OR REPLACE PACKAGE BODY NOONA_PUR_PKG AS
   END cancel_invoice;
 
   -- ================================================================ المرتجع
+  FUNCTION return_doc_json(p_invoice_id IN NUMBER) RETURN CLOB IS
+    l_no VARCHAR2(100);
+  BEGIN
+    SELECT doc_no INTO l_no FROM ap_invoice WHERE id = p_invoice_id AND company_id = company;
+    RETURN '{"inv":' || p_invoice_id || ',"no":' || NOONA_CORE_PKG.json_text(l_no) || ',"date":"' || TO_CHAR(SYSDATE, 'YYYY-MM-DD')
+        || '","lines":' || returnable_json(p_invoice_id) || '}';
+  EXCEPTION WHEN NO_DATA_FOUND THEN
+    RETURN '{"lines":[]}';
+  END return_doc_json;
+
   FUNCTION returnable_json(p_invoice_id IN NUMBER) RETURN CLOB IS
     l CLOB;
   BEGIN

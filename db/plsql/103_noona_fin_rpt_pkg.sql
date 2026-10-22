@@ -611,7 +611,9 @@ CREATE OR REPLACE PACKAGE BODY NOONA_FIN_RPT_PKG AS
     SELECT COUNT(*) INTO l_n FROM csh_transaction t
      WHERE t.company_id = l_co AND t.status_code IN ('SETTLED', 'REVERSED')
        AND NOT EXISTS (SELECT 1 FROM ace_accounting_event e JOIN gl_journal j ON j.id = e.journal_id
-                        WHERE e.source_entity_type = 'CSH_TRANSACTION' AND e.source_entity_id = t.id AND j.status_code IN ('POSTED', 'REVERSED'));
+                        WHERE ((e.source_entity_type = 'CSH_TRANSACTION' AND e.source_entity_id = t.id)
+                               OR (NVL(t.source_entity_type, 'CSH_TRANSACTION') <> 'CSH_TRANSACTION' AND e.id = t.accounting_event_id))
+                          AND j.status_code IN ('POSTED', 'REVERSED'));
     l_html := l_html || ctl_row('سندات معتمدة دون قيد', l_n || ' سند', l_n = 0, 'كل سند معتمد له قيد مرحل مرتبط');
     -- 7) آثار مكررة
     SELECT COUNT(*) INTO l_n FROM (
@@ -643,7 +645,10 @@ CREATE OR REPLACE PACKAGE BODY NOONA_FIN_RPT_PKG AS
                      * CASE WHEN e.reversal_of_event_id IS NULL THEN 1 ELSE -1 END), 0)
         INTO l_x
         FROM csh_transaction t
-        JOIN ace_accounting_event e ON e.source_entity_type = 'CSH_TRANSACTION' AND e.source_entity_id = t.id AND e.journal_id IS NOT NULL
+        JOIN ace_accounting_event e ON ((e.source_entity_type = 'CSH_TRANSACTION' AND e.source_entity_id = t.id)
+                                        OR (NVL(t.source_entity_type, 'CSH_TRANSACTION') <> 'CSH_TRANSACTION'
+                                            AND (e.id = t.accounting_event_id OR e.reversal_of_event_id = t.accounting_event_id)))
+                                       AND e.journal_id IS NOT NULL
         LEFT JOIN csh_cash_box b ON b.id = t.cash_box_id LEFT JOIN csh_bank_account k ON k.id = t.bank_account_id
        WHERE t.company_id = l_co AND NVL(b.gl_account_id, k.gl_account_id) = r.id AND e.accounting_date <= l_to;
       l_html := l_html || ctl_row('النقدية: ' || esc(r.account_code || ' ' || r.name_ar),
@@ -651,7 +656,29 @@ CREATE OR REPLACE PACKAGE BODY NOONA_FIN_RPT_PKG AS
                                   CASE WHEN l_d = l_x THEN 'مطابق' ELSE 'الفرق ' || fmt0(l_d - l_x) || ': قيود يومية مباشرة على حساب النقدية (افتتاحي أو تحويل)' END,
                                   TRUE);
     END LOOP;
-    l_html := l_html || ctl_row('العملاء والموردون والأصول والمخزون', '-', TRUE, 'تتفعل المطابقة مع تفعيل أنظمتها الفرعية', FALSE);
+    -- 12) الموردون والعملاء والمخزون: رصيد حساب المراقبة = رصيد النظام الفرعي
+    FOR r IN (SELECT 'الموردون: ' || a.account_code || ' ' || a.name_ar lbl, a.id, -1 sg,
+                     (SELECT NVL(SUM(NOONA_PUR_PKG.supplier_balance(x.id, l_to)), 0) FROM ap_supplier_account x
+                       WHERE x.company_id = l_co AND NVL(x.payable_account_id, a.id) = a.id) sub
+                FROM gl_account a WHERE a.coa_id = NOONA_GL_PKG.primary_coa AND a.account_code = '2101'
+              UNION ALL
+              SELECT 'العملاء: ' || a.account_code || ' ' || a.name_ar, a.id, 1,
+                     (SELECT NVL(SUM(NOONA_SAL_PKG.customer_balance(x.id, l_to)), 0) FROM ar_customer_account x
+                       WHERE x.company_id = l_co AND NVL(x.receivable_account_id, a.id) = a.id)
+                FROM gl_account a WHERE a.coa_id = NOONA_GL_PKG.primary_coa AND a.account_code = '1103'
+              UNION ALL
+              SELECT 'المخزون: ' || a.account_code || ' ' || a.name_ar, a.id, 1,
+                     (SELECT NVL(SUM(c.total_value), 0) FROM inv_item_cost c JOIN inv_item i ON i.id = c.item_id
+                       WHERE c.company_id = l_co AND c.warehouse_id IS NULL AND NOONA_INV_PKG.account_for(i.id, 'INVENTORY') = a.id)
+                FROM gl_account a WHERE a.coa_id = NOONA_GL_PKG.primary_coa
+                 AND a.id IN (SELECT NVL(inventory_account_id, NOONA_INV_PKG.acc_id('1105')) FROM inv_item_category)) LOOP
+      SELECT r.sg * NVL(SUM(l.debit_func - l.credit_func), 0) INTO l_d FROM gl_journal_line l JOIN gl_journal j ON j.id = l.journal_id
+       WHERE l.account_id = r.id AND j.ledger_id = l_led AND j.status_code IN ('POSTED', 'REVERSED') AND j.doc_date <= l_to;
+      l_html := l_html || ctl_row(esc(r.lbl), 'الأستاذ ' || fmt0(l_d) || ' / النظام الفرعي ' || fmt0(r.sub), ROUND(l_d - r.sub, 2) = 0,
+                                  CASE WHEN ROUND(l_d - r.sub, 2) = 0 THEN 'مطابق'
+                                       ELSE 'الفرق ' || fmt0(l_d - r.sub) || ': قيود يومية مباشرة على حساب المراقبة أو أرصدة افتتاحية غير مسجلة في النظام الفرعي' END,
+                                  TRUE);
+    END LOOP;
 
     l_html := l_html || '<tr class="nn-rpt-group"><td colspan="4">حالة إقفال الفترات</td></tr>';
     l_txt := NULL;
