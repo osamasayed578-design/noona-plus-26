@@ -102,6 +102,10 @@ CREATE OR REPLACE PACKAGE BODY NOONA_PORTAL_PKG AS
     IF p_module_code IS NULL THEN
       RETURN 'Y';
     END IF;
+    -- المراسلات حق لكل مستخدمي المؤسسة متى كانت وحدة المراسلات مفعلة (صفحات الأرشيف تتطلب صلاحيات الأرشيف)
+    IF p_app_alias = 'NOONA_DOC' AND NOONA_PLATFORM_PKG.module_enabled('COR') = 'Y' THEN
+      RETURN 'Y';
+    END IF;
     -- الاشتراك: إحدى وحدات النظام مفعلة للمؤسسة
     FOR m IN (SELECT REGEXP_SUBSTR(p_module_code, '[^,]+', 1, LEVEL) AS code FROM dual
               CONNECT BY REGEXP_SUBSTR(p_module_code, '[^,]+', 1, LEVEL) IS NOT NULL) LOOP

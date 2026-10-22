@@ -18,11 +18,11 @@ wwv_flow_imp_page.create_page(
 ,p_step_title=>'المستندات المنتهية والقريبة الانتهاء'
 ,p_autocomplete_on_off=>'OFF'
 ,p_page_template_options=>'#DEFAULT#'
-,p_required_role=>wwv_flow_imp.id(91820267000000002)
+,p_required_role=>wwv_flow_imp.id(91820267000000009)
 ,p_protection_level=>'C'
 );
 wwv_flow_imp_page.create_page_plug(
- p_id=>wwv_flow_imp.id(91820267000000154)
+ p_id=>wwv_flow_imp.id(91820267000000156)
 ,p_plug_name=>'المعايير'
 ,p_region_template_options=>'#DEFAULT#'
 ,p_plug_template=>4072358936313175081
@@ -33,10 +33,10 @@ wwv_flow_imp_page.create_page_plug(
   'show_line_breaks', 'Y')).to_clob
 );
 wwv_flow_imp_page.create_page_item(
- p_id=>wwv_flow_imp.id(91820267000000155)
+ p_id=>wwv_flow_imp.id(91820267000000157)
 ,p_name=>'P41_DAYS'
 ,p_item_sequence=>10
-,p_item_plug_id=>wwv_flow_imp.id(91820267000000154)
+,p_item_plug_id=>wwv_flow_imp.id(91820267000000156)
 ,p_prompt=>'تنتهي خلال'
 ,p_display_as=>'NATIVE_SELECT_LIST'
 ,p_lov=>'STATIC2:30 يوماً;30,60 يوماً;60,90 يوماً;90,180 يوماً;180,المنتهية فقط;0'
@@ -48,7 +48,7 @@ wwv_flow_imp_page.create_page_item(
   'page_action_on_selection', 'SUBMIT')).to_clob
 );
 wwv_flow_imp_page.create_page_plug(
- p_id=>wwv_flow_imp.id(91820267000000156)
+ p_id=>wwv_flow_imp.id(91820267000000158)
 ,p_plug_name=>'المستندات'
 ,p_region_template_options=>'#DEFAULT#:t-Region--scrollBody:t-Region--removeHeader js-removeLandmark:t-Region--noUI'
 ,p_plug_template=>4072358936313175081

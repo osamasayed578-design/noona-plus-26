@@ -84,6 +84,15 @@ CREATE OR REPLACE PACKAGE NOONA_DMS_PKG AUTHID DEFINER AS
   FUNCTION document_html(p_document_id IN NUMBER, p_link IN VARCHAR2 DEFAULT NULL) RETURN CLOB;
   FUNCTION summary(p_session IN VARCHAR2) RETURN CLOB;
   FUNCTION type_for_entity(p_entity_type IN VARCHAR2, p_entity_id IN NUMBER) RETURN VARCHAR2;
+
+  -- مرفقات المراسلات: تحفظ في الأرشيف وتربط بالمراسلة دون صلاحيات الأرشيف (حزمة المراسلات تتحقق من حق الاطلاع)
+  FUNCTION system_archive(p_entity_type IN VARCHAR2, p_entity_id IN NUMBER, p_type_code IN VARCHAR2, p_title IN VARCHAR2,
+                          p_file_name IN VARCHAR2, p_mime IN VARCHAR2, p_content IN BLOB) RETURN NUMBER
+    ACCESSIBLE BY (PACKAGE NOONA_COR_PKG);
+  PROCEDURE system_link(p_document_id IN NUMBER, p_entity_type IN VARCHAR2, p_entity_id IN NUMBER)
+    ACCESSIBLE BY (PACKAGE NOONA_COR_PKG);
+  PROCEDURE system_download(p_document_id IN NUMBER, p_mode IN VARCHAR2 DEFAULT 'VIEW')
+    ACCESSIBLE BY (PACKAGE NOONA_COR_PKG);
 END NOONA_DMS_PKG;
 /
 
@@ -1063,6 +1072,78 @@ CREATE OR REPLACE PACKAGE BODY NOONA_DMS_PKG AS
         || kpi('حجم الأرشيف', NVL(size_text(l_bytes), '0'), 'fa-database', 'is-muted')
         || '</div>';
   END summary;
+
+  -- ================================================================ مرفقات المراسلات
+  FUNCTION system_archive(p_entity_type IN VARCHAR2, p_entity_id IN NUMBER, p_type_code IN VARCHAR2, p_title IN VARCHAR2,
+                          p_file_name IN VARCHAR2, p_mime IN VARCHAR2, p_content IN BLOB) RETURN NUMBER
+    ACCESSIBLE BY (PACKAGE NOONA_COR_PKG) IS
+    l_type    dms_document_type%ROWTYPE := type_row(p_type_code);
+    l_content NUMBER;
+    l_doc     NUMBER;
+    l_ver     NUMBER;
+    l_no      VARCHAR2(100);
+    l_member  NUMBER := TO_NUMBER(SYS_CONTEXT('NOONA_CTX', 'MEMBERSHIP_ID'));
+  BEGIN
+    NOONA_CORE_PKG.assert_tenant_writable;
+    l_content := store_content(l_type, p_file_name, p_mime, p_content);
+    INSERT INTO ref_doc_sequence (company_id, doc_type_code, fiscal_year, prefix, next_number, padding, is_gapless, reset_policy, is_active)
+    SELECT company, 'DMS_ARCHIVE', EXTRACT(YEAR FROM SYSDATE), 'ARC-', 1, 6, 'Y', 'YEARLY', 'Y' FROM dual
+     WHERE NOT EXISTS (SELECT 1 FROM ref_doc_sequence WHERE company_id = company AND doc_type_code = 'DMS_ARCHIVE'
+                          AND (fiscal_year = EXTRACT(YEAR FROM SYSDATE) OR fiscal_year IS NULL));
+    l_no := NOONA_REFERENCE_PKG.next_doc_no('DMS_ARCHIVE', company, NULL, TRUNC(SYSDATE), 'DMS_DOCUMENT', NULL);
+    INSERT INTO dms_document (company_id, branch_id, document_type_id, reference_no, title, origin_type, owner_member_id,
+                              document_date, status_code, confidentiality_level)
+    VALUES (company, TO_NUMBER(SYS_CONTEXT('NOONA_CTX', 'BRANCH_ID')), l_type.id, l_no, SUBSTR(NVL(p_title, p_file_name), 1, 500),
+            'COPY', l_member, TRUNC(SYSDATE), 'ACTIVE', l_type.default_confidentiality)
+    RETURNING id INTO l_doc;
+    INSERT INTO dms_document_version (document_id, version_no, content_id, change_type, uploaded_by_member_id, uploaded_at, status_code)
+    VALUES (l_doc, 1, l_content, 'INITIAL', l_member, SYSTIMESTAMP, 'CURRENT')
+    RETURNING id INTO l_ver;
+    UPDATE dms_document SET current_version_id = l_ver WHERE id = l_doc;
+    system_link(l_doc, p_entity_type, p_entity_id);
+    NOONA_AUDIT_PKG.log_event('DOCUMENT', 'DMS_DOCUMENT', l_doc, 'ARCHIVE', 'SUCCESS',
+      p_new_values => '{"archive_no":' || NOONA_CORE_PKG.json_text(l_no) || ',"entity":' || NOONA_CORE_PKG.json_text(p_entity_type)
+                      || ',"entity_id":' || p_entity_id || ',"file":true}');
+    RETURN l_doc;
+  END system_archive;
+
+  PROCEDURE system_link(p_document_id IN NUMBER, p_entity_type IN VARCHAR2, p_entity_id IN NUMBER)
+    ACCESSIBLE BY (PACKAGE NOONA_COR_PKG) IS
+  BEGIN
+    MERGE INTO dms_document_link k
+    USING (SELECT p_document_id d, p_entity_type e, p_entity_id i FROM dual) x
+       ON (k.document_id = x.d AND k.entity_type = x.e AND k.entity_id = x.i AND k.link_role = 'SUPPORTING')
+     WHEN MATCHED THEN UPDATE SET k.status_code = 'ACTIVE', k.detach_reason = NULL
+     WHEN NOT MATCHED THEN INSERT (document_id, entity_type, entity_id, company_id, link_role, added_method, status_code)
+          VALUES (p_document_id, p_entity_type, p_entity_id, company, 'SUPPORTING', 'MANUAL', 'ACTIVE');
+  END system_link;
+
+  PROCEDURE system_download(p_document_id IN NUMBER, p_mode IN VARCHAR2 DEFAULT 'VIEW')
+    ACCESSIBLE BY (PACKAGE NOONA_COR_PKG) IS
+    l_doc  dms_document%ROWTYPE;
+    l_blob BLOB;
+    l_mime VARCHAR2(200);
+    l_name VARCHAR2(500);
+    l_cid  NUMBER;
+    l_acc  VARCHAR2(30) := CASE p_mode WHEN 'DOWNLOAD' THEN 'DOWNLOAD' ELSE 'PREVIEW' END;
+  BEGIN
+    SELECT * INTO l_doc FROM dms_document WHERE id = p_document_id AND is_deleted = 'N';
+    SELECT c.id, c.detected_mime, c.file_name INTO l_cid, l_mime, l_name
+      FROM dms_document_version v JOIN dms_file_content c ON c.id = v.content_id
+     WHERE v.id = l_doc.current_version_id;
+    l_blob := read_content(l_cid);
+    log_access(p_document_id, l_doc.current_version_id, l_acc, 'ALLOWED');
+    owa_util.mime_header(l_mime, FALSE);
+    htp.p('Content-Length: ' || DBMS_LOB.GETLENGTH(l_blob));
+    htp.p('Content-Disposition: ' || CASE p_mode WHEN 'DOWNLOAD' THEN 'attachment' ELSE 'inline' END || '; filename="'
+          || REGEXP_REPLACE(l_name, '[^[:alnum:]._ -]', '_') || '"; filename*=UTF-8''''' || UTL_URL.ESCAPE(l_name, TRUE, 'UTF-8'));
+    htp.p('X-Content-Type-Options: nosniff');
+    htp.p('Cache-Control: private, no-store');
+    owa_util.http_header_close;
+    wpg_docload.download_file(l_blob);
+  EXCEPTION WHEN NO_DATA_FOUND THEN
+    owa_util.status_line(404, 'Not Found');
+  END system_download;
 
 END NOONA_DMS_PKG;
 /

@@ -66,6 +66,7 @@ IS_INCOMPLETE   YN   NN D='N'    | بيانات ناقصة (وارد بلا رق
 CLOSED_BY       USR              | من أغلق
 CLOSE_REASON    V1000            | سبب الإغلاق
 CORRELATION_ID  V64              | معرف الارتباط
+AUTHOR_STARRED  YN   NN D='N'    | مميزة بنجمة لدى المرسل
 ''', nuk=[('TENANT_ID', 'COMPANY_ID', 'CORRESPONDENCE_NO')],
       ix=[('TENANT_ID', 'THREAD_ID'), ('TENANT_ID', 'STATUS_CODE', 'DUE_AT'), ('TENANT_ID', 'EXTERNAL_NO')],
       chk=['PARENT_ID IS NULL OR PARENT_ID <> ID'], area='correspondence', sens='CONFIDENTIAL',
@@ -115,6 +116,7 @@ INSTRUCTION_SNAPSHOT JSON        | لقطة التعليمة ومعناها ال
 DUE_AT          TS               | مهلة المستلم
 RESOLUTION_SNAPSHOT JSON         | لقطة الهيكل والقاعدة والصفة وقت الحل
 IDEMPOTENCY_KEY V100 NN          | منع إنشاء تسليم مكرر عند Retry
+IS_STARRED      YN   NN D='N'    | مميزة بنجمة لدى المستلم
 ''', uk=[('TENANT_ID', 'IDEMPOTENCY_KEY')],
       ix=[('TENANT_ID', 'MEMBERSHIP_ID', 'VIEW_STATUS', 'READ_STATUS'), ('TENANT_ID', 'CORRESPONDENCE_ID')],
       area='delivery', purpose='لكل مستلم حالة قراءة وإجراء مستقلة (BR-003)', ret='حسب سياسة المراسلة؛ مرشح للتقسيم')

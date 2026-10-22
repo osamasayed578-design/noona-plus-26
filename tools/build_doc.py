@@ -1,20 +1,31 @@
-"""NOONA_DOC (المستندات والأرشيف): محرك الأرشفة - رقم الأرشيف والمرجع الورقي وموقع الأصل وصورته بإصدارات،
+"""NOONA_DOC (المستندات والمراسلات): المراسلات بصندوق بريد مشابه لـ Gmail (mail.js + NOONA_COR_PKG) لكل مستخدمي المؤسسة،
+ومحرك الأرشفة - رقم الأرشيف والمرجع الورقي وموقع الأصل وصورته بإصدارات،
 البحث في الأرشيف، أنواع المستندات، قواعد الأرشفة (المرجع الورقي إلزامي قبل الاعتماد)، سجل الوصول.
 الاستخدام: python3 tools/build_doc.py   ->  apex/NOONA_DOC/f129
 المنطق كله في NOONA_DMS_PKG.
 """
-import os, sys
+import os, shutil, sys
 sys.path.insert(0, os.path.dirname(__file__))
 from apexgen import App
+import apex_brand
+from mail_pages import mail_pages
 from dms_panel import DOC_FILE_TYPES, DOC_TYPES_LOV, download_page, dl_link, VIEWER_JS
 
 ROOT = os.path.join(os.path.dirname(__file__), '..')
+# صندوق المراسلات ملف ثابت للتطبيق (أكبر من حد كود الصفحة في APEX) يحمل عند فتح الصفحة
+shutil.copyfile(os.path.join(os.path.dirname(__file__), 'mail.js'), os.path.join(apex_brand.STATIC_DIR, 'mail.js'))
+if ('mail.js', 'application/javascript') not in apex_brand.FILES:
+    apex_brand.FILES.append(('mail.js', 'application/javascript'))
 app = App(template_dir=os.path.join(ROOT, 'apex/_templates/f119_original'),
           out_dir=os.path.join(ROOT, 'apex/NOONA_DOC/f129'),
           app_id=129, alias='NOONA_DOC', name='NOONA Documents', id_base=91820267000000000)
 app.wire_security()
 app.add_branding()
 TENANT = app.schemes['tenant']
+# المراسلات لكل مستخدمي المؤسسة؛ صفحات الأرشيف لمن يملك صلاحية عرض المستندات
+DMS = app.add_scheme('noona_dms_view', app.id(), 'NOONA - Archive',
+                     "return noona_security_pkg.has_permission('DMS_DOCUMENT.VIEW', noona_dms_pkg.company) = 'Y';",
+                     'صفحات الأرشيف تتطلب صلاحية عرض المستندات / Archive access required')
 
 
 def url(page_no, items='', values='', clear=''):
@@ -42,6 +53,12 @@ ENTITIES = ("STATIC2:سندات القبض والصرف والمصروفات;CSH
 
 # =============================================================== 1) لوحة الأرشيف
 p = app.page(1, 'Home', 'HOME', 'المستندات والأرشيف', scheme=TENANT)
+p.process(1, 'BEFORE_HEADER', 'Mail For Non-Archive Users', [
+    'begin',
+    "    if noona_security_pkg.has_permission('DMS_DOCUMENT.VIEW', noona_dms_pkg.company) = 'N' then",
+    "        apex_util.redirect_url(apex_page.get_url(p_page => 50));",
+    '    end if;',
+    'end;'])
 p.dynamic('الأرشيف', 10, 'return noona_dms_pkg.summary(p_session => :APP_SESSION);', hide_header=True)
 st = p.static('تجهيز الأرشيف', 15, condition="noona_dms_pkg.is_ready = 'N'", text=(
     '<p class="nn-hint">ينشئ تسلسل أرقام الأرشيف (ARC-السنة-الرقم) وقواعد الأرشفة الافتراضية: لا يعتمد سند نقدي ولا قيد يومية '
@@ -55,12 +72,12 @@ p.button(r, 10, 'NEW_DOC', 'أرشفة مستند', hot=True, redirect=url(12, c
 p.branch(10, url(1) + '&success_msg=#SUCCESS_MSG#')
 
 # =============================================================== 10) البحث في الأرشيف
-p = app.page(10, 'Archive', 'ARCHIVE', 'البحث في الأرشيف', scheme=TENANT)
+p = app.page(10, 'Archive', 'ARCHIVE', 'البحث في الأرشيف', scheme=DMS)
 r = p.ir('الأرشيف', 10, DOCS_SQL + [' order by d.id desc'], DOCS_COLS, link=DOC_LINK, rows=100)
 p.button(r, 10, 'NEW_DOC', 'أرشفة مستند', hot=True, redirect=url(12, clear='RP,12'), position='RIGHT_OF_IR_SEARCH_BAR')
 
 # =============================================================== 11) المستند
-p = app.page(11, 'Document', 'DOCUMENT', 'المستند المؤرشف', scheme=TENANT)
+p = app.page(11, 'Document', 'DOCUMENT', 'المستند المؤرشف', scheme=DMS)
 f = p.static('المستند', 5, hide_header=True, opts='#DEFAULT#:t-Region--noUI')
 p.hidden('P11_ID', f, 1)
 p.dynamic('تفاصيل المستند', 10, [
@@ -101,7 +118,7 @@ p.button(fl, 20, 'BACK', 'رجوع للأرشيف', redirect=url(10))
 p.branch(10, 'f?p=&APP_ID.:11:&SESSION.::&DEBUG.:11:P11_ID:&P11_ID.&success_msg=#SUCCESS_MSG#')
 
 # =============================================================== 12) أرشفة مستند جديد
-p = app.page(12, 'New Document', 'NEW-DOCUMENT', 'أرشفة مستند', scheme=TENANT)
+p = app.page(12, 'New Document', 'NEW-DOCUMENT', 'أرشفة مستند', scheme=DMS)
 f = p.static('بيانات المستند', 10, text=(
     '<p class="nn-hint">يصدر رقم أرشيف يكتب على الأصل الورقي. سجل رقم الأصل (المرجع الورقي) أو أرفق صورته، أو الاثنين معاً.</p>'))
 p.hidden('P12_NEW_ID', f, 1)
@@ -134,7 +151,7 @@ p.process(10, 'AFTER_SUBMIT', 'Archive', [
 p.branch(10, 'f?p=&APP_ID.:11:&SESSION.::&DEBUG.:RP,11:P11_ID:&P12_NEW_ID.&success_msg=#SUCCESS_MSG#')
 
 # =============================================================== 20) أنواع المستندات
-p = app.page(20, 'Document Types', 'DOCUMENT-TYPES', 'أنواع المستندات', scheme=TENANT)
+p = app.page(20, 'Document Types', 'DOCUMENT-TYPES', 'أنواع المستندات', scheme=DMS)
 p.ir('أنواع المستندات', 10, [
     "select t.id, t.code, t.name_ar, c.name_ar as category, noona_ui_pkg.code_label(t.default_confidentiality) as conf,",
     "       t.max_file_mb, replace(replace(replace(t.allowed_mime_types, 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'Word'),",
@@ -160,7 +177,7 @@ p.process(10, 'AFTER_SUBMIT', 'Add Type', [
 p.branch(10, url(20, clear='20') + '&success_msg=#SUCCESS_MSG#')
 
 # =============================================================== 21) قواعد الأرشفة
-p = app.page(21, 'Archiving Rules', 'ARCHIVING-RULES', 'قواعد الأرشفة', scheme=TENANT)
+p = app.page(21, 'Archiving Rules', 'ARCHIVING-RULES', 'قواعد الأرشفة', scheme=DMS)
 p.ir('قواعد الأرشفة', 10, [
     "select r.id, decode(r.entity_type, 'CSH_TRANSACTION', 'سندات القبض والصرف والمصروفات', 'GL_JOURNAL', 'القيود اليومية',",
     "              'AP_INVOICE', 'فواتير الموردين', 'AR_INVOICE', 'فواتير العملاء', 'PUR_ORDER', 'أوامر الشراء', r.entity_type) as entity,",
@@ -184,7 +201,7 @@ p.process(10, 'AFTER_SUBMIT', 'Save Rule', 'noona_dms_pkg.set_rule(:P21_ENTITY, 
 p.branch(10, url(21) + '&success_msg=#SUCCESS_MSG#')
 
 # =============================================================== 30) سجل الوصول
-p = app.page(30, 'Access Log', 'ACCESS-LOG', 'سجل الوصول للمستندات', scheme=TENANT)
+p = app.page(30, 'Access Log', 'ACCESS-LOG', 'سجل الوصول للمستندات', scheme=DMS)
 p.ir('سجل الوصول', 10, [
     "select l.id, l.created_at, d.reference_no, d.title, decode(l.access_type, 'DOWNLOAD', 'تنزيل/عرض', l.access_type) as access_type,",
     "       nvl(u.username, l.created_by) as username,",
@@ -205,7 +222,7 @@ DOC_PAGE_LINK = ("replace(apex_page.get_url(p_page => 11, p_clear_cache => '11',
                  "'990000000001', '#ID#')")
 
 # =============================================================== 40) مستندات الأطراف
-p = app.page(40, 'Party Documents', 'PARTY-DOCUMENTS', 'مستندات وشهادات الأطراف', scheme=TENANT)
+p = app.page(40, 'Party Documents', 'PARTY-DOCUMENTS', 'مستندات وشهادات الأطراف', scheme=DMS)
 f = p.static('الطرف', 10)
 p.select('P40_PARTY', f, 10, 'الطرف (مورد / عميل ...)', lov_sql=PARTY_LOV, submit=True)
 p.select('P40_ROLE', f, 20, 'الدور', null_text=None, lov_sql=ROLES, submit=True)
@@ -246,14 +263,14 @@ p.onload(VIEWER_JS)
 p.branch(10, 'f?p=&APP_ID.:40:&SESSION.::&DEBUG.:40:P40_PARTY,P40_ROLE:&P40_PARTY.,&P40_ROLE.&success_msg=#SUCCESS_MSG#')
 
 # =============================================================== 41) المستندات المنتهية والقريبة الانتهاء
-p = app.page(41, 'Expiring Documents', 'EXPIRING', 'المستندات المنتهية والقريبة الانتهاء', scheme=TENANT)
+p = app.page(41, 'Expiring Documents', 'EXPIRING', 'المستندات المنتهية والقريبة الانتهاء', scheme=DMS)
 f = p.static('المعايير', 10)
 p.select('P41_DAYS', f, 10, 'تنتهي خلال', null_text=None, submit=True,
          lov_sql='STATIC2:30 يوماً;30,60 يوماً;60,90 يوماً;90,180 يوماً;180,المنتهية فقط;0')
 p.dynamic('المستندات', 20, [f"return noona_dms_pkg.expiring_html(to_number(nvl(:P41_DAYS, '30')), {DOC_PAGE_LINK});"], hide_header=True)
 
 # =============================================================== 22) المستندات المطلوبة للأطراف
-p = app.page(22, 'Required Documents', 'REQUIRED-DOCUMENTS', 'المستندات المطلوبة للأطراف', scheme=TENANT)
+p = app.page(22, 'Required Documents', 'REQUIRED-DOCUMENTS', 'المستندات المطلوبة للأطراف', scheme=DMS)
 p.ir('المستندات المطلوبة', 10, [
     "select q.id, noona_pty_pkg.role_label(q.role_code) as role_name, t.name_ar as doc_type, noona_ui_pkg.code_label(q.is_mandatory) as mandatory,",
     "       noona_ui_pkg.code_label(q.requires_validity) as validity, noona_ui_pkg.code_label(q.is_active) as active, q.sort_order",
@@ -278,7 +295,7 @@ p.process(20, 'AFTER_SUBMIT', 'Seed Requirements', [
 p.branch(10, url(22) + '&success_msg=#SUCCESS_MSG#')
 
 # =============================================================== 23) مكان حفظ الملفات
-p = app.page(23, 'Storage Settings', 'STORAGE', 'مكان حفظ الملفات', scheme=TENANT)
+p = app.page(23, 'Storage Settings', 'STORAGE', 'مكان حفظ الملفات', scheme=DMS)
 p.dynamic('مكان الحفظ الحالي', 10, 'return noona_dms_pkg.storage_html;')
 f = p.static('تغيير مكان الحفظ', 20, text=(
     '<p class="nn-hint">مجلد الخادم أو NAS يخصصه مسؤول قاعدة البيانات للمؤسسة كـ Oracle DIRECTORY باسم يبدأ بـ '
@@ -314,12 +331,15 @@ p.branch(10, url(23) + '&success_msg=#SUCCESS_MSG#')
 
 download_page(app, 49, TENANT)
 
-app.nav_item('لوحة الأرشيف', 1, 'fa-archive', 10)
-app.nav_item('البحث في الأرشيف', 10, 'fa-search', 20)
-app.nav_item('أرشفة مستند', 12, 'fa-upload', 30)
-app.nav_item('مستندات الأطراف', 40, 'fa-id-card-o', 32)
-app.nav_item('المنتهية والقريبة الانتهاء', 41, 'fa-clock-o', 34)
-st = app.nav_item('الإعدادات', None, 'fa-cog', 40)
+mail_pages(app, TENANT)
+
+app.nav_item('المراسلات', 50, 'fa-envelope', 5)
+app.nav_item('لوحة الأرشيف', 1, 'fa-archive', 10, scheme=DMS)
+app.nav_item('البحث في الأرشيف', 10, 'fa-search', 20, scheme=DMS)
+app.nav_item('أرشفة مستند', 12, 'fa-upload', 30, scheme=DMS)
+app.nav_item('مستندات الأطراف', 40, 'fa-id-card-o', 32, scheme=DMS)
+app.nav_item('المنتهية والقريبة الانتهاء', 41, 'fa-clock-o', 34, scheme=DMS)
+st = app.nav_item('الإعدادات', None, 'fa-cog', 40, scheme=DMS)
 app.nav_item('أنواع المستندات', 20, 'fa-files-o', 41, parent=st)
 app.nav_item('قواعد الأرشفة', 21, 'fa-gavel', 42, parent=st)
 app.nav_item('المستندات المطلوبة للأطراف', 22, 'fa-list-ol', 44, parent=st)

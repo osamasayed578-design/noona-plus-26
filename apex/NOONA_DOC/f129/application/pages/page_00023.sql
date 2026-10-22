@@ -18,11 +18,11 @@ wwv_flow_imp_page.create_page(
 ,p_step_title=>'مكان حفظ الملفات'
 ,p_autocomplete_on_off=>'OFF'
 ,p_page_template_options=>'#DEFAULT#'
-,p_required_role=>wwv_flow_imp.id(91820267000000002)
+,p_required_role=>wwv_flow_imp.id(91820267000000009)
 ,p_protection_level=>'C'
 );
 wwv_flow_imp_page.create_page_plug(
- p_id=>wwv_flow_imp.id(91820267000000178)
+ p_id=>wwv_flow_imp.id(91820267000000180)
 ,p_plug_name=>'مكان الحفظ الحالي'
 ,p_region_template_options=>'#DEFAULT#:t-Region--scrollBody'
 ,p_plug_template=>4072358936313175081
@@ -33,7 +33,7 @@ wwv_flow_imp_page.create_page_plug(
 ,p_plug_source_type=>'NATIVE_DYNAMIC_CONTENT'
 );
 wwv_flow_imp_page.create_page_plug(
- p_id=>wwv_flow_imp.id(91820267000000179)
+ p_id=>wwv_flow_imp.id(91820267000000181)
 ,p_plug_name=>'تغيير مكان الحفظ'
 ,p_region_template_options=>'#DEFAULT#'
 ,p_plug_template=>4072358936313175081
@@ -46,10 +46,10 @@ wwv_flow_imp_page.create_page_plug(
   'show_line_breaks', 'Y')).to_clob
 );
 wwv_flow_imp_page.create_page_item(
- p_id=>wwv_flow_imp.id(91820267000000180)
+ p_id=>wwv_flow_imp.id(91820267000000182)
 ,p_name=>'P23_MEDIUM'
 ,p_item_sequence=>10
-,p_item_plug_id=>wwv_flow_imp.id(91820267000000179)
+,p_item_plug_id=>wwv_flow_imp.id(91820267000000181)
 ,p_prompt=>'مكان الحفظ'
 ,p_display_as=>'NATIVE_SELECT_LIST'
 ,p_lov=>'STATIC2:داخل قاعدة البيانات;DATABASE,مجلد على الخادم / NAS;SERVER_FOLDER,تخزين سحابي OCI/S3 (مرحلة لاحقة);OBJECT_STORAGE'
@@ -61,10 +61,10 @@ wwv_flow_imp_page.create_page_item(
   'page_action_on_selection', 'NONE')).to_clob
 );
 wwv_flow_imp_page.create_page_item(
- p_id=>wwv_flow_imp.id(91820267000000181)
+ p_id=>wwv_flow_imp.id(91820267000000183)
 ,p_name=>'P23_DIR'
 ,p_item_sequence=>20
-,p_item_plug_id=>wwv_flow_imp.id(91820267000000179)
+,p_item_plug_id=>wwv_flow_imp.id(91820267000000181)
 ,p_prompt=>'المجلد المخصص'
 ,p_display_as=>'NATIVE_SELECT_LIST'
 ,p_lov=>'select column_value d, column_value r from table(noona_dms_pkg.storage_directories)'
@@ -79,10 +79,10 @@ wwv_flow_imp_page.create_page_item(
   'page_action_on_selection', 'NONE')).to_clob
 );
 wwv_flow_imp_page.create_page_item(
- p_id=>wwv_flow_imp.id(91820267000000182)
+ p_id=>wwv_flow_imp.id(91820267000000184)
 ,p_name=>'P23_PATH'
 ,p_item_sequence=>30
-,p_item_plug_id=>wwv_flow_imp.id(91820267000000179)
+,p_item_plug_id=>wwv_flow_imp.id(91820267000000181)
 ,p_prompt=>'وصف المسار (للتوثيق)'
 ,p_display_as=>'NATIVE_TEXT_FIELD'
 ,p_cSize=>40
@@ -96,10 +96,10 @@ wwv_flow_imp_page.create_page_item(
   'trim_spaces', 'BOTH')).to_clob
 );
 wwv_flow_imp_page.create_page_item(
- p_id=>wwv_flow_imp.id(91820267000000183)
+ p_id=>wwv_flow_imp.id(91820267000000185)
 ,p_name=>'P23_PREFIX'
 ,p_item_sequence=>40
-,p_item_plug_id=>wwv_flow_imp.id(91820267000000179)
+,p_item_plug_id=>wwv_flow_imp.id(91820267000000181)
 ,p_prompt=>'بادئة أسماء الملفات'
 ,p_display_as=>'NATIVE_TEXT_FIELD'
 ,p_cSize=>15
@@ -114,7 +114,7 @@ wwv_flow_imp_page.create_page_item(
   'trim_spaces', 'BOTH')).to_clob
 );
 wwv_flow_imp_page.create_page_process(
- p_id=>wwv_flow_imp.id(91820267000000184)
+ p_id=>wwv_flow_imp.id(91820267000000186)
 ,p_process_sequence=>5
 ,p_process_point=>'BEFORE_HEADER'
 ,p_process_type=>'NATIVE_PLSQL'
@@ -128,12 +128,12 @@ wwv_flow_imp_page.create_page_process(
 'end;'))
 ,p_process_clob_language=>'PLSQL'
 ,p_error_display_location=>'INLINE_IN_NOTIFICATION'
-,p_internal_uid=>91820267000000184
+,p_internal_uid=>91820267000000186
 );
 wwv_flow_imp_page.create_page_button(
- p_id=>wwv_flow_imp.id(91820267000000185)
+ p_id=>wwv_flow_imp.id(91820267000000187)
 ,p_button_sequence=>10
-,p_button_plug_id=>wwv_flow_imp.id(91820267000000179)
+,p_button_plug_id=>wwv_flow_imp.id(91820267000000181)
 ,p_button_name=>'SAVE_STORAGE'
 ,p_button_action=>'SUBMIT'
 ,p_button_template_options=>'#DEFAULT#'
@@ -143,9 +143,9 @@ wwv_flow_imp_page.create_page_button(
 ,p_button_position=>'NEXT'
 );
 wwv_flow_imp_page.create_page_button(
- p_id=>wwv_flow_imp.id(91820267000000186)
+ p_id=>wwv_flow_imp.id(91820267000000188)
 ,p_button_sequence=>20
-,p_button_plug_id=>wwv_flow_imp.id(91820267000000179)
+,p_button_plug_id=>wwv_flow_imp.id(91820267000000181)
 ,p_button_name=>'TEST_STORAGE'
 ,p_button_action=>'SUBMIT'
 ,p_button_template_options=>'#DEFAULT#'
@@ -154,9 +154,9 @@ wwv_flow_imp_page.create_page_button(
 ,p_button_position=>'NEXT'
 );
 wwv_flow_imp_page.create_page_button(
- p_id=>wwv_flow_imp.id(91820267000000187)
+ p_id=>wwv_flow_imp.id(91820267000000189)
 ,p_button_sequence=>30
-,p_button_plug_id=>wwv_flow_imp.id(91820267000000179)
+,p_button_plug_id=>wwv_flow_imp.id(91820267000000181)
 ,p_button_name=>'MOVE_FILES'
 ,p_button_action=>'SUBMIT'
 ,p_button_template_options=>'#DEFAULT#'
@@ -165,7 +165,7 @@ wwv_flow_imp_page.create_page_button(
 ,p_button_position=>'NEXT'
 );
 wwv_flow_imp_page.create_page_process(
- p_id=>wwv_flow_imp.id(91820267000000188)
+ p_id=>wwv_flow_imp.id(91820267000000190)
 ,p_process_sequence=>10
 ,p_process_point=>'AFTER_SUBMIT'
 ,p_process_type=>'NATIVE_PLSQL'
@@ -174,12 +174,12 @@ wwv_flow_imp_page.create_page_process(
 'noona_dms_pkg.set_storage(:P23_MEDIUM, :P23_DIR, :P23_PATH, :P23_PREFIX);'))
 ,p_process_clob_language=>'PLSQL'
 ,p_error_display_location=>'INLINE_IN_NOTIFICATION'
-,p_process_when_button_id=>wwv_flow_imp.id(91820267000000185)
+,p_process_when_button_id=>wwv_flow_imp.id(91820267000000187)
 ,p_process_success_message=>'تم حفظ مكان الحفظ؛ اختبر الاتصال'
-,p_internal_uid=>91820267000000188
+,p_internal_uid=>91820267000000190
 );
 wwv_flow_imp_page.create_page_process(
- p_id=>wwv_flow_imp.id(91820267000000189)
+ p_id=>wwv_flow_imp.id(91820267000000191)
 ,p_process_sequence=>20
 ,p_process_point=>'AFTER_SUBMIT'
 ,p_process_type=>'NATIVE_PLSQL'
@@ -193,11 +193,11 @@ wwv_flow_imp_page.create_page_process(
 'end;'))
 ,p_process_clob_language=>'PLSQL'
 ,p_error_display_location=>'INLINE_IN_NOTIFICATION'
-,p_process_when_button_id=>wwv_flow_imp.id(91820267000000186)
-,p_internal_uid=>91820267000000189
+,p_process_when_button_id=>wwv_flow_imp.id(91820267000000188)
+,p_internal_uid=>91820267000000191
 );
 wwv_flow_imp_page.create_page_process(
- p_id=>wwv_flow_imp.id(91820267000000190)
+ p_id=>wwv_flow_imp.id(91820267000000192)
 ,p_process_sequence=>30
 ,p_process_point=>'AFTER_SUBMIT'
 ,p_process_type=>'NATIVE_PLSQL'
@@ -210,11 +210,11 @@ wwv_flow_imp_page.create_page_process(
 'end;'))
 ,p_process_clob_language=>'PLSQL'
 ,p_error_display_location=>'INLINE_IN_NOTIFICATION'
-,p_process_when_button_id=>wwv_flow_imp.id(91820267000000187)
-,p_internal_uid=>91820267000000190
+,p_process_when_button_id=>wwv_flow_imp.id(91820267000000189)
+,p_internal_uid=>91820267000000192
 );
 wwv_flow_imp_page.create_page_branch(
- p_id=>wwv_flow_imp.id(91820267000000191)
+ p_id=>wwv_flow_imp.id(91820267000000193)
 ,p_branch_action=>'f?p=&APP_ID.:23:&SESSION.::&DEBUG.:::&success_msg=#SUCCESS_MSG#'
 ,p_branch_point=>'AFTER_PROCESSING'
 ,p_branch_type=>'REDIRECT_URL'
