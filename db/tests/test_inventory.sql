@@ -101,7 +101,12 @@ BEGIN
   ok('purchase VAT goes to input tax 1107', NOONA_INV_PKG.tax_account(NOONA_INV_PKG.tax_id('VAT15'), 'PURCHASE') = NOONA_INV_PKG.acc_id('1107'));
   l_wh := NOONA_INV_PKG.create_warehouse('WT' || SUBSTR(l_sfx, 1, 6), 'مستودع اختبار', 'MAIN');
   l_wh2 := NOONA_INV_PKG.create_warehouse('WS' || SUBSTR(l_sfx, 1, 6), 'مستودع الفرع', 'STORE');
-  SELECT MIN(id) INTO l_cc FROM gl_cost_center WHERE company_id = NOONA_INV_PKG.company AND code = 'CC-100';
+  SELECT MIN(id) KEEP (DENSE_RANK FIRST ORDER BY DECODE(code, 'CC-100', 0, 1), id) INTO l_cc
+    FROM gl_cost_center WHERE company_id = NOONA_INV_PKG.company;
+  IF l_cc IS NULL THEN
+    INSERT INTO gl_cost_center (company_id, code, name_ar)
+    VALUES (NOONA_INV_PKG.company, 'TCC' || SUBSTR(l_sfx, 1, 6), 'مركز اختبار') RETURNING id INTO l_cc;
+  END IF;
 
   -- الأصناف
   l_gen := item('{"name":"زيت محرك 5W30 اختبار","code":"OIL' || l_sfx || '","cat":' || cat('GEN') || ',"price":45,"incl":"Y",'

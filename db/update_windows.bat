@@ -47,8 +47,10 @@ sqlplus -S -L NOONA_APP/"%APP_PWD%"@%CONN% @tests/test_purchases.sql < nul | fin
 sqlplus -S -L NOONA_APP/"%APP_PWD%"@%CONN% @tests/test_sales.sql < nul | findstr /c:"RESULT" /c:"FAIL" /c:"ORA-"
 
 echo.
-echo ===== Database updated. Expected: 79 / 26 / 21 / 25 / 10 / 16 / 18 / 19 / 43 / 29 / 26 / 44 / 24 passed, 0 failed (test_dms shows 38 when no NOONA_DMS_T<tenant> server folder exists).
-echo ===== Next: import apex\NOONA_MASTER\f115, NOONA_PORTAL\f119, NOONA_ADMIN\f123, NOONA_PLATFORM\f125, NOONA_FIN\f127, NOONA_DOC\f129 zips (Reuse Application ID)
+echo ===== Database updated. Every test line should end with: 0 failed
+echo ===== test_dms may report the server-folder test only if a storage folder is configured but not reachable from the DB server.
+echo ===== Compile warnings shown inside upgrades 09-14 are expected on old databases; upgrades 15 and 16 recompile everything.
+echo ===== Next: import apex\NOONA_MASTER\f115, NOONA_PORTAL\f119, NOONA_ADMIN\f123, NOONA_PLATFORM\f125, NOONA_FIN\f127, NOONA_DOC\f129, NOONA_SCM\f131, NOONA_POS\f133 zips (Reuse Application ID)
 pause
 exit /b 0
 
