@@ -454,10 +454,10 @@ CREATE OR REPLACE PACKAGE BODY NOONA_DMS_PKG AS
     FOR r IN (SELECT c.storage_medium, NVL(c.storage_bucket_ref, '-') dir, COUNT(DISTINCT c.id) n, SUM(c.file_size_bytes) b
                 FROM dms_file_content c JOIN dms_document_version v ON v.content_id = c.id JOIN dms_document d ON d.id = v.document_id
                WHERE d.company_id = company GROUP BY c.storage_medium, NVL(c.storage_bucket_ref, '-') ORDER BY 1) LOOP
-      l_html := l_html || '<tr><td class="nn-rpt-text">' || CASE r.storage_medium WHEN 'SECUREFILE' THEN 'قاعدة البيانات'
-                WHEN 'NAS' THEN 'مجلد ' || esc(r.dir) ELSE r.storage_medium END || '</td><td>' || r.n || '</td><td>' || size_text(r.b) || '</td></tr>';
+      l_html := l_html || ('<tr><td class="nn-rpt-text">' || CASE r.storage_medium WHEN 'SECUREFILE' THEN 'قاعدة البيانات'
+                WHEN 'NAS' THEN 'مجلد ' || esc(r.dir) ELSE r.storage_medium END || '</td><td>' || r.n || '</td><td>' || size_text(r.b) || '</td></tr>');
     END LOOP;
-    RETURN l_html || '</tbody></table>';
+    RETURN l_html || ('</tbody></table>');
   END storage_html;
 
   -- ================================================================ الأرشفة
@@ -799,11 +799,11 @@ CREATE OR REPLACE PACKAGE BODY NOONA_DMS_PKG AS
     END LOOP;
     l_html := viewer_html(l_cards, p_auto, 'لا توجد مستندات مؤرشفة لهذا المستند');
     IF l_req = 'Y' THEN
-      l_html := l_html || CASE WHEN has_reference(p_entity_type, p_entity_id) = 'Y'
+      l_html := l_html || (CASE WHEN has_reference(p_entity_type, p_entity_id) = 'Y'
         THEN '<div class="nn-chain is-ok nn-rpt-check"><span class="fa fa-check-circle" aria-hidden="true"></span><div><b>المرجع الورقي مسجل؛ المستند جاهز للاعتماد</b></div></div>'
         ELSE '<div class="nn-chain is-bad nn-rpt-check"><span class="fa fa-exclamation-triangle" aria-hidden="true"></span><div><b>'
              || CASE WHEN l_file = 'Y' THEN 'قاعدة الأرشفة تتطلب صورة الأصل الورقي قبل الاعتماد'
-                     ELSE 'قاعدة الأرشفة تتطلب تسجيل المرجع الورقي (رقم الأصل أو صورته) قبل الاعتماد' END || '</b></div></div>' END;
+                     ELSE 'قاعدة الأرشفة تتطلب تسجيل المرجع الورقي (رقم الأصل أو صورته) قبل الاعتماد' END || '</b></div></div>' END);
     END IF;
     RETURN l_html;
   END attachments_html;
@@ -902,20 +902,20 @@ CREATE OR REPLACE PACKAGE BODY NOONA_DMS_PKG AS
       l_doc := party_doc(p_party_id, r.document_type_id);
       IF l_doc IS NULL THEN
         l_st := CASE WHEN r.is_mandatory = 'Y' THEN '<span class="nn-badge is-danger">غير موجود</span>' ELSE '<span class="nn-badge is-muted">غير موجود</span>' END;
-        l_html := l_html || '<tr><td class="nn-rpt-text">' || esc(r.name_ar) || '</td><td>' || NOONA_UI_PKG.code_label(r.is_mandatory)
-               || '</td><td>' || l_st || '</td><td></td><td></td></tr>';
+        l_html := l_html || ('<tr><td class="nn-rpt-text">' || esc(r.name_ar) || '</td><td>' || NOONA_UI_PKG.code_label(r.is_mandatory)
+               || '</td><td>' || l_st || '</td><td></td><td></td></tr>');
       ELSE
         FOR d IN (SELECT reference_no, external_ref, valid_to FROM dms_document WHERE id = l_doc) LOOP
           l_st := CASE WHEN r.requires_validity = 'Y' AND d.valid_to IS NULL THEN '<span class="nn-badge is-warning">بلا تاريخ انتهاء</span>'
                        ELSE NVL(validity_badge(d.valid_to, r.expiry_alert_days), '<span class="nn-badge is-success">موجود</span>') END;
-          l_html := l_html || '<tr><td class="nn-rpt-text">' || esc(r.name_ar) || '</td><td>' || NOONA_UI_PKG.code_label(r.is_mandatory)
-                 || '</td><td>' || l_st || '</td><td class="nn-num-code">' || esc(d.reference_no) || '</td><td>' || esc(d.external_ref) || '</td></tr>';
+          l_html := l_html || ('<tr><td class="nn-rpt-text">' || esc(r.name_ar) || '</td><td>' || NOONA_UI_PKG.code_label(r.is_mandatory)
+                 || '</td><td>' || l_st || '</td><td class="nn-num-code">' || esc(d.reference_no) || '</td><td>' || esc(d.external_ref) || '</td></tr>');
         END LOOP;
       END IF;
     END LOOP;
     l_miss := missing_documents(p_party_id, p_role);
     SELECT COUNT(*) INTO l_doc FROM dms_required_document WHERE company_id = company AND role_code = p_role AND is_active = 'Y';
-    l_html := l_html || '</tbody></table>'
+    l_html := l_html || ('</tbody></table>'
            || CASE WHEN l_doc = 0
                    THEN '<div class="nn-chain is-bad nn-rpt-check"><span class="fa fa-info-circle" aria-hidden="true"></span><div><b>'
                         || 'لم تحدد مستندات مطلوبة لهذا الدور بعد؛ أضفها من الإعدادات ← المستندات المطلوبة للأطراف</b></div></div>'
@@ -923,13 +923,13 @@ CREATE OR REPLACE PACKAGE BODY NOONA_DMS_PKG AS
                    THEN '<div class="nn-chain is-ok nn-rpt-check"><span class="fa fa-check-circle" aria-hidden="true"></span><div><b>مستندات الطرف الإلزامية مكتملة وسارية</b></div></div>'
                    ELSE '<div class="nn-chain is-bad nn-rpt-check"><span class="fa fa-exclamation-triangle" aria-hidden="true"></span><div><b>'
                         || l_miss || ' مستند إلزامي ناقص أو منتهي</b></div></div>' END
-           || '<h3 class="nn-rpt-h">كل مستندات الطرف</h3>';
+           || '<h3 class="nn-rpt-h">كل مستندات الطرف</h3>');
     FOR r IN (SELECT d.id FROM dms_document_link k JOIN dms_document d ON d.id = k.document_id
                WHERE k.entity_type = 'PTY_PARTY' AND k.entity_id = p_party_id AND k.status_code = 'ACTIVE' AND d.is_deleted = 'N'
                ORDER BY d.valid_to NULLS LAST, d.id DESC) LOOP
       l_cards := l_cards || card_html(r.id, p_link);
     END LOOP;
-    RETURN l_html || viewer_html(l_cards, 'N', 'لا توجد مستندات مؤرشفة لهذا الطرف');
+    RETURN l_html || (viewer_html(l_cards, 'N', 'لا توجد مستندات مؤرشفة لهذا الطرف'));
   END compliance_html;
 
   FUNCTION expiring_html(p_days IN NUMBER DEFAULT 30, p_link IN VARCHAR2 DEFAULT NULL) RETURN CLOB IS
@@ -948,15 +948,15 @@ CREATE OR REPLACE PACKAGE BODY NOONA_DMS_PKG AS
                ORDER BY d.valid_to) LOOP
       l_cnt := l_cnt + 1;
       l_lbl := CASE WHEN r.ent IS NOT NULL THEN entity_label(SUBSTR(r.ent, 1, INSTR(r.ent, ':') - 1), TO_NUMBER(SUBSTR(r.ent, INSTR(r.ent, ':') + 1))) END;
-      l_html := l_html || '<tr><td>' || validity_badge(r.valid_to, GREATEST(NVL(r.expiry_alert_days, 30), NVL(p_days, 30))) || '</td><td class="nn-num-code">'
+      l_html := l_html || ('<tr><td>' || validity_badge(r.valid_to, GREATEST(NVL(r.expiry_alert_days, 30), NVL(p_days, 30))) || '</td><td class="nn-num-code">'
              || esc(r.reference_no) || '</td><td class="nn-rpt-text">' || esc(r.tname) || '</td><td class="nn-rpt-text">' || esc(r.title)
              || '</td><td>' || esc(r.external_ref) || '</td><td class="nn-rpt-text">' || esc(l_lbl) || '</td><td>'
-             || CASE WHEN p_link IS NOT NULL THEN '<a class="nn-drill" href="' || esc(REPLACE(p_link, '#ID#', r.id)) || '">فتح</a>' END || '</td></tr>';
+             || CASE WHEN p_link IS NOT NULL THEN '<a class="nn-drill" href="' || esc(REPLACE(p_link, '#ID#', r.id)) || '">فتح</a>' END || '</td></tr>');
     END LOOP;
     IF l_cnt = 0 THEN
-      l_html := l_html || '<tr><td colspan="7" class="nn-rpt-text">لا توجد مستندات منتهية أو قريبة الانتهاء</td></tr>';
+      l_html := l_html || ('<tr><td colspan="7" class="nn-rpt-text">لا توجد مستندات منتهية أو قريبة الانتهاء</td></tr>');
     END IF;
-    RETURN l_html || '</tbody></table>';
+    RETURN l_html || ('</tbody></table>');
   END expiring_html;
 
   FUNCTION document_html(p_document_id IN NUMBER, p_link IN VARCHAR2 DEFAULT NULL) RETURN CLOB IS
@@ -993,31 +993,31 @@ CREATE OR REPLACE PACKAGE BODY NOONA_DMS_PKG AS
     FOR r IN (SELECT v.id, v.version_no, c.file_name, c.file_size_bytes, c.hash_value, v.change_reason, v.status_code, v.uploaded_at
                 FROM dms_document_version v JOIN dms_file_content c ON c.id = v.content_id
                WHERE v.document_id = p_document_id ORDER BY v.version_no DESC) LOOP
-      l_html := l_html || '<tr><td>' || r.version_no || '</td><td class="nn-rpt-text">'
+      l_html := l_html || ('<tr><td>' || r.version_no || '</td><td class="nn-rpt-text">'
              || CASE WHEN p_link IS NULL THEN esc(r.file_name)
                      ELSE '<a class="nn-drill" target="_blank" rel="noopener" href="' || esc(REPLACE(REPLACE(p_link, '#ID#', p_document_id), '#VER#', r.id))
                           || '">' || esc(r.file_name) || '</a>' END
              || '</td><td>' || size_text(r.file_size_bytes) || '</td><td class="nn-hash">' || SUBSTR(r.hash_value, 1, 16) || '…</td><td class="nn-rpt-text">'
              || esc(r.change_reason) || '</td><td>' || NOONA_UI_PKG.status_badge(r.status_code) || '</td><td>'
-             || TO_CHAR(r.uploaded_at, 'YYYY-MM-DD HH24:MI') || '</td></tr>';
+             || TO_CHAR(r.uploaded_at, 'YYYY-MM-DD HH24:MI') || '</td></tr>');
     END LOOP;
-    l_html := l_html || '</tbody></table><h3 class="nn-rpt-h">مرتبط بـ</h3><table class="nn-rpt"><thead><tr><th>المستند</th><th>الحالة</th>'
-           || '<th>سبب الفصل</th></tr></thead><tbody>';
+    l_html := l_html || ('</tbody></table><h3 class="nn-rpt-h">مرتبط بـ</h3><table class="nn-rpt"><thead><tr><th>المستند</th><th>الحالة</th>'
+           || '<th>سبب الفصل</th></tr></thead><tbody>');
     FOR r IN (SELECT entity_type, entity_id, status_code, detach_reason FROM dms_document_link WHERE document_id = p_document_id ORDER BY id) LOOP
-      l_html := l_html || '<tr><td class="nn-rpt-text">' || esc(entity_label(r.entity_type, r.entity_id)) || '</td><td>'
-             || NOONA_UI_PKG.status_badge(r.status_code) || '</td><td class="nn-rpt-text">' || esc(r.detach_reason) || '</td></tr>';
+      l_html := l_html || ('<tr><td class="nn-rpt-text">' || esc(entity_label(r.entity_type, r.entity_id)) || '</td><td>'
+             || NOONA_UI_PKG.status_badge(r.status_code) || '</td><td class="nn-rpt-text">' || esc(r.detach_reason) || '</td></tr>');
     END LOOP;
-    l_html := l_html || '</tbody></table><h3 class="nn-rpt-h">سجل الوصول</h3><table class="nn-rpt"><thead><tr><th>الوقت</th><th>الإجراء</th>'
-           || '<th>المستخدم</th><th>النتيجة</th></tr></thead><tbody>';
+    l_html := l_html || ('</tbody></table><h3 class="nn-rpt-h">سجل الوصول</h3><table class="nn-rpt"><thead><tr><th>الوقت</th><th>الإجراء</th>'
+           || '<th>المستخدم</th><th>النتيجة</th></tr></thead><tbody>');
     FOR r IN (SELECT l.created_at, l.access_type, NVL(u.username, l.created_by) who, l.result_code
                 FROM dms_access_log l LEFT JOIN sec_user_membership m ON m.id = l.membership_id LEFT JOIN sec_user u ON u.id = m.user_id
                WHERE l.document_id = p_document_id ORDER BY l.id DESC FETCH FIRST 30 ROWS ONLY) LOOP
-      l_html := l_html || '<tr><td>' || TO_CHAR(r.created_at, 'YYYY-MM-DD HH24:MI') || '</td><td>'
+      l_html := l_html || ('<tr><td>' || TO_CHAR(r.created_at, 'YYYY-MM-DD HH24:MI') || '</td><td>'
              || CASE r.access_type WHEN 'DOWNLOAD' THEN 'تنزيل/عرض' ELSE r.access_type END || '</td><td>' || esc(r.who) || '</td><td>'
              || CASE r.result_code WHEN 'ALLOWED' THEN '<span class="nn-badge is-success">مسموح</span>' ELSE '<span class="nn-badge is-danger">مرفوض</span>' END
-             || '</td></tr>';
+             || '</td></tr>');
     END LOOP;
-    RETURN l_html || '</tbody></table>';
+    RETURN l_html || ('</tbody></table>');
   END document_html;
 
   FUNCTION summary(p_session IN VARCHAR2) RETURN CLOB IS

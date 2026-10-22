@@ -37,6 +37,8 @@ PROMPT ========== أنواع حركات المخزون والضريبة والأ
 PROMPT ========== صلاحيات مسؤول المؤسسة
 @@upgrade_parts/sync_admin_roles.sql
 PROMPT ========== NOONA_ACE_PKG / NOONA_CSH_PKG / NOONA_INV_PKG / NOONA_PUR_PKG / NOONA_SAL_PKG / NOONA_POS_PKG
+@@plsql/95_noona_dms_pkg.sql
+@@plsql/100_noona_gl_pkg.sql
 @@plsql/101_noona_ace_pkg.sql
 @@plsql/102_noona_csh_pkg.sql
 @@plsql/104_noona_inv_pkg.sql

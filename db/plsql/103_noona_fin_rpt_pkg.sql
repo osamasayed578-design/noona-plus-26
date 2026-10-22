@@ -104,46 +104,46 @@ CREATE OR REPLACE PACKAGE BODY NOONA_FIN_RPT_PKG AS
                      NVL(l.description, l_j.description) txt, l.debit_func, l.credit_func
                 FROM gl_journal_line l JOIN gl_account a ON a.id = l.account_id LEFT JOIN gl_cost_center c ON c.id = l.cost_center_id
                WHERE l.journal_id = p_journal_id ORDER BY l.line_no) LOOP
-      l_html := l_html || '<tr><td>' || r.line_no || '</td><td class="nn-rpt-text">' || esc(r.acc) || '</td><td class="nn-rpt-text">'
+      l_html := l_html || ('<tr><td>' || r.line_no || '</td><td class="nn-rpt-text">' || esc(r.acc) || '</td><td class="nn-rpt-text">'
              || esc(r.cc) || '</td><td class="nn-rpt-text">' || esc(r.txt) || '</td><td>' || fmt(r.debit_func) || '</td><td>'
-             || fmt(r.credit_func) || '</td></tr>';
+             || fmt(r.credit_func) || '</td></tr>');
     END LOOP;
-    l_html := l_html || '</tbody><tfoot><tr><td colspan="4">الإجمالي</td><td>' || fmt0(l_j.total_debit_func) || '</td><td>'
+    l_html := l_html || ('</tbody><tfoot><tr><td colspan="4">الإجمالي</td><td>' || fmt0(l_j.total_debit_func) || '</td><td>'
            || fmt0(l_j.total_credit_func) || '</td></tr></tfoot></table>'
-           || check_box(l_j.total_debit_func = l_j.total_credit_func, 'القيد متوازن', 'القيد غير متوازن');
+           || check_box(l_j.total_debit_func = l_j.total_credit_func, 'القيد متوازن', 'القيد غير متوازن'));
     -- مستند المصدر
-    l_html := l_html || '<h3 class="nn-rpt-h">مستند المصدر: ' || esc(l_src) || '</h3>';
+    l_html := l_html || ('<h3 class="nn-rpt-h">مستند المصدر: ' || esc(l_src) || '</h3>');
     IF l_j.accounting_event_id IS NOT NULL THEN
       SELECT * INTO l_ev FROM ace_accounting_event WHERE id = l_j.accounting_event_id;
-      l_html := l_html || '<div class="nn-rpt-foot"><span><b>الحدث المحاسبي:</b> ' || l_ev.id || ' - ' || esc(l_ev.idempotency_key)
-             || '</span><span><b>الحالة:</b> ' || esc(status_name(l_ev.status_code)) || '</span></div>';
+      l_html := l_html || ('<div class="nn-rpt-foot"><span><b>الحدث المحاسبي:</b> ' || l_ev.id || ' - ' || esc(l_ev.idempotency_key)
+             || '</span><span><b>الحالة:</b> ' || esc(status_name(l_ev.status_code)) || '</span></div>');
       IF l_ev.source_entity_type = 'CSH_TRANSACTION' THEN
-        l_html := l_html || '<div class="nn-rpt-source">' || NOONA_CSH_PKG.voucher_print(l_ev.source_entity_id) || '</div>';
+        l_html := l_html || ('<div class="nn-rpt-source">' || NOONA_CSH_PKG.voucher_print(l_ev.source_entity_id) || '</div>');
       END IF;
     ELSIF l_j.reversal_of_id IS NOT NULL THEN
-      l_html := l_html || '<div class="nn-empty">قيد عكسي؛ المستند الأصلي هو القيد المعكوس المذكور في الأعلى</div>';
+      l_html := l_html || ('<div class="nn-empty">قيد عكسي؛ المستند الأصلي هو القيد المعكوس المذكور في الأعلى</div>');
     ELSE
-      l_html := l_html || '<div class="nn-empty">قيد يومية مباشر (المستند هو القيد نفسه)</div>';
+      l_html := l_html || ('<div class="nn-empty">قيد يومية مباشر (المستند هو القيد نفسه)</div>');
     END IF;
     -- المستندات المؤرشفة (المرجع الورقي)
-    l_html := l_html || '<h3 class="nn-rpt-h">المستندات المؤرشفة</h3>'
+    l_html := l_html || ('<h3 class="nn-rpt-h">المستندات المؤرشفة</h3>'
            || NOONA_DMS_PKG.attachments_html(CASE WHEN l_ev.source_entity_type = 'CSH_TRANSACTION' THEN 'CSH_TRANSACTION' ELSE 'GL_JOURNAL' END,
                                              CASE WHEN l_ev.source_entity_type = 'CSH_TRANSACTION' THEN l_ev.source_entity_id ELSE p_journal_id END,
-                                             p_link, 'Y');
+                                             p_link, 'Y'));
     -- مسار المستند
-    l_html := l_html || '<h3 class="nn-rpt-h">مسار القيد</h3><table class="nn-rpt"><thead><tr><th>الوقت</th><th>الإجراء</th>'
+    l_html := l_html || ('<h3 class="nn-rpt-h">مسار القيد</h3><table class="nn-rpt"><thead><tr><th>الوقت</th><th>الإجراء</th>'
            || '<th>المستخدم</th><th>السبب / الملاحظة</th></tr></thead><tbody>'
            || '<tr><td>' || TO_CHAR(l_j.created_at, 'YYYY-MM-DD HH24:MI') || '</td><td class="nn-rpt-text">إنشاء</td><td>'
-           || esc(l_j.created_by) || '</td><td></td></tr>';
+           || esc(l_j.created_by) || '</td><td></td></tr>');
     FOR r IN (SELECT e.occurred_at, e.action_code, NVL(u.username, e.created_by) who, e.reason
                 FROM aud_event e LEFT JOIN sec_user u ON u.id = e.actor_user_id
                WHERE e.entity_type = 'GL_JOURNAL' AND e.entity_id = p_journal_id ORDER BY e.occurred_at, e.id) LOOP
-      l_html := l_html || '<tr><td>' || TO_CHAR(r.occurred_at, 'YYYY-MM-DD HH24:MI') || '</td><td class="nn-rpt-text">'
+      l_html := l_html || ('<tr><td>' || TO_CHAR(r.occurred_at, 'YYYY-MM-DD HH24:MI') || '</td><td class="nn-rpt-text">'
              || esc(CASE r.action_code WHEN 'SUBMIT' THEN 'إرسال للاعتماد' WHEN 'APPROVE' THEN 'اعتماد' WHEN 'POST' THEN 'ترحيل'
                                       WHEN 'REJECT' THEN 'رفض' WHEN 'REVERSE' THEN 'عكس' WHEN 'CANCEL' THEN 'إلغاء' ELSE r.action_code END)
-             || '</td><td>' || esc(r.who) || '</td><td class="nn-rpt-text">' || esc(r.reason) || '</td></tr>';
+             || '</td><td>' || esc(r.who) || '</td><td class="nn-rpt-text">' || esc(r.reason) || '</td></tr>');
     END LOOP;
-    RETURN l_html || '</tbody></table>' || NOONA_GL_PKG.report_footer('القيد كما هو مسجل في الدفتر');
+    RETURN l_html || ('</tbody></table>' || NOONA_GL_PKG.report_footer('القيد كما هو مسجل في الدفتر'));
   END journal_view;
 
   -- ================================================================ دفتر الأستاذ
@@ -181,8 +181,8 @@ CREATE OR REPLACE PACKAGE BODY NOONA_FIN_RPT_PKG AS
        ORDER BY a.account_code) LOOP
       l_cnt := l_cnt + 1;
       l_bal := a.opening; l_dr := 0; l_cr := 0;
-      l_html := l_html || '<tr class="nn-rpt-group"><td colspan="6">' || esc(a.account_code || ' - ' || a.name_ar) || '</td></tr>'
-             || '<tr class="nn-rpt-head2"><td colspan="5">رصيد أول المدة</td><td>' || fmt0(l_bal) || '</td></tr>';
+      l_html := l_html || ('<tr class="nn-rpt-group"><td colspan="6">' || esc(a.account_code || ' - ' || a.name_ar) || '</td></tr>'
+             || '<tr class="nn-rpt-head2"><td colspan="5">رصيد أول المدة</td><td>' || fmt0(l_bal) || '</td></tr>');
       FOR r IN (SELECT j.id, j.doc_date, j.doc_no, NVL(l.description, j.description) txt, l.debit_func, l.credit_func
                   FROM gl_journal_line l JOIN gl_journal j ON j.id = l.journal_id
                  WHERE l.account_id = a.id AND j.ledger_id = l_led AND j.status_code IN ('POSTED', 'REVERSED')
@@ -190,22 +190,22 @@ CREATE OR REPLACE PACKAGE BODY NOONA_FIN_RPT_PKG AS
                  ORDER BY j.doc_date, j.posted_at, j.id, l.line_no) LOOP
         l_bal := l_bal + r.debit_func - r.credit_func;
         l_dr := l_dr + r.debit_func; l_cr := l_cr + r.credit_func;
-        l_html := l_html || '<tr><td>' || TO_CHAR(r.doc_date, 'YYYY-MM-DD') || '</td><td>' || drill(p_link, r.id, r.doc_no)
+        l_html := l_html || ('<tr><td>' || TO_CHAR(r.doc_date, 'YYYY-MM-DD') || '</td><td>' || drill(p_link, r.id, r.doc_no)
                || '</td><td class="nn-rpt-text">' || esc(r.txt) || '</td><td>' || fmt(r.debit_func) || '</td><td>' || fmt(r.credit_func)
-               || '</td><td>' || fmt0(l_bal) || '</td></tr>';
+               || '</td><td>' || fmt0(l_bal) || '</td></tr>');
       END LOOP;
-      l_html := l_html || '<tr class="nn-rpt-sub"><td colspan="3">مجموع الحركة والرصيد الختامي (موجب = مدين)</td><td>' || fmt0(l_dr)
-             || '</td><td>' || fmt0(l_cr) || '</td><td>' || fmt0(l_bal) || '</td></tr>';
+      l_html := l_html || ('<tr class="nn-rpt-sub"><td colspan="3">مجموع الحركة والرصيد الختامي (موجب = مدين)</td><td>' || fmt0(l_dr)
+             || '</td><td>' || fmt0(l_cr) || '</td><td>' || fmt0(l_bal) || '</td></tr>');
       t_dr := t_dr + l_dr; t_cr := t_cr + l_cr;
     END LOOP;
     IF l_cnt = 0 THEN
-      l_html := l_html || '<tr><td colspan="6" class="nn-rpt-text">لا توجد حركات في هذا النطاق</td></tr>';
+      l_html := l_html || ('<tr><td colspan="6" class="nn-rpt-text">لا توجد حركات في هذا النطاق</td></tr>');
     END IF;
-    RETURN l_html || '</tbody><tfoot><tr><td colspan="3">إجمالي حركة الحسابات المعروضة</td><td>' || fmt0(t_dr) || '</td><td>'
+    RETURN l_html || ('</tbody><tfoot><tr><td colspan="3">إجمالي حركة الحسابات المعروضة</td><td>' || fmt0(t_dr) || '</td><td>'
         || fmt0(t_cr) || '</td><td></td></tr></tfoot></table>'
         || CASE WHEN p_acc_from IS NULL AND p_acc_to IS NULL AND p_cost_center_id IS NULL
                 THEN check_box(t_dr = t_cr, 'مجموع المدين = مجموع الدائن لكل حسابات الفترة', 'مجموع الحركة غير متوازن: الفرق ' || fmt0(t_dr - t_cr)) END
-        || NOONA_GL_PKG.report_footer;
+        || NOONA_GL_PKG.report_footer);
   END general_ledger;
 
   -- ================================================================ يومية القيود
@@ -235,27 +235,27 @@ CREATE OR REPLACE PACKAGE BODY NOONA_FIN_RPT_PKG AS
                    OR (l_st = 'ALL' AND j.status_code <> 'CANCELLED'))
                ORDER BY j.doc_date, j.id) LOOP
       l_cnt := l_cnt + 1;
-      l_html := l_html || '<tr class="nn-rpt-group"><td colspan="6">' || drill(p_link, j.id, j.doc_no) || ' &middot; '
+      l_html := l_html || ('<tr class="nn-rpt-group"><td colspan="6">' || drill(p_link, j.id, j.doc_no) || ' &middot; '
              || TO_CHAR(j.doc_date, 'YYYY-MM-DD') || ' &middot; ' || esc(j.description) || ' &middot; ' || esc(j.src)
              || ' &middot; ' || esc(status_name(j.status_code)) || ' &middot; ' || esc(j.created_by)
-             || CASE WHEN j.approved_by IS NOT NULL THEN ' / ' || esc(j.approved_by) END || '</td></tr>';
+             || CASE WHEN j.approved_by IS NOT NULL THEN ' / ' || esc(j.approved_by) END || '</td></tr>');
       FOR l IN (SELECT l.account_code_snapshot code, a.name_ar, c.code cc, l.description, l.debit_func, l.credit_func
                   FROM gl_journal_line l JOIN gl_account a ON a.id = l.account_id LEFT JOIN gl_cost_center c ON c.id = l.cost_center_id
                  WHERE l.journal_id = j.id ORDER BY l.line_no) LOOP
-        l_html := l_html || '<tr><td class="nn-num-code">' || esc(l.code) || '</td><td>' || esc(l.name_ar) || '</td><td>' || esc(l.cc)
+        l_html := l_html || ('<tr><td class="nn-num-code">' || esc(l.code) || '</td><td>' || esc(l.name_ar) || '</td><td>' || esc(l.cc)
                || '</td><td class="nn-rpt-text">' || esc(l.description) || '</td><td>' || fmt(l.debit_func) || '</td><td>'
-               || fmt(l.credit_func) || '</td></tr>';
+               || fmt(l.credit_func) || '</td></tr>');
       END LOOP;
       t_dr := t_dr + NVL(j.total_debit_func, 0); t_cr := t_cr + NVL(j.total_credit_func, 0);
     END LOOP;
     IF l_cnt = 0 THEN
-      l_html := l_html || '<tr><td colspan="6" class="nn-rpt-text">لا توجد قيود</td></tr>';
+      l_html := l_html || ('<tr><td colspan="6" class="nn-rpt-text">لا توجد قيود</td></tr>');
     END IF;
-    RETURN l_html || '</tbody><tfoot><tr><td colspan="4">الإجمالي (' || l_cnt || ' قيد)</td><td>' || fmt0(t_dr) || '</td><td>'
+    RETURN l_html || ('</tbody><tfoot><tr><td colspan="4">الإجمالي (' || l_cnt || ' قيد)</td><td>' || fmt0(t_dr) || '</td><td>'
         || fmt0(t_cr) || '</td></tr></tfoot></table>'
         || check_box(t_dr = t_cr, 'مجموع المدين = مجموع الدائن', 'اليومية غير متوازنة: الفرق ' || fmt0(t_dr - t_cr))
         || NOONA_GL_PKG.report_footer(CASE l_st WHEN 'UNPOSTED' THEN 'القيود المسودة والمرسلة والمعتمدة غير المرحلة (لا تؤثر في الأرصدة)'
-                                          WHEN 'ALL' THEN 'كل القيود عدا الملغاة' END);
+                                          WHEN 'ALL' THEN 'كل القيود عدا الملغاة' END));
   END journal_register;
 
   FUNCTION journal_type_summary(p_from IN DATE, p_to IN DATE, p_link IN VARCHAR2 DEFAULT NULL) RETURN CLOB IS
@@ -284,20 +284,20 @@ CREATE OR REPLACE PACKAGE BODY NOONA_FIN_RPT_PKG AS
                ORDER BY CASE NVL(t.type_group, 'MANUAL') WHEN 'MANUAL' THEN 1 ELSE 2 END, t.sort_order NULLS LAST, j.code) LOOP
       IF l_grp IS NULL OR l_grp <> r.grp THEN
         l_grp := r.grp;
-        l_html := l_html || '<tr class="nn-rpt-group"><td colspan="7">'
-               || CASE r.grp WHEN 'MANUAL' THEN 'القيود اليدوية' ELSE 'القيود الآلية من المستندات' END || '</td></tr>';
+        l_html := l_html || ('<tr class="nn-rpt-group"><td colspan="7">'
+               || CASE r.grp WHEN 'MANUAL' THEN 'القيود اليدوية' ELSE 'القيود الآلية من المستندات' END || '</td></tr>');
       END IF;
-      l_html := l_html || '<tr><td class="nn-rpt-text">' || esc(r.name_ar) || '</td><td>'
+      l_html := l_html || ('<tr><td class="nn-rpt-text">' || esc(r.name_ar) || '</td><td>'
              || CASE r.grp WHEN 'MANUAL' THEN 'يدوي' ELSE 'آلي' END || '</td><td>'
              || CASE WHEN p_link IS NOT NULL AND r.posted > 0
                      THEN '<a href="' || REPLACE(p_link, '#ID#', r.code) || '">' || r.posted || '</a>' ELSE TO_CHAR(r.posted) END
              || '</td><td>' || fmt(r.amt) || '</td><td>' || NULLIF(r.reversed, 0) || '</td><td>' || NULLIF(r.unposted, 0)
-             || '</td><td>' || NULLIF(r.due, 0) || '</td></tr>';
+             || '</td><td>' || NULLIF(r.due, 0) || '</td></tr>');
       t_n := t_n + r.posted; t_dr := t_dr + r.amt; t_un := t_un + r.unposted;
     END LOOP;
-    RETURN l_html || '</tbody><tfoot><tr><td colspan="2">الإجمالي</td><td>' || t_n || '</td><td>' || fmt0(t_dr) || '</td><td></td><td>'
+    RETURN l_html || ('</tbody><tfoot><tr><td colspan="2">الإجمالي</td><td>' || t_n || '</td><td>' || fmt0(t_dr) || '</td><td></td><td>'
         || NULLIF(t_un, 0) || '</td><td></td></tr></tfoot></table>'
-        || NOONA_GL_PKG.report_footer('حسب تاريخ القيد؛ المبالغ بالعملة الوظيفية (المدين = الدائن لكل قيد)');
+        || NOONA_GL_PKG.report_footer('حسب تاريخ القيد؛ المبالغ بالعملة الوظيفية (المدين = الدائن لكل قيد)'));
   END journal_type_summary;
 
   -- ================================================================ التدفقات النقدية (الطريقة المباشرة)
@@ -313,8 +313,8 @@ CREATE OR REPLACE PACKAGE BODY NOONA_FIN_RPT_PKG AS
     PROCEDURE close_cat IS
     BEGIN
       IF l_cat IS NOT NULL THEN
-        l_html := l_html || '<tr class="nn-rpt-total"><td colspan="2">صافي التدفق من الأنشطة ' || CASE l_cat WHEN 'OPERATING' THEN 'التشغيلية'
-                  WHEN 'INVESTING' THEN 'الاستثمارية' ELSE 'التمويلية' END || '</td><td>' || fmt0(l_sub) || '</td></tr>';
+        l_html := l_html || ('<tr class="nn-rpt-total"><td colspan="2">صافي التدفق من الأنشطة ' || CASE l_cat WHEN 'OPERATING' THEN 'التشغيلية'
+                  WHEN 'INVESTING' THEN 'الاستثمارية' ELSE 'التمويلية' END || '</td><td>' || fmt0(l_sub) || '</td></tr>');
       END IF;
     END close_cat;
   BEGIN
@@ -330,8 +330,8 @@ CREATE OR REPLACE PACKAGE BODY NOONA_FIN_RPT_PKG AS
     FOR c IN (SELECT 'OPERATING' cat, 1 o FROM dual UNION ALL SELECT 'INVESTING', 2 FROM dual UNION ALL SELECT 'FINANCING', 3 FROM dual
               ORDER BY 2) LOOP
       l_cat := c.cat; l_sub := 0;
-      l_html := l_html || '<tr class="nn-rpt-group"><td colspan="3">التدفقات النقدية من الأنشطة ' || CASE c.cat WHEN 'OPERATING' THEN 'التشغيلية'
-                WHEN 'INVESTING' THEN 'الاستثمارية' ELSE 'التمويلية' END || '</td></tr>';
+      l_html := l_html || ('<tr class="nn-rpt-group"><td colspan="3">التدفقات النقدية من الأنشطة ' || CASE c.cat WHEN 'OPERATING' THEN 'التشغيلية'
+                WHEN 'INVESTING' THEN 'الاستثمارية' ELSE 'التمويلية' END || '</td></tr>');
       FOR r IN (
         WITH cj AS (
           SELECT DISTINCT j.id FROM gl_journal j JOIN gl_journal_line l ON l.journal_id = j.id JOIN gl_account a ON a.id = l.account_id
@@ -348,20 +348,20 @@ CREATE OR REPLACE PACKAGE BODY NOONA_FIN_RPT_PKG AS
            WHERE NVL(a.subledger_code, '-') <> 'CASH')
         SELECT account_code, name_ar, SUM(amt) amt FROM x WHERE cat = c.cat
          GROUP BY account_code, name_ar HAVING SUM(amt) <> 0 ORDER BY account_code) LOOP
-        l_html := l_html || '<tr><td class="nn-num-code">' || esc(r.account_code) || '</td><td>'
-               || esc(CASE WHEN r.amt > 0 THEN 'مقبوضات - ' ELSE 'مدفوعات - ' END || r.name_ar) || '</td><td>' || fmt0(r.amt) || '</td></tr>';
+        l_html := l_html || ('<tr><td class="nn-num-code">' || esc(r.account_code) || '</td><td>'
+               || esc(CASE WHEN r.amt > 0 THEN 'مقبوضات - ' ELSE 'مدفوعات - ' END || r.name_ar) || '</td><td>' || fmt0(r.amt) || '</td></tr>');
         l_sub := l_sub + r.amt;
       END LOOP;
       close_cat;
       l_net := l_net + l_sub;
     END LOOP;
-    l_html := l_html || '<tr class="nn-rpt-total"><td colspan="2">صافي التغير في النقدية</td><td>' || fmt0(l_net) || '</td></tr>'
+    l_html := l_html || ('<tr class="nn-rpt-total"><td colspan="2">صافي التغير في النقدية</td><td>' || fmt0(l_net) || '</td></tr>'
            || '<tr><td></td><td>النقدية في بداية الفترة</td><td>' || fmt0(l_open) || '</td></tr>'
-           || '</tbody><tfoot><tr><td colspan="2">النقدية في نهاية الفترة</td><td>' || fmt0(l_open + l_net) || '</td></tr></tfoot></table>';
-    RETURN l_html || check_box(ROUND(l_open + l_net, 2) = ROUND(l_close, 2),
+           || '</tbody><tfoot><tr><td colspan="2">النقدية في نهاية الفترة</td><td>' || fmt0(l_open + l_net) || '</td></tr></tfoot></table>');
+    RETURN l_html || (check_box(ROUND(l_open + l_net, 2) = ROUND(l_close, 2),
                                'تتطابق مع أرصدة حسابات النقدية في الأستاذ (' || fmt0(l_close) || ')',
                                'لا تتطابق مع رصيد النقدية في الأستاذ ' || fmt0(l_close))
-        || NOONA_GL_PKG.report_footer('القيود المرحلة التي تمس حسابات النقدية؛ يصنف التدفق حسب الحساب المقابل');
+        || NOONA_GL_PKG.report_footer('القيود المرحلة التي تمس حسابات النقدية؛ يصنف التدفق حسب الحساب المقابل'));
   END cash_flow;
 
   -- ================================================================ التغيرات في حقوق الملكية
@@ -411,18 +411,18 @@ CREATE OR REPLACE PACKAGE BODY NOONA_FIN_RPT_PKG AS
        AND a.coa_id = l_coa AND a.account_type IN ('REVENUE', 'EXPENSE');
     l_html := NOONA_BRAND_PKG.report_header('قائمة التغيرات في حقوق الملكية' || period_text(p_from, p_to))
            || '<div class="nn-rpt-scroll"><table class="nn-rpt nn-rpt-matrix"><thead><tr><th>البيان</th>';
-    FOR i IN 1 .. l_n LOOP l_html := l_html || '<th>' || esc(l_names(i)) || '</th>'; END LOOP;
-    l_html := l_html || '<th>نتيجة الأعمال غير المقفلة</th><th>الإجمالي</th></tr></thead><tbody>'
-           || row_html('الرصيد في ' || TO_CHAR(p_from, 'YYYY-MM-DD'), o, r_open, 'nn-rpt-head2');
+    FOR i IN 1 .. l_n LOOP l_html := l_html || ('<th>' || esc(l_names(i)) || '</th>'); END LOOP;
+    l_html := l_html || ('<th>نتيجة الأعمال غير المقفلة</th><th>الإجمالي</th></tr></thead><tbody>'
+           || row_html('الرصيد في ' || TO_CHAR(p_from, 'YYYY-MM-DD'), o, r_open, 'nn-rpt-head2'));
     DECLARE z t_num;
     BEGIN
       FOR i IN 1 .. l_n LOOP z(i) := NULL; END LOOP;
-      l_html := l_html || row_html(CASE WHEN r_profit >= 0 THEN 'صافي ربح الفترة' ELSE 'صافي خسارة الفترة' END, z, r_profit)
+      l_html := l_html || (row_html(CASE WHEN r_profit >= 0 THEN 'صافي ربح الفترة' ELSE 'صافي خسارة الفترة' END, z, r_profit)
              || row_html('زيادات (إيداعات وتحويلات دائنة)', inc, NULL)
              || row_html('تخفيضات (مسحوبات وتوزيعات)', dec, NULL)
-             || row_html('إقفال نتيجة السنة في الأرباح المبقاة', cls, r_close - r_open - r_profit);
+             || row_html('إقفال نتيجة السنة في الأرباح المبقاة', cls, r_close - r_open - r_profit));
     END;
-    l_html := l_html || '</tbody><tfoot>' || row_html('الرصيد في ' || TO_CHAR(p_to, 'YYYY-MM-DD'), c, r_close) || '</tfoot></table></div>';
+    l_html := l_html || ('</tbody><tfoot>' || row_html('الرصيد في ' || TO_CHAR(p_to, 'YYYY-MM-DD'), c, r_close) || '</tfoot></table></div>');
     l_tot := r_close;
     FOR i IN 1 .. l_n LOOP l_tot := l_tot + c(i); END LOOP;
     -- التحقق: إجمالي حقوق الملكية = الأصول - الخصوم في نهاية الفترة
@@ -431,10 +431,10 @@ CREATE OR REPLACE PACKAGE BODY NOONA_FIN_RPT_PKG AS
       INTO l_assets, l_liab
       FROM gl_journal_line l JOIN gl_journal j ON j.id = l.journal_id JOIN gl_account a ON a.id = l.account_id
      WHERE j.ledger_id = l_led AND j.status_code IN ('POSTED', 'REVERSED') AND j.doc_date <= p_to AND a.coa_id = l_coa;
-    RETURN l_html || check_box(ROUND(l_tot, 2) = ROUND(l_assets - l_liab, 2),
+    RETURN l_html || (check_box(ROUND(l_tot, 2) = ROUND(l_assets - l_liab, 2),
                                'إجمالي حقوق الملكية = الأصول - الخصوم = ' || fmt0(l_tot),
                                'لا يطابق صافي الأصول ' || fmt0(l_assets - l_liab))
-        || NOONA_GL_PKG.report_footer('القيود المرحلة على حسابات حقوق الملكية ونتيجة الأعمال');
+        || NOONA_GL_PKG.report_footer('القيود المرحلة على حسابات حقوق الملكية ونتيجة الأعمال'));
   END equity_changes;
 
   -- ================================================================ مقارنة فترتين
@@ -446,8 +446,8 @@ CREATE OR REPLACE PACKAGE BODY NOONA_FIN_RPT_PKG AS
     r1 NUMBER := 0; r2 NUMBER := 0; e1 NUMBER := 0; e2 NUMBER := 0;
     PROCEDURE total_row(p_label VARCHAR2, a NUMBER, b NUMBER, p_class VARCHAR2 DEFAULT 'nn-rpt-total') IS
     BEGIN
-      l_html := l_html || '<tr class="' || p_class || '"><td colspan="2">' || p_label || '</td><td>' || fmt0(a) || '</td><td>' || fmt0(b)
-             || '</td><td>' || fmt0(a - b) || '</td><td>' || pct(a - b, ABS(b)) || '</td></tr>';
+      l_html := l_html || ('<tr class="' || p_class || '"><td colspan="2">' || p_label || '</td><td>' || fmt0(a) || '</td><td>' || fmt0(b)
+             || '</td><td>' || fmt0(a - b) || '</td><td>' || pct(a - b, ABS(b)) || '</td></tr>');
     END total_row;
   BEGIN
     view_guard;
@@ -472,18 +472,18 @@ CREATE OR REPLACE PACKAGE BODY NOONA_FIN_RPT_PKG AS
       IF l_type IS NULL OR l_type <> r.account_type THEN
         IF l_type = 'REVENUE' THEN total_row('إجمالي الإيرادات', r1, r2); END IF;
         l_type := r.account_type;
-        l_html := l_html || '<tr class="nn-rpt-group"><td colspan="6">' || CASE r.account_type WHEN 'REVENUE' THEN 'الإيرادات'
-                  ELSE 'التكاليف والمصروفات' END || '</td></tr>';
+        l_html := l_html || ('<tr class="nn-rpt-group"><td colspan="6">' || CASE r.account_type WHEN 'REVENUE' THEN 'الإيرادات'
+                  ELSE 'التكاليف والمصروفات' END || '</td></tr>');
       END IF;
-      l_html := l_html || '<tr><td class="nn-num-code">' || esc(r.account_code) || '</td><td>' || esc(r.name_ar) || '</td><td>'
-             || fmt0(r.v1) || '</td><td>' || fmt0(r.v2) || '</td><td>' || fmt0(r.v1 - r.v2) || '</td><td>' || pct(r.v1 - r.v2, ABS(r.v2)) || '</td></tr>';
+      l_html := l_html || ('<tr><td class="nn-num-code">' || esc(r.account_code) || '</td><td>' || esc(r.name_ar) || '</td><td>'
+             || fmt0(r.v1) || '</td><td>' || fmt0(r.v2) || '</td><td>' || fmt0(r.v1 - r.v2) || '</td><td>' || pct(r.v1 - r.v2, ABS(r.v2)) || '</td></tr>');
       IF r.account_type = 'REVENUE' THEN r1 := r1 + r.v1; r2 := r2 + r.v2; ELSE e1 := e1 + r.v1; e2 := e2 + r.v2; END IF;
     END LOOP;
     IF l_type = 'REVENUE' THEN total_row('إجمالي الإيرادات', r1, r2); END IF;
     total_row('إجمالي التكاليف والمصروفات', e1, e2);
-    l_html := l_html || '</tbody><tfoot>';
+    l_html := l_html || ('</tbody><tfoot>');
     total_row('صافي الربح (الخسارة)', r1 - e1, r2 - e2, 'nn-rpt-net');
-    RETURN l_html || '</tfoot></table>' || NOONA_GL_PKG.report_footer('القيود المرحلة بتاريخ القيد دون قيود إقفال السنة');
+    RETURN l_html || ('</tfoot></table>' || NOONA_GL_PKG.report_footer('القيود المرحلة بتاريخ القيد دون قيود إقفال السنة'));
   END income_compare;
 
   -- ================================================================ النسب المالية
@@ -578,13 +578,13 @@ CREATE OR REPLACE PACKAGE BODY NOONA_FIN_RPT_PKG AS
       SELECT j.id FROM gl_journal j JOIN gl_journal_line l ON l.journal_id = j.id
        WHERE j.ledger_id = l_led AND j.status_code IN ('POSTED', 'REVERSED') AND j.doc_date <= l_to
        GROUP BY j.id HAVING SUM(l.debit_func) <> SUM(l.credit_func));
-    l_html := l_html || ctl_row('توازن كل قيد مرحل', l_n || ' قيد غير متوازن', l_n = 0, 'مجموع المدين = مجموع الدائن في كل قيد');
+    l_html := l_html || (ctl_row('توازن كل قيد مرحل', l_n || ' قيد غير متوازن', l_n = 0, 'مجموع المدين = مجموع الدائن في كل قيد'));
     -- 2) إجماليات الرأس = مجموع السطور
     SELECT COUNT(*) INTO l_n FROM gl_journal j
      WHERE j.ledger_id = l_led AND j.status_code IN ('POSTED', 'REVERSED') AND j.doc_date <= l_to
        AND (NVL(j.total_debit_func, 0) <> (SELECT NVL(SUM(debit_func), 0) FROM gl_journal_line WHERE journal_id = j.id)
          OR NVL(j.total_credit_func, 0) <> (SELECT NVL(SUM(credit_func), 0) FROM gl_journal_line WHERE journal_id = j.id));
-    l_html := l_html || ctl_row('إجماليات رأس القيد = مجموع سطوره', l_n || ' اختلاف', l_n = 0, 'الملخص يطابق التفاصيل');
+    l_html := l_html || (ctl_row('إجماليات رأس القيد = مجموع سطوره', l_n || ' اختلاف', l_n = 0, 'الملخص يطابق التفاصيل'));
     -- 3) جدول الأرصدة يطابق القيود (لكل الفترات)
     SELECT COUNT(*), NVL(SUM(ABS(d)), 0) INTO l_n, l_d FROM (
       SELECT account_id, SUM(v) d FROM (
@@ -593,20 +593,20 @@ CREATE OR REPLACE PACKAGE BODY NOONA_FIN_RPT_PKG AS
         SELECT l.account_id, -(l.debit_func - l.credit_func) FROM gl_journal_line l JOIN gl_journal j ON j.id = l.journal_id
          WHERE j.ledger_id = l_led AND j.status_code IN ('POSTED', 'REVERSED'))
        GROUP BY account_id HAVING SUM(v) <> 0);
-    l_html := l_html || ctl_row('أرصدة الحسابات المحفوظة = حركة القيود', l_n || ' حساب / فرق ' || fmt0(l_d), l_n = 0,
-                                'مطابقة جدول الأرصدة GL_BALANCE مع سطور القيود المرحلة');
+    l_html := l_html || (ctl_row('أرصدة الحسابات المحفوظة = حركة القيود', l_n || ' حساب / فرق ' || fmt0(l_d), l_n = 0,
+                                'مطابقة جدول الأرصدة GL_BALANCE مع سطور القيود المرحلة'));
     -- 4) ميزان المراجعة
     SELECT NVL(SUM(l.debit_func - l.credit_func), 0) INTO l_d FROM gl_journal_line l JOIN gl_journal j ON j.id = l.journal_id
      WHERE j.ledger_id = l_led AND j.status_code IN ('POSTED', 'REVERSED') AND j.doc_date <= l_to;
-    l_html := l_html || ctl_row('ميزان المراجعة متوازن', 'الفرق ' || fmt0(l_d), l_d = 0, 'إجمالي المدين = إجمالي الدائن حتى التاريخ');
+    l_html := l_html || (ctl_row('ميزان المراجعة متوازن', 'الفرق ' || fmt0(l_d), l_d = 0, 'إجمالي المدين = إجمالي الدائن حتى التاريخ'));
     -- 5) القيود اليدوية على حسابات المراقبة
     SELECT COUNT(*) INTO l_n FROM gl_journal_line l JOIN gl_journal j ON j.id = l.journal_id
       JOIN gl_journal_source s ON s.id = j.journal_source_id JOIN gl_account a ON a.id = l.account_id
      WHERE j.ledger_id = l_led AND j.status_code IN ('POSTED', 'REVERSED') AND s.allow_manual = 'Y' AND j.reversal_of_id IS NULL
        AND a.allow_manual_posting = 'N';
-    l_html := l_html || ctl_row('قيود يدوية على حسابات المراقبة', l_n || ' سطر', l_n = 0, 'حسابات العملاء والموردين والمخزون والأصول ترحل من أنظمتها فقط');
+    l_html := l_html || (ctl_row('قيود يدوية على حسابات المراقبة', l_n || ' سطر', l_n = 0, 'حسابات العملاء والموردين والمخزون والأصول ترحل من أنظمتها فقط'));
 
-    l_html := l_html || '<tr class="nn-rpt-group"><td colspan="4">المحرك المحاسبي والمستندات</td></tr>';
+    l_html := l_html || ('<tr class="nn-rpt-group"><td colspan="4">المحرك المحاسبي والمستندات</td></tr>');
     -- 6) مستندات مرحلة دون قيد
     SELECT COUNT(*) INTO l_n FROM csh_transaction t
      WHERE t.company_id = l_co AND t.status_code IN ('SETTLED', 'REVERSED')
@@ -614,28 +614,28 @@ CREATE OR REPLACE PACKAGE BODY NOONA_FIN_RPT_PKG AS
                         WHERE ((e.source_entity_type = 'CSH_TRANSACTION' AND e.source_entity_id = t.id)
                                OR (NVL(t.source_entity_type, 'CSH_TRANSACTION') <> 'CSH_TRANSACTION' AND e.id = t.accounting_event_id))
                           AND j.status_code IN ('POSTED', 'REVERSED'));
-    l_html := l_html || ctl_row('سندات معتمدة دون قيد', l_n || ' سند', l_n = 0, 'كل سند معتمد له قيد مرحل مرتبط');
+    l_html := l_html || (ctl_row('سندات معتمدة دون قيد', l_n || ' سند', l_n = 0, 'كل سند معتمد له قيد مرحل مرتبط'));
     -- 7) آثار مكررة
     SELECT COUNT(*) INTO l_n FROM (
       SELECT source_entity_type, source_entity_id FROM ace_accounting_event
        WHERE company_id = l_co AND status_code = 'POSTED' AND reversal_of_event_id IS NULL
        GROUP BY source_entity_type, source_entity_id HAVING COUNT(*) > 1);
-    l_html := l_html || ctl_row('مستندات مرحلة أكثر من مرة', l_n || ' مستند', l_n = 0, 'منع الترحيل المكرر بمفتاح الحدث المحاسبي');
+    l_html := l_html || (ctl_row('مستندات مرحلة أكثر من مرة', l_n || ' مستند', l_n = 0, 'منع الترحيل المكرر بمفتاح الحدث المحاسبي'));
     -- 8) أحداث معلقة أو فاشلة
     SELECT COUNT(*) INTO l_n FROM ace_accounting_event WHERE company_id = l_co AND status_code NOT IN ('POSTED', 'REVERSED');
-    l_html := l_html || ctl_row('أحداث محاسبية معلقة أو فاشلة', l_n || ' حدث', l_n = 0, 'أحداث لم تتحول إلى قيود');
+    l_html := l_html || (ctl_row('أحداث محاسبية معلقة أو فاشلة', l_n || ' حدث', l_n = 0, 'أحداث لم تتحول إلى قيود'));
     -- 9) قيود نظامية دون مستند
     SELECT COUNT(*) INTO l_n FROM gl_journal j JOIN gl_journal_source s ON s.id = j.journal_source_id
      WHERE j.ledger_id = l_led AND j.status_code IN ('POSTED', 'REVERSED') AND s.allow_manual = 'N'
        AND s.code NOT IN ('YEAR_END', 'OPENING') AND j.accounting_event_id IS NULL AND j.reversal_of_id IS NULL;
-    l_html := l_html || ctl_row('قيود آلية دون مستند مصدر', l_n || ' قيد', l_n = 0, 'كل قيد آلي مرتبط بحدث ومستند');
+    l_html := l_html || (ctl_row('قيود آلية دون مستند مصدر', l_n || ' قيد', l_n = 0, 'كل قيد آلي مرتبط بحدث ومستند'));
     -- 10) مستندات معلقة
     SELECT COUNT(*) INTO l_n FROM gl_journal WHERE ledger_id = l_led AND status_code IN ('DRAFT', 'SUBMITTED', 'APPROVED');
     SELECT COUNT(*) INTO l_x FROM csh_transaction WHERE company_id = l_co AND status_code IN ('DRAFT', 'SUBMITTED');
-    l_html := l_html || ctl_row('مستندات غير مرحلة', l_n || ' قيد / ' || l_x || ' سند', l_n + l_x = 0,
-                                'لا تؤثر في الأرصدة حتى ترحل؛ راجعها قبل إقفال الفترة', TRUE);
+    l_html := l_html || (ctl_row('مستندات غير مرحلة', l_n || ' قيد / ' || l_x || ' سند', l_n + l_x = 0,
+                                'لا تؤثر في الأرصدة حتى ترحل؛ راجعها قبل إقفال الفترة', TRUE));
 
-    l_html := l_html || '<tr class="nn-rpt-group"><td colspan="4">مطابقة الأستاذ مع الأنظمة الفرعية</td></tr>';
+    l_html := l_html || ('<tr class="nn-rpt-group"><td colspan="4">مطابقة الأستاذ مع الأنظمة الفرعية</td></tr>');
     -- 11) النقدية: رصيد الحساب في الأستاذ = أرصدة الصناديق والبنوك المرتبطة به
     FOR r IN (SELECT a.id, a.account_code, a.name_ar FROM gl_account a
                WHERE a.coa_id = NOONA_GL_PKG.primary_coa AND a.subledger_code = 'CASH' AND a.is_postable = 'Y' ORDER BY a.account_code) LOOP
@@ -651,10 +651,10 @@ CREATE OR REPLACE PACKAGE BODY NOONA_FIN_RPT_PKG AS
                                        AND e.journal_id IS NOT NULL
         LEFT JOIN csh_cash_box b ON b.id = t.cash_box_id LEFT JOIN csh_bank_account k ON k.id = t.bank_account_id
        WHERE t.company_id = l_co AND NVL(b.gl_account_id, k.gl_account_id) = r.id AND e.accounting_date <= l_to;
-      l_html := l_html || ctl_row('النقدية: ' || esc(r.account_code || ' ' || r.name_ar),
+      l_html := l_html || (ctl_row('النقدية: ' || esc(r.account_code || ' ' || r.name_ar),
                                   'الأستاذ ' || fmt0(l_d) || ' / السندات ' || fmt0(l_x), l_d = l_x,
                                   CASE WHEN l_d = l_x THEN 'مطابق' ELSE 'الفرق ' || fmt0(l_d - l_x) || ': قيود يومية مباشرة على حساب النقدية (افتتاحي أو تحويل)' END,
-                                  TRUE);
+                                  TRUE));
     END LOOP;
     -- 12) الموردون والعملاء والمخزون: رصيد حساب المراقبة = رصيد النظام الفرعي
     FOR r IN (SELECT 'الموردون: ' || a.account_code || ' ' || a.name_ar lbl, a.id, -1 sg,
@@ -674,25 +674,25 @@ CREATE OR REPLACE PACKAGE BODY NOONA_FIN_RPT_PKG AS
                  AND a.id IN (SELECT NVL(inventory_account_id, NOONA_INV_PKG.acc_id('1105')) FROM inv_item_category)) LOOP
       SELECT r.sg * NVL(SUM(l.debit_func - l.credit_func), 0) INTO l_d FROM gl_journal_line l JOIN gl_journal j ON j.id = l.journal_id
        WHERE l.account_id = r.id AND j.ledger_id = l_led AND j.status_code IN ('POSTED', 'REVERSED') AND j.doc_date <= l_to;
-      l_html := l_html || ctl_row(esc(r.lbl), 'الأستاذ ' || fmt0(l_d) || ' / النظام الفرعي ' || fmt0(r.sub), ROUND(l_d - r.sub, 2) = 0,
+      l_html := l_html || (ctl_row(esc(r.lbl), 'الأستاذ ' || fmt0(l_d) || ' / النظام الفرعي ' || fmt0(r.sub), ROUND(l_d - r.sub, 2) = 0,
                                   CASE WHEN ROUND(l_d - r.sub, 2) = 0 THEN 'مطابق'
                                        ELSE 'الفرق ' || fmt0(l_d - r.sub) || ': قيود يومية مباشرة على حساب المراقبة أو أرصدة افتتاحية غير مسجلة في النظام الفرعي' END,
-                                  TRUE);
+                                  TRUE));
     END LOOP;
 
-    l_html := l_html || '<tr class="nn-rpt-group"><td colspan="4">حالة إقفال الفترات</td></tr>';
+    l_html := l_html || ('<tr class="nn-rpt-group"><td colspan="4">حالة إقفال الفترات</td></tr>');
     l_txt := NULL;
     FOR r IN (SELECT y.name_ar yname, y.status_code ys,
                      COUNT(CASE WHEN s.status_code = 'OPEN' THEN 1 END) op, COUNT(CASE WHEN s.status_code <> 'OPEN' THEN 1 END) cl
                 FROM gl_fiscal_year y JOIN gl_period p ON p.fiscal_year_id = y.id
                 LEFT JOIN gl_period_status s ON s.period_id = p.id AND s.ledger_id = l_led AND s.module_code = 'GL'
                WHERE y.company_id = l_co GROUP BY y.name_ar, y.status_code, y.start_date ORDER BY y.start_date) LOOP
-      l_html := l_html || ctl_row('السنة ' || esc(r.yname), esc(NOONA_UI_PKG.status_label(r.ys)), TRUE,
-                                  r.op || ' فترة مفتوحة، ' || r.cl || ' فترة مقفلة');
+      l_html := l_html || (ctl_row('السنة ' || esc(r.yname), esc(NOONA_UI_PKG.status_label(r.ys)), TRUE,
+                                  r.op || ' فترة مفتوحة، ' || r.cl || ' فترة مقفلة'));
     END LOOP;
-    RETURN l_html || '</tbody></table>'
+    RETURN l_html || ('</tbody></table>'
         || check_box(g_fail = 0, 'كل الفحوص الإلزامية مطابقة', g_fail || ' فحص غير مطابق؛ راجع التفاصيل')
-        || NOONA_GL_PKG.report_footer('القيود المرحلة والسندات المعتمدة حتى تاريخ التقرير');
+        || NOONA_GL_PKG.report_footer('القيود المرحلة والسندات المعتمدة حتى تاريخ التقرير'));
   END controls;
 
   FUNCTION control_failures RETURN NUMBER IS
@@ -733,19 +733,19 @@ CREATE OR REPLACE PACKAGE BODY NOONA_FIN_RPT_PKG AS
                ORDER BY e.occurred_at DESC, e.id DESC
                FETCH FIRST 500 ROWS ONLY) LOOP
       l_cnt := l_cnt + 1;
-      l_html := l_html || '<tr><td>' || TO_CHAR(r.occurred_at, 'YYYY-MM-DD HH24:MI') || '</td><td class="nn-rpt-text">' || esc(r.doc)
+      l_html := l_html || ('<tr><td>' || TO_CHAR(r.occurred_at, 'YYYY-MM-DD HH24:MI') || '</td><td class="nn-rpt-text">' || esc(r.doc)
              || '</td><td class="nn-rpt-text">' || esc(CASE r.action_code WHEN 'CREATE' THEN 'إنشاء' WHEN 'SUBMIT' THEN 'إرسال'
                   WHEN 'APPROVE' THEN 'اعتماد' WHEN 'APPROVE_POST' THEN 'اعتماد وترحيل' WHEN 'POST' THEN 'ترحيل' WHEN 'REJECT' THEN 'رفض'
                   WHEN 'REVERSE' THEN 'عكس' WHEN 'CANCEL' THEN 'إلغاء' WHEN 'YEAR_CLOSE' THEN 'إقفال السنة' WHEN 'YEAR_REOPEN' THEN 'إعادة فتح السنة'
                   WHEN 'QUICK_SETUP' THEN 'تجهيز' ELSE r.action_code END)
              || '</td><td>' || NOONA_UI_PKG.status_badge(r.result_code) || '</td><td>' || esc(r.who) || '</td><td class="nn-rpt-text">'
-             || esc(r.reason) || '</td></tr>';
+             || esc(r.reason) || '</td></tr>');
     END LOOP;
-    IF l_cnt = 0 THEN l_html := l_html || '<tr><td colspan="6" class="nn-rpt-text">لا توجد أحداث</td></tr>'; END IF;
-    l_html := l_html || '</tbody></table>';
+    IF l_cnt = 0 THEN l_html := l_html || ('<tr><td colspan="6" class="nn-rpt-text">لا توجد أحداث</td></tr>'); END IF;
+    l_html := l_html || ('</tbody></table>');
     -- الصلاحيات الحساسة في المالية
-    l_html := l_html || '<h3 class="nn-rpt-h">المستخدمون أصحاب الصلاحيات الحساسة في المالية</h3>'
-           || '<table class="nn-rpt"><thead><tr><th>المستخدم</th><th>الدور</th><th>الصلاحيات</th></tr></thead><tbody>';
+    l_html := l_html || ('<h3 class="nn-rpt-h">المستخدمون أصحاب الصلاحيات الحساسة في المالية</h3>'
+           || '<table class="nn-rpt"><thead><tr><th>المستخدم</th><th>الدور</th><th>الصلاحيات</th></tr></thead><tbody>');
     FOR r IN (SELECT u.username, ro.name_ar role_name,
                      LISTAGG(DISTINCT p.permission_code, '، ') WITHIN GROUP (ORDER BY p.permission_code) perms
                 FROM sec_role_grant g JOIN sec_user_membership m ON m.id = g.membership_id JOIN sec_user u ON u.id = m.user_id
@@ -756,14 +756,14 @@ CREATE OR REPLACE PACKAGE BODY NOONA_FIN_RPT_PKG AS
                                            'GL_FISCAL_YEAR.UPDATE', 'CSH_TRANSACTION.APPROVE', 'CSH_TRANSACTION.POST',
                                            'CSH_TRANSACTION.REVERSE', 'CSH_BANK_ACCOUNT.CREATE')
                GROUP BY u.username, ro.name_ar ORDER BY u.username) LOOP
-      l_html := l_html || '<tr><td>' || esc(r.username) || '</td><td class="nn-rpt-text">' || esc(r.role_name) || '</td><td class="nn-rpt-text">'
-             || esc(r.perms) || '</td></tr>';
+      l_html := l_html || ('<tr><td>' || esc(r.username) || '</td><td class="nn-rpt-text">' || esc(r.role_name) || '</td><td class="nn-rpt-text">'
+             || esc(r.perms) || '</td></tr>');
     END LOOP;
     FOR r IN (SELECT u.username FROM sec_user_membership m JOIN sec_user u ON u.id = m.user_id
                WHERE m.is_tenant_admin = 'Y' AND m.status_code = 'ACTIVE' ORDER BY u.username) LOOP
-      l_html := l_html || '<tr><td>' || esc(r.username) || '</td><td class="nn-rpt-text">مسؤول المؤسسة</td><td class="nn-rpt-text">كل الصلاحيات</td></tr>';
+      l_html := l_html || ('<tr><td>' || esc(r.username) || '</td><td class="nn-rpt-text">مسؤول المؤسسة</td><td class="nn-rpt-text">كل الصلاحيات</td></tr>');
     END LOOP;
-    RETURN l_html || '</tbody></table>' || NOONA_GL_PKG.report_footer('سجل التدقيق الموقع بسلسلة التحقق (آخر 500 حدث في النطاق)');
+    RETURN l_html || ('</tbody></table>' || NOONA_GL_PKG.report_footer('سجل التدقيق الموقع بسلسلة التحقق (آخر 500 حدث في النطاق)'));
   END audit_log;
 
 END NOONA_FIN_RPT_PKG;

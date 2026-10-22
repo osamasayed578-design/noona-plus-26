@@ -1067,12 +1067,12 @@ CREATE OR REPLACE PACKAGE BODY NOONA_PUR_PKG AS
       END IF;
       l_dr := l_dr + r.dr;
       l_cr := l_cr + r.cr;
-      l_html := l_html || '<tr><td>' || TO_CHAR(r.d, 'YYYY-MM-DD') || '</td><td>' || esc(r.doc_no) || '</td><td class="nn-rpt-text">'
-             || esc(r.txt) || '</td><td>' || fmt(r.dr) || '</td><td>' || fmt(r.cr) || '</td><td>' || fmt0(l_bal) || '</td></tr>';
+      l_html := l_html || ('<tr><td>' || TO_CHAR(r.d, 'YYYY-MM-DD') || '</td><td>' || esc(r.doc_no) || '</td><td class="nn-rpt-text">'
+             || esc(r.txt) || '</td><td>' || fmt(r.dr) || '</td><td>' || fmt(r.cr) || '</td><td>' || fmt0(l_bal) || '</td></tr>');
     END LOOP;
-    RETURN l_html || '</tbody><tfoot><tr><td colspan="3">الإجمالي والرصيد المستحق للمورد</td><td>' || fmt0(l_dr) || '</td><td>'
+    RETURN l_html || ('</tbody><tfoot><tr><td colspan="3">الإجمالي والرصيد المستحق للمورد</td><td>' || fmt0(l_dr) || '</td><td>'
         || fmt0(l_cr) || '</td><td>' || fmt0(l_bal) || '</td></tr></tfoot></table>'
-        || NOONA_GL_PKG.report_footer('الرصيد الموجب مستحق للمورد؛ الفواتير النقدية تظهر مع سدادها ولا تؤثر في الرصيد');
+        || NOONA_GL_PKG.report_footer('الرصيد الموجب مستحق للمورد؛ الفواتير النقدية تظهر مع سدادها ولا تؤثر في الرصيد'));
   END supplier_statement;
 
   FUNCTION ap_aging(p_as_of IN DATE DEFAULT NULL, p_link IN VARCHAR2 DEFAULT NULL) RETURN CLOB IS
@@ -1094,15 +1094,15 @@ CREATE OR REPLACE PACKAGE BODY NOONA_PUR_PKG AS
                 FROM ap_open_item o WHERE o.company_id = company AND o.open_amount > 0
                GROUP BY o.supplier_account_id ORDER BY 2 DESC) LOOP
       t := t + r.tot; t0 := t0 + r.b0; t1 := t1 + r.b1; t2 := t2 + r.b2; t3 := t3 + r.b3; t4 := t4 + r.b4;
-      l_html := l_html || '<tr><td class="nn-rpt-text">'
+      l_html := l_html || ('<tr><td class="nn-rpt-text">'
              || CASE WHEN p_link IS NOT NULL THEN '<a href="' || REPLACE(p_link, '#ID#', r.sid) || '">' || esc(supplier_label(r.sid)) || '</a>'
                      ELSE esc(supplier_label(r.sid)) END
              || '</td><td>' || fmt(r.b0) || '</td><td>' || fmt(r.b1) || '</td><td>' || fmt(r.b2) || '</td><td>' || fmt(r.b3)
-             || '</td><td' || CASE WHEN r.b4 > 0 THEN ' class="nn-rpt-bad"' END || '>' || fmt(r.b4) || '</td><td><b>' || fmt(r.tot) || '</b></td></tr>';
+             || '</td><td' || CASE WHEN r.b4 > 0 THEN ' class="nn-rpt-bad"' END || '>' || fmt(r.b4) || '</td><td><b>' || fmt(r.tot) || '</b></td></tr>');
     END LOOP;
-    RETURN l_html || '</tbody><tfoot><tr><td>الإجمالي</td><td>' || fmt0(t0) || '</td><td>' || fmt0(t1) || '</td><td>' || fmt0(t2)
+    RETURN l_html || ('</tbody><tfoot><tr><td>الإجمالي</td><td>' || fmt0(t0) || '</td><td>' || fmt0(t1) || '</td><td>' || fmt0(t2)
         || '</td><td>' || fmt0(t3) || '</td><td>' || fmt0(t4) || '</td><td>' || fmt0(t) || '</td></tr></tfoot></table>'
-        || NOONA_GL_PKG.report_footer('حسب تاريخ الاستحقاق من شروط الدفع؛ المرتجعات غير المسواة تخصم من غير المستحق');
+        || NOONA_GL_PKG.report_footer('حسب تاريخ الاستحقاق من شروط الدفع؛ المرتجعات غير المسواة تخصم من غير المستحق'));
   END ap_aging;
 
   FUNCTION purchase_register(p_from IN DATE, p_to IN DATE, p_account_id IN NUMBER DEFAULT NULL, p_link IN VARCHAR2 DEFAULT NULL) RETURN CLOB IS
@@ -1121,16 +1121,16 @@ CREATE OR REPLACE PACKAGE BODY NOONA_PUR_PKG AS
                ORDER BY gl_date, id) LOOP
       l_sg := CASE WHEN r.invoice_type = 'CREDIT_MEMO' THEN -1 ELSE 1 END;
       s1 := s1 + l_sg * r.subtotal; s2 := s2 + l_sg * r.tax_amount; s3 := s3 + l_sg * r.total_amount;
-      l_html := l_html || '<tr' || CASE WHEN l_sg < 0 THEN ' class="nn-rpt-warn"' END || '><td>' || TO_CHAR(r.gl_date, 'YYYY-MM-DD') || '</td><td>'
+      l_html := l_html || ('<tr' || CASE WHEN l_sg < 0 THEN ' class="nn-rpt-warn"' END || '><td>' || TO_CHAR(r.gl_date, 'YYYY-MM-DD') || '</td><td>'
              || CASE WHEN p_link IS NOT NULL THEN '<a href="' || REPLACE(p_link, '#ID#', r.id) || '">' || esc(r.doc_no) || '</a>' ELSE esc(r.doc_no) END
              || '</td><td>' || CASE WHEN l_sg < 0 THEN 'مرتجع' ELSE 'فاتورة' END || '</td><td class="nn-rpt-text">'
              || esc(supplier_label(r.supplier_account_id)) || '</td><td>' || esc(CASE WHEN r.supplier_invoice_no NOT LIKE '#%' THEN r.supplier_invoice_no END) || '</td><td>'
              || mode_label(r.payment_mode) || '</td><td>' || fmt(l_sg * r.subtotal) || '</td><td>' || fmt(l_sg * r.tax_amount) || '</td><td>'
-             || fmt(l_sg * r.total_amount) || '</td><td>' || status_label(r.status_code) || '</td></tr>';
+             || fmt(l_sg * r.total_amount) || '</td><td>' || status_label(r.status_code) || '</td></tr>');
     END LOOP;
-    RETURN l_html || '</tbody><tfoot><tr><td colspan="6">صافي المشتريات</td><td>' || fmt0(s1) || '</td><td>' || fmt0(s2) || '</td><td>'
+    RETURN l_html || ('</tbody><tfoot><tr><td colspan="6">صافي المشتريات</td><td>' || fmt0(s1) || '</td><td>' || fmt0(s2) || '</td><td>'
         || fmt0(s3) || '</td><td></td></tr></tfoot></table>'
-        || NOONA_GL_PKG.report_footer('الفواتير والمرتجعات المرحلة؛ الضريبة هي ضريبة المدخلات القابلة للاسترداد');
+        || NOONA_GL_PKG.report_footer('الفواتير والمرتجعات المرحلة؛ الضريبة هي ضريبة المدخلات القابلة للاسترداد'));
   END purchase_register;
 
   FUNCTION purchases_by_item(p_from IN DATE, p_to IN DATE, p_category_id IN NUMBER DEFAULT NULL) RETURN CLOB IS
@@ -1153,12 +1153,12 @@ CREATE OR REPLACE PACKAGE BODY NOONA_PUR_PKG AS
                  AND (p_category_id IS NULL OR i.category_id = p_category_id)
                GROUP BY i.item_no, i.name_ar, g.name_ar ORDER BY 4 DESC) LOOP
       s1 := s1 + r.amt;
-      l_html := l_html || '<tr><td class="nn-rpt-text">' || esc(r.item) || '</td><td>' || esc(r.cat) || '</td><td>' || fqty(r.q) || '</td><td>'
+      l_html := l_html || ('<tr><td class="nn-rpt-text">' || esc(r.item) || '</td><td>' || esc(r.cat) || '</td><td>' || fqty(r.q) || '</td><td>'
              || fmt(CASE WHEN r.q <> 0 THEN r.amt / r.q END) || '</td><td>' || fmt(r.mn) || '</td><td>' || fmt(r.mx) || '</td><td>' || fmt(r.amt)
-             || '</td><td>' || r.sups || '</td></tr>';
+             || '</td><td>' || r.sups || '</td></tr>');
     END LOOP;
-    RETURN l_html || '</tbody><tfoot><tr><td colspan="6">الإجمالي</td><td>' || fmt0(s1) || '</td><td></td></tr></tfoot></table>'
-        || NOONA_GL_PKG.report_footer('الأصناف فقط (بدون بنود المصروفات)، بعد خصم المرتجعات');
+    RETURN l_html || ('</tbody><tfoot><tr><td colspan="6">الإجمالي</td><td>' || fmt0(s1) || '</td><td></td></tr></tfoot></table>'
+        || NOONA_GL_PKG.report_footer('الأصناف فقط (بدون بنود المصروفات)، بعد خصم المرتجعات'));
   END purchases_by_item;
 
   FUNCTION invoice_print(p_invoice_id IN NUMBER) RETURN CLOB IS
@@ -1178,14 +1178,14 @@ CREATE OR REPLACE PACKAGE BODY NOONA_PUR_PKG AS
     FOR r IN (SELECT l.*, (SELECT item_no FROM inv_item WHERE id = l.item_id) ino FROM ap_invoice_line l
                WHERE l.invoice_id = p_invoice_id ORDER BY l.line_no) LOOP
       l_n := l_n + 1;
-      l_html := l_html || '<tr><td>' || l_n || '</td><td class="nn-rpt-text">' || esc(NVL2(r.ino, r.ino || ' - ', '') || r.description)
+      l_html := l_html || ('<tr><td>' || l_n || '</td><td class="nn-rpt-text">' || esc(NVL2(r.ino, r.ino || ' - ', '') || r.description)
              || CASE WHEN r.lot_no IS NOT NULL THEN ' <small>دفعة ' || esc(r.lot_no) || NVL2(r.expiry_date, ' تنتهي ' || TO_CHAR(r.expiry_date, 'YYYY-MM-DD'), '') || '</small>' END
              || '</td><td>' || fqty(r.quantity) || '</td><td>' || fmt(r.unit_price) || '</td><td>' || fmt(r.discount_amount) || '</td><td>'
-             || fmt(r.line_amount) || '</td><td>' || fmt(r.tax_amount) || '</td><td>' || fmt(r.line_amount + NVL(r.tax_amount, 0)) || '</td></tr>';
+             || fmt(r.line_amount) || '</td><td>' || fmt(r.tax_amount) || '</td><td>' || fmt(r.line_amount + NVL(r.tax_amount, 0)) || '</td></tr>');
     END LOOP;
-    RETURN l_html || '</tbody><tfoot><tr><td colspan="5">الإجمالي</td><td>' || fmt0(l_i.subtotal) || '</td><td>' || fmt0(l_i.tax_amount)
+    RETURN l_html || ('</tbody><tfoot><tr><td colspan="5">الإجمالي</td><td>' || fmt0(l_i.subtotal) || '</td><td>' || fmt0(l_i.tax_amount)
         || '</td><td>' || fmt0(l_i.total_amount) || '</td></tr></tfoot></table>'
-        || '<p class="nn-rpt-words">' || esc(NOONA_CSH_PKG.amount_words(l_i.total_amount, l_i.currency_code)) || '</p>';
+        || '<p class="nn-rpt-words">' || esc(NOONA_CSH_PKG.amount_words(l_i.total_amount, l_i.currency_code)) || '</p>');
   EXCEPTION WHEN NO_DATA_FOUND THEN
     NOONA_CORE_PKG.raise_error('NOONA-PUR-025', 'فاتورة المشتريات غير موجودة', 'Purchase invoice not found');
   END invoice_print;
