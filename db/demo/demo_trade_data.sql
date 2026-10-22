@@ -131,6 +131,9 @@ BEGIN
   l_y0 := NVL(l_y0, TRUNC(SYSDATE, 'YYYY'));
   SELECT MIN(id) INTO l_box FROM csh_cash_box WHERE company_id = l_co AND status_code = 'ACTIVE' AND box_type = 'MAIN';
   SELECT MIN(id) INTO l_bank FROM csh_bank_account WHERE company_id = l_co AND status_code = 'ACTIVE';
+  -- مراكز التكلفة الافتراضية إن لم تكن الشركة قد أنشأت أي مركز (مطلوبة للصرف لمركز تكلفة)
+  l_n := NOONA_GL_PKG.seed_cost_centers;
+  IF l_n > 0 THEN say('مراكز التكلفة الافتراضية: ' || l_n); END IF;
   SELECT MIN(id) KEEP (DENSE_RANK FIRST ORDER BY DECODE(code, 'CC-100', 0, 1), id) INTO l_cc_adm FROM gl_cost_center WHERE company_id = l_co;
   SELECT MIN(id) KEEP (DENSE_RANK FIRST ORDER BY DECODE(code, 'CC-600', 0, 'CC-500', 1, 2), id) INTO l_cc_sal FROM gl_cost_center WHERE company_id = l_co;
   l_ccs := NVL(TO_CHAR(l_cc_sal), 'null');
