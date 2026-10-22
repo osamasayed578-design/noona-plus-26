@@ -320,6 +320,7 @@ CREATE OR REPLACE PACKAGE BODY NOONA_COR_PKG AS
     l_who   VARCHAR2(4000);
     l_att   NUMBER;
     l_row   VARCHAR2(32767);
+    l_subj  VARCHAR2(1000);
   BEGIN
     IF l_f = 'DRAFTS' THEN
       FOR d IN (SELECT * FROM (
@@ -417,22 +418,25 @@ CREATE OR REPLACE PACKAGE BODY NOONA_COR_PKG AS
         IF l_c.direction = 'OUTGOING' THEN l_who := 'إلى: ' || party_name(l_c.id); END IF;
       ELSE
         -- أطراف السلسلة (الكتّاب) كما في Gmail
-        SELECT LISTAGG(CASE WHEN author_member_id = l_me THEN 'أنا' ELSE nm END, '، ') WITHIN GROUP (ORDER BY first_at) INTO l_who
-          FROM (SELECT author_member_id, MIN(ts_at) first_at, MAX(nm) nm FROM (
-                  SELECT c.author_member_id, NVL(c.sent_at, NVL(c.received_at, c.created_at)) ts_at,
+        SELECT LISTAGG(nm, '، ') WITHIN GROUP (ORDER BY first_at) INTO l_who
+          FROM (SELECT nm, MIN(ts_at) first_at FROM (
+                  SELECT NVL(c.sent_at, NVL(c.received_at, c.created_at)) ts_at,
                          CASE WHEN c.direction = 'INCOMING' THEN NVL(
-                           (SELECT MAX(p.name_snapshot) FROM cor_party p WHERE p.correspondence_id = c.id AND p.party_role = 'SENDER'),
-                           '-') ELSE (SELECT u.display_name FROM sec_user_membership m JOIN sec_user u ON u.id = m.user_id
-                                       WHERE m.id = c.author_member_id) END nm
+                           (SELECT MAX(p.name_snapshot) FROM cor_party p WHERE p.correspondence_id = c.id AND p.party_role = 'SENDER'), '-')
+                              WHEN c.author_member_id = l_me THEN 'أنا'
+                              ELSE (SELECT u.display_name FROM sec_user_membership m JOIN sec_user u ON u.id = m.user_id
+                                     WHERE m.id = c.author_member_id) END nm
                     FROM cor_correspondence c
                    WHERE NVL(c.thread_id, c.id) = t.tid AND c.status_code NOT IN ('DRAFT', 'CANCELLED'))
-                 GROUP BY author_member_id
+                 GROUP BY nm
                  ORDER BY 2)
          WHERE ROWNUM <= 3;
       END IF;
       SELECT COUNT(*) INTO l_att FROM dms_document_link k JOIN cor_correspondence c ON c.id = k.entity_id
        WHERE k.entity_type = 'COR_CORRESPONDENCE' AND k.status_code = 'ACTIVE' AND NVL(c.thread_id, c.id) = t.tid;
-      l_row := '{"id":' || l_c.id || ',"t":' || t.tid || ',"who":' || jt(l_who) || ',"s":' || jt(l_c.subject)
+      -- عنوان المحادثة موضوع أول رسالة فيها (كما في Gmail)
+      SELECT MAX(subject) INTO l_subj FROM cor_correspondence WHERE id = t.tid;
+      l_row := '{"id":' || l_c.id || ',"t":' || t.tid || ',"who":' || jt(l_who) || ',"s":' || jt(NVL(l_subj, l_c.subject))
             || ',"sn":' || jt(snippet(l_c.body_text)) || ',"d":' || jt(date_label(t.last_at)) || ',"n":' || t.n
             || ',"u":' || jt(CASE WHEN t.unread = 1 THEN 'Y' ELSE 'N' END) || ',"st":' || jt(CASE WHEN t.star = 1 THEN 'Y' ELSE 'N' END)
             || ',"a":' || jt(CASE WHEN l_att > 0 THEN 'Y' ELSE 'N' END) || ',"k":' || jt(l_c.direction)
