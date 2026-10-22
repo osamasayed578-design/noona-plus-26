@@ -73,10 +73,15 @@ BEGIN
   -- التجهيز
   l_n := NOONA_PAY_PKG.quick_setup;
   ok('payroll ready after setup', NOONA_PAY_PKG.is_ready = 'Y');
-  l_per := NOONA_PAY_PKG.period_for(TRUNC(SYSDATE));
+  -- أول فترة من الشهر الحالي حتى نهاية السنة لم ترحل رواتبها (يبقى الاختبار قابلاً للتكرار)
+  FOR k IN 0 .. 11 - (EXTRACT(MONTH FROM SYSDATE) - 1) LOOP
+    l_per := NOONA_PAY_PKG.period_for(ADD_MONTHS(TRUNC(SYSDATE, 'MM'), k));
+    SELECT COUNT(*) INTO l_n FROM pay_run WHERE period_id = l_per AND run_type = 'REGULAR' AND status_code IN ('POSTED', 'PAID', 'CLOSED');
+    EXIT WHEN l_n = 0;
+  END LOOP;
   SELECT start_date, end_date INTO l_p0, l_p1 FROM pay_period WHERE id = l_per;
   l_pd := l_p1 - l_p0 + 1;
-  ok('monthly period for today', l_per IS NOT NULL AND l_p0 = TRUNC(SYSDATE, 'MM'));
+  ok('monthly period available', l_per IS NOT NULL AND l_p0 = TRUNC(l_p0, 'MM') AND l_n = 0);
   SELECT MIN(id) INTO l_bank FROM csh_bank_account WHERE company_id = TO_NUMBER(SYS_CONTEXT('NOONA_CTX', 'COMPANY_ID')) AND status_code = 'ACTIVE';
   ok('company has a bank account for salaries', l_bank IS NOT NULL);
   -- لا تتعارض مع رواتب الفترة الحالية في البيانات القائمة
@@ -95,7 +100,7 @@ BEGIN
   BEGIN l_n := emp('مكرر', '1' || LPAD(l_sfx, 9, '7'), 'SA', l_p0, 5000, 0, 0); ok('duplicate national id rejected', FALSE);
   EXCEPTION WHEN OTHERS THEN expect('duplicate national id rejected', 'NOONA-HR-015', SQLERRM); END;
   l_b := emp('راجيش المقيم ' || l_sfx, '2' || LPAD(l_sfx, 9, '8'), 'IN', l_p0 + 15, 6000, 1500, 500);
-  l_c7 := emp('خالد القديم ' || l_sfx, '1' || LPAD(l_sfx, 9, '6'), 'SA', ADD_MONTHS(TRUNC(SYSDATE), -84), 5000, 1250, 500);
+  l_c7 := emp('خالد القديم ' || l_sfx, '1' || LPAD(l_sfx, 9, '6'), 'SA', ADD_MONTHS(l_p1, -84), 5000, 1250, 500);
   SELECT employee_id INTO l_ea FROM hr_employment WHERE id = l_a;
   SELECT employee_id INTO l_eb FROM hr_employment WHERE id = l_b;
   SELECT employee_category INTO l_s FROM hr_employment WHERE id = l_b;
@@ -107,9 +112,9 @@ BEGIN
   ok('contract created', l_n = 1);
 
   -- مكافأة نهاية الخدمة (المادتان 84 و85)
-  l_n := NOONA_PAY_PKG.eos_amount(l_c7, TRUNC(SYSDATE));
+  l_n := NOONA_PAY_PKG.eos_amount(l_c7, l_p1);
   ok('eos: half month for 5 years then full month', l_n BETWEEN 6750 * 4.5 AND 6750 * 4.5 + 100, l_n);
-  ok('eos on resignation after 7 years = two thirds', ABS(NOONA_PAY_PKG.eos_amount(l_c7, TRUNC(SYSDATE), 'RESIGNATION') - ROUND(l_n * 2 / 3, 2)) < 0.02);
+  ok('eos on resignation after 7 years = two thirds', ABS(NOONA_PAY_PKG.eos_amount(l_c7, l_p1, 'RESIGNATION') - ROUND(l_n * 2 / 3, 2)) < 0.02);
   ok('eos on resignation under 2 years = 0', NOONA_PAY_PKG.eos_amount(l_a, TRUNC(SYSDATE), 'RESIGNATION') = 0);
 
   -- الإجازات

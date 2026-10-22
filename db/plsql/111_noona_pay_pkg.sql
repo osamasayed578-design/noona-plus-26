@@ -161,18 +161,28 @@ CREATE OR REPLACE PACKAGE BODY NOONA_PAY_PKG AS
     RETURN l;
   END default_group;
 
+  -- الفترة المحاسبية إن كانت السنة المالية مفتوحة (فترات الرواتب المستقبلية تنشأ قبل فتح سنتها)
+  FUNCTION gl_period(p_date DATE) RETURN NUMBER IS
+  BEGIN
+    RETURN NOONA_GL_PKG.period_for(p_date);
+  EXCEPTION WHEN OTHERS THEN
+    RETURN NULL;
+  END gl_period;
+
   FUNCTION ensure_periods(p_group_id IN NUMBER, p_year IN NUMBER) RETURN NUMBER IS
     l_g pay_payroll_group%ROWTYPE;
+    l_gp NUMBER;
     l_n NUMBER := 0;
     l_s DATE;
   BEGIN
     SELECT * INTO l_g FROM pay_payroll_group WHERE id = p_group_id AND company_id = company;
     FOR m IN 1 .. 12 LOOP
       l_s := ADD_MONTHS(TO_DATE(p_year || '-01-01', 'YYYY-MM-DD'), m - 1);
+      l_gp := gl_period(LAST_DAY(l_s));
       INSERT INTO pay_period (company_id, payroll_group_id, period_code, start_date, end_date, cutoff_date, pay_date, gl_period_id, status_code)
       SELECT company, p_group_id, TO_CHAR(l_s, 'YYYY-MM'), l_s, LAST_DAY(l_s),
              LEAST(l_s + NVL(l_g.cutoff_day, 25) - 1, LAST_DAY(l_s)), LEAST(l_s + NVL(l_g.pay_day, 27) - 1, LAST_DAY(l_s)),
-             NOONA_GL_PKG.period_for(LAST_DAY(l_s)), 'OPEN'
+             l_gp, 'OPEN'
         FROM dual
        WHERE NOT EXISTS (SELECT 1 FROM pay_period WHERE payroll_group_id = p_group_id AND period_code = TO_CHAR(l_s, 'YYYY-MM'));
       l_n := l_n + SQL%ROWCOUNT;
@@ -819,10 +829,10 @@ CREATE OR REPLACE PACKAGE BODY NOONA_PAY_PKG AS
     NOONA_CORE_PKG.assert(p_principal > 0 AND p_installments BETWEEN 1 AND 60, 'NOONA-PAY-041', 'المبلغ موجب والأقساط من 1 إلى 60',
       'Positive amount and 1-60 installments');
     l_ins := ROUND(p_principal / p_installments, 2);
-    -- لا يتجاوز القسط نصف الأجر الشهري (المادة 92)
-    NOONA_CORE_PKG.assert(l_ins <= monthly_wage(p_employment_id) / 2, 'NOONA-PAY-042',
-      'القسط ' || fnum(l_ins) || ' يتجاوز نصف الأجر الشهري؛ زد عدد الأقساط', 'Installment exceeds half of the monthly wage');
     SELECT * INTO l_p FROM pay_period WHERE id = NVL(p_start_period_id, period_for(ADD_MONTHS(TRUNC(SYSDATE, 'MM'), 1))) AND company_id = company;
+    -- لا يتجاوز القسط نصف الأجر الشهري (المادة 92) في فترة بداية الخصم
+    NOONA_CORE_PKG.assert(l_ins <= monthly_wage(p_employment_id, GREATEST(l_p.end_date, l_m.start_date)) / 2, 'NOONA-PAY-042',
+      'القسط ' || fnum(l_ins) || ' يتجاوز نصف الأجر الشهري؛ زد عدد الأقساط', 'Installment exceeds half of the monthly wage');
     NOONA_HR_PKG.ensure_sequence('PAY_LOAN', 'LN-');
     INSERT INTO pay_loan (company_id, doc_no, doc_date, currency_code, exchange_rate, rate_date, employment_id, loan_type, principal_amount,
                           installment_amount, installments_count, start_period_id, outstanding_balance, status_code)
