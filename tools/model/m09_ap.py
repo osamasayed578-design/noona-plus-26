@@ -83,6 +83,7 @@ DISCOUNT_AMOUNT AMT  NN D=0      | الخصم
 TAX_AMOUNT      AMT  NN D=0      | الضريبة
 LOT_NO          V100             | رقم الدفعة المستلمة
 EXPIRY_DATE     DATE             | تاريخ الانتهاء
+ORIGINAL_LINE_ID ID  >AP_INVOICE_LINE | سطر الفاتورة الأصلية (للمرتجع)
 ''', uk=[('INVOICE_ID', 'LINE_NO')], area='invoice')
 
 table('AP_INVOICE_MATCH', 'نتائج المطابقة الثلاثية', 'Three-Way Match Results', scope='C', mix='status', status='MATCHED VARIANCE OVERRIDDEN REJECTED', cols='''

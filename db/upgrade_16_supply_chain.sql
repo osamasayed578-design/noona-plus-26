@@ -1,5 +1,5 @@
 -- =============================================================================
--- NOONA PLUS ERP | ترقية 16: سلسلة الإمداد والمخزون (أصناف بملفات: عام، قطع غيار، أدوية، خامات ومنتجات مصنعة)
+-- NOONA PLUS ERP | ترقية 16: سلسلة الإمداد والمخزون والمشتريات والموردين (أصناف بملفات: عام، قطع غيار، أدوية، خامات ومنتجات مصنعة)
 --                  باركود متعدد، توافق المركبات، البدائل، الدفعات والصلاحية، قوائم المواد والإنتاج، ربط الحسابات ومراكز التكلفة
 --   sqlplus NOONA_OWNER@//host:1521/PDB @upgrade_16_supply_chain.sql
 --   sqlplus NOONA_APP@//host:1521/PDB   @security/41_synonyms_noona_app.sql
@@ -36,10 +36,13 @@ PROMPT ========== أنواع حركات المخزون والضريبة والأ
 @@seed/06_supply_chain.sql
 PROMPT ========== صلاحيات مسؤول المؤسسة
 @@upgrade_parts/sync_admin_roles.sql
-PROMPT ========== NOONA_ACE_PKG / NOONA_INV_PKG
+PROMPT ========== NOONA_ACE_PKG / NOONA_CSH_PKG / NOONA_INV_PKG / NOONA_PUR_PKG
 @@plsql/101_noona_ace_pkg.sql
+@@plsql/102_noona_csh_pkg.sql
 @@plsql/104_noona_inv_pkg.sql
+@@plsql/105_noona_pur_pkg.sql
 GRANT EXECUTE ON NOONA_INV_PKG TO NOONA_APP;
+GRANT EXECUTE ON NOONA_PUR_PKG TO NOONA_APP;
 EXEC DBMS_UTILITY.COMPILE_SCHEMA(USER, FALSE)
 SELECT object_type, object_name FROM user_objects WHERE status <> 'VALID';
 SELECT name||' '||line||':'||position||' '||substr(text,1,140) err FROM user_errors ORDER BY name, type, sequence;

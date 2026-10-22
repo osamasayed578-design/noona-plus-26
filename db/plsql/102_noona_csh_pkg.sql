@@ -50,6 +50,15 @@ CREATE OR REPLACE PACKAGE NOONA_CSH_PKG AUTHID DEFINER AS
   PROCEDURE cancel_voucher(p_id IN NUMBER, p_reason IN VARCHAR2);
   FUNCTION reverse_voucher(p_id IN NUMBER, p_date IN DATE, p_reason IN VARCHAR2) RETURN NUMBER;
 
+  -- حركة نقدية من مستند مصدر (فاتورة نقدية، سداد مورد، تحصيل عميل، نقاط البيع): قيدها في المستند المصدر،
+  -- وتسجل هنا لتظهر في رصيد الصندوق أو البنك ودفتره. p_place: BOX:n أو BANK:n
+  FUNCTION record_settlement(p_type IN VARCHAR2, p_place IN VARCHAR2, p_date IN DATE, p_amount IN NUMBER, p_party_id IN NUMBER,
+                             p_party_name IN VARCHAR2, p_source_type IN VARCHAR2, p_source_id IN NUMBER, p_doc_no IN VARCHAR2,
+                             p_description IN VARCHAR2, p_event_id IN NUMBER, p_channel IN VARCHAR2 DEFAULT NULL) RETURN NUMBER
+    ACCESSIBLE BY (PACKAGE NOONA_PUR_PKG, PACKAGE NOONA_SAL_PKG, PACKAGE NOONA_POS_PKG);
+  -- حساب الأستاذ للصندوق أو البنك
+  FUNCTION place_account(p_place IN VARCHAR2) RETURN NUMBER;
+
   -- ---------------------------------------------------------- الأرصدة والواجهة
   -- رصيد صندوق أو حساب بنكي بعملته حتى تاريخ (السندات المرحلة)
   FUNCTION balance(p_box_id IN NUMBER, p_bank_id IN NUMBER, p_as_of IN DATE DEFAULT NULL) RETURN NUMBER;
@@ -288,12 +297,57 @@ CREATE OR REPLACE PACKAGE BODY NOONA_CSH_PKG AS
                    * CASE WHEN e.reversal_of_event_id IS NULL THEN 1 ELSE -1 END), 0)
       INTO l
       FROM csh_transaction t
-      JOIN ace_accounting_event e ON e.source_entity_type = c_entity AND e.source_entity_id = t.id AND e.journal_id IS NOT NULL
+      JOIN ace_accounting_event e ON ((e.source_entity_type = c_entity AND e.source_entity_id = t.id)
+                 OR (t.source_entity_type <> c_entity AND (e.id = t.accounting_event_id OR e.reversal_of_event_id = t.accounting_event_id)))
+                AND e.journal_id IS NOT NULL
      WHERE t.company_id = NOONA_GL_PKG.company
        AND ((p_box_id IS NOT NULL AND t.cash_box_id = p_box_id) OR (p_bank_id IS NOT NULL AND t.bank_account_id = p_bank_id))
        AND e.accounting_date <= l_to;
     RETURN l;
   END balance;
+
+  FUNCTION place_account(p_place IN VARCHAR2) RETURN NUMBER IS
+    l NUMBER;
+  BEGIN
+    IF p_place LIKE 'BOX:%' THEN
+      SELECT MAX(gl_account_id) INTO l FROM csh_cash_box
+       WHERE id = TO_NUMBER(SUBSTR(p_place, 5)) AND company_id = NOONA_GL_PKG.company AND status_code = 'ACTIVE';
+    ELSIF p_place LIKE 'BANK:%' THEN
+      SELECT MAX(gl_account_id) INTO l FROM csh_bank_account
+       WHERE id = TO_NUMBER(SUBSTR(p_place, 6)) AND company_id = NOONA_GL_PKG.company AND status_code = 'ACTIVE';
+    END IF;
+    NOONA_CORE_PKG.assert(l IS NOT NULL, 'NOONA-CSH-070', 'اختر صندوقاً أو حساباً بنكياً نشطاً للسداد', 'Choose an active cash box or bank account');
+    RETURN l;
+  END place_account;
+
+  FUNCTION record_settlement(p_type IN VARCHAR2, p_place IN VARCHAR2, p_date IN DATE, p_amount IN NUMBER, p_party_id IN NUMBER,
+                             p_party_name IN VARCHAR2, p_source_type IN VARCHAR2, p_source_id IN NUMBER, p_doc_no IN VARCHAR2,
+                             p_description IN VARCHAR2, p_event_id IN NUMBER, p_channel IN VARCHAR2 DEFAULT NULL) RETURN NUMBER
+    ACCESSIBLE BY (PACKAGE NOONA_PUR_PKG, PACKAGE NOONA_SAL_PKG, PACKAGE NOONA_POS_PKG) IS
+    l_id  NUMBER;
+    l_box NUMBER;
+    l_bnk NUMBER;
+    l_cur VARCHAR2(3);
+    l_acc NUMBER;
+  BEGIN
+    l_acc := place_account(p_place);
+    IF p_place LIKE 'BOX:%' THEN
+      l_box := TO_NUMBER(SUBSTR(p_place, 5));
+      SELECT currency_code INTO l_cur FROM csh_cash_box WHERE id = l_box;
+    ELSE
+      l_bnk := TO_NUMBER(SUBSTR(p_place, 6));
+      SELECT currency_code INTO l_cur FROM csh_bank_account WHERE id = l_bnk;
+    END IF;
+    INSERT INTO csh_transaction (company_id, branch_id, doc_no, doc_date, source_entity_type, source_entity_id, currency_code, exchange_rate,
+                                 txn_type, channel, bank_account_id, cash_box_id, counterparty_party_id, counterparty_name, amount, amount_func,
+                                 value_date, description, settled_at, status_code, accounting_event_id, posted_at, posted_by)
+    VALUES (NOONA_GL_PKG.company, TO_NUMBER(SYS_CONTEXT('NOONA_CTX', 'BRANCH_ID')), p_doc_no, TRUNC(p_date), p_source_type, p_source_id,
+            l_cur, 1, p_type, NVL(p_channel, CASE WHEN l_box IS NOT NULL THEN 'CASH' ELSE 'BANK_TRANSFER' END), l_bnk, l_box, p_party_id,
+            p_party_name, ROUND(p_amount, 2), ROUND(p_amount, 2), TRUNC(p_date), SUBSTR(p_description, 1, 1000), SYSTIMESTAMP, 'SETTLED',
+            p_event_id, SYSTIMESTAMP, NOONA_CTX_PKG.current_user_name)
+    RETURNING id INTO l_id;
+    RETURN l_id;
+  END record_settlement;
 
   -- ================================================================ التفقيط
   FUNCTION words_999(n PLS_INTEGER) RETURN VARCHAR2 IS
@@ -818,7 +872,9 @@ CREATE OR REPLACE PACKAGE BODY NOONA_CSH_PKG AS
                      CASE WHEN t.txn_type = 'RECEIPT' THEN 1 ELSE -1 END * t.amount
                        * CASE WHEN e.reversal_of_event_id IS NULL THEN 1 ELSE -1 END amt
                 FROM csh_transaction t
-                JOIN ace_accounting_event e ON e.source_entity_type = c_entity AND e.source_entity_id = t.id AND e.journal_id IS NOT NULL
+                JOIN ace_accounting_event e ON ((e.source_entity_type = c_entity AND e.source_entity_id = t.id)
+                 OR (t.source_entity_type <> c_entity AND (e.id = t.accounting_event_id OR e.reversal_of_event_id = t.accounting_event_id)))
+                AND e.journal_id IS NOT NULL
                WHERE t.company_id = NOONA_GL_PKG.company
                  AND ((p_box_id IS NOT NULL AND t.cash_box_id = p_box_id) OR (p_bank_id IS NOT NULL AND t.bank_account_id = p_bank_id))
                  AND e.accounting_date BETWEEN p_from AND p_to

@@ -12,6 +12,8 @@ CREATE OR REPLACE PACKAGE NOONA_INV_PKG AUTHID DEFINER AS
   -- تجهيز المخزون للشركة: الحسابات الإضافية، الفئات الافتراضية لكل ملف، المستودع الرئيسي، ترقيم المستندات، حسابات الضريبة
   FUNCTION quick_setup RETURN NUMBER;
   FUNCTION is_ready RETURN VARCHAR2;
+  -- ترقيم مستند للشركة الحالية إن لم يكن معرفاً
+  PROCEDURE ensure_sequence(p_type IN VARCHAR2, p_prefix IN VARCHAR2);
   FUNCTION default_warehouse RETURN NUMBER;
   FUNCTION create_warehouse(p_code IN VARCHAR2, p_name_ar IN VARCHAR2, p_type IN VARCHAR2 DEFAULT 'MAIN',
                             p_cost_center_id IN NUMBER DEFAULT NULL, p_allow_negative IN VARCHAR2 DEFAULT 'N') RETURN NUMBER;
@@ -201,7 +203,7 @@ CREATE OR REPLACE PACKAGE BODY NOONA_INV_PKG AS
   END item_cost_center;
 
   -- ================================================================ التجهيز
-  PROCEDURE ensure_sequence(p_type VARCHAR2, p_prefix VARCHAR2) IS
+  PROCEDURE ensure_sequence(p_type IN VARCHAR2, p_prefix IN VARCHAR2) IS
   BEGIN
     INSERT INTO ref_doc_sequence (company_id, doc_type_code, fiscal_year, prefix, next_number, padding, is_gapless, reset_policy, is_active)
     SELECT company, p_type, NULL, p_prefix, 1, 6, 'N', 'NEVER', 'Y' FROM dual
@@ -297,6 +299,26 @@ CREATE OR REPLACE PACKAGE BODY NOONA_INV_PKG AS
       l_id := create_warehouse('WH-01', 'المستودع الرئيسي', 'MAIN', l_cc);
       l_n := l_n + 1;
     END IF;
+    -- طرق السداد (نقدي، مدى، بطاقات، محافظ رقمية، تحويل، شيك، آجل) وشروط الدفع
+    FOR r IN (SELECT 'CASH' c, 'نقدي' n, 'Cash' e, 'CASH' t, 'N' rq, 10 o, 'fa-money' i FROM dual
+              UNION ALL SELECT 'MADA', 'مدى', 'mada', 'CARD', 'Y', 20, 'fa-credit-card' FROM dual
+              UNION ALL SELECT 'CARD', 'فيزا / ماستركارد', 'Visa / Mastercard', 'CARD', 'Y', 30, 'fa-cc-visa' FROM dual
+              UNION ALL SELECT 'APPLE_PAY', 'Apple Pay', 'Apple Pay', 'WALLET', 'Y', 40, 'fa-apple' FROM dual
+              UNION ALL SELECT 'STC_PAY', 'STC Pay', 'STC Pay', 'WALLET', 'Y', 50, 'fa-mobile' FROM dual
+              UNION ALL SELECT 'BANK_APP', 'تطبيق بنكي / تحويل فوري', 'Bank app / instant transfer', 'BANK_TRANSFER', 'Y', 60, 'fa-university' FROM dual
+              UNION ALL SELECT 'CHEQUE', 'شيك', 'Cheque', 'CHEQUE', 'Y', 70, 'fa-file-text-o' FROM dual
+              UNION ALL SELECT 'CREDIT', 'آجل (على الحساب)', 'On account', 'CREDIT', 'N', 80, 'fa-clock-o' FROM dual) LOOP
+      INSERT INTO ref_payment_method (code, name_ar, name_en, method_type, requires_reference, sort_order, icon_class, is_active)
+      SELECT r.c, r.n, r.e, r.t, r.rq, r.o, r.i, 'Y' FROM dual WHERE NOT EXISTS (SELECT 1 FROM ref_payment_method WHERE code = r.c);
+      l_n := l_n + SQL%ROWCOUNT;
+    END LOOP;
+    FOR r IN (SELECT 'NET0' c, 'نقداً / فوري' n, 0 d FROM dual UNION ALL SELECT 'NET15', '15 يوماً', 15 FROM dual
+              UNION ALL SELECT 'NET30', '30 يوماً', 30 FROM dual UNION ALL SELECT 'NET60', '60 يوماً', 60 FROM dual
+              UNION ALL SELECT 'NET90', '90 يوماً', 90 FROM dual) LOOP
+      INSERT INTO ref_payment_term (code, name_ar, base_date_rule, due_days, is_installment, is_active)
+      SELECT r.c, r.n, 'DOC_DATE', r.d, 'N', 'Y' FROM dual WHERE NOT EXISTS (SELECT 1 FROM ref_payment_term WHERE code = r.c);
+      l_n := l_n + SQL%ROWCOUNT;
+    END LOOP;
     -- ترقيم المستندات
     ensure_sequence('INV_ITEM', 'ITM-');
     ensure_sequence('INV_TRANSACTION', 'IT-');
