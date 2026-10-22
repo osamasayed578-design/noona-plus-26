@@ -23,6 +23,8 @@ PROMPT ========== REF_EXCHANGE_RATE.COMPANY_ID ونقل الأسعار القا�
 PROMPT ========== NOONA_REFERENCE_PKG / NOONA_REFDATA_PKG
 @@plsql/20_noona_reference_pkg.sql
 @@plsql/90_noona_refdata_pkg.sql
+PROMPT ========== NOONA_PLATFORM_ADMIN_PKG (سجل تدقيق المنصة)
+@@plsql/91_noona_platform_admin_pkg.sql
 EXEC DBMS_UTILITY.COMPILE_SCHEMA(USER, FALSE)
 DECLARE
   l_n NUMBER;

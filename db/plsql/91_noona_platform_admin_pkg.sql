@@ -283,6 +283,7 @@ CREATE OR REPLACE PACKAGE BODY NOONA_PLATFORM_ADMIN_PKG AS
   FUNCTION audit_html(p_tenant_id IN NUMBER DEFAULT NULL, p_limit IN PLS_INTEGER DEFAULT 100) RETURN CLOB IS
     l_html CLOB := '<table class="nn-table"><thead><tr><th>رقم الحدث</th><th>الوقت</th><th>الفئة</th><th>الكيان</th>'
                 || '<th>الإجراء</th><th>النتيجة</th><th>المستخدم</th><th>السبب</th></tr></thead><tbody>';
+    l_row  VARCHAR2(32767);
   BEGIN
     NOONA_CORE_PKG.require_platform_admin;
     NOONA_CORE_PKG.begin_system;
@@ -292,10 +293,19 @@ CREATE OR REPLACE PACKAGE BODY NOONA_PLATFORM_ADMIN_PKG AS
                   FROM aud_event a
                  WHERE (a.tenant_id = p_tenant_id OR (p_tenant_id IS NULL AND a.tenant_id IS NULL))
                  ORDER BY a.id DESC) WHERE ROWNUM <= p_limit) LOOP
-      l_html := l_html || '<tr><td>' || e.id || '</td><td>' || TO_CHAR(e.occurred_at, 'YYYY-MM-DD HH24:MI:SS') || '</td><td>'
-             || esc(NOONA_UI_PKG.code_label(e.event_category)) || '</td><td>' || esc(e.entity_type) || ' #' || e.entity_id
-             || '</td><td>' || esc(e.action_code) || '</td><td>' || NOONA_UI_PKG.status_badge(e.result_code) || '</td><td>'
-             || esc(e.actor) || '</td><td>' || esc(e.reason) || '</td></tr>';
+      -- كل صف يبنى منفصلاً: حدث واحد بقيمة غير متوقعة لا يوقف عرض السجل كله
+      BEGIN
+        l_row := '<tr><td>' || TO_CHAR(e.id) || '</td><td>' || TO_CHAR(e.occurred_at, 'YYYY-MM-DD HH24:MI:SS') || '</td><td>'
+              || esc(SUBSTR(NOONA_UI_PKG.code_label(e.event_category), 1, 200)) || '</td><td>'
+              || esc(SUBSTR(e.entity_type, 1, 100)) || ' #' || SUBSTR(TO_CHAR(e.entity_id), 1, 40)
+              || '</td><td>' || esc(SUBSTR(e.action_code, 1, 100)) || '</td><td>'
+              || NOONA_UI_PKG.status_badge(SUBSTR(e.result_code, 1, 30)) || '</td><td>'
+              || esc(SUBSTR(e.actor, 1, 128)) || '</td><td>' || esc(SUBSTR(e.reason, 1, 1000)) || '</td></tr>';
+      EXCEPTION WHEN OTHERS THEN
+        l_row := '<tr><td>' || TO_CHAR(e.id) || '</td><td colspan="7">تعذر عرض تفاصيل الحدث: '
+              || esc(SUBSTR(SQLERRM, 1, 300)) || '</td></tr>';
+      END;
+      DBMS_LOB.APPEND(l_html, TO_CLOB(l_row));
     END LOOP;
     NOONA_CORE_PKG.end_system;
     RETURN l_html || '</tbody></table>';
