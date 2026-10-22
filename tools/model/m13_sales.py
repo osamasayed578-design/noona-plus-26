@@ -156,6 +156,7 @@ PAYMENT_MODE    CODE NN D='CREDIT' IN:CREDIT,CASH | آجل أو نقدي
 SETTLE_PLACE    V30              | الصندوق/البنك للفاتورة النقدية (BOX:n / BANK:n)
 COGS_AMOUNT     AMT  NN D=0      | تكلفة البضاعة المباعة
 COST_CENTER_ID  ID   >GL_COST_CENTER | مركز الربحية
+PRESCRIPTION_NO V50              | رقم الوصفة الطبية (للأدوية الوصفية)
 ''', ix=[('TENANT_ID', 'COMPANY_ID', 'CUSTOMER_ACCOUNT_ID', 'STATUS_CODE'), ('TENANT_ID', 'COMPANY_ID', 'DOC_DATE')],
       area='invoice', purpose='POSTED_AT يملؤه محرك الترحيل لا نموذج APEX؛ لا تعدل الفاتورة المرسلة (45.1)')
 
@@ -255,6 +256,7 @@ PAID_AMOUNT     AMT  NN D=0      | المدفوع
 CHANGE_AMOUNT   AMT  NN D=0      | الباقي
 SALES_INVOICE_ID ID  >SAL_INVOICE | الفاتورة المبسطة/الضريبية
 INV_TRANSACTION_ID ID >INV_TRANSACTION | حركة الصرف
+PRESCRIPTION_NO V50              | رقم الوصفة الطبية
 ''', uk=[('TENANT_ID', 'COMPANY_ID', 'RECEIPT_NO'), ('TENANT_ID', 'SYNC_IDEMPOTENCY_KEY')],
       ix=[('TENANT_ID', 'SHIFT_ID')], area='pos')
 
@@ -273,6 +275,8 @@ TAX_AMOUNT      AMT  NN D=0      | الضريبة
 LINE_TOTAL      AMT  NN          | الإجمالي
 LOT_ID          ID   >INV_LOT    | الدفعة
 SERIAL_ID       ID   >INV_SERIAL | الرقم التسلسلي
+UNIT_COST       AMT              | تكلفة الوحدة عند البيع
+ORIGINAL_LINE_ID ID  >POS_SALE_LINE | سطر البيع الأصلي (للمرتجع)
 ''', uk=[('SALE_ID', 'LINE_NO')], area='pos')
 
 table('POS_PAYMENT', 'مدفوعات نقاط البيع', 'POS Payments', scope='C', mix='status', status='PENDING APPROVED DECLINED REFUNDED', cols='''

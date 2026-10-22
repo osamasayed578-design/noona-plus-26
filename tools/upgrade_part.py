@@ -14,7 +14,7 @@ seed = open(f'{D}/seed/01_registry_seed.sql', encoding='utf-8').read().splitline
 vpd = open(f'{D}/security/30_vpd_policies.sql', encoding='utf-8').read()
 L = ["-- مولد من tools/upgrade_part.py (لا تعدله يدوياً)", "DECLARE", "  l_n NUMBER;",
      "  PROCEDURE ex(p VARCHAR2) IS BEGIN EXECUTE IMMEDIATE p; EXCEPTION WHEN OTHERS THEN"
-     " IF SQLCODE NOT IN (-955, -1430, -2275, -1408, -2260, -1442, -2264) THEN RAISE; END IF; END;", 
+     " IF SQLCODE NOT IN (-955, -1430, -2275, -1408, -2260, -1442, -2264, -2261) THEN RAISE; END IF; END;", 
      "  -- إضافة أعمدة إلزامية وقيود على جداول محمية بـ VPD تتطلب قراءة كامل الجدول: تعطل السياسات مؤقتاً",
      "  PROCEDURE rls(p_on BOOLEAN) IS BEGIN",
      "    FOR r IN (SELECT object_name, policy_name FROM user_policies WHERE object_name IN (" + (", ".join(sorted({"'" + a.split('.')[0] + "'" for a in adds})) or "NULL") + ")) LOOP",
@@ -41,6 +41,10 @@ for a in adds:
     if ck:
         L.append("  ex(q'~ALTER TABLE " + t + " ADD CONSTRAINT " + ck.group(1).rstrip(',') + "~');")
     for l in ALL.splitlines():
+        fk = re.match(rf"ALTER TABLE {t} ADD CONSTRAINT {t}_{c}_FK FOREIGN KEY \(TENANT_ID, {c}\) REFERENCES (\w+) \(TENANT_ID, ID\)", l)
+        if fk:   # الجدول المرجع يحتاج مفتاحاً فريداً (TENANT_ID, ID) إن لم يكن مرجعاً سابقاً
+            # اسم مستقل: أسماء UKn في القاعدة القائمة قد تخص أعمدة أخرى؛ إن وجد المفتاح نفسه يتجاهل (-2261)
+            L.append(f"  ex(q'~ALTER TABLE {fk.group(1)} ADD CONSTRAINT {fk.group(1)[:23]}_TID_UK UNIQUE (TENANT_ID, ID)~');")
         if (l.startswith(f'ALTER TABLE {t} ADD CONSTRAINT {t}_{c}_FK ') or l.startswith(f'CREATE INDEX {t}_{c}_IX ')
                 or l.startswith(f'COMMENT ON COLUMN {t}.{c} ')
                 or (l.startswith(f'CREATE UNIQUE INDEX {t}_NUK') and re.search(rf'\b{c}\b', l))
