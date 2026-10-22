@@ -612,3 +612,33 @@ tr:hover .nn-badge { transform: scale(1.05); }
 .nn-receipt .nn-qr svg { width: 110px; height: 110px; }
 @media print { body.nn-receipt-page * { visibility: hidden; } body.nn-receipt-page .nn-receipt, body.nn-receipt-page .nn-receipt * { visibility: visible; }
   body.nn-receipt-page .nn-receipt { position: absolute; top: 0; left: 0; right: 0; } @page { margin: 0; } }
+
+/* ---------------------------------------------------------------- التصنيع (mfg.js) */
+.nn-mfg-note { background: #f5faff; border-inline-start: 4px solid var(--nn-primary); padding: 8px 12px; margin: 0 0 14px; color: #334155; font-weight: 600; }
+.nn-mfg-vers { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 0 0 14px; font-size: .85rem; }
+.nn-mfg-vers > span { font-weight: 700; color: #475569; }
+.nn-mfg-vers a { padding: 2px 8px; border: 1px solid #d6dee8; border-radius: 999px; text-decoration: none; color: inherit; }
+.nn-mfg-vers a.is-cur { border-color: var(--nn-primary); background: var(--nn-primary-50); font-weight: 700; }
+.nn-chip { display: inline-flex; align-items: center; gap: 4px; background: #eef2f7; border-radius: 999px; padding: 1px 8px; margin: 2px; font-size: .8rem; }
+.nn-chip-x { border: 0; background: none; color: var(--nn-danger); cursor: pointer; font-weight: 800; padding: 0 2px; }
+.nn-link { border: 0; background: none; color: var(--nn-primary); cursor: pointer; font-weight: 700; padding: 2px 4px; }
+.nn-td-table tr.nn-mfg-co td { background: #fffbeb; }
+.nn-mfg-subs { min-width: 140px; }
+.nn-mfg-prog { display: inline-block; vertical-align: middle; width: 90px; height: 8px; background: #e5e7eb; border-radius: 999px; overflow: hidden; margin-inline-start: 6px; }
+.nn-mfg-prog i { display: block; height: 100%; background: var(--nn-success); }
+.nn-mfg-sum { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin: 0 0 16px; }
+.nn-mfg-sum > div { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 8px 10px; }
+.nn-mfg-sum span { display: block; font-size: .78rem; color: var(--nn-muted); font-weight: 700; } .nn-mfg-sum b { font-size: 1rem; }
+.nn-mfg-tabs { display: flex; flex-wrap: wrap; gap: 4px; border-bottom: 2px solid #e2e8f0; margin-bottom: 12px; }
+.nn-mfg-tabs button { border: 0; background: none; padding: 8px 16px; font-weight: 700; color: #64748b; cursor: pointer; border-bottom: 3px solid transparent; margin-bottom: -2px; }
+.nn-mfg-tabs button.is-on { color: var(--nn-primary); border-bottom-color: var(--nn-primary); }
+.nn-mfg-bar { display: flex; flex-wrap: wrap; gap: 10px; align-items: flex-end; margin: 12px 0; }
+.nn-mfg-form { border: 1px dashed #cbd5e1; border-radius: 8px; padding: 12px; margin: 14px 0; background: #fcfdff; }
+.nn-mfg-form > b { display: block; margin-bottom: 10px; }
+.nn-mfg-h { margin: 18px 0 8px; font-size: 1rem; }
+.nn-mfg-subsel { max-width: 200px !important; margin-top: 4px; font-size: .8rem; }
+.nn-rpt td.nn-load { background: #ecfdf5; color: #065f46; } .nn-rpt td.nn-load-high { background: #fffbeb; color: #92400e; font-weight: 700; }
+.nn-rpt-grid th, .nn-rpt-grid td { text-align: center; min-width: 52px; }
+.nn-check { margin: 12px 0; padding: 10px 14px; border-radius: 8px; font-weight: 700; }
+.nn-check.is-ok { background: var(--nn-success-50); color: var(--nn-success); } .nn-check.is-bad { background: var(--nn-danger-50); color: var(--nn-danger); }
+@media print { .nn-mfg-tabs, .nn-mfg-form, .nn-mfg-bar { display: none !important; } .nn-mfg-pane[hidden] { display: block !important; } }

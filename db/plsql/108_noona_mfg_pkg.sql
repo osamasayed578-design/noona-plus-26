@@ -86,7 +86,7 @@ CREATE OR REPLACE PACKAGE NOONA_MFG_PKG AUTHID DEFINER AS
   FUNCTION mrp_execute(p_doc IN CLOB) RETURN CLOB;
 
   -- ---------------------------------------------------------- القوائم والتسميات (تستخدم داخل SQL)
-  -- {"wcs","products","items","boms","routings","whs","ccs","sites"}
+  -- {"wcs","products" (لها قائمة منشورة),"items" (قابلة للتصنيع),"whs","ccs"}
   FUNCTION lists_json(p_names IN VARCHAR2) RETURN CLOB;
   FUNCTION status_label(p_status IN VARCHAR2) RETURN VARCHAR2;
   FUNCTION priority_label(p_priority IN VARCHAR2) RETURN VARCHAR2;
@@ -132,9 +132,11 @@ CREATE OR REPLACE PACKAGE BODY NOONA_MFG_PKG AS
   BEGIN
     RETURN RTRIM(TO_CHAR(NVL(p, 0), 'FM999G999G999G990D999', 'NLS_NUMERIC_CHARACTERS=''.,'''), '.');
   END fqty;
+  -- رقم JSON صالح (صفر قبل الفاصلة العشرية، بلا أصفار زائدة)
   FUNCTION fnum(p NUMBER) RETURN VARCHAR2 IS
   BEGIN
-    RETURN NVL(TO_CHAR(p, 'TM9', 'NLS_NUMERIC_CHARACTERS=''.,'''), 'null');
+    IF p IS NULL THEN RETURN 'null'; END IF;
+    RETURN RTRIM(RTRIM(TO_CHAR(ROUND(p, 12), 'FM999999999999999999990D999999999999', 'NLS_NUMERIC_CHARACTERS=''.,'''), '0'), '.');
   END fnum;
   FUNCTION d(p VARCHAR2) RETURN DATE IS BEGIN RETURN TO_DATE(SUBSTR(p, 1, 10), 'YYYY-MM-DD'); END;
   FUNCTION ds(p DATE) RETURN VARCHAR2 IS BEGIN RETURN TO_CHAR(p, 'YYYY-MM-DD'); END;
@@ -1858,6 +1860,13 @@ CREATE OR REPLACE PACKAGE BODY NOONA_MFG_PKG AS
         INTO l_c FROM inv_item i
        WHERE i.status_code = 'ACTIVE' AND EXISTS (SELECT 1 FROM mfg_bom b WHERE b.item_id = i.id AND b.company_id = l_co AND b.status_code = 'PUBLISHED');
       put('products', l_c);
+    END IF;
+    IF want('items') THEN
+      -- الأصناف القابلة للتصنيع (منتج تام أو نصف مصنع أو له قائمة مواد)
+      SELECT JSON_ARRAYAGG(JSON_OBJECT('v' VALUE i.id, 'n' VALUE i.item_no || ' - ' || i.name_ar) ORDER BY i.item_no RETURNING CLOB)
+        INTO l_c FROM inv_item i
+       WHERE i.status_code = 'ACTIVE' AND (i.item_type IN ('FINISHED_GOOD', 'SEMI_FINISHED') OR i.is_manufactured = 'Y');
+      put('items', l_c);
     END IF;
     IF want('whs') THEN
       SELECT JSON_ARRAYAGG(JSON_OBJECT('v' VALUE id, 'n' VALUE code || ' - ' || name_ar) ORDER BY DECODE(warehouse_type, 'MAIN', 0, 1), code RETURNING CLOB)
