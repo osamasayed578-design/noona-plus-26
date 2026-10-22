@@ -96,7 +96,8 @@ CREATE OR REPLACE PACKAGE BODY NOONA_PORTAL_PKG AS
       RETURN 'N';
     END IF;
     IF p_app_alias = 'NOONA_ADMIN' THEN
-      RETURN NOONA_APEX_PKG.is_tenant_admin;
+      -- مسؤول المؤسسة أو مسؤول شركة (دور COMPANY_ADMIN)
+      RETURN NOONA_SEC_ADMIN_PKG.is_org_admin;
     END IF;
     IF p_module_code IS NULL THEN
       RETURN 'Y';

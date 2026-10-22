@@ -29,19 +29,43 @@ TENANTS_SQL = [
     "           ' / ' || noona_platform_admin_pkg.tenant_limit(t.id, 'USERS'), '') as users,",
     "       noona_platform_admin_pkg.tenant_metric(t.id, 'MODULES') as modules,",
     "       noona_platform_admin_pkg.tenant_metric(t.id, 'LAST_LOGIN') as last_login,",
-    "       noona_ui_pkg.code_label(t.legal_hold) as legal_hold, noona_ui_pkg.status_badge(t.status_code) as status_html",
+    "       noona_platform_admin_pkg.sub_info(t.id, 'PLAN') as plan_name, noona_platform_admin_pkg.sub_info(t.id, 'END') as sub_end,",
+    "       to_number(noona_platform_admin_pkg.sub_info(t.id, 'LEFT')) as days_left, to_char(t.created_at, 'YYYY-MM-DD') as joined,",
+    "       noona_ui_pkg.code_label(t.legal_hold) as legal_hold, noona_ui_pkg.status_badge(t.status_code) as status_html, t.status_code",
     '  from plt_tenant t']
 TENANTS_COLS = [('ID', '#', {'hidden': True, 'type': 'NUMBER'}), ('TENANT_CODE', 'الرمز', {}), ('NAME_AR', 'المؤسسة', {}),
                 ('COUNTRY_CODE', 'الدولة', {}), ('DEPLOYMENT_MODEL', 'نموذج التشغيل', {}), ('COMPANIES', 'شركات (الحد)', {}),
                 ('BRANCHES', 'فروع (الحد)', {}), ('USERS', 'مستخدمون (الحد)', {}), ('MODULES', 'وحدات مشترك فيها', {}), ('LAST_LOGIN', 'آخر دخول', {}),
-                ('LEGAL_HOLD', 'حجز قانوني', {}), ('STATUS_HTML', 'الحالة', {'html': True})]
+                ('PLAN_NAME', 'الباقة', {}), ('SUB_END', 'نهاية الاشتراك', {}), ('DAYS_LEFT', 'الأيام المتبقية', {'type': 'NUMBER'}),
+                ('JOINED', 'تاريخ الاشتراك', {}), ('LEGAL_HOLD', 'حجز قانوني', {}), ('STATUS_HTML', 'الحالة', {'html': True}),
+                ('STATUS_CODE', 'رمز الحالة', {'hidden': True})]
+PLAN_LOV = ("select name_ar d, code r from plt_plan where is_active = 'Y' "
+            "order by decode(code, 'TRIAL', 0, 'MONTHLY', 1, 'QUARTERLY', 2, 'SEMI_ANNUAL', 3, 'ANNUAL', 4, 5)")
+
+
+def tenants_where(cond, order):
+    return ['select * from ('] + TENANTS_SQL + [f') where {cond} order by {order}']
 TENANT_LINK = 'f?p=&APP_ID.:3:&SESSION.::&DEBUG.:RP,3:P3_ID:#ID#'
 
 # =============================================================== 1) لوحة المنصة
 p = app.page(1, 'Home', 'HOME', 'لوحة المنصة', scheme=PLATFORM)
 p.dynamic('مؤشرات المنصة', 10, 'return noona_platform_admin_pkg.platform_summary;', hide_header=True)
-r = p.ir('المؤسسات المشتركة', 20, TENANTS_SQL, TENANTS_COLS, link=TENANT_LINK, titled=True)
+ex = p.static('متابعة الاشتراكات', 15)
+b_exp = p.button(ex, 10, 'APPLY_EXPIRY', 'تطبيق قواعد الانتهاء الآن (سماح ← قراءة فقط ← تعليق)')
+p.button(ex, 20, 'SUBS', 'كل الاشتراكات', redirect=back(8))
+p.process(10, 'AFTER_SUBMIT', 'Apply Expiry', [
+    'declare l_n number;', 'begin',
+    '    l_n := noona_platform_admin_pkg.apply_expiry;',
+    "    apex_application.g_print_success_message := 'تم تطبيق قواعد الانتهاء: تغيرت حالة ' || l_n || ' مؤسسة';",
+    'end;'], when_button=b_exp)
+p.ir('تنتهي خلال 60 يوماً', 20, tenants_where('days_left between 0 and 60', 'days_left'), TENANTS_COLS, link=TENANT_LINK, titled=True, rows=10)
+p.ir('منتهية: فترة سماح أو قراءة فقط أو معلقة', 22, tenants_where("days_left < 0 or status_code in ('GRACE_PERIOD', 'READ_ONLY', 'SUSPENDED')", 'days_left'),
+     TENANTS_COLS, link=TENANT_LINK, titled=True, rows=10)
+p.ir('مشتركون جدد (آخر 30 يوماً)', 24, tenants_where("joined >= to_char(sysdate - 30, 'YYYY-MM-DD')", 'joined desc'), TENANTS_COLS,
+     link=TENANT_LINK, titled=True, rows=10)
+r = p.ir('المؤسسات المشتركة', 30, TENANTS_SQL, TENANTS_COLS, link=TENANT_LINK, titled=True)
 p.button(r, 10, 'NEW_TENANT', 'تجهيز مؤسسة جديدة', hot=True, redirect=back(4), position='RIGHT_OF_IR_SEARCH_BAR')
+p.branch(10, back(1) + '&success_msg=#SUCCESS_MSG#')
 
 # =============================================================== 3) المؤسسة
 p = app.page(3, 'Tenant', 'TENANT', 'المؤسسة المشتركة', scheme=PLATFORM)
@@ -88,6 +112,37 @@ p.process(35, 'AFTER_SUBMIT', 'Save Limits', [
     "noona_platform_admin_pkg.set_tenant_limit(:P3_ID, 'BRANCHES', :P3_MAX_BRANCHES);",
     "noona_platform_admin_pkg.set_tenant_limit(:P3_ID, 'COMPANIES', :P3_MAX_COMPANIES);"],
     when_button=b_lim, success='تم حفظ حدود الاشتراك')
+
+# الاشتراك: الباقة والفترة والتجديد (المؤسسة ترى اشتراكها في إدارة المؤسسة)
+sb = p.static('الاشتراك والتجديد', 17)
+p.display('P3_SUB_NOW', sb, 5, 'الاشتراك الحالي')
+p.select('P3_PLAN', sb, 10, 'الباقة', lov_sql=PLAN_LOV, null_text=None)
+p.date('P3_SUB_START', sb, 20, 'بداية الفترة')
+p.number('P3_PERIODS', sb, 30, 'عدد الفترات')
+p.date('P3_SUB_END', sb, 40, 'أو نهاية محددة (اختياري)')
+p.text('P3_SUB_NOTE', sb, 50, 'ملاحظة (رقم العقد / الفاتورة)')
+b_sub = p.button(sb, 10, 'SAVE_SUB', 'تسجيل / تعديل الاشتراك', hot=True)
+b_ren = p.button(sb, 20, 'RENEW', 'تجديد بعدد الفترات')
+p.process(16, 'BEFORE_HEADER', 'Load Subscription', [
+    ":P3_SUB_NOW := nvl(noona_platform_admin_pkg.sub_info(:P3_ID, 'PLAN'), 'لم يسجل اشتراك') || nvl2(noona_platform_admin_pkg.sub_info(:P3_ID, 'END'),",
+    "    ' · من ' || noona_platform_admin_pkg.sub_info(:P3_ID, 'START') || ' إلى ' || noona_platform_admin_pkg.sub_info(:P3_ID, 'END')",
+    "    || ' · المتبقي ' || noona_platform_admin_pkg.sub_info(:P3_ID, 'LEFT') || ' يوماً · ' || noona_ui_pkg.status_label(noona_platform_admin_pkg.sub_info(:P3_ID, 'STATUS')), '');",
+    "if :REQUEST is null or :REQUEST not in ('SAVE_SUB', 'RENEW') then",
+    "    :P3_PLAN := nvl(noona_platform_admin_pkg.sub_info(:P3_ID, 'PLAN_CODE'), 'ANNUAL');",
+    "    :P3_SUB_START := to_char(sysdate, 'YYYY-MM-DD');",
+    '    :P3_PERIODS := 1;',
+    'end if;'])
+p.process(36, 'AFTER_SUBMIT', 'Save Subscription', [
+    'declare l_id number;', 'begin',
+    "    l_id := noona_platform_admin_pkg.set_subscription(:P3_ID, :P3_PLAN, to_date(:P3_SUB_START, 'YYYY-MM-DD'), nvl(:P3_PERIODS, 1),",
+    "                                                      to_date(:P3_SUB_END, 'YYYY-MM-DD'), :P3_SUB_NOTE);",
+    'end;'], when_button=b_sub, success='تم تسجيل الاشتراك')
+p.process(37, 'AFTER_SUBMIT', 'Renew', [
+    'declare l_end date;', 'begin',
+    '    l_end := noona_platform_admin_pkg.renew_subscription(:P3_ID, nvl(:P3_PERIODS, 1), :P3_PLAN, :P3_SUB_NOTE);',
+    "    apex_application.g_print_success_message := 'تم التجديد حتى ' || to_char(l_end, 'YYYY-MM-DD');",
+    'end;'], when_button=b_ren)
+p.dynamic('سجل الاشتراك والتجديدات', 18, 'return noona_platform_admin_pkg.subscription_history_html(:P3_ID);')
 
 # الاشتراك في الوحدات: يحدد الأنظمة الظاهرة لمستخدمي المؤسسة في شاشة الأنظمة
 md = p.static('الوحدات المشترك فيها', 20)
@@ -143,6 +198,9 @@ p.text('P4_COMPANY_NAME', t, 90, 'اسم الشركة الأولى', required=Tr
 p.number('P4_MAX_USERS', t, 100, 'الحد الأقصى للمستخدمين')
 p.number('P4_MAX_BRANCHES', t, 110, 'الحد الأقصى للفروع')
 p.number('P4_MAX_COMPANIES', t, 120, 'الحد الأقصى للشركات')
+p.select('P4_PLAN', t, 130, 'الباقة', lov_sql=PLAN_LOV, null_text=None)
+p.date('P4_SUB_START', t, 140, 'بداية الاشتراك')
+p.number('P4_PERIODS', t, 150, 'عدد الفترات')
 a = p.static('مسؤول المؤسسة', 20)
 p.text('P4_ADMIN_USER', a, 10, 'اسم الدخول', required=True, maxlen=100, width=30)
 p.text('P4_ADMIN_NAME', a, 20, 'الاسم الكامل', required=True)
@@ -150,7 +208,8 @@ p.text('P4_ADMIN_EMAIL', a, 30, 'البريد الإلكتروني', required=Tr
 p.password('P4_ADMIN_PASSWORD', a, 40, 'كلمة المرور الأولى', required=True)
 b = p.button(a, 10, 'PROVISION', 'تجهيز المؤسسة', hot=True)
 p.button(a, 20, 'CANCEL', 'إلغاء', redirect=back(1))
-p.process(10, 'BEFORE_HEADER', 'Defaults', [":P4_COUNTRY := nvl(:P4_COUNTRY, 'SA'); :P4_CURRENCY := nvl(:P4_CURRENCY, 'SAR');"])
+p.process(10, 'BEFORE_HEADER', 'Defaults', [":P4_COUNTRY := nvl(:P4_COUNTRY, 'SA'); :P4_CURRENCY := nvl(:P4_CURRENCY, 'SAR');",
+    ":P4_PLAN := nvl(:P4_PLAN, 'ANNUAL'); :P4_SUB_START := nvl(:P4_SUB_START, to_char(sysdate, 'YYYY-MM-DD')); :P4_PERIODS := nvl(:P4_PERIODS, 1);"])
 p.process(10, 'AFTER_SUBMIT', 'Provision Tenant', [
     ':P3_ID := noona_platform_pkg.provision_tenant(',
     '    p_tenant_code => :P4_CODE, p_tenant_slug => lower(:P4_SLUG), p_name_ar => :P4_NAME_AR, p_name_en => :P4_NAME_EN,',
@@ -161,6 +220,8 @@ p.process(10, 'AFTER_SUBMIT', 'Provision Tenant', [
     "noona_platform_admin_pkg.set_tenant_limit(:P3_ID, 'USERS', :P4_MAX_USERS);",
     "noona_platform_admin_pkg.set_tenant_limit(:P3_ID, 'BRANCHES', :P4_MAX_BRANCHES);",
     "noona_platform_admin_pkg.set_tenant_limit(:P3_ID, 'COMPANIES', :P4_MAX_COMPANIES);",
+    "if noona_platform_admin_pkg.set_subscription(:P3_ID, case when :P4_TRIAL = 'Y' then 'TRIAL' else :P4_PLAN end,",
+    "       to_date(:P4_SUB_START, 'YYYY-MM-DD'), nvl(:P4_PERIODS, 1), null, 'التجهيز') is null then null; end if;",
     ':P4_ADMIN_PASSWORD := null;'], when_button=b, success='تم تجهيز المؤسسة؛ حدد الوحدات المشترك فيها')
 p.branch(10, 'f?p=&APP_ID.:3:&SESSION.::&DEBUG.:RP,3:P3_ID:&P3_ID.&success_msg=#SUCCESS_MSG#', when_button=b)
 
@@ -193,7 +254,12 @@ p.ir('مسؤولو المنصة', 10, [
     [('ID', '#', {'hidden': True, 'type': 'NUMBER'}), ('USERNAME', 'اسم الدخول', {}), ('DISPLAY_NAME', 'الاسم', {}),
      ('EMAIL', 'البريد', {}), ('MFA', 'تحقق متعدد', {}), ('LAST_LOGIN', 'آخر دخول', {}), ('STATUS_HTML', 'الحالة', {'html': True})])
 
+# =============================================================== 8) الاشتراكات
+p = app.page(8, 'Subscriptions', 'SUBSCRIPTIONS', 'الاشتراكات', scheme=PLATFORM)
+p.ir('اشتراكات المؤسسات', 10, tenants_where('1 = 1', 'days_left nulls first'), TENANTS_COLS, link=TENANT_LINK, rows=100)
+
 app.nav_item('لوحة المنصة', 1, 'fa-server', 10)
+app.nav_item('الاشتراكات', 8, 'fa-calendar-check-o', 15)
 app.nav_item('تجهيز مؤسسة', 4, 'fa-plus-circle', 20)
 app.nav_item('سجل تدقيق المنصة', 5, 'fa-shield', 30)
 app.nav_item('وحدات النظام', 6, 'fa-cubes', 40)

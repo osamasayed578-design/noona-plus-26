@@ -30,6 +30,11 @@ CREATE OR REPLACE PACKAGE NOONA_PLATFORM_PKG AUTHID DEFINER AS
     p_cell_code        IN VARCHAR2 DEFAULT NULL) RETURN NUMBER;
 
   PROCEDURE change_tenant_status(p_tenant_id IN NUMBER, p_new_status IN VARCHAR2, p_reason IN VARCHAR2);
+  -- تغيير الحالة آلياً بانتهاء الاشتراك (مهمة يومية أو لوحة المنصة)؛ بلا تحقق من مسؤول المنصة
+  PROCEDURE system_set_status(p_tenant_id IN NUMBER, p_new_status IN VARCHAR2, p_reason IN VARCHAR2)
+    ACCESSIBLE BY (PACKAGE NOONA_PLATFORM_ADMIN_PKG);
+  -- دور مسؤول الشركة للمؤسسة (يمنح بنطاق شركة): المستخدمون والمنح والفروع وعرض الأدوار؛ آمن لإعادة التشغيل
+  PROCEDURE ensure_company_admin_role(p_tenant_id IN NUMBER);
   PROCEDURE set_legal_hold(p_tenant_id IN NUMBER, p_hold IN VARCHAR2, p_reason IN VARCHAR2);
 
   -- On-Premises: هل يسمح الترخيص بإضافة Tenant؟ (التعليق لا يحرر Slot - BR-010)
@@ -282,6 +287,7 @@ CREATE OR REPLACE PACKAGE BODY NOONA_PLATFORM_PKG AS
       RETURNING id INTO l_grant;
       INSERT INTO sec_data_scope (tenant_id, role_grant_id, scope_type) VALUES (l_tenant, l_grant, 'ALL_TENANT');
     END;
+    ensure_company_admin_role(l_tenant);
     log_step(l_run, l_tenant, 4, 'ADMIN_ROLE');
 
     -- 5) TENANT_DEFAULTS: أنواع أسعار الصرف وشروط الدفع الأساسية
@@ -347,10 +353,9 @@ CREATE OR REPLACE PACKAGE BODY NOONA_PLATFORM_PKG AS
       RAISE;
   END provision_tenant;
 
-  PROCEDURE change_tenant_status(p_tenant_id IN NUMBER, p_new_status IN VARCHAR2, p_reason IN VARCHAR2) IS
+  PROCEDURE do_status(p_tenant_id IN NUMBER, p_new_status IN VARCHAR2, p_reason IN VARCHAR2) IS
     l_t plt_tenant%ROWTYPE;
   BEGIN
-    NOONA_CORE_PKG.require_platform_admin;
     NOONA_CORE_PKG.assert(p_reason IS NOT NULL, 'NOONA-PLT-012', 'السبب إلزامي', 'Reason is required');
     NOONA_CORE_PKG.begin_system;
     SELECT * INTO l_t FROM plt_tenant WHERE id = p_tenant_id FOR UPDATE;
@@ -372,7 +377,43 @@ CREATE OR REPLACE PACKAGE BODY NOONA_PLATFORM_PKG AS
   EXCEPTION WHEN OTHERS THEN
     NOONA_CORE_PKG.end_system;
     RAISE;
+  END do_status;
+
+  PROCEDURE change_tenant_status(p_tenant_id IN NUMBER, p_new_status IN VARCHAR2, p_reason IN VARCHAR2) IS
+  BEGIN
+    NOONA_CORE_PKG.require_platform_admin;
+    do_status(p_tenant_id, p_new_status, p_reason);
   END change_tenant_status;
+
+  PROCEDURE system_set_status(p_tenant_id IN NUMBER, p_new_status IN VARCHAR2, p_reason IN VARCHAR2)
+    ACCESSIBLE BY (PACKAGE NOONA_PLATFORM_ADMIN_PKG) IS
+  BEGIN
+    do_status(p_tenant_id, p_new_status, p_reason);
+  END system_set_status;
+
+  PROCEDURE ensure_company_admin_role(p_tenant_id IN NUMBER) IS
+    l_role NUMBER;
+  BEGIN
+    NOONA_CORE_PKG.begin_system;
+    SELECT MIN(id) INTO l_role FROM sec_role WHERE tenant_id = p_tenant_id AND code = 'COMPANY_ADMIN';
+    IF l_role IS NULL THEN
+      INSERT INTO sec_role (tenant_id, code, name_ar, name_en, description, role_type, is_privileged, status_code)
+      VALUES (p_tenant_id, 'COMPANY_ADMIN', 'مسؤول الشركة', 'Company Administrator',
+              'يدير مستخدمي الشركة المحددة في المنح وفروعها ويمنحهم الأدوار غير المميزة بنطاقها؛ يمنحه مسؤول المؤسسة',
+              'COMPANY', 'Y', 'ACTIVE')
+      RETURNING id INTO l_role;
+    END IF;
+    INSERT INTO sec_role_permission (tenant_id, role_id, permission_id, effect)
+    SELECT p_tenant_id, l_role, p.id, 'ALLOW' FROM sec_permission p
+     WHERE p.is_active = 'Y' AND p.action_code <> 'CONFIGURE'
+       AND (p.resource_code IN ('SEC_USER_MEMBERSHIP', 'SEC_ROLE_GRANT', 'SEC_DATA_SCOPE', 'ORG_BRANCH')
+            OR p.permission_code IN ('ORG_COMPANY.VIEW', 'SEC_ROLE.VIEW', 'SEC_PERMISSION.VIEW', 'SEC_ROLE_PERMISSION.VIEW'))
+       AND NOT EXISTS (SELECT 1 FROM sec_role_permission x WHERE x.role_id = l_role AND x.permission_id = p.id);
+    NOONA_CORE_PKG.end_system;
+  EXCEPTION WHEN OTHERS THEN
+    NOONA_CORE_PKG.end_system;
+    RAISE;
+  END ensure_company_admin_role;
 
   PROCEDURE set_legal_hold(p_tenant_id IN NUMBER, p_hold IN VARCHAR2, p_reason IN VARCHAR2) IS
   BEGIN
@@ -486,6 +527,9 @@ CREATE OR REPLACE PACKAGE BODY NOONA_PLATFORM_PKG AS
   BEGIN
     NOONA_CORE_PKG.assert_tenant_writable;
     NOONA_SECURITY_PKG.assert_permission('ORG_BRANCH.CREATE', p_company_id);
+    -- مسؤول الشركة يضيف فروعاً لشركاته فقط
+    NOONA_CORE_PKG.assert(NVL(NOONA_SEC_ADMIN_PKG.admin_level, 'TENANT') = 'TENANT' OR NOONA_SEC_ADMIN_PKG.can_admin_company(p_company_id) = 'Y',
+      'NOONA-SEC-260', 'لا تملك إدارة هذه الشركة؛ مسؤول الشركة يدير شركاته وفروعها فقط', 'You do not administer this company');
     SELECT * INTO l_c FROM org_company WHERE id = p_company_id;
     NOONA_CORE_PKG.assert(l_c.status_code NOT IN ('CLOSED', 'ARCHIVED', 'LEGALLY_CLOSED', 'TRANSACTIONS_BLOCKED'),
       'NOONA-PLT-030', 'لا يمكن إضافة فرع لشركة مغلقة', 'Cannot add a branch to a closed company');
@@ -660,6 +704,8 @@ CREATE OR REPLACE PACKAGE BODY NOONA_PLATFORM_PKG AS
     NOONA_CORE_PKG.assert_tenant_writable;
     SELECT * INTO l_b FROM org_branch WHERE id = p_branch_id FOR UPDATE;
     NOONA_SECURITY_PKG.assert_permission('ORG_BRANCH.UPDATE', l_b.company_id);
+    NOONA_CORE_PKG.assert(NVL(NOONA_SEC_ADMIN_PKG.admin_level, 'TENANT') = 'TENANT' OR NOONA_SEC_ADMIN_PKG.can_admin_company(l_b.company_id) = 'Y',
+      'NOONA-SEC-260', 'لا تملك إدارة هذه الشركة؛ مسؤول الشركة يدير شركاته وفروعها فقط', 'You do not administer this company');
     NOONA_CORE_PKG.assert(p_reason IS NOT NULL, 'NOONA-PLT-012', 'السبب إلزامي', 'Reason is required');
     -- فحص المسؤوليات المفتوحة قبل الإغلاق (12.4)
     SELECT COUNT(*) INTO l_n FROM inv_warehouse WHERE branch_id = p_branch_id AND status_code = 'ACTIVE';

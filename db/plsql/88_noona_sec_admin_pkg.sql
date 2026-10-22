@@ -3,6 +3,8 @@
 --   * كل عملية: حارس الكتابة + صلاحية ذرية + سجل تدقيق
 --   * ضوابط: لا ترقية لمسؤول منصة، لا صلاحيات منصة (CONFIGURE) في أدوار المؤسسة،
 --     الأدوار المميزة يمنحها مسؤول المؤسسة فقط، ولا يسحب المسؤول آخر منح لدور TENANT_ADMIN (منع الإغلاق الذاتي)
+--   * مستويا الإدارة: مسؤول المؤسسة (كل الشركات) ومسؤول الشركة (دور COMPANY_ADMIN بنطاق شركة): الأخير يدير
+--     مستخدمي شركاته وفروعها ويمنحهم أدواراً غير مميزة بنطاق شركاته أو فروعها فقط، ولا يرى غيرها
 -- =============================================================================
 SET DEFINE OFF
 
@@ -36,9 +38,21 @@ CREATE OR REPLACE PACKAGE NOONA_SEC_ADMIN_PKG AUTHID DEFINER AS
   FUNCTION sync_module_permissions(p_role_id IN NUMBER, p_module_code IN VARCHAR2, p_permission_ids IN VARCHAR2)
     RETURN VARCHAR2;
 
-  -- p_company_id فارغ = كل شركات المؤسسة
+  -- p_company_id فارغ = كل شركات المؤسسة (لمسؤول المؤسسة فقط)؛ p_branch_id = نطاق فرع داخل الشركة
   FUNCTION grant_role(p_membership_id IN NUMBER, p_role_id IN NUMBER, p_company_id IN NUMBER DEFAULT NULL,
-                      p_reason IN VARCHAR2 DEFAULT NULL, p_effective_to IN DATE DEFAULT NULL) RETURN NUMBER;
+                      p_reason IN VARCHAR2 DEFAULT NULL, p_effective_to IN DATE DEFAULT NULL,
+                      p_branch_id IN NUMBER DEFAULT NULL) RETURN NUMBER;
+
+  -- ---------------------------------------------------------- مستويات الإدارة (تستخدم في SQL وشروط الشاشات)
+  -- TENANT = مسؤول المؤسسة، COMPANY = مسؤول شركة أو أكثر، NULL = ليس مسؤولاً
+  FUNCTION admin_level RETURN VARCHAR2;
+  FUNCTION is_org_admin RETURN VARCHAR2;
+  -- هل يدير المستخدم الحالي هذه الشركة (مسؤول المؤسسة: كل الشركات)
+  FUNCTION can_admin_company(p_company_id IN NUMBER) RETURN VARCHAR2;
+  -- هل يدير المستخدم الحالي هذا العضو (شركته الافتراضية ضمن شركاته، وليس مسؤول مؤسسة)
+  FUNCTION can_admin_member(p_membership_id IN NUMBER) RETURN VARCHAR2;
+  -- اشتراك المؤسسة كما يراه مسؤولها: الباقة، الفترة، الأيام المتبقية، الاستهلاك مقابل الحدود، الوحدات
+  FUNCTION subscription_html RETURN CLOB;
   PROCEDURE revoke_grant(p_grant_id IN NUMBER, p_reason IN VARCHAR2);
 
   -- تعيين/إعادة تعيين كلمة المرور المحلية لعضو في المؤسسة (يفك القفل). الحساب المشترك مع مؤسسة أخرى
@@ -80,6 +94,61 @@ CREATE OR REPLACE PACKAGE BODY NOONA_SEC_ADMIN_PKG AS
     NOONA_SECURITY_PKG.assert_permission(p_permission);
   END guard;
 
+  -- ================================================================ مستويات الإدارة
+  FUNCTION admin_level RETURN VARCHAR2 IS
+    l NUMBER;
+  BEGIN
+    IF NOONA_CTX_PKG.membership_id IS NULL THEN RETURN NULL; END IF;
+    IF NOONA_CTX_PKG.is_tenant_admin = 'Y' THEN RETURN 'TENANT'; END IF;
+    SELECT COUNT(*) INTO l FROM sec_role_grant g JOIN sec_role r ON r.id = g.role_id
+     WHERE g.membership_id = NOONA_CTX_PKG.membership_id AND r.code = 'COMPANY_ADMIN' AND g.status_code = 'ACTIVE'
+       AND TRUNC(SYSDATE) BETWEEN g.effective_from AND NVL(g.effective_to, DATE '9999-12-31') AND ROWNUM = 1;
+    RETURN CASE WHEN l > 0 THEN 'COMPANY' END;
+  END admin_level;
+
+  FUNCTION is_org_admin RETURN VARCHAR2 IS
+  BEGIN
+    RETURN CASE WHEN admin_level IS NOT NULL THEN 'Y' ELSE 'N' END;
+  END is_org_admin;
+
+  FUNCTION can_admin_company(p_company_id IN NUMBER) RETURN VARCHAR2 IS
+    l NUMBER;
+  BEGIN
+    IF NOONA_CTX_PKG.membership_id IS NULL OR p_company_id IS NULL THEN RETURN 'N'; END IF;
+    IF NOONA_CTX_PKG.is_tenant_admin = 'Y' THEN RETURN 'Y'; END IF;
+    SELECT COUNT(*) INTO l FROM sec_role_grant g JOIN sec_role r ON r.id = g.role_id JOIN sec_data_scope d ON d.role_grant_id = g.id
+     WHERE g.membership_id = NOONA_CTX_PKG.membership_id AND r.code = 'COMPANY_ADMIN' AND g.status_code = 'ACTIVE'
+       AND TRUNC(SYSDATE) BETWEEN g.effective_from AND NVL(g.effective_to, DATE '9999-12-31')
+       AND d.scope_type = 'COMPANY' AND d.company_id = p_company_id AND ROWNUM = 1;
+    RETURN CASE WHEN l > 0 THEN 'Y' ELSE 'N' END;
+  END can_admin_company;
+
+  FUNCTION can_admin_member(p_membership_id IN NUMBER) RETURN VARCHAR2 IS
+    l_m sec_user_membership%ROWTYPE;
+    l_n NUMBER;
+  BEGIN
+    IF NOONA_CTX_PKG.is_tenant_admin = 'Y' THEN RETURN 'Y'; END IF;
+    SELECT * INTO l_m FROM sec_user_membership WHERE id = p_membership_id;
+    -- مسؤول المؤسسة (بالعلامة أو بمنح دور TENANT_ADMIN) خارج نطاق مسؤول الشركة دائماً
+    SELECT COUNT(*) INTO l_n FROM sec_role_grant g JOIN sec_role r ON r.id = g.role_id
+     WHERE g.membership_id = p_membership_id AND r.code = 'TENANT_ADMIN' AND g.status_code = 'ACTIVE' AND ROWNUM = 1;
+    RETURN CASE WHEN l_m.is_tenant_admin = 'N' AND l_n = 0 AND can_admin_company(l_m.default_company_id) = 'Y' THEN 'Y' ELSE 'N' END;
+  EXCEPTION WHEN NO_DATA_FOUND THEN
+    RETURN 'N';
+  END can_admin_member;
+
+  PROCEDURE assert_company(p_company_id NUMBER) IS
+  BEGIN
+    NOONA_CORE_PKG.assert(can_admin_company(p_company_id) = 'Y', 'NOONA-SEC-260',
+      'لا تملك إدارة هذه الشركة؛ مسؤول الشركة يدير شركاته وفروعها فقط', 'You do not administer this company');
+  END assert_company;
+
+  PROCEDURE assert_member(p_membership_id NUMBER) IS
+  BEGIN
+    NOONA_CORE_PKG.assert(can_admin_member(p_membership_id) = 'Y', 'NOONA-SEC-261',
+      'هذا المستخدم خارج نطاق إدارتك (شركة أخرى أو مسؤول مؤسسة)', 'This user is outside your administration scope');
+  END assert_member;
+
   FUNCTION create_user(
     p_username        IN VARCHAR2,
     p_display_name    IN VARCHAR2,
@@ -99,6 +168,7 @@ CREATE OR REPLACE PACKAGE BODY NOONA_SEC_ADMIN_PKG AS
       'اسم المستخدم يبدأ بحرف ويتكون من 3 أحرف على الأقل (حروف إنجليزية وأرقام و _ . @ -)', 'Invalid username');
     NOONA_CORE_PKG.assert(p_is_tenant_admin = 'N' OR NOONA_CTX_PKG.is_tenant_admin = 'Y', 'NOONA-SEC-201',
       'تعيين مسؤول مؤسسة جديد مقصور على مسؤول المؤسسة', 'Only a tenant admin can create another tenant admin');
+    assert_company(p_company_id);
     NOONA_CORE_PKG.begin_system;
     BEGIN
       SELECT * INTO l_user FROM sec_user WHERE username = l_name;
@@ -139,6 +209,8 @@ CREATE OR REPLACE PACKAGE BODY NOONA_SEC_ADMIN_PKG AS
     l_user NUMBER;
   BEGIN
     guard('SEC_USER_MEMBERSHIP.UPDATE');
+    assert_member(p_membership_id);
+    assert_company(p_company_id);
     SELECT user_id INTO l_user FROM sec_user_membership WHERE id = p_membership_id;    -- VPD: داخل المؤسسة فقط
     UPDATE sec_user_membership
        SET default_company_id = p_company_id, default_branch_id = p_branch_id, clearance_level = NVL(p_clearance, clearance_level)
@@ -159,6 +231,7 @@ CREATE OR REPLACE PACKAGE BODY NOONA_SEC_ADMIN_PKG AS
     NOONA_CORE_PKG.assert(p_reason IS NOT NULL, 'NOONA-SEC-211', 'السبب إلزامي', 'Reason is required');
     NOONA_CORE_PKG.assert(p_membership_id <> NOONA_CTX_PKG.membership_id OR p_status = 'ACTIVE', 'NOONA-SEC-212',
       'لا يمكنك إيقاف حسابك بنفسك', 'You cannot suspend your own membership');
+    assert_member(p_membership_id);
     IF p_status = 'ACTIVE' THEN
       DECLARE
         l_cur VARCHAR2(30);
@@ -289,22 +362,43 @@ CREATE OR REPLACE PACKAGE BODY NOONA_SEC_ADMIN_PKG AS
   END sync_module_permissions;
 
   FUNCTION grant_role(p_membership_id IN NUMBER, p_role_id IN NUMBER, p_company_id IN NUMBER DEFAULT NULL,
-                      p_reason IN VARCHAR2 DEFAULT NULL, p_effective_to IN DATE DEFAULT NULL) RETURN NUMBER IS
+                      p_reason IN VARCHAR2 DEFAULT NULL, p_effective_to IN DATE DEFAULT NULL,
+                      p_branch_id IN NUMBER DEFAULT NULL) RETURN NUMBER IS
     l_role  sec_role%ROWTYPE;
     l_grant NUMBER;
+    l_co    NUMBER := p_company_id;
+    l_n     NUMBER;
   BEGIN
     guard('SEC_ROLE_GRANT.CREATE');
     SELECT * INTO l_role FROM sec_role WHERE id = p_role_id;
     NOONA_CORE_PKG.assert(l_role.status_code = 'ACTIVE', 'NOONA-SEC-240', 'الدور غير نشط', 'Role is not active');
     NOONA_CORE_PKG.assert(l_role.is_privileged = 'N' OR NOONA_CTX_PKG.is_tenant_admin = 'Y', 'NOONA-SEC-241',
       'الأدوار المميزة يمنحها مسؤول المؤسسة فقط', 'Privileged roles can only be granted by a tenant admin');
+    IF p_branch_id IS NOT NULL THEN
+      SELECT MAX(company_id) INTO l_n FROM org_branch WHERE id = p_branch_id;
+      NOONA_CORE_PKG.assert(l_n IS NOT NULL AND (l_co IS NULL OR l_co = l_n), 'NOONA-SEC-243',
+        'الفرع لا يتبع الشركة المختارة', 'Branch does not belong to the company');
+      l_co := l_n;
+    END IF;
+    -- مسؤول الشركة: أعضاء شركاته فقط، وبنطاق شركاته أو فروعها (لا نطاق كل المؤسسة)
+    assert_member(p_membership_id);
+    NOONA_CORE_PKG.assert(l_co IS NOT NULL OR NOONA_CTX_PKG.is_tenant_admin = 'Y', 'NOONA-SEC-244',
+      'حدد الشركة أو الفرع: نطاق كل المؤسسة لمسؤول المؤسسة فقط', 'Choose a company: tenant-wide scope is for tenant admins');
+    IF l_co IS NOT NULL THEN
+      assert_company(l_co);
+    END IF;
+    NOONA_CORE_PKG.assert(l_role.code <> 'COMPANY_ADMIN' OR l_co IS NOT NULL, 'NOONA-SEC-245',
+      'دور مسؤول الشركة يمنح بنطاق شركة محددة', 'Company admin role needs a company scope');
+    NOONA_CORE_PKG.assert(l_role.code <> 'COMPANY_ADMIN' OR p_branch_id IS NULL, 'NOONA-SEC-245',
+      'دور مسؤول الشركة يمنح بنطاق الشركة كاملة لا فرع', 'Company admin role is granted on the whole company');
     INSERT INTO sec_role_grant (membership_id, role_id, grant_source, reason, requested_by, approved_by, status_code,
                                 effective_to)
     VALUES (p_membership_id, p_role_id, 'MANUAL', p_reason, NOONA_CTX_PKG.current_user_name,
             NOONA_CTX_PKG.current_user_name, 'ACTIVE', p_effective_to)
     RETURNING id INTO l_grant;
-    INSERT INTO sec_data_scope (role_grant_id, scope_type, company_id)
-    VALUES (l_grant, CASE WHEN p_company_id IS NULL THEN 'ALL_TENANT' ELSE 'COMPANY' END, p_company_id);
+    INSERT INTO sec_data_scope (role_grant_id, scope_type, company_id, scope_value_id)
+    VALUES (l_grant, CASE WHEN p_branch_id IS NOT NULL THEN 'BRANCH' WHEN l_co IS NULL THEN 'ALL_TENANT' ELSE 'COMPANY' END,
+            l_co, p_branch_id);
     NOONA_AUDIT_PKG.log_event('SECURITY', 'SEC_ROLE_GRANT', l_grant, 'GRANT:' || l_role.code, 'SUCCESS',
                               p_reason => p_reason);
     RETURN l_grant;
@@ -319,6 +413,11 @@ CREATE OR REPLACE PACKAGE BODY NOONA_SEC_ADMIN_PKG AS
     NOONA_CORE_PKG.assert(p_reason IS NOT NULL, 'NOONA-SEC-211', 'السبب إلزامي', 'Reason is required');
     SELECT * INTO l_g FROM sec_role_grant WHERE id = p_grant_id FOR UPDATE;
     SELECT code INTO l_code FROM sec_role WHERE id = l_g.role_id;
+    assert_member(l_g.membership_id);
+    IF NOONA_CTX_PKG.is_tenant_admin = 'N' THEN
+      SELECT COUNT(*) INTO l_n FROM sec_data_scope WHERE role_grant_id = p_grant_id AND (company_id IS NULL OR can_admin_company(company_id) = 'N');
+      NOONA_CORE_PKG.assert(l_n = 0, 'NOONA-SEC-260', 'المنح يشمل شركات خارج نطاق إدارتك', 'Grant covers companies outside your scope');
+    END IF;
     IF l_code = 'TENANT_ADMIN' THEN
       SELECT COUNT(*) INTO l_n FROM sec_role_grant g JOIN sec_user_membership m ON m.id = g.membership_id
        WHERE g.role_id = l_g.role_id AND g.status_code = 'ACTIVE' AND m.status_code = 'ACTIVE' AND g.id <> p_grant_id;
@@ -337,6 +436,7 @@ CREATE OR REPLACE PACKAGE BODY NOONA_SEC_ADMIN_PKG AS
   BEGIN
     guard('SEC_USER_MEMBERSHIP.UPDATE');
     SELECT * INTO l_member FROM sec_user_membership WHERE id = p_membership_id;      -- VPD: داخل المؤسسة فقط
+    assert_member(p_membership_id);
     NOONA_CORE_PKG.assert(l_member.is_tenant_admin = 'N' OR NOONA_CTX_PKG.is_tenant_admin = 'Y', 'NOONA-SEC-251',
       'إعادة تعيين كلمة مرور مسؤول المؤسسة مقصورة على مسؤول المؤسسة', 'Only a tenant admin can reset a tenant admin password');
     NOONA_CORE_PKG.begin_system;
@@ -394,6 +494,71 @@ CREATE OR REPLACE PACKAGE BODY NOONA_SEC_ADMIN_PKG AS
       NOONA_CORE_PKG.end_system;
       RAISE;
   END platform_set_password;
+
+  -- ================================================================ اشتراك المؤسسة (عرض لمسؤوليها)
+  FUNCTION subscription_html RETURN CLOB IS
+    l_html  CLOB;
+    l_sub   plt_subscription%ROWTYPE;
+    l_plan  VARCHAR2(400);
+    l_cycle VARCHAR2(30);
+    l_left  NUMBER;
+    l_st    VARCHAR2(30);
+    l_cls   VARCHAR2(30);
+    FUNCTION f(p_l VARCHAR2, p_v VARCHAR2) RETURN VARCHAR2 IS
+    BEGIN
+      RETURN '<div class="nn-field"><div class="nn-field-label">' || p_l || '</div><div class="nn-field-value">' || p_v || '</div></div>';
+    END f;
+    FUNCTION use_row(p_metric VARCHAR2, p_label VARCHAR2, p_used NUMBER) RETURN VARCHAR2 IS
+      l_lim NUMBER;
+      l_pct NUMBER;
+    BEGIN
+      SELECT MIN(NVL(e.hard_limit, e.limit_qty)) INTO l_lim FROM plt_entitlement e JOIN plt_usage_metric m ON m.id = e.metric_id
+       WHERE m.code = p_metric AND e.is_enabled = 'Y' AND TRUNC(SYSDATE) BETWEEN e.effective_from AND NVL(e.effective_to, DATE '9999-12-31');
+      l_pct := CASE WHEN l_lim > 0 THEN ROUND(p_used / l_lim * 100) END;
+      RETURN '<tr' || CASE WHEN l_pct >= 100 THEN ' class="nn-rpt-bad"' WHEN l_pct >= 80 THEN ' class="nn-rpt-warn"' END || '><td class="nn-rpt-text">'
+          || p_label || '</td><td>' || p_used || '</td><td>' || NVL(TO_CHAR(l_lim), 'بلا حد') || '</td><td>'
+          || CASE WHEN l_lim IS NULL THEN '' ELSE TO_CHAR(GREATEST(l_lim - p_used, 0)) END || '</td><td>'
+          || CASE WHEN l_pct IS NOT NULL THEN '<span class="nn-mfg-prog"><i style="width:' || LEAST(l_pct, 100) || '%"></i></span> ' || l_pct || '%' END
+          || '</td></tr>';
+    END use_row;
+  BEGIN
+    NOONA_CORE_PKG.assert(is_org_admin = 'Y', 'NOONA-SEC-262', 'بيانات الاشتراك لمسؤولي المؤسسة والشركات', 'Administrators only');
+    SELECT status_code INTO l_st FROM plt_tenant WHERE id = NOONA_CTX_PKG.tenant_id;
+    BEGIN
+      SELECT * INTO l_sub FROM (SELECT * FROM plt_subscription WHERE status_code NOT IN ('CANCELLED') ORDER BY current_period_end DESC NULLS LAST, id DESC)
+       WHERE ROWNUM = 1;
+      SELECT p.name_ar, p.billing_cycle INTO l_plan, l_cycle FROM plt_plan_version v JOIN plt_plan p ON p.id = v.plan_id WHERE v.id = l_sub.plan_version_id;
+      l_left := l_sub.current_period_end - TRUNC(SYSDATE);
+    EXCEPTION WHEN NO_DATA_FOUND THEN
+      l_sub.id := NULL;
+    END;
+    l_cls := CASE WHEN l_left < 0 THEN 'is-bad' WHEN l_left <= 30 THEN 'is-warn' ELSE 'is-ok' END;
+    l_html := '<div class="nn-fields">'
+           || f('حالة المؤسسة', NOONA_UI_PKG.status_badge(l_st))
+           || f('الباقة', NVL(NOONA_UI_PKG.esc(l_plan), 'لم يسجل اشتراك بعد'))
+           || f('رقم الاشتراك', NOONA_UI_PKG.esc(l_sub.subscription_no))
+           || f('بداية الفترة', TO_CHAR(l_sub.current_period_start, 'YYYY-MM-DD'))
+           || f('نهاية الفترة', TO_CHAR(l_sub.current_period_end, 'YYYY-MM-DD'))
+           || f('المتبقي', CASE WHEN l_left IS NULL THEN '' WHEN l_left < 0 THEN 'منتهي منذ ' || -l_left || ' يوماً' ELSE l_left || ' يوماً' END)
+           || '</div>'
+           || CASE WHEN l_left IS NOT NULL AND l_left <= 30 THEN
+                '<div class="nn-check ' || l_cls || '">' || CASE WHEN l_left < 0 THEN 'انتهى الاشتراك؛ تعمل المؤسسة في فترة السماح ثم القراءة فقط. تواصل مع مزود الخدمة للتجديد.'
+                                                           ELSE 'يقترب موعد انتهاء الاشتراك؛ تواصل مع مزود الخدمة للتجديد قبل ' || TO_CHAR(l_sub.current_period_end, 'YYYY-MM-DD') END
+                || '</div>' END
+           || '<table class="nn-rpt"><thead><tr><th>البند</th><th>المستخدم</th><th>الحد في الاشتراك</th><th>المتاح</th><th>نسبة الاستهلاك</th></tr></thead><tbody>';
+    DECLARE
+      u NUMBER; b NUMBER; c NUMBER; m NUMBER;
+    BEGIN
+      SELECT COUNT(*) INTO u FROM sec_user_membership WHERE status_code = 'ACTIVE';
+      SELECT COUNT(*) INTO b FROM org_branch WHERE status_code <> 'CLOSED';
+      SELECT COUNT(*) INTO c FROM org_company WHERE status_code NOT IN ('CLOSED', 'ARCHIVED', 'LEGALLY_CLOSED');
+      l_html := l_html || use_row('USERS', 'المستخدمون النشطون', u) || use_row('BRANCHES', 'الفروع', b) || use_row('COMPANIES', 'الشركات', c);
+      SELECT COUNT(*) INTO m FROM plt_module x WHERE x.is_active = 'Y' AND NOONA_PLATFORM_PKG.module_enabled(x.module_code) = 'Y';
+      l_html := l_html || ('</tbody></table><p class="nn-rpt-note">الوحدات المتاحة في الاشتراك: ' || m
+             || '. زيادة الحدود أو الوحدات وتجديد الاشتراك من مزود الخدمة (إدارة المنصة)؛ إضافة الفروع والمستخدمين ومنح الصلاحيات من هنا ضمن الحدود.</p>');
+    END;
+    RETURN l_html;
+  END subscription_html;
 
 END NOONA_SEC_ADMIN_PKG;
 /

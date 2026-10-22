@@ -69,6 +69,7 @@ PROMPT ========== 5/7 Seed: registry & reference data
 @@seed/05_journal_types.sql
 @@seed/06_supply_chain.sql
 @@seed/07_manufacturing.sql
+@@seed/08_subscription_plans.sql
 
 PROMPT ========== 6/7 Row-Level Security (VPD)
 @@security/20_noona_vpd_pkg.sql

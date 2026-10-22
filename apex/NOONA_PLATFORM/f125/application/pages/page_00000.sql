@@ -24,6 +24,7 @@ wwv_flow_imp_page.create_page_plug(
  p_id=>wwv_flow_imp.id(91820260001002550)
 ,p_plug_name=>'NOONA Company Badge'
 ,p_region_template_options=>'#DEFAULT#'
+,p_plug_template=>4501440665235496320
 ,p_plug_display_sequence=>10
 ,p_plug_display_point=>'BEFORE_NAVIGATION_BAR'
 ,p_function_body_language=>'PLSQL'

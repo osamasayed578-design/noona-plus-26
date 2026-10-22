@@ -12,6 +12,13 @@ app = App(template_dir=os.path.join(ROOT, 'apex/_templates/f119_original'),
 app.wire_security()
 app.add_branding()
 ADMIN = app.schemes['admin']
+# مسؤول المؤسسة أو مسؤول الشركة (COMPANY_ADMIN): المستخدمون والفروع واشتراك المؤسسة، كل في نطاقه
+ORG = app.add_scheme('noona_org_admin', app.id(), 'NOONA - Organisation Admin', "return noona_sec_admin_pkg.is_org_admin = 'Y';",
+                     'هذه الصفحة لمسؤول المؤسسة أو مسؤول الشركة / Administrators only')
+TENANT_ONLY = "noona_sec_admin_pkg.admin_level = 'TENANT'"
+# الشركات التي يديرها المستخدم الحالي (مسؤول المؤسسة: كلها)
+ADMIN_CO_LOV = ("select nvl(trade_name_ar, legal_name_ar) d, id r from org_company where status_code not in ('CLOSED', 'ARCHIVED') "
+                "and noona_sec_admin_pkg.can_admin_company(id) = 'Y' order by 1")
 HOME = 'f?p=&APP_ID.:1:&SESSION.::&DEBUG.:::'
 
 def back(page_no):
@@ -20,12 +27,13 @@ def back(page_no):
 STATUS_HTML = "noona_ui_pkg.status_badge(status_code) as status_html"
 
 # =============================================================== 1) لوحة الإدارة
-p = app.page(1, 'Home', 'HOME', 'إدارة المؤسسة', scheme=ADMIN)
-p.dynamic('لوحة الإدارة', 10, 'return noona_ui_pkg.admin_summary(p_session => :APP_SESSION);', hide_header=True)
+p = app.page(1, 'Home', 'HOME', 'إدارة المؤسسة', scheme=ORG)
+p.dynamic('لوحة الإدارة', 10, 'return noona_ui_pkg.admin_summary(p_session => :APP_SESSION);', hide_header=True, condition=TENANT_ONLY)
+p.dynamic('اشتراك المؤسسة', 5, 'return noona_sec_admin_pkg.subscription_html;')
 p.ir('الشركات', 20, [
     'select id, code, nvl(trade_name_ar, legal_name_ar) as company_name, country_code, functional_currency,',
     f'       {STATUS_HTML}',
-    '  from org_company'],
+    "  from org_company where noona_sec_admin_pkg.can_admin_company(id) = 'Y'"],
     [('ID', '#', {'hidden': True, 'type': 'NUMBER'}),
      ('CODE', 'الرمز', {}), ('COMPANY_NAME', 'الشركة', {}), ('COUNTRY_CODE', 'الدولة', {}),
      ('FUNCTIONAL_CURRENCY', 'العملة', {}), ('STATUS_HTML', 'الحالة', {'html': True})],
@@ -154,11 +162,11 @@ p.button(brs, 10, 'ADD_BRANCH', 'فرع جديد', redirect='f?p=&APP_ID.:13:&SE
 p.branch(10, 'f?p=&APP_ID.:11:&SESSION.::&DEBUG.::P11_ID:&P11_ID.&success_msg=#SUCCESS_MSG#')
 
 # =============================================================== 12) الفروع
-p = app.page(12, 'Branches', 'BRANCHES', 'الفروع', scheme=ADMIN)
+p = app.page(12, 'Branches', 'BRANCHES', 'الفروع', scheme=ORG)
 r = p.ir('الفروع', 10, [
     'select b.id, b.code, b.name_ar, nvl(c.trade_name_ar, c.legal_name_ar) as company_name, noona_ui_pkg.code_label(b.branch_type) as branch_type,',
     '       noona_ui_pkg.code_label(b.is_head_office) as is_head_office, b.country_code, b.currency_code, noona_ui_pkg.status_badge(b.status_code) as status_html',
-    '  from org_branch b join org_company c on c.id = b.company_id'],
+    "  from org_branch b join org_company c on c.id = b.company_id where noona_sec_admin_pkg.can_admin_company(b.company_id) = 'Y'"],
     [('ID', '#', {'hidden': True, 'type': 'NUMBER'}), ('CODE', 'الرمز', {}), ('NAME_AR', 'الفرع', {}),
      ('COMPANY_NAME', 'الشركة', {}), ('BRANCH_TYPE', 'النوع', {}), ('IS_HEAD_OFFICE', 'رئيسي', {}),
      ('COUNTRY_CODE', 'الدولة', {}), ('CURRENCY_CODE', 'العملة', {}), ('STATUS_HTML', 'الحالة', {'html': True})],
@@ -166,10 +174,10 @@ r = p.ir('الفروع', 10, [
 p.button(r, 10, 'CREATE', 'فرع جديد', hot=True, redirect='f?p=&APP_ID.:13:&SESSION.::&DEBUG.:RP,13::', position='RIGHT_OF_IR_SEARCH_BAR')
 
 # =============================================================== 13) الفرع
-p = app.page(13, 'Branch', 'BRANCH', 'الفرع', scheme=ADMIN)
+p = app.page(13, 'Branch', 'BRANCH', 'الفرع', scheme=ORG)
 info = p.static('بيانات الفرع', 10)
 p.hidden('P13_ID', info, 1)
-p.select('P13_COMPANY_ID', info, 10, 'الشركة', lov_name='NOONA_COMPANIES', required=True)
+p.select('P13_COMPANY_ID', info, 10, 'الشركة', lov_sql=ADMIN_CO_LOV, required=True)
 p.text('P13_CODE', info, 20, 'الرمز', required=True, maxlen=50, width=20)
 p.text('P13_NAME_AR', info, 30, 'الاسم بالعربية', required=True)
 p.text('P13_NAME_EN', info, 40, 'الاسم بالإنجليزية')
@@ -187,9 +195,11 @@ p.process(10, 'BEFORE_HEADER', 'Load Branch', [
     '           noona_ui_pkg.status_label(status_code)',
     '      into :P13_COMPANY_ID, :P13_CODE, :P13_NAME_AR, :P13_NAME_EN, :P13_BRANCH_TYPE, :P13_IS_HEAD_OFFICE,',
     '           :P13_COUNTRY_CODE, :P13_STATUS',
-    '      from org_branch where id = :P13_ID;',
+    "      from org_branch where id = :P13_ID and noona_sec_admin_pkg.can_admin_company(company_id) = 'Y';",
     "elsif :P13_IS_HEAD_OFFICE is null then",
     "    :P13_IS_HEAD_OFFICE := 'N';",
+    "    select case when count(*) = 1 then min(id) end into :P13_COMPANY_ID from org_company",
+    "     where status_code not in ('CLOSED', 'ARCHIVED') and noona_sec_admin_pkg.can_admin_company(id) = 'Y';",
     'end if;'])
 p.process(10, 'AFTER_SUBMIT', 'Create Branch', [
     ':P13_ID := noona_platform_pkg.create_branch(',
@@ -199,7 +209,8 @@ p.process(10, 'AFTER_SUBMIT', 'Create Branch', [
 p.process(20, 'AFTER_SUBMIT', 'Save Branch', [
     "noona_security_pkg.assert_permission('ORG_BRANCH.UPDATE', :P13_COMPANY_ID);",
     'update org_branch set name_ar = :P13_NAME_AR, name_en = :P13_NAME_EN, branch_type = :P13_BRANCH_TYPE',
-    ' where id = :P13_ID;'],
+    " where id = :P13_ID and noona_sec_admin_pkg.can_admin_company(company_id) = 'Y';",
+    "if sql%rowcount = 0 then raise_application_error(-20100, 'NOONA-SEC-260: لا تملك إدارة هذا الفرع'); end if;"],
     when_button=b_save, success='تم حفظ بيانات الفرع')
 cl = p.static('إغلاق الفرع', 20)
 p.textarea('P13_CLOSE_REASON', cl, 10, 'سبب الإغلاق', rows=2)
@@ -212,7 +223,7 @@ p.branch(10, 'f?p=&APP_ID.:13:&SESSION.::&DEBUG.::P13_ID:&P13_ID.&success_msg=#S
 # =============================================================== التنقل
 app.nav_item('لوحة الإدارة', 1, 'fa-dashboard', 10)
 org = app.nav_item('الشركات والفروع', None, 'fa-building-o', 20)
-app.nav_item('الشركات', 10, 'fa-building', 21, parent=org)
+app.nav_item('الشركات', 10, 'fa-building', 21, parent=org, scheme=ADMIN)
 app.nav_item('الفروع', 12, 'fa-map-marker', 22, parent=org)
 
 
@@ -393,26 +404,31 @@ p.process(20, 'AFTER_SUBMIT', 'End Assignment', [
     when_button=be, success='تم إنهاء التعيين')
 p.branch(10, 'f?p=&APP_ID.:23:&SESSION.::&DEBUG.:::&success_msg=#SUCCESS_MSG#')
 
-orgm = app.nav_item('الهيكل التنظيمي', None, 'fa-sitemap', 30)
-app.nav_item('الهياكل والإصدارات', 20, 'fa-sitemap', 31, parent=orgm)
-app.nav_item('المناصب والوظائف', 22, 'fa-id-badge', 32, parent=orgm)
-app.nav_item('تعيين الموظفين', 23, 'fa-user-plus', 33, parent=orgm)
+orgm = app.nav_item('الهيكل التنظيمي', None, 'fa-sitemap', 30, scheme=ADMIN)
+app.nav_item('الهياكل والإصدارات', 20, 'fa-sitemap', 31, parent=orgm, scheme=ADMIN)
+app.nav_item('المناصب والوظائف', 22, 'fa-id-badge', 32, parent=orgm, scheme=ADMIN)
+app.nav_item('تعيين الموظفين', 23, 'fa-user-plus', 33, parent=orgm, scheme=ADMIN)
 
 
 # ######################################################################## المرحلة 3: المستخدمون والأدوار
 ROLE_LOV = "select name_ar || ' (' || code || ')' d, id r from sec_role where status_code = 'ACTIVE' order by 1"
 BRANCH_ALL_LOV = ("select b.name_ar || ' - ' || nvl(c.trade_name_ar, c.legal_name_ar) d, b.id r from org_branch b "
-                  "join org_company c on c.id = b.company_id where b.status_code = 'ACTIVE' order by 1")
+                  "join org_company c on c.id = b.company_id where b.status_code = 'ACTIVE' "
+                  "and noona_sec_admin_pkg.can_admin_company(b.company_id) = 'Y' order by 1")
+# مسؤول الشركة لا يمنح الأدوار المميزة
+GRANT_ROLE_LOV = ("select name_ar || ' (' || code || ')' d, id r from sec_role where status_code = 'ACTIVE' "
+                  "and (is_privileged = 'N' or noona_sec_admin_pkg.admin_level = 'TENANT') order by 1")
 
 # =============================================================== 30) المستخدمون
-p = app.page(30, 'Users', 'USERS', 'المستخدمون', scheme=ADMIN)
+p = app.page(30, 'Users', 'USERS', 'المستخدمون', scheme=ORG)
 r = p.ir('المستخدمون', 10, [
     'select m.id, u.username, u.display_name, u.email, nvl(c.trade_name_ar, c.legal_name_ar) as company_name,',
     '       noona_ui_pkg.code_label(m.is_tenant_admin) as is_admin, m.clearance_level,',
     "       (select count(*) from sec_role_grant g where g.membership_id = m.id and g.status_code = 'ACTIVE') as roles,",
     '       u.last_login_at, noona_ui_pkg.status_badge(m.status_code) as status_html',
     '  from sec_user_membership m join sec_user u on u.id = m.user_id',
-    '  left join org_company c on c.id = m.default_company_id'],
+    '  left join org_company c on c.id = m.default_company_id',
+    " where noona_sec_admin_pkg.can_admin_member(m.id) = 'Y'"],
     [('ID', '#', {'hidden': True, 'type': 'NUMBER'}), ('USERNAME', 'اسم الدخول', {}), ('DISPLAY_NAME', 'الاسم', {}),
      ('EMAIL', 'البريد', {}), ('COMPANY_NAME', 'الشركة الافتراضية', {}), ('IS_ADMIN', 'مسؤول المؤسسة', {}),
      ('CLEARANCE_LEVEL', 'مستوى السرية', {}), ('ROLES', 'الأدوار', {'type': 'NUMBER'}),
@@ -421,13 +437,13 @@ r = p.ir('المستخدمون', 10, [
 p.button(r, 10, 'CREATE', 'مستخدم جديد', hot=True, redirect='f?p=&APP_ID.:31:&SESSION.::&DEBUG.:RP,31::', position='RIGHT_OF_IR_SEARCH_BAR')
 
 # =============================================================== 31) المستخدم
-p = app.page(31, 'User', 'USER', 'المستخدم', scheme=ADMIN)
+p = app.page(31, 'User', 'USER', 'المستخدم', scheme=ORG)
 info = p.static('بيانات المستخدم', 10)
 p.hidden('P31_ID', info, 1)
 p.text('P31_USERNAME', info, 10, 'اسم الدخول', required=True, maxlen=100, width=30)
 p.text('P31_DISPLAY_NAME', info, 20, 'الاسم الكامل', required=True)
 p.text('P31_EMAIL', info, 30, 'البريد الإلكتروني', required=True)
-p.select('P31_COMPANY_ID', info, 40, 'الشركة الافتراضية', lov_name='NOONA_COMPANIES', required=True)
+p.select('P31_COMPANY_ID', info, 40, 'الشركة الافتراضية', lov_sql=ADMIN_CO_LOV, required=True)
 p.select('P31_BRANCH_ID', info, 50, 'الفرع الافتراضي', lov_sql=BRANCH_ALL_LOV)
 p.select('P31_CLEARANCE', info, 60, 'مستوى السرية', null_text=None, lov_sql=(
     'STATIC2:عام;PUBLIC,داخلي;INTERNAL,سري;CONFIDENTIAL,سري جداً;SECRET,مقيد للغاية;HIGHLY_RESTRICTED'))
@@ -440,6 +456,9 @@ b_pwd = p.button(info, 25, 'SET_PASSWORD', 'تعيين كلمة المرور', c
 p.button(info, 30, 'BACK', 'رجوع', redirect=back(30))
 p.process(10, 'BEFORE_HEADER', 'Load User', [
     'if :P31_ID is not null then',
+    "    if noona_sec_admin_pkg.can_admin_member(:P31_ID) = 'N' then",
+    "        raise_application_error(-20100, 'NOONA-SEC-261: هذا المستخدم خارج نطاق إدارتك');",
+    '    end if;',
     '    select u.username, u.display_name, u.email, m.default_company_id, m.default_branch_id, m.clearance_level,',
     '           m.is_tenant_admin, noona_ui_pkg.status_label(m.status_code)',
     '      into :P31_USERNAME, :P31_DISPLAY_NAME, :P31_EMAIL, :P31_COMPANY_ID, :P31_BRANCH_ID, :P31_CLEARANCE,',
@@ -466,7 +485,8 @@ p.process(20, 'AFTER_SUBMIT', 'Save User', [
     when_button=b_save, success='تم حفظ بيانات المستخدم')
 gr = p.ir('أدوار المستخدم', 20, [
     "select g.id, r.name_ar as role_name, r.code, case when s.scope_type = 'ALL_TENANT' then 'كل المؤسسة'",
-    "       else (select nvl(c.trade_name_ar, c.legal_name_ar) from org_company c where c.id = s.company_id) end as scope,",
+    "       else (select nvl(c.trade_name_ar, c.legal_name_ar) from org_company c where c.id = s.company_id)",
+    "            || case when s.scope_type = 'BRANCH' then ' / فرع: ' || (select b.name_ar from org_branch b where b.id = s.scope_value_id) end end as scope,",
     '       g.effective_from, g.effective_to, g.reason, noona_ui_pkg.status_badge(g.status_code) as status_html',
     '  from sec_role_grant g join sec_role r on r.id = g.role_id',
     '  left join sec_data_scope s on s.role_grant_id = g.id',
@@ -475,8 +495,9 @@ gr = p.ir('أدوار المستخدم', 20, [
      ('SCOPE', 'نطاق البيانات', {}), ('EFFECTIVE_FROM', 'من', {'type': 'DATE'}), ('EFFECTIVE_TO', 'إلى', {'type': 'DATE'}),
      ('REASON', 'السبب', {}), ('STATUS_HTML', 'الحالة', {'html': True})], titled=True)
 ga = p.static('منح دور / سحب / حالة الحساب', 30)
-p.select('P31_ROLE_ID', ga, 10, 'الدور', lov_sql=ROLE_LOV)
-p.select('P31_SCOPE_COMPANY', ga, 20, 'نطاق البيانات', lov_name='NOONA_COMPANIES', null_text='- كل شركات المؤسسة -')
+p.select('P31_ROLE_ID', ga, 10, 'الدور', lov_sql=GRANT_ROLE_LOV)
+p.select('P31_SCOPE_COMPANY', ga, 20, 'نطاق البيانات: الشركة', lov_sql=ADMIN_CO_LOV, null_text='- كل شركات المؤسسة (لمسؤول المؤسسة) -')
+p.select('P31_SCOPE_BRANCH', ga, 25, 'أو فرع محدد', lov_sql=BRANCH_ALL_LOV, null_text='- الشركة كاملة -')
 p.select('P31_REVOKE_ID', ga, 30, 'منح للسحب', lov_sql=(
     "select r.name_ar || ' (' || r.code || ')' d, g.id r from sec_role_grant g join sec_role r on r.id = g.role_id "
     "where g.membership_id = :P31_ID and g.status_code = 'ACTIVE' order by 1"))
@@ -489,7 +510,8 @@ p.process(30, 'AFTER_SUBMIT', 'Grant Role', [
     'declare l_id number;',
     'begin',
     '    l_id := noona_sec_admin_pkg.grant_role(p_membership_id => :P31_ID, p_role_id => :P31_ROLE_ID,',
-    '                                           p_company_id => :P31_SCOPE_COMPANY, p_reason => :P31_REASON);',
+    '                                           p_company_id => :P31_SCOPE_COMPANY, p_reason => :P31_REASON,',
+    '                                           p_branch_id => :P31_SCOPE_BRANCH);',
     'end;'], when_button=b_grant, success='تم منح الدور')
 p.process(40, 'AFTER_SUBMIT', 'Revoke Grant', 'noona_sec_admin_pkg.revoke_grant(p_grant_id => :P31_REVOKE_ID, p_reason => :P31_REASON);',
           when_button=b_revoke, success='تم سحب المنح')
@@ -1057,18 +1079,18 @@ p.ir('سجل التدقيق', 10, [
 
 sec = app.nav_item('المستخدمون والصلاحيات', None, 'fa-users', 40)
 app.nav_item('المستخدمون', 30, 'fa-user', 41, parent=sec)
-app.nav_item('الأدوار والصلاحيات', 32, 'fa-key', 42, parent=sec)
+app.nav_item('الأدوار والصلاحيات', 32, 'fa-key', 42, parent=sec, scheme=ADMIN)
 
-wfn = app.nav_item('مسارات الاعتماد والتفويض', None, 'fa-sitemap', 50)
-app.nav_item('مسارات الاعتماد', 40, 'fa-random', 51, parent=wfn)
-app.nav_item('شروط التوجيه', 42, 'fa-filter', 52, parent=wfn)
-app.nav_item('التفويضات', 43, 'fa-share', 53, parent=wfn)
+wfn = app.nav_item('مسارات الاعتماد والتفويض', None, 'fa-sitemap', 50, scheme=ADMIN)
+app.nav_item('مسارات الاعتماد', 40, 'fa-random', 51, parent=wfn, scheme=ADMIN)
+app.nav_item('شروط التوجيه', 42, 'fa-filter', 52, parent=wfn, scheme=ADMIN)
+app.nav_item('التفويضات', 43, 'fa-share', 53, parent=wfn, scheme=ADMIN)
 
-ref = app.nav_item('البيانات المرجعية', None, 'fa-database', 60)
-app.nav_item('العملات', 50, 'fa-money', 61, parent=ref)
-app.nav_item('أسعار الصرف', 51, 'fa-exchange', 62, parent=ref)
-app.nav_item('شروط الدفع', 52, 'fa-calendar-check-o', 63, parent=ref)
-app.nav_item('تسلسلات المستندات', 53, 'fa-sort-numeric-asc', 64, parent=ref)
-app.nav_item('سجل التدقيق', 60, 'fa-shield', 70)
+ref = app.nav_item('البيانات المرجعية', None, 'fa-database', 60, scheme=ADMIN)
+app.nav_item('العملات', 50, 'fa-money', 61, parent=ref, scheme=ADMIN)
+app.nav_item('أسعار الصرف', 51, 'fa-exchange', 62, parent=ref, scheme=ADMIN)
+app.nav_item('شروط الدفع', 52, 'fa-calendar-check-o', 63, parent=ref, scheme=ADMIN)
+app.nav_item('تسلسلات المستندات', 53, 'fa-sort-numeric-asc', 64, parent=ref, scheme=ADMIN)
+app.nav_item('سجل التدقيق', 60, 'fa-shield', 70, scheme=ADMIN)
 app.finalize()
 print('NOONA_ADMIN built:', len(app.pages), 'pages')

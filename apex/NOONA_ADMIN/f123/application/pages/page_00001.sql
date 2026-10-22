@@ -18,22 +18,36 @@ wwv_flow_imp_page.create_page(
 ,p_step_title=>'إدارة المؤسسة'
 ,p_autocomplete_on_off=>'OFF'
 ,p_page_template_options=>'#DEFAULT#'
-,p_required_role=>wwv_flow_imp.id(17758617306442989)
+,p_required_role=>wwv_flow_imp.id(91820262000000009)
 ,p_protection_level=>'C'
 );
 wwv_flow_imp_page.create_page_plug(
- p_id=>wwv_flow_imp.id(91820262000000009)
+ p_id=>wwv_flow_imp.id(91820262000000010)
 ,p_plug_name=>'لوحة الإدارة'
 ,p_region_template_options=>'#DEFAULT#:t-Region--scrollBody:t-Region--removeHeader js-removeLandmark:t-Region--noUI'
 ,p_plug_template=>4072358936313175081
 ,p_plug_display_sequence=>10
+,p_plug_display_condition_type=>'EXPRESSION'
+,p_plug_display_when_condition=>'noona_sec_admin_pkg.admin_level = ''TENANT'''
+,p_plug_display_when_cond2=>'PLSQL'
 ,p_function_body_language=>'PLSQL'
 ,p_plug_source=>wwv_flow_string.join(wwv_flow_t_varchar2(
 'return noona_ui_pkg.admin_summary(p_session => :APP_SESSION);'))
 ,p_plug_source_type=>'NATIVE_DYNAMIC_CONTENT'
 );
 wwv_flow_imp_page.create_page_plug(
- p_id=>wwv_flow_imp.id(91820262000000010)
+ p_id=>wwv_flow_imp.id(91820262000000011)
+,p_plug_name=>'اشتراك المؤسسة'
+,p_region_template_options=>'#DEFAULT#:t-Region--scrollBody'
+,p_plug_template=>4072358936313175081
+,p_plug_display_sequence=>5
+,p_function_body_language=>'PLSQL'
+,p_plug_source=>wwv_flow_string.join(wwv_flow_t_varchar2(
+'return noona_sec_admin_pkg.subscription_html;'))
+,p_plug_source_type=>'NATIVE_DYNAMIC_CONTENT'
+);
+wwv_flow_imp_page.create_page_plug(
+ p_id=>wwv_flow_imp.id(91820262000000012)
 ,p_plug_name=>'الشركات'
 ,p_region_template_options=>'#DEFAULT#'
 ,p_component_template_options=>'#DEFAULT#'
@@ -43,12 +57,12 @@ wwv_flow_imp_page.create_page_plug(
 ,p_plug_source=>wwv_flow_string.join(wwv_flow_t_varchar2(
 'select id, code, nvl(trade_name_ar, legal_name_ar) as company_name, country_code, functional_currency,',
 '       noona_ui_pkg.status_badge(status_code) as status_html',
-'  from org_company'))
+'  from org_company where noona_sec_admin_pkg.can_admin_company(id) = ''Y'''))
 ,p_plug_source_type=>'NATIVE_IR'
 ,p_prn_page_header=>'الشركات'
 );
 wwv_flow_imp_page.create_worksheet(
- p_id=>wwv_flow_imp.id(91820262000000011)
+ p_id=>wwv_flow_imp.id(91820262000000013)
 ,p_max_row_count=>'1000000'
 ,p_no_data_found_message=>'لا توجد بيانات'
 ,p_pagination_type=>'ROWS_X_TO_Y'
@@ -62,10 +76,10 @@ wwv_flow_imp_page.create_worksheet(
 ,p_detail_link=>'f?p=&APP_ID.:11:&SESSION.::&DEBUG.:RP,11:P11_ID:#ID#'
 ,p_detail_link_text=>'<span role="img" aria-label="تعديل" class="fa fa-edit" title="فتح"></span>'
 ,p_owner=>'NOONA'
-,p_internal_uid=>91820262000000011
+,p_internal_uid=>91820262000000013
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820262000000013)
+ p_id=>wwv_flow_imp.id(91820262000000015)
 ,p_db_column_name=>'ID'
 ,p_display_order=>10
 ,p_column_identifier=>'A'
@@ -76,7 +90,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820262000000014)
+ p_id=>wwv_flow_imp.id(91820262000000016)
 ,p_db_column_name=>'CODE'
 ,p_display_order=>20
 ,p_column_identifier=>'B'
@@ -86,7 +100,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820262000000015)
+ p_id=>wwv_flow_imp.id(91820262000000017)
 ,p_db_column_name=>'COMPANY_NAME'
 ,p_display_order=>30
 ,p_column_identifier=>'C'
@@ -96,7 +110,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820262000000016)
+ p_id=>wwv_flow_imp.id(91820262000000018)
 ,p_db_column_name=>'COUNTRY_CODE'
 ,p_display_order=>40
 ,p_column_identifier=>'D'
@@ -106,7 +120,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820262000000017)
+ p_id=>wwv_flow_imp.id(91820262000000019)
 ,p_db_column_name=>'FUNCTIONAL_CURRENCY'
 ,p_display_order=>50
 ,p_column_identifier=>'E'
@@ -116,7 +130,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820262000000018)
+ p_id=>wwv_flow_imp.id(91820262000000020)
 ,p_db_column_name=>'STATUS_HTML'
 ,p_display_order=>60
 ,p_column_identifier=>'F'
@@ -127,10 +141,10 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_rpt(
- p_id=>wwv_flow_imp.id(91820262000000012)
+ p_id=>wwv_flow_imp.id(91820262000000014)
 ,p_application_user=>'APXWS_DEFAULT'
 ,p_report_seq=>10
-,p_report_alias=>'12'
+,p_report_alias=>'14'
 ,p_status=>'PUBLIC'
 ,p_is_default=>'Y'
 ,p_report_columns=>'CODE:COMPANY_NAME:COUNTRY_CODE:FUNCTIONAL_CURRENCY:STATUS_HTML'

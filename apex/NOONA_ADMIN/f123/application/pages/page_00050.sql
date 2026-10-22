@@ -22,7 +22,7 @@ wwv_flow_imp_page.create_page(
 ,p_protection_level=>'C'
 );
 wwv_flow_imp_page.create_page_plug(
- p_id=>wwv_flow_imp.id(91820262000000551)
+ p_id=>wwv_flow_imp.id(91820262000000554)
 ,p_plug_name=>'العملات'
 ,p_region_template_options=>'#DEFAULT#'
 ,p_component_template_options=>'#DEFAULT#'
@@ -37,7 +37,7 @@ wwv_flow_imp_page.create_page_plug(
 ,p_prn_page_header=>'العملات'
 );
 wwv_flow_imp_page.create_worksheet(
- p_id=>wwv_flow_imp.id(91820262000000552)
+ p_id=>wwv_flow_imp.id(91820262000000555)
 ,p_max_row_count=>'1000000'
 ,p_no_data_found_message=>'لا توجد بيانات'
 ,p_pagination_type=>'ROWS_X_TO_Y'
@@ -49,10 +49,10 @@ wwv_flow_imp_page.create_worksheet(
 ,p_download_formats=>'CSV:HTML:XLSX:PDF'
 ,p_enable_mail_download=>'N'
 ,p_owner=>'NOONA'
-,p_internal_uid=>91820262000000552
+,p_internal_uid=>91820262000000555
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820262000000554)
+ p_id=>wwv_flow_imp.id(91820262000000557)
 ,p_db_column_name=>'ID'
 ,p_display_order=>10
 ,p_column_identifier=>'A'
@@ -63,7 +63,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820262000000555)
+ p_id=>wwv_flow_imp.id(91820262000000558)
 ,p_db_column_name=>'CURRENCY_CODE'
 ,p_display_order=>20
 ,p_column_identifier=>'B'
@@ -73,7 +73,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820262000000556)
+ p_id=>wwv_flow_imp.id(91820262000000559)
 ,p_db_column_name=>'NAME_AR'
 ,p_display_order=>30
 ,p_column_identifier=>'C'
@@ -83,7 +83,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820262000000557)
+ p_id=>wwv_flow_imp.id(91820262000000560)
 ,p_db_column_name=>'NAME_EN'
 ,p_display_order=>40
 ,p_column_identifier=>'D'
@@ -93,7 +93,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820262000000558)
+ p_id=>wwv_flow_imp.id(91820262000000561)
 ,p_db_column_name=>'SYMBOL'
 ,p_display_order=>50
 ,p_column_identifier=>'E'
@@ -103,7 +103,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820262000000559)
+ p_id=>wwv_flow_imp.id(91820262000000562)
 ,p_db_column_name=>'DECIMAL_PLACES'
 ,p_display_order=>60
 ,p_column_identifier=>'F'
@@ -113,7 +113,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820262000000560)
+ p_id=>wwv_flow_imp.id(91820262000000563)
 ,p_db_column_name=>'MINOR_UNIT_AR'
 ,p_display_order=>70
 ,p_column_identifier=>'G'
@@ -123,7 +123,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820262000000561)
+ p_id=>wwv_flow_imp.id(91820262000000564)
 ,p_db_column_name=>'ROUNDING'
 ,p_display_order=>80
 ,p_column_identifier=>'H'
@@ -133,7 +133,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820262000000562)
+ p_id=>wwv_flow_imp.id(91820262000000565)
 ,p_db_column_name=>'ACTIVE'
 ,p_display_order=>90
 ,p_column_identifier=>'I'
@@ -143,10 +143,10 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_rpt(
- p_id=>wwv_flow_imp.id(91820262000000553)
+ p_id=>wwv_flow_imp.id(91820262000000556)
 ,p_application_user=>'APXWS_DEFAULT'
 ,p_report_seq=>10
-,p_report_alias=>'553'
+,p_report_alias=>'556'
 ,p_status=>'PUBLIC'
 ,p_is_default=>'Y'
 ,p_report_columns=>'CURRENCY_CODE:NAME_AR:NAME_EN:SYMBOL:DECIMAL_PLACES:MINOR_UNIT_AR:ROUNDING:ACTIVE'
