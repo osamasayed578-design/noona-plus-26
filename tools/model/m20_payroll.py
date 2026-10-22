@@ -92,6 +92,8 @@ table('PAY_RUN_EMPLOYEE', 'موظفو تشغيل الرواتب', 'Payroll Run E
 RUN_ID          ID   NN >PAY_RUN | التشغيل
 EMPLOYMENT_ID   ID   NN >HR_EMPLOYMENT | علاقة التوظيف
 PAYABLE_DAYS    QTY              | الأيام المستحقة
+ABSENCE_DAYS    QTY              | أيام الغياب والإجازة غير المدفوعة
+OVERTIME_HOURS  QTY              | ساعات العمل الإضافي
 GROSS_AMOUNT    AMT  NN D=0      | الإجمالي
 DEDUCTION_AMOUNT AMT NN D=0      | الخصومات
 NET_AMOUNT      AMT  NN D=0      | الصافي

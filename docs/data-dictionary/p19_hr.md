@@ -57,12 +57,17 @@
 | 8 | `WORK_MOBILE` | نص | `VARCHAR2(40 CHAR)` |  |  |  |  | إدخال المستخدم | ✔ | جوال العمل |
 | 9 | `PHOTO_DOCUMENT_ID` | معرف | `NUMBER(19)` |  |  | FK→DMS_DOCUMENT |  | إدخال المستخدم |  | الصورة |
 | 10 | `EMERGENCY_CONTACT` | JSON | `CLOB` |  |  |  | JSON صالح | إدخال المستخدم | ✔ | جهة اتصال الطوارئ |
-| 11 | `STATUS_CODE` | رمز | `VARCHAR2(30 CHAR)` | ✔ | 'CANDIDATE' |  | CANDIDATE, ACTIVE, ON_LEAVE, SUSPENDED, TERMINATED, RETIRED, DECEASED | النظام/الحزمة |  | الحالة ضمن دورة الحياة المعتمدة |
-| 12 | `ROW_VERSION` | عدد صحيح | `NUMBER(10)` | ✔ | 1 |  |  | Trigger |  | رقم الإصدار للتحكم في التزامن المتفائل |
-| 13 | `CREATED_BY` | اسم مستخدم | `VARCHAR2(128 CHAR)` | ✔ |  |  |  | Trigger |  | منشئ السجل |
-| 14 | `CREATED_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` | ✔ | SYSTIMESTAMP |  |  | Trigger |  | وقت الإنشاء |
-| 15 | `UPDATED_BY` | اسم مستخدم | `VARCHAR2(128 CHAR)` |  |  |  |  | Trigger |  | آخر من عدل السجل |
-| 16 | `UPDATED_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` |  |  |  |  | Trigger |  | وقت آخر تعديل |
+| 11 | `NATIONAL_ID` | نص | `VARCHAR2(30 CHAR)` |  |  |  |  | إدخال المستخدم | ✔ | رقم الهوية الوطنية / الإقامة |
+| 12 | `ID_EXPIRY_DATE` | تاريخ | `DATE` |  |  |  |  | إدخال المستخدم |  | انتهاء الهوية / الإقامة |
+| 13 | `NATIONALITY` | رمز دولة ISO | `VARCHAR2(2 CHAR)` |  |  | FK→REF_COUNTRY |  | إدخال المستخدم |  | الجنسية |
+| 14 | `GENDER` | رمز | `VARCHAR2(30 CHAR)` |  |  |  | M, F | إدخال المستخدم |  | الجنس |
+| 15 | `BIRTH_DATE` | تاريخ | `DATE` |  |  |  |  | إدخال المستخدم | ✔ | تاريخ الميلاد |
+| 16 | `STATUS_CODE` | رمز | `VARCHAR2(30 CHAR)` | ✔ | 'CANDIDATE' |  | CANDIDATE, ACTIVE, ON_LEAVE, SUSPENDED, TERMINATED, RETIRED, DECEASED | النظام/الحزمة |  | الحالة ضمن دورة الحياة المعتمدة |
+| 17 | `ROW_VERSION` | عدد صحيح | `NUMBER(10)` | ✔ | 1 |  |  | Trigger |  | رقم الإصدار للتحكم في التزامن المتفائل |
+| 18 | `CREATED_BY` | اسم مستخدم | `VARCHAR2(128 CHAR)` | ✔ |  |  |  | Trigger |  | منشئ السجل |
+| 19 | `CREATED_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` | ✔ | SYSTIMESTAMP |  |  | Trigger |  | وقت الإنشاء |
+| 20 | `UPDATED_BY` | اسم مستخدم | `VARCHAR2(128 CHAR)` |  |  |  |  | Trigger |  | آخر من عدل السجل |
+| 21 | `UPDATED_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` |  |  |  |  | Trigger |  | وقت آخر تعديل |
 
 ## HR_EMPLOYMENT
 
@@ -94,12 +99,18 @@
 | 14 | `PAYROLL_GROUP_ID` | معرف | `NUMBER(19)` |  |  | FK→PAY_PAYROLL_GROUP |  | إدخال المستخدم |  | مجموعة الرواتب |
 | 15 | `WORK_SCHEDULE_ID` | معرف | `NUMBER(19)` |  |  | FK→HR_WORK_SCHEDULE |  | إدخال المستخدم |  | جدول الدوام |
 | 16 | `GOSI_NO` | نص | `VARCHAR2(50 CHAR)` |  |  |  |  | إدخال المستخدم | ✔ | رقم التأمينات الاجتماعية |
-| 17 | `STATUS_CODE` | رمز | `VARCHAR2(30 CHAR)` | ✔ | 'PENDING' |  | PENDING, ACTIVE, SUSPENDED, NOTICE_PERIOD, TERMINATED | النظام/الحزمة |  | الحالة ضمن دورة الحياة المعتمدة |
-| 18 | `ROW_VERSION` | عدد صحيح | `NUMBER(10)` | ✔ | 1 |  |  | Trigger |  | رقم الإصدار للتحكم في التزامن المتفائل |
-| 19 | `CREATED_BY` | اسم مستخدم | `VARCHAR2(128 CHAR)` | ✔ |  |  |  | Trigger |  | منشئ السجل |
-| 20 | `CREATED_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` | ✔ | SYSTIMESTAMP |  |  | Trigger |  | وقت الإنشاء |
-| 21 | `UPDATED_BY` | اسم مستخدم | `VARCHAR2(128 CHAR)` |  |  |  |  | Trigger |  | آخر من عدل السجل |
-| 22 | `UPDATED_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` |  |  |  |  | Trigger |  | وقت آخر تعديل |
+| 17 | `JOB_TITLE` | نص | `VARCHAR2(200 CHAR)` |  |  |  |  | إدخال المستخدم |  | المسمى الوظيفي |
+| 18 | `ORG_UNIT_ID` | معرف | `NUMBER(19)` |  |  | FK→ORG_UNIT |  | إدخال المستخدم |  | الإدارة / القسم |
+| 19 | `COST_CENTER_ID` | معرف | `NUMBER(19)` |  |  | FK→GL_COST_CENTER |  | إدخال المستخدم |  | مركز التكلفة (توزيع الرواتب) |
+| 20 | `BANK_ID` | معرف | `NUMBER(19)` |  |  | FK→REF_BANK |  | إدخال المستخدم |  | بنك الراتب |
+| 21 | `IBAN` | نص | `VARCHAR2(34 CHAR)` |  |  |  |  | إدخال المستخدم | ✔ | رقم الآيبان |
+| 22 | `ANNUAL_LEAVE_DAYS` | عدد صحيح | `NUMBER(10)` | ✔ | 21 |  |  | إدخال المستخدم |  | الإجازة السنوية (21 يوماً، و30 بعد خمس سنوات) |
+| 23 | `STATUS_CODE` | رمز | `VARCHAR2(30 CHAR)` | ✔ | 'PENDING' |  | PENDING, ACTIVE, SUSPENDED, NOTICE_PERIOD, TERMINATED | النظام/الحزمة |  | الحالة ضمن دورة الحياة المعتمدة |
+| 24 | `ROW_VERSION` | عدد صحيح | `NUMBER(10)` | ✔ | 1 |  |  | Trigger |  | رقم الإصدار للتحكم في التزامن المتفائل |
+| 25 | `CREATED_BY` | اسم مستخدم | `VARCHAR2(128 CHAR)` | ✔ |  |  |  | Trigger |  | منشئ السجل |
+| 26 | `CREATED_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` | ✔ | SYSTIMESTAMP |  |  | Trigger |  | وقت الإنشاء |
+| 27 | `UPDATED_BY` | اسم مستخدم | `VARCHAR2(128 CHAR)` |  |  |  |  | Trigger |  | آخر من عدل السجل |
+| 28 | `UPDATED_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` |  |  |  |  | Trigger |  | وقت آخر تعديل |
 
 ## HR_CONTRACT
 

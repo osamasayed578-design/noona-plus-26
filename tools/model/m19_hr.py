@@ -13,6 +13,11 @@ WORK_EMAIL      V320 PII         | البريد الوظيفي
 WORK_MOBILE     V40  PII         | جوال العمل
 PHOTO_DOCUMENT_ID ID >DMS_DOCUMENT | الصورة
 EMERGENCY_CONTACT JSON PII       | جهة اتصال الطوارئ
+NATIONAL_ID     V30  PII         | رقم الهوية الوطنية / الإقامة
+ID_EXPIRY_DATE  DATE             | انتهاء الهوية / الإقامة
+NATIONALITY     CTRY             | الجنسية
+GENDER          CODE IN:M,F      | الجنس
+BIRTH_DATE      DATE PII         | تاريخ الميلاد
 ''', area='employee', sens='CONFIDENTIAL')
 
 table('HR_EMPLOYMENT', 'علاقات التوظيف', 'Employments', scope='T', mix='status', status='PENDING ACTIVE SUSPENDED NOTICE_PERIOD TERMINATED', cols='''
@@ -30,6 +35,12 @@ MANAGER_EMPLOYEE_ID ID >HR_EMPLOYEE | المدير المباشر
 PAYROLL_GROUP_ID ID  >PAY_PAYROLL_GROUP | مجموعة الرواتب
 WORK_SCHEDULE_ID ID  >HR_WORK_SCHEDULE | جدول الدوام
 GOSI_NO         V50  PII         | رقم التأمينات الاجتماعية
+JOB_TITLE       V200             | المسمى الوظيفي
+ORG_UNIT_ID     ID   >ORG_UNIT   | الإدارة / القسم
+COST_CENTER_ID  ID   >GL_COST_CENTER | مركز التكلفة (توزيع الرواتب)
+BANK_ID         ID   >REF_BANK   | بنك الراتب
+IBAN            V34  PII         | رقم الآيبان
+ANNUAL_LEAVE_DAYS INT NN D=21    | الإجازة السنوية (21 يوماً، و30 بعد خمس سنوات)
 ''', ix=[('TENANT_ID', 'EMPLOYEE_ID'), ('TENANT_ID', 'COMPANY_ID', 'STATUS_CODE')], area='employee',
       purpose='يمكن للشخص امتلاك تعيينات قانونية متعاقبة دون إعادة استخدام معرف')
 

@@ -309,18 +309,20 @@
 | 4 | `RUN_ID` | معرف | `NUMBER(19)` | ✔ |  | FK→PAY_RUN UK2 |  | إدخال المستخدم |  | التشغيل |
 | 5 | `EMPLOYMENT_ID` | معرف | `NUMBER(19)` | ✔ |  | FK→HR_EMPLOYMENT UK2 |  | إدخال المستخدم |  | علاقة التوظيف |
 | 6 | `PAYABLE_DAYS` | كمية | `NUMBER(24,6)` |  |  |  |  | إدخال المستخدم |  | الأيام المستحقة |
-| 7 | `GROSS_AMOUNT` | مبلغ | `NUMBER(24,6)` | ✔ | 0 |  |  | إدخال المستخدم |  | الإجمالي |
-| 8 | `DEDUCTION_AMOUNT` | مبلغ | `NUMBER(24,6)` | ✔ | 0 |  |  | إدخال المستخدم |  | الخصومات |
-| 9 | `NET_AMOUNT` | مبلغ | `NUMBER(24,6)` | ✔ | 0 |  |  | إدخال المستخدم |  | الصافي |
-| 10 | `EMPLOYER_COST` | مبلغ | `NUMBER(24,6)` | ✔ | 0 |  |  | إدخال المستخدم |  | تكلفة صاحب العمل |
-| 11 | `COST_ALLOCATION` | JSON | `CLOB` |  |  |  | JSON صالح | إدخال المستخدم |  | التوزيع على المشاريع ومراكز التكلفة |
-| 12 | `ERROR_MESSAGE` | نص | `VARCHAR2(1000 CHAR)` |  |  |  |  | إدخال المستخدم |  | الخطأ |
-| 13 | `STATUS_CODE` | رمز | `VARCHAR2(30 CHAR)` | ✔ | 'INCLUDED' |  | INCLUDED, CALCULATED, ERROR, EXCLUDED, APPROVED, PAID | النظام/الحزمة |  | الحالة ضمن دورة الحياة المعتمدة |
-| 14 | `ROW_VERSION` | عدد صحيح | `NUMBER(10)` | ✔ | 1 |  |  | Trigger |  | رقم الإصدار للتحكم في التزامن المتفائل |
-| 15 | `CREATED_BY` | اسم مستخدم | `VARCHAR2(128 CHAR)` | ✔ |  |  |  | Trigger |  | منشئ السجل |
-| 16 | `CREATED_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` | ✔ | SYSTIMESTAMP |  |  | Trigger |  | وقت الإنشاء |
-| 17 | `UPDATED_BY` | اسم مستخدم | `VARCHAR2(128 CHAR)` |  |  |  |  | Trigger |  | آخر من عدل السجل |
-| 18 | `UPDATED_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` |  |  |  |  | Trigger |  | وقت آخر تعديل |
+| 7 | `ABSENCE_DAYS` | كمية | `NUMBER(24,6)` |  |  |  |  | إدخال المستخدم |  | أيام الغياب والإجازة غير المدفوعة |
+| 8 | `OVERTIME_HOURS` | كمية | `NUMBER(24,6)` |  |  |  |  | إدخال المستخدم |  | ساعات العمل الإضافي |
+| 9 | `GROSS_AMOUNT` | مبلغ | `NUMBER(24,6)` | ✔ | 0 |  |  | إدخال المستخدم |  | الإجمالي |
+| 10 | `DEDUCTION_AMOUNT` | مبلغ | `NUMBER(24,6)` | ✔ | 0 |  |  | إدخال المستخدم |  | الخصومات |
+| 11 | `NET_AMOUNT` | مبلغ | `NUMBER(24,6)` | ✔ | 0 |  |  | إدخال المستخدم |  | الصافي |
+| 12 | `EMPLOYER_COST` | مبلغ | `NUMBER(24,6)` | ✔ | 0 |  |  | إدخال المستخدم |  | تكلفة صاحب العمل |
+| 13 | `COST_ALLOCATION` | JSON | `CLOB` |  |  |  | JSON صالح | إدخال المستخدم |  | التوزيع على المشاريع ومراكز التكلفة |
+| 14 | `ERROR_MESSAGE` | نص | `VARCHAR2(1000 CHAR)` |  |  |  |  | إدخال المستخدم |  | الخطأ |
+| 15 | `STATUS_CODE` | رمز | `VARCHAR2(30 CHAR)` | ✔ | 'INCLUDED' |  | INCLUDED, CALCULATED, ERROR, EXCLUDED, APPROVED, PAID | النظام/الحزمة |  | الحالة ضمن دورة الحياة المعتمدة |
+| 16 | `ROW_VERSION` | عدد صحيح | `NUMBER(10)` | ✔ | 1 |  |  | Trigger |  | رقم الإصدار للتحكم في التزامن المتفائل |
+| 17 | `CREATED_BY` | اسم مستخدم | `VARCHAR2(128 CHAR)` | ✔ |  |  |  | Trigger |  | منشئ السجل |
+| 18 | `CREATED_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` | ✔ | SYSTIMESTAMP |  |  | Trigger |  | وقت الإنشاء |
+| 19 | `UPDATED_BY` | اسم مستخدم | `VARCHAR2(128 CHAR)` |  |  |  |  | Trigger |  | آخر من عدل السجل |
+| 20 | `UPDATED_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` |  |  |  |  | Trigger |  | وقت آخر تعديل |
 
 ## PAY_RUN_RESULT
 
