@@ -50,7 +50,7 @@ sqlplus -S -L NOONA_APP/"%APP_PWD%"@%CONN% @tests/test_gl.sql < nul | findstr /c
 sqlplus -S -L NOONA_APP/"%APP_PWD%"@%CONN% @tests/test_cash.sql < nul | findstr /c:"RESULT" /c:"FAIL" /c:"ORA-"
 sqlplus -S -L NOONA_APP/"%APP_PWD%"@%CONN% @tests/test_reports.sql < nul | findstr /c:"RESULT" /c:"FAIL" /c:"ORA-"
 sqlplus -S -L NOONA_APP/"%APP_PWD%"@%CONN% @tests/test_fin_docs.sql < nul | findstr /c:"RESULT" /c:"FAIL" /c:"ORA-"
-sqlplus -S -L NOONA_APP/"%APP_PWD%"@%CONN% @tests/test_dms.sql < nul | findstr /c:"RESULT" /c:"FAIL" /c:"ORA-"
+sqlplus -S -L NOONA_APP/"%APP_PWD%"@%CONN% @tests/test_dms.sql < nul | findstr /c:"RESULT" /c:"FAIL" /c:"ORA-" /c:"WARN"
 sqlplus -S -L NOONA_APP/"%APP_PWD%"@%CONN% @tests/test_journal_types.sql < nul | findstr /c:"RESULT" /c:"FAIL" /c:"ORA-"
 sqlplus -S -L NOONA_APP/"%APP_PWD%"@%CONN% @tests/test_inventory.sql < nul | findstr /c:"RESULT" /c:"FAIL" /c:"ORA-"
 sqlplus -S -L NOONA_APP/"%APP_PWD%"@%CONN% @tests/test_purchases.sql < nul | findstr /c:"RESULT" /c:"FAIL" /c:"ORA-"
