@@ -30,6 +30,7 @@ CREATE OR REPLACE PACKAGE NOONA_HR_PKG AUTHID DEFINER AS
   FUNCTION category(p_employment_id IN NUMBER) RETURN VARCHAR2;           -- SAUDI / NON_SAUDI
   FUNCTION service_years(p_employment_id IN NUMBER, p_date IN DATE DEFAULT TRUNC(SYSDATE)) RETURN NUMBER;
   FUNCTION status_label(p_status IN VARCHAR2) RETURN VARCHAR2;
+  FUNCTION element_id(p_code IN VARCHAR2) RETURN NUMBER;
 
   -- ---------------------------------------------------------- الإجازات
   FUNCTION leave_type_id(p_code IN VARCHAR2) RETURN NUMBER;
@@ -151,7 +152,7 @@ CREATE OR REPLACE PACKAGE BODY NOONA_HR_PKG AS
     NOONA_CORE_PKG.raise_error('NOONA-HR-001', 'الموظف غير موجود في الشركة الحالية', 'Employment not found');
   END employment_of;
 
-  FUNCTION element_id(p_code VARCHAR2) RETURN NUMBER IS
+  FUNCTION element_id(p_code IN VARCHAR2) RETURN NUMBER IS
     l NUMBER;
   BEGIN
     SELECT MAX(id) KEEP (DENSE_RANK FIRST ORDER BY CASE WHEN tenant_id IS NULL THEN 1 ELSE 0 END) INTO l
@@ -177,9 +178,9 @@ CREATE OR REPLACE PACKAGE BODY NOONA_HR_PKG AS
     FOR r IN (SELECT e.code, SUM(x.amount) amt FROM pay_employee_element x JOIN pay_element e ON e.id = x.element_id
                WHERE x.employment_id = p_employment AND p_date BETWEEN x.effective_from AND NVL(x.effective_to, DATE '9999-12-31')
                GROUP BY e.code ORDER BY MIN(e.sort_order)) LOOP
-      l := l || CASE WHEN l <> '{' THEN ',' END || jt(r.code) || ':' || fnum(r.amt);
+      l := l || CASE WHEN l <> '{' THEN ',' END || jt(r.code) || ':' || TO_CHAR(r.amt, 'FM9999999990.00', 'NLS_NUMERIC_CHARACTERS=''.,''');
     END LOOP;
-    RETURN REPLACE(l, ',', ',') || '}';
+    RETURN l || '}';
   END salary_json;
 
   PROCEDURE set_salary(p_employment NUMBER, p_from DATE, p_code VARCHAR2, p_amount NUMBER) IS
@@ -221,6 +222,24 @@ CREATE OR REPLACE PACKAGE BODY NOONA_HR_PKG AS
     l_cat    VARCHAR2(30);
     l_m      hr_employment%ROWTYPE;
     l_days   NUMBER := NVL(num(l_o, 'leave_days'), 21);
+    v_name_en VARCHAR2(300) := str(l_o, 'name_en');
+    v_gender  VARCHAR2(1) := str(l_o, 'gender');
+    v_birth   DATE := dat(l_o, 'birth_date');
+    v_email   VARCHAR2(320) := str(l_o, 'email');
+    v_mobile  VARCHAR2(40) := str(l_o, 'mobile');
+    v_idexp   DATE := dat(l_o, 'id_expiry');
+    v_branch  NUMBER := num(l_o, 'branch');
+    v_type    VARCHAR2(30) := str(l_o, 'type');
+    v_prob    DATE := dat(l_o, 'probation_end');
+    v_mgr     NUMBER := num(l_o, 'manager');
+    v_gosi    VARCHAR2(50) := str(l_o, 'gosi_no');
+    v_job     VARCHAR2(200) := str(l_o, 'job_title');
+    v_unit    NUMBER := num(l_o, 'unit');
+    v_cc      NUMBER := num(l_o, 'cost_center');
+    v_bank    NUMBER := num(l_o, 'bank');
+    v_ctype   VARCHAR2(30) := str(l_o, 'contract_type');
+    v_cend    DATE := dat(l_o, 'contract_end');
+    v_basic   NUMBER;
   BEGIN
     guard(CASE WHEN l_id IS NULL THEN 'HR_EMPLOYEE.CREATE' ELSE 'HR_EMPLOYEE.UPDATE' END);
     NOONA_CORE_PKG.assert(l_name IS NOT NULL, 'NOONA-HR-010', 'اسم الموظف إلزامي', 'Employee name is required');
@@ -240,51 +259,52 @@ CREATE OR REPLACE PACKAGE BODY NOONA_HR_PKG AS
     END IF;
     IF l_id IS NULL THEN
       INSERT INTO pty_party (party_no, party_type, display_name_ar, display_name_en, ownership_scope, owner_company_id, country_code, status_code)
-      VALUES ('NEW-' || RAWTOHEX(SYS_GUID()), 'PERSON', l_name, str(l_o, 'name_en'), 'TENANT_SHARED', company, l_nat, 'ACTIVE')
+      VALUES ('NEW-' || RAWTOHEX(SYS_GUID()), 'PERSON', l_name, v_name_en, 'TENANT_SHARED', company, l_nat, 'ACTIVE')
       RETURNING id INTO l_party;
       UPDATE pty_party SET party_no = 'P-' || LPAD(l_party, 6, '0') WHERE id = l_party;
       INSERT INTO pty_person (party_id, first_name_ar, gender, birth_date, nationality)
-      VALUES (l_party, l_name, str(l_o, 'gender'), dat(l_o, 'birth_date'), l_nat);
+      VALUES (l_party, l_name, v_gender, v_birth, l_nat);
       SELECT NVL(MAX(TO_NUMBER(REGEXP_SUBSTR(employee_no, '[0-9]+$'))), 1000) + 1 INTO l_n FROM hr_employee WHERE employee_no LIKE 'E%';
       l_no := 'E' || l_n;
       INSERT INTO hr_employee (person_party_id, employee_no, original_hire_date, work_email, work_mobile, national_id, id_expiry_date,
                                nationality, gender, birth_date, status_code)
-      VALUES (l_party, l_no, l_hire, str(l_o, 'email'), str(l_o, 'mobile'), l_nid, dat(l_o, 'id_expiry'), l_nat, str(l_o, 'gender'),
-              dat(l_o, 'birth_date'), 'ACTIVE')
+      VALUES (l_party, l_no, l_hire, v_email, v_mobile, l_nid, v_idexp, l_nat, v_gender,
+              v_birth, 'ACTIVE')
       RETURNING id INTO l_emp;
       INSERT INTO hr_employment (employee_id, company_id, branch_id, employment_type, employee_category, start_date, probation_end_date,
                                  manager_employee_id, gosi_no, job_title, org_unit_id, cost_center_id, bank_id, iban, annual_leave_days,
                                  status_code)
-      VALUES (l_emp, company, NVL(num(l_o, 'branch'), TO_NUMBER(SYS_CONTEXT('NOONA_CTX', 'BRANCH_ID'))), NVL(str(l_o, 'type'), 'PERMANENT'),
-              l_cat, l_hire, NVL(dat(l_o, 'probation_end'), l_hire + 89), num(l_o, 'manager'), str(l_o, 'gosi_no'), str(l_o, 'job_title'),
-              num(l_o, 'unit'), num(l_o, 'cost_center'), num(l_o, 'bank'), l_iban, l_days, 'ACTIVE')
+      VALUES (l_emp, company, NVL(v_branch, TO_NUMBER(SYS_CONTEXT('NOONA_CTX', 'BRANCH_ID'))), NVL(v_type, 'PERMANENT'),
+              l_cat, l_hire, NVL(v_prob, l_hire + 89), v_mgr, v_gosi, v_job,
+              v_unit, v_cc, v_bank, l_iban, l_days, 'ACTIVE')
       RETURNING id INTO l_id;
       l_sal := l_o.get_object('salary');
-      NOONA_CORE_PKG.assert(l_sal IS NOT NULL AND num(l_sal, 'BASIC') > 0, 'NOONA-HR-016', 'الراتب الأساسي إلزامي', 'Basic salary is required');
+      v_basic := CASE WHEN l_sal IS NOT NULL THEN num(l_sal, 'BASIC') END;
+      NOONA_CORE_PKG.assert(NVL(v_basic, 0) > 0, 'NOONA-HR-016', 'الراتب الأساسي إلزامي', 'Basic salary is required');
       set_salary(l_id, l_hire, 'BASIC', num(l_sal, 'BASIC'));
       set_salary(l_id, l_hire, 'HOUSING', num(l_sal, 'HOUSING'));
       set_salary(l_id, l_hire, 'TRANSPORT', num(l_sal, 'TRANSPORT'));
       set_salary(l_id, l_hire, 'OTHER_ALLOW', num(l_sal, 'OTHER_ALLOW'));
       INSERT INTO hr_contract (employment_id, contract_no, version_no, contract_type, start_date, end_date, working_hours_week, basic_salary,
                                annual_leave_days, notice_days, currency_code, status_code)
-      VALUES (l_id, 'C-' || l_no, 1, NVL(str(l_o, 'contract_type'), CASE WHEN l_cat = 'SAUDI' THEN 'UNLIMITED' ELSE 'FIXED_TERM' END),
-              l_hire, dat(l_o, 'contract_end'), 48, num(l_sal, 'BASIC'), l_days, 60, NOONA_GL_PKG.ledger_currency, 'ACTIVE');
+      VALUES (l_id, 'C-' || l_no, 1, NVL(v_ctype, CASE WHEN l_cat = 'SAUDI' THEN 'UNLIMITED' ELSE 'FIXED_TERM' END),
+              l_hire, v_cend, 48, v_basic, l_days, 60, NOONA_GL_PKG.ledger_currency, 'ACTIVE');
       action(l_id, 'HIRE', l_hire, NULL, '{"employee_no":' || jt(l_no) || ',"salary":' || salary_json(l_id, l_hire) || '}',
              'تعيين', l_act);
     ELSE
       l_m := emp_row(l_id);
       SELECT person_party_id INTO l_party FROM hr_employee WHERE id = l_m.employee_id;
-      UPDATE pty_party SET display_name_ar = l_name, display_name_en = str(l_o, 'name_en'), country_code = l_nat WHERE id = l_party;
-      UPDATE pty_person SET first_name_ar = l_name, gender = str(l_o, 'gender'), birth_date = dat(l_o, 'birth_date'), nationality = l_nat
+      UPDATE pty_party SET display_name_ar = l_name, display_name_en = v_name_en, country_code = l_nat WHERE id = l_party;
+      UPDATE pty_person SET first_name_ar = l_name, gender = v_gender, birth_date = v_birth, nationality = l_nat
        WHERE party_id = l_party;
-      UPDATE hr_employee SET work_email = str(l_o, 'email'), work_mobile = str(l_o, 'mobile'), national_id = l_nid,
-                             id_expiry_date = dat(l_o, 'id_expiry'), nationality = l_nat, gender = str(l_o, 'gender'),
-                             birth_date = dat(l_o, 'birth_date')
+      UPDATE hr_employee SET work_email = v_email, work_mobile = v_mobile, national_id = l_nid,
+                             id_expiry_date = v_idexp, nationality = l_nat, gender = v_gender,
+                             birth_date = v_birth
        WHERE id = l_m.employee_id;
       -- المسمى والإدارة والمدير والفرع ومركز التكلفة تتغير بحركة نقل؛ هنا بيانات الملف فقط
-      UPDATE hr_employment SET employee_category = l_cat, gosi_no = str(l_o, 'gosi_no'), bank_id = num(l_o, 'bank'), iban = l_iban,
-                               annual_leave_days = l_days, employment_type = NVL(str(l_o, 'type'), employment_type),
-                               probation_end_date = NVL(dat(l_o, 'probation_end'), probation_end_date)
+      UPDATE hr_employment SET employee_category = l_cat, gosi_no = v_gosi, bank_id = v_bank, iban = l_iban,
+                               annual_leave_days = l_days, employment_type = NVL(v_type, employment_type),
+                               probation_end_date = NVL(v_prob, probation_end_date)
        WHERE id = l_id;
       NOONA_AUDIT_PKG.log_event('DATA_CHANGE', 'HR_EMPLOYMENT', l_id, 'UPDATE', 'SUCCESS');
     END IF;
@@ -417,6 +437,8 @@ CREATE OR REPLACE PACKAGE BODY NOONA_HR_PKG AS
     l_id   NUMBER;
     l_t1   VARCHAR2(5) := str(l_o, 'start_time');
     l_t2   VARCHAR2(5) := str(l_o, 'end_time');
+    l_sub  NUMBER := num(l_o, 'substitute');
+    l_why  VARCHAR2(1000) := SUBSTR(str(l_o, 'reason'), 1, 1000);
   BEGIN
     guard('HR_LEAVE_REQUEST.CREATE');
     l_m := employment_of(l_emp);
@@ -444,7 +466,7 @@ CREATE OR REPLACE PACKAGE BODY NOONA_HR_PKG AS
     INSERT INTO hr_leave_request (doc_no, doc_date, employee_id, leave_type_id, start_date, end_date, start_time, end_time, duration,
                                   substitute_employee_id, reason, status_code)
     VALUES (NOONA_REFERENCE_PKG.next_doc_no('HR_LEAVE_REQUEST', company, NULL, TRUNC(SYSDATE), 'HR_LEAVE_REQUEST', NULL), TRUNC(SYSDATE),
-            l_emp, l_type.id, l_from, l_to, l_t1, l_t2, l_dur, num(l_o, 'substitute'), SUBSTR(str(l_o, 'reason'), 1, 1000), 'SUBMITTED')
+            l_emp, l_type.id, l_from, l_to, l_t1, l_t2, l_dur, l_sub, l_why, 'SUBMITTED')
     RETURNING id INTO l_id;
     NOONA_AUDIT_PKG.log_event('DATA_CHANGE', 'HR_LEAVE_REQUEST', l_id, 'SUBMIT', 'SUCCESS');
     RETURN l_id;
@@ -528,7 +550,7 @@ CREATE OR REPLACE PACKAGE BODY NOONA_HR_PKG AS
      WHEN NOT MATCHED THEN INSERT (employee_id, leave_type_id, balance_year, opening_balance, accrued, taken, adjusted, encashed)
           VALUES (x.e, x.t, x.y, 0, 0, 0, p_days, 0);
     NOONA_AUDIT_PKG.log_event('DATA_CHANGE', 'HR_LEAVE_BALANCE', p_employee_id, 'ADJUST', 'SUCCESS', p_reason => p_reason,
-      p_new_values => '{"days":' || fnum(p_days) || '}');
+      p_new_values => '{"days":' || TO_CHAR(p_days, 'FM99990.99', 'NLS_NUMERIC_CHARACTERS=''.,''') || '}');
   END adjust_leave;
 
   FUNCTION unpaid_leave_days(p_employee_id IN NUMBER, p_from IN DATE, p_to IN DATE) RETURN NUMBER IS

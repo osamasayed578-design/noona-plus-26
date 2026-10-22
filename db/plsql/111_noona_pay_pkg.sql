@@ -36,7 +36,7 @@ CREATE OR REPLACE PACKAGE NOONA_PAY_PKG AUTHID DEFINER AS
   PROCEDURE approve_run(p_run_id IN NUMBER);
   FUNCTION post_run(p_run_id IN NUMBER, p_date IN DATE DEFAULT NULL) RETURN NUMBER;
   -- الصرف: ملف تحويل بصافي الرواتب وقيد الصرف من حساب البنك؛ يعيد رقم الملف
-  FUNCTION pay_run(p_run_id IN NUMBER, p_bank_account_id IN NUMBER DEFAULT NULL, p_date IN DATE DEFAULT NULL) RETURN NUMBER;
+  FUNCTION pay_out(p_run_id IN NUMBER, p_bank_account_id IN NUMBER DEFAULT NULL, p_date IN DATE DEFAULT NULL) RETURN NUMBER;
   PROCEDURE delete_run(p_run_id IN NUMBER);
   FUNCTION bank_file_csv(p_file_id IN NUMBER) RETURN CLOB;
 
@@ -70,6 +70,7 @@ END NOONA_PAY_PKG;
 CREATE OR REPLACE PACKAGE BODY NOONA_PAY_PKG AS
 
   c_days CONSTANT NUMBER := 30;
+  FUNCTION res(p_re NUMBER, p_codes VARCHAR2) RETURN NUMBER;
 
   FUNCTION company RETURN NUMBER IS BEGIN RETURN TO_NUMBER(SYS_CONTEXT('NOONA_CTX', 'COMPANY_ID')); END company;
   FUNCTION esc(p VARCHAR2) RETURN VARCHAR2 IS BEGIN RETURN NOONA_UI_PKG.esc(p); END esc;
@@ -132,12 +133,16 @@ CREATE OR REPLACE PACKAGE BODY NOONA_PAY_PKG AS
   FUNCTION rule_params(p_code VARCHAR2, p_category VARCHAR2) RETURN JSON_OBJECT_T IS
     l_p CLOB;
   BEGIN
-    SELECT MAX(r.parameters) KEEP (DENSE_RANK FIRST ORDER BY CASE WHEN r.company_id = company THEN 0 WHEN r.tenant_id IS NOT NULL THEN 1 ELSE 2 END,
-                                   r.effective_from DESC, r.version_no DESC)
-      INTO l_p
-      FROM pay_element_rule r JOIN pay_element e ON e.id = r.element_id
-     WHERE e.code = p_code AND r.status_code = 'ACTIVE' AND NVL(r.employee_category, NVL(p_category, '-')) = NVL(p_category, '-')
-       AND TRUNC(SYSDATE) BETWEEN r.effective_from AND NVL(r.effective_to, DATE '9999-12-31');
+    BEGIN
+      SELECT parameters INTO l_p FROM (
+        SELECT r.parameters FROM pay_element_rule r JOIN pay_element e ON e.id = r.element_id
+         WHERE e.code = p_code AND r.status_code = 'ACTIVE' AND NVL(r.employee_category, NVL(p_category, '-')) = NVL(p_category, '-')
+           AND TRUNC(SYSDATE) BETWEEN r.effective_from AND NVL(r.effective_to, DATE '9999-12-31')
+         ORDER BY CASE WHEN r.company_id = NOONA_PAY_PKG.company THEN 0 WHEN r.tenant_id IS NOT NULL THEN 1 ELSE 2 END,
+                  r.effective_from DESC, r.version_no DESC)
+       WHERE ROWNUM = 1;
+    EXCEPTION WHEN NO_DATA_FOUND THEN l_p := NULL;
+    END;
     RETURN JSON_OBJECT_T.parse(NVL(l_p, '{}'));
   END rule_params;
 
@@ -294,7 +299,7 @@ CREATE OR REPLACE PACKAGE BODY NOONA_PAY_PKG AS
     SELECT COUNT(*) INTO l_n FROM pay_run WHERE period_id = p_period_id AND status_code IN ('POSTED', 'PAID', 'CLOSED') AND run_type = 'REGULAR';
     NOONA_CORE_PKG.assert(l_n = 0, 'NOONA-PAY-013', 'رواتب الفترة مرحلة؛ أدخلها في الفترة التالية', 'Period payroll already posted');
     INSERT INTO pay_input (company_id, period_id, employment_id, element_id, quantity, amount, status_code)
-    VALUES (company, p_period_id, p_employment_id, element_id(p_element_code), p_quantity, ROUND(p_amount, 2), 'PENDING')
+    VALUES (company, p_period_id, p_employment_id, NOONA_HR_PKG.element_id(p_element_code), p_quantity, ROUND(p_amount, 2), 'PENDING')
     RETURNING id INTO l_id;
     RETURN l_id;
   END add_input;
@@ -344,7 +349,7 @@ CREATE OR REPLACE PACKAGE BODY NOONA_PAY_PKG AS
   BEGIN
     IF ROUND(NVL(p_amount, 0), 2) = 0 THEN RETURN; END IF;
     INSERT INTO pay_run_result (company_id, run_employee_id, element_id, quantity, rate, amount, source_info)
-    VALUES (company, p_re, element_id(p_code), p_qty, p_rate, ROUND(p_amount, 2), p_info);
+    VALUES (company, p_re, NOONA_HR_PKG.element_id(p_code), p_qty, p_rate, ROUND(p_amount, 2), p_info);
   END result;
 
   -- حساب موظف واحد في تشغيل؛ p_eos تسوية نهائية (مكافأة وبدل إجازات وسداد كامل السلف)
@@ -501,6 +506,8 @@ CREATE OR REPLACE PACKAGE BODY NOONA_PAY_PKG AS
                    AND NOT EXISTS (SELECT 1 FROM hr_end_of_service s JOIN pay_run fr ON fr.id = s.payroll_run_id
                                     WHERE s.employment_id = m.id AND fr.period_id = l_p.id)
                    AND NOT (m.status_code = 'TERMINATED' AND m.end_date < l_p.start_date)
+                   -- من لا هيكل راتب له (عضوية أو تعيين تنظيمي فقط) لا يدخل الرواتب
+                   AND EXISTS (SELECT 1 FROM pay_employee_element x WHERE x.employment_id = m.id)
                  ORDER BY m.id) LOOP
         calc_employee(l_r, l_p, m, l_none, TRUE);
         l_n := l_n + 1;
@@ -592,7 +599,7 @@ CREATE OR REPLACE PACKAGE BODY NOONA_PAY_PKG AS
     l_close NUMBER;
     l_days  NUMBER;
     l_j     NUMBER;
-    l_ids   SYS.ODCINUMBERLIST := SYS.ODCINUMBERLIST();
+    l_info  VARCHAR2(1000);
   BEGIN
     FOR e IN (SELECT re.employment_id, m.employee_id, m.cost_center_id FROM pay_run_employee re JOIN hr_employment m ON m.id = re.employment_id
                WHERE re.run_id = p_r.id) LOOP
@@ -604,6 +611,8 @@ CREATE OR REPLACE PACKAGE BODY NOONA_PAY_PKG AS
           l_days := GREATEST(NOONA_HR_PKG.leave_available(e.employee_id, 'ANNUAL', p_p.end_date), 0);
           l_close := ROUND(l_days * eos_wage(e.employment_id, p_p.end_date) / c_days, 2);
         END IF;
+        l_info := '{"years":' || jn(NOONA_HR_PKG.service_years(e.employment_id, p_p.end_date)) || ',"wage":'
+               || jn(eos_wage(e.employment_id, p_p.end_date)) || ',"leave_days":' || jn(l_days) || '}';
         MERGE INTO pay_accrual a
         USING (SELECT p_p.id pid, e.employment_id eid, t.typ typ FROM dual) x
            ON (a.period_id = x.pid AND a.employment_id = x.eid AND a.accrual_type = x.typ)
@@ -612,8 +621,7 @@ CREATE OR REPLACE PACKAGE BODY NOONA_PAY_PKG AS
          WHEN NOT MATCHED THEN INSERT (company_id, period_id, employment_id, accrual_type, opening_balance, period_amount, closing_balance,
                                        calc_info, posted_at, posted_by)
               VALUES (company, p_p.id, e.employment_id, t.typ, l_open, l_close - l_open, l_close,
-                      '{"years":' || jn(NOONA_HR_PKG.service_years(e.employment_id, p_p.end_date)) || ',"wage":'
-                      || jn(eos_wage(e.employment_id, p_p.end_date)) || ',"leave_days":' || jn(l_days) || '}',
+                      l_info,
                       SYSTIMESTAMP, NOONA_CTX_PKG.current_user_name);
         IF t.typ = 'END_OF_SERVICE' THEN
           add_line(l_lines, need_acc('5215'), l_close - l_open, 0, e.cost_center_id, 'مخصص نهاية الخدمة');
@@ -728,7 +736,7 @@ CREATE OR REPLACE PACKAGE BODY NOONA_PAY_PKG AS
     RETURN l_j;
   END post_run;
 
-  FUNCTION pay_run(p_run_id IN NUMBER, p_bank_account_id IN NUMBER DEFAULT NULL, p_date IN DATE DEFAULT NULL) RETURN NUMBER IS
+  FUNCTION pay_out(p_run_id IN NUMBER, p_bank_account_id IN NUMBER DEFAULT NULL, p_date IN DATE DEFAULT NULL) RETURN NUMBER IS
     l_r     pay_run%ROWTYPE := run_row(p_run_id, TRUE);
     l_p     pay_period%ROWTYPE;
     l_bank  csh_bank_account%ROWTYPE;
@@ -767,7 +775,7 @@ CREATE OR REPLACE PACKAGE BODY NOONA_PAY_PKG AS
        AND NOT EXISTS (SELECT 1 FROM pay_payslip s WHERE s.run_employee_id = re.id);
     UPDATE hr_end_of_service SET status_code = 'PAID' WHERE payroll_run_id = p_run_id;
     RETURN l_file;
-  END pay_run;
+  END pay_out;
 
   FUNCTION bank_file_csv(p_file_id IN NUMBER) RETURN CLOB IS
     l_f   pay_bank_file%ROWTYPE;
@@ -785,12 +793,8 @@ CREATE OR REPLACE PACKAGE BODY NOONA_PAY_PKG AS
                 JOIN pty_party p ON p.id = e.person_party_id LEFT JOIN ref_bank b ON b.id = m.bank_id
                WHERE l.bank_file_id = p_file_id ORDER BY e.employee_no) LOOP
       l_out := l_out || (r.employee_no || ',"' || REPLACE(r.nm, '"', '') || '",' || r.national_id || ',' || r.bank || ',' || r.iban || ','
-            || TO_CHAR(NVL((SELECT SUM(rr.amount) FROM pay_run_result rr JOIN pay_element el ON el.id = rr.element_id
-                             WHERE rr.run_employee_id = r.id AND el.code = 'BASIC'), 0), 'FM9999999990.00') || ','
-            || TO_CHAR(NVL((SELECT SUM(rr.amount) FROM pay_run_result rr JOIN pay_element el ON el.id = rr.element_id
-                             WHERE rr.run_employee_id = r.id AND el.code = 'HOUSING'), 0), 'FM9999999990.00') || ','
-            || TO_CHAR(r.gross_amount - NVL((SELECT SUM(rr.amount) FROM pay_run_result rr JOIN pay_element el ON el.id = rr.element_id
-                             WHERE rr.run_employee_id = r.id AND el.code IN ('BASIC', 'HOUSING')), 0), 'FM9999999990.00') || ','
+            || TO_CHAR(res(r.id, 'BASIC'), 'FM9999999990.00') || ',' || TO_CHAR(res(r.id, 'HOUSING'), 'FM9999999990.00') || ','
+            || TO_CHAR(r.gross_amount - res(r.id, 'BASIC,HOUSING'), 'FM9999999990.00') || ','
             || TO_CHAR(r.deduction_amount, 'FM9999999990.00') || ',' || TO_CHAR(r.net_amount, 'FM9999999990.00') || CHR(13) || CHR(10));
     END LOOP;
     NOONA_AUDIT_PKG.log_event('EXPORT', 'PAY_BANK_FILE', p_file_id, 'EXPORT', 'SUCCESS');
@@ -888,6 +892,7 @@ CREATE OR REPLACE PACKAGE BODY NOONA_PAY_PKG AS
     l_cust  NUMBER;
     l_id    NUMBER;
     l_n     NUMBER;
+    l_info  VARCHAR2(2000);
   BEGIN
     guard('HR_END_OF_SERVICE.CREATE');
     SELECT * INTO l_m FROM hr_employment WHERE id = p_employment_id AND company_id = company FOR UPDATE;
@@ -905,12 +910,13 @@ CREATE OR REPLACE PACKAGE BODY NOONA_PAY_PKG AS
     l_loan := loan_outstanding(p_employment_id);
     SELECT COUNT(*) INTO l_cust FROM hr_custody WHERE employee_id = l_m.employee_id AND status_code = 'ASSIGNED';
     NOONA_HR_PKG.ensure_sequence('HR_END_OF_SERVICE', 'EOS-');
+    l_info := '{"type":' || jt(p_type) || ',"reason":' || jt(p_reason) || ',"years":' || jn(NOONA_HR_PKG.service_years(p_employment_id, p_last_day))
+            || ',"wage":' || jn(eos_wage(p_employment_id, p_last_day)) || ',"leave_days":' || jn(l_days) || ',"open_custody":' || l_cust || '}';
     INSERT INTO hr_end_of_service (company_id, doc_no, doc_date, employment_id, last_working_date, clearance_checklist, eos_amount,
                                    leave_encashment, deductions, net_settlement, status_code)
     VALUES (company, NOONA_REFERENCE_PKG.next_doc_no('HR_END_OF_SERVICE', company, NULL, TRUNC(SYSDATE), 'HR_END_OF_SERVICE', NULL),
             TRUNC(SYSDATE), p_employment_id, p_last_day,
-            '{"type":' || jt(p_type) || ',"reason":' || jt(p_reason) || ',"years":' || jn(NOONA_HR_PKG.service_years(p_employment_id, p_last_day))
-            || ',"wage":' || jn(eos_wage(p_employment_id, p_last_day)) || ',"leave_days":' || jn(l_days) || ',"open_custody":' || l_cust || '}',
+            l_info,
             l_eos, l_leave, l_loan, l_eos + l_leave - l_loan, 'SETTLEMENT_CALCULATED')
     RETURNING id INTO l_id;
     UPDATE hr_employment SET status_code = 'NOTICE_PERIOD', end_date = p_last_day, termination_type = p_type,

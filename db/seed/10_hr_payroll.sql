@@ -7,6 +7,39 @@
 -- =============================================================================
 BEGIN
   NOONA_CORE_PKG.begin_system;
+  -- جنسيات العمالة الشائعة (تستخدم في ملف الموظف والتأمينات ونسبة التوطين)
+  MERGE INTO ref_country t
+  USING (SELECT 'IN' c, 'IND' i3, 'الهند' ar, 'India' en FROM dual
+         UNION ALL SELECT 'PK', 'PAK', 'باكستان', 'Pakistan' FROM dual
+         UNION ALL SELECT 'BD', 'BGD', 'بنغلاديش', 'Bangladesh' FROM dual
+         UNION ALL SELECT 'PH', 'PHL', 'الفلبين', 'Philippines' FROM dual
+         UNION ALL SELECT 'NP', 'NPL', 'نيبال', 'Nepal' FROM dual
+         UNION ALL SELECT 'LK', 'LKA', 'سريلانكا', 'Sri Lanka' FROM dual
+         UNION ALL SELECT 'ID', 'IDN', 'إندونيسيا', 'Indonesia' FROM dual
+         UNION ALL SELECT 'YE', 'YEM', 'اليمن', 'Yemen' FROM dual
+         UNION ALL SELECT 'JO', 'JOR', 'الأردن', 'Jordan' FROM dual
+         UNION ALL SELECT 'SY', 'SYR', 'سوريا', 'Syria' FROM dual
+         UNION ALL SELECT 'LB', 'LBN', 'لبنان', 'Lebanon' FROM dual
+         UNION ALL SELECT 'PS', 'PSE', 'فلسطين', 'Palestine' FROM dual
+         UNION ALL SELECT 'IQ', 'IRQ', 'العراق', 'Iraq' FROM dual
+         UNION ALL SELECT 'MA', 'MAR', 'المغرب', 'Morocco' FROM dual
+         UNION ALL SELECT 'TN', 'TUN', 'تونس', 'Tunisia' FROM dual
+         UNION ALL SELECT 'DZ', 'DZA', 'الجزائر', 'Algeria' FROM dual
+         UNION ALL SELECT 'ET', 'ETH', 'إثيوبيا', 'Ethiopia' FROM dual
+         UNION ALL SELECT 'KE', 'KEN', 'كينيا', 'Kenya' FROM dual
+         UNION ALL SELECT 'UG', 'UGA', 'أوغندا', 'Uganda' FROM dual
+         UNION ALL SELECT 'TR', 'TUR', 'تركيا', 'Turkey' FROM dual
+         UNION ALL SELECT 'GB', 'GBR', 'المملكة المتحدة', 'United Kingdom' FROM dual
+         UNION ALL SELECT 'FR', 'FRA', 'فرنسا', 'France' FROM dual
+         UNION ALL SELECT 'DE', 'DEU', 'ألمانيا', 'Germany' FROM dual
+         UNION ALL SELECT 'CA', 'CAN', 'كندا', 'Canada' FROM dual
+         UNION ALL SELECT 'AU', 'AUS', 'أستراليا', 'Australia' FROM dual
+         UNION ALL SELECT 'CN', 'CHN', 'الصين', 'China' FROM dual
+         UNION ALL SELECT 'AF', 'AFG', 'أفغانستان', 'Afghanistan' FROM dual
+         UNION ALL SELECT 'MY', 'MYS', 'ماليزيا', 'Malaysia' FROM dual) x
+     ON (t.country_code = x.c)
+   WHEN NOT MATCHED THEN INSERT (country_code, iso3_code, name_ar, name_en, show_hijri, is_active, sort_order, created_by)
+        VALUES (x.c, x.i3, x.ar, x.en, 'N', 'Y', 100, 'SYSTEM');
   MERGE INTO hr_leave_type t
   USING (SELECT 'ANNUAL' code, 'إجازة سنوية' name_ar, 'Annual leave' name_en, 'Y' paid, 'DAY' unit, 30 mx, 'N' doc, 'N' sens, 1 o FROM dual
          UNION ALL SELECT 'SICK', 'إجازة مرضية', 'Sick leave', 'Y', 'DAY', 120, 'Y', 'Y', 2 FROM dual
