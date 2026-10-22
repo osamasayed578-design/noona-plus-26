@@ -57,7 +57,7 @@ CREATE OR REPLACE PACKAGE NOONA_INV_PKG AUTHID DEFINER AS
   -- حركة مرحلة فوراً؛ تعيد رقمها وتملأ total_cost لكل سطر (تكلفة الصرف بالمتوسط المرجح)
   FUNCTION move(p_type_code IN VARCHAR2, p_warehouse_id IN NUMBER, p_date IN DATE, p_source_type IN VARCHAR2,
                 p_source_id IN NUMBER, p_lines IN OUT NOCOPY t_moves, p_reference IN VARCHAR2 DEFAULT NULL) RETURN NUMBER
-    ACCESSIBLE BY (PACKAGE NOONA_PUR_PKG, PACKAGE NOONA_SAL_PKG, PACKAGE NOONA_POS_PKG);
+    ACCESSIBLE BY (PACKAGE NOONA_PUR_PKG, PACKAGE NOONA_SAL_PKG, PACKAGE NOONA_POS_PKG, PACKAGE NOONA_MFG_PKG);
 
   -- ---------------------------------------------------------- مستندات المخزون المباشرة
   -- الأنواع: OPENING رصيد افتتاحي، ADJ_IN تسوية بالزيادة، ADJ_OUT عجز، SCRAP إتلاف، CONSUMPTION صرف لمركز تكلفة،
@@ -789,7 +789,7 @@ CREATE OR REPLACE PACKAGE BODY NOONA_INV_PKG AS
 
   FUNCTION move(p_type_code IN VARCHAR2, p_warehouse_id IN NUMBER, p_date IN DATE, p_source_type IN VARCHAR2,
                 p_source_id IN NUMBER, p_lines IN OUT NOCOPY t_moves, p_reference IN VARCHAR2 DEFAULT NULL) RETURN NUMBER
-    ACCESSIBLE BY (PACKAGE NOONA_PUR_PKG, PACKAGE NOONA_SAL_PKG, PACKAGE NOONA_POS_PKG) IS
+    ACCESSIBLE BY (PACKAGE NOONA_PUR_PKG, PACKAGE NOONA_SAL_PKG, PACKAGE NOONA_POS_PKG, PACKAGE NOONA_MFG_PKG) IS
     l_t   inv_txn_type%ROWTYPE := txn_type(p_type_code);
     l_id  NUMBER;
     l_no  PLS_INTEGER := 0;
@@ -804,7 +804,7 @@ CREATE OR REPLACE PACKAGE BODY NOONA_INV_PKG AS
     l_id := new_txn(l_t, p_warehouse_id, NULL, p_date, p_source_type, p_source_id, p_reference, 'POSTED');
     FOR i IN 1 .. p_lines.COUNT LOOP
       IF is_stocked(p_lines(i).item_id) = 'Y' THEN
-        l_x := apply_line(l_id, l_no, l_t.qty_sign, p_warehouse_id, l_t.txn_class, p_lines(i), p_type_code IN ('SALES_ISSUE', 'POS_ISSUE'));
+        l_x := apply_line(l_id, l_no, l_t.qty_sign, p_warehouse_id, l_t.txn_class, p_lines(i), p_type_code IN ('SALES_ISSUE', 'POS_ISSUE', 'MFG_ISSUE'));
       ELSE
         p_lines(i).total_cost := 0;
       END IF;
@@ -1042,7 +1042,9 @@ CREATE OR REPLACE PACKAGE BODY NOONA_INV_PKG AS
      WHERE company_id = company AND item_id = p_item_id AND is_default = 'Y' AND status_code <> 'OBSOLETE';
     -- القائمة المستخدمة في إنتاج سابق لا تعدل: تنشأ نسخة جديدة
     IF l_bom IS NOT NULL THEN
-      SELECT COUNT(*) INTO l_used FROM inv_transaction WHERE source_entity_type = 'MFG_BOM' AND source_entity_id = l_bom AND ROWNUM = 1;
+      SELECT COUNT(*) INTO l_used FROM dual
+       WHERE EXISTS (SELECT 1 FROM inv_transaction WHERE source_entity_type = 'MFG_BOM' AND source_entity_id = l_bom)
+          OR EXISTS (SELECT 1 FROM mfg_production_order WHERE bom_id = l_bom AND status_code NOT IN ('PLANNED', 'APPROVED', 'CANCELLED'));
       IF l_used > 0 THEN
         UPDATE mfg_bom SET status_code = 'OBSOLETE', is_default = 'N', effective_to = TRUNC(SYSDATE) WHERE id = l_bom;
         l_bom := NULL;
@@ -1052,6 +1054,7 @@ CREATE OR REPLACE PACKAGE BODY NOONA_INV_PKG AS
       END IF;
     END IF;
     IF l_bom IS NULL THEN
+      SELECT MAX(version_no) INTO l_ver FROM mfg_bom WHERE company_id = company AND code = l_item.item_no;
       INSERT INTO mfg_bom (company_id, code, name_ar, item_id, version_no, bom_type, base_quantity, uom_id, is_default, status_code)
       VALUES (company, l_item.item_no, 'قائمة مواد ' || l_item.name_ar, p_item_id, NVL(l_ver, 0) + 1, 'PRODUCTION', NVL(p_base_qty, 1),
               l_item.base_uom_id, 'Y', 'PUBLISHED')

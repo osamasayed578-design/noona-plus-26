@@ -671,7 +671,12 @@ CREATE OR REPLACE PACKAGE BODY NOONA_FIN_RPT_PKG AS
                      (SELECT NVL(SUM(c.total_value), 0) FROM inv_item_cost c JOIN inv_item i ON i.id = c.item_id
                        WHERE c.company_id = l_co AND c.warehouse_id IS NULL AND NOONA_INV_PKG.account_for(i.id, 'INVENTORY') = a.id)
                 FROM gl_account a WHERE a.coa_id = NOONA_GL_PKG.primary_coa
-                 AND a.id IN (SELECT NVL(inventory_account_id, NOONA_INV_PKG.acc_id('1105')) FROM inv_item_category)) LOOP
+                 AND a.id IN (SELECT NVL(inventory_account_id, NOONA_INV_PKG.acc_id('1105')) FROM inv_item_category)
+              UNION ALL
+              SELECT 'الإنتاج تحت التشغيل: ' || a.account_code || ' ' || a.name_ar, a.id, 1,
+                     (SELECT NVL(SUM(CASE w.entry_type WHEN 'CHARGE' THEN w.amount ELSE -w.amount END), 0) FROM mfg_wip_cost w
+                       WHERE w.company_id = l_co AND w.accounting_event_id IS NOT NULL AND w.cost_date <= l_to)
+                FROM gl_account a WHERE a.coa_id = NOONA_GL_PKG.primary_coa AND a.account_code = '1110') LOOP
       SELECT r.sg * NVL(SUM(l.debit_func - l.credit_func), 0) INTO l_d FROM gl_journal_line l JOIN gl_journal j ON j.id = l.journal_id
        WHERE l.account_id = r.id AND j.ledger_id = l_led AND j.status_code IN ('POSTED', 'REVERSED') AND j.doc_date <= l_to;
       l_html := l_html || (ctl_row(esc(r.lbl), 'الأستاذ ' || fmt0(l_d) || ' / النظام الفرعي ' || fmt0(r.sub), ROUND(l_d - r.sub, 2) = 0,

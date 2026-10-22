@@ -81,6 +81,16 @@ ACTUAL_END      TS               | النهاية الفعلية
 ESTIMATED_COST  AMT              | التكلفة التقديرية
 ACTUAL_COST     AMT  @CALC       | التكلفة الفعلية
 HOLD_REASON     V1000            | سبب الإيقاف/الإلغاء
+SOURCE_WAREHOUSE_ID ID >INV_WAREHOUSE | مستودع صرف الخامات
+LOT_NO          V100             | دفعة المنتج
+EXPIRY_DATE     DATE             | انتهاء صلاحية المنتج
+PRIORITY        CODE NN D='NORMAL' IN:LOW,NORMAL,HIGH,URGENT | الأولوية
+REQUIRES_QC     YN   NN D='N'    | يتطلب فحص جودة قبل الاستلام
+PARENT_ORDER_ID ID   >MFG_PRODUCTION_ORDER | الأمر الأب (مكون نصف مصنع)
+COST_CENTER_ID  ID   >GL_COST_CENTER | مركز التكلفة
+STD_UNIT_COST   RATE             | التكلفة المعيارية للوحدة عند الإطلاق
+STD_COST_DETAIL JSON             | التكلفة المعيارية للوحدة لكل عنصر
+NOTES           V1000            | ملاحظات
 ''', ix=[('TENANT_ID', 'COMPANY_ID', 'STATUS_CODE')], area='execution')
 
 table('MFG_ORDER_MATERIAL', 'مواد أمر الإنتاج', 'Order Material Requirements', scope='C', cols='''
@@ -94,6 +104,9 @@ RETURNED_QTY    QTY  NN D=0      | المرتجع
 UOM_ID          ID   NN >INV_UOM | الوحدة
 WAREHOUSE_ID    ID   >INV_WAREHOUSE | مستودع الصرف
 IS_SUBSTITUTE   YN   NN D='N'    | بديل معتمد
+STD_UNIT_COST   RATE             | التكلفة المعيارية للوحدة عند الإطلاق
+ISSUED_COST     AMT  NN D=0      | تكلفة المصروف الفعلية
+OPERATION_SEQ   INT              | العملية المستهلكة
 ''', ix=[('TENANT_ID', 'ORDER_ID')], area='execution')
 
 table('MFG_ORDER_OPERATION', 'عمليات أمر الإنتاج', 'Order Operations', scope='C', mix='status', status='PENDING IN_PROGRESS COMPLETED SKIPPED', cols='''
@@ -105,6 +118,11 @@ ACTUAL_MINUTES  QTY  NN D=0      | الفعلي
 GOOD_QTY        QTY  NN D=0      | المقبول
 REWORK_QTY      QTY  NN D=0      | إعادة العمل
 DOWNTIME_MINUTES QTY NN D=0      | التوقف
+DESCRIPTION     V500             | وصف العملية
+SETUP_MINUTES   QTY  NN D=0      | زمن الإعداد المخطط
+RUN_MINUTES_PER_UNIT QTY NN D=0  | زمن التشغيل للوحدة
+SCRAP_QTY       QTY  NN D=0      | الهالك
+QUALITY_CHECK   YN   NN D='N'    | نقطة فحص جودة
 ''', uk=[('ORDER_ID', 'OPERATION_SEQ')], area='execution')
 
 table('MFG_ORDER_OUTPUT', 'استلام الإنتاج', 'Production Output Receipts', scope='C', mix='status', status='PENDING_QUALITY ACCEPTED REJECTED POSTED', cols='''
@@ -115,6 +133,11 @@ QUANTITY        QTY  NN          | الكمية
 LOT_ID          ID   >INV_LOT    | الدفعة
 INV_TRANSACTION_ID ID >INV_TRANSACTION | حركة الاستلام
 IDEMPOTENCY_KEY V100 NN          | منع مضاعفة الحركة عند إعادة الإرسال
+OUTPUT_DATE     DATE             | تاريخ الإنتاج
+LOT_NO          V100             | رقم الدفعة
+EXPIRY_DATE     DATE             | الانتهاء
+UNIT_COST       RATE             | تكلفة الوحدة
+TOTAL_COST      AMT              | التكلفة
 ''', uk=[('TENANT_ID', 'IDEMPOTENCY_KEY')], area='execution',
       purpose='المنتج تحت الفحص لا يعد متاحاً للبيع قبل قبول الجودة')
 
@@ -126,6 +149,8 @@ INSPECTED_QTY   QTY  NN          | المفحوص
 PASSED_QTY      QTY  NN D=0      | الناجح
 FAILED_QTY      QTY  NN D=0      | المرفوض
 RESULTS         JSON             | نتائج القياسات
+INSPECTION_DATE DATE             | تاريخ الفحص
+NOTES           V1000            | ملاحظات الفاحص
 INSPECTOR_EMPLOYEE_ID ID >HR_EMPLOYEE | الفاحص
 ''', area='quality')
 
@@ -136,6 +161,11 @@ COST_ELEMENT    CODE NN IN:MATERIAL,LABOR,MACHINE,OVERHEAD,SUBCONTRACT,SCRAP | �
 AMOUNT          AMT  NN          | المبلغ
 COST_DATE       DATE NN          | التاريخ
 ACCOUNTING_EVENT_ID ID >ACE_ACCOUNTING_EVENT | الحدث المحاسبي
+ENTRY_TYPE      CODE NN D='CHARGE' IN:CHARGE,RELIEF,VARIANCE | تحميل على الأمر / تخفيض بالإنتاج المستلم / تسوية الانحراف
+ITEM_ID         ID   >INV_ITEM   | الصنف
+QUANTITY        QTY              | الكمية
+MINUTES         QTY              | الدقائق
+DESCRIPTION     V500             | البيان
 ''', ix=[('TENANT_ID', 'ORDER_ID')], area='costing')
 
 table('MFG_VARIANCE', 'انحرافات التكلفة', 'Production Variances', scope='C', mix='posted', cols='''
