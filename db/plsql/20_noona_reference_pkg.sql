@@ -16,12 +16,13 @@ CREATE OR REPLACE PACKAGE NOONA_REFERENCE_PKG AUTHID DEFINER AS
 
   PROCEDURE void_doc_no(p_sequence_id IN NUMBER, p_doc_no IN VARCHAR2);
 
-  -- السعر الساري لزوج عملات ونوع سعر في وقت محدد (يرجع NULL إن لم يوجد)
+  -- السعر الساري لزوج عملات ونوع سعر في وقت محدد من أسعار الشركة (الحالية افتراضياً)؛ NULL إن لم يوجد
   FUNCTION get_rate(
     p_from_currency IN VARCHAR2,
     p_to_currency   IN VARCHAR2,
     p_rate_type_id  IN NUMBER,
-    p_at            IN TIMESTAMP WITH LOCAL TIME ZONE DEFAULT SYSTIMESTAMP) RETURN NUMBER;
+    p_at            IN TIMESTAMP WITH LOCAL TIME ZONE DEFAULT SYSTIMESTAMP,
+    p_company_id    IN NUMBER DEFAULT NULL) RETURN NUMBER;
 
   FUNCTION round_amount(p_amount IN NUMBER, p_currency IN VARCHAR2) RETURN NUMBER RESULT_CACHE;
 END NOONA_REFERENCE_PKG;
@@ -82,8 +83,10 @@ CREATE OR REPLACE PACKAGE BODY NOONA_REFERENCE_PKG AS
     p_from_currency IN VARCHAR2,
     p_to_currency   IN VARCHAR2,
     p_rate_type_id  IN NUMBER,
-    p_at            IN TIMESTAMP WITH LOCAL TIME ZONE DEFAULT SYSTIMESTAMP) RETURN NUMBER IS
+    p_at            IN TIMESTAMP WITH LOCAL TIME ZONE DEFAULT SYSTIMESTAMP,
+    p_company_id    IN NUMBER DEFAULT NULL) RETURN NUMBER IS
     l_rate NUMBER;
+    l_co   NUMBER := NVL(p_company_id, NOONA_CTX_PKG.company_id);
   BEGIN
     IF p_from_currency = p_to_currency THEN
       RETURN 1;
@@ -91,7 +94,7 @@ CREATE OR REPLACE PACKAGE BODY NOONA_REFERENCE_PKG AS
     BEGIN
       SELECT rate INTO l_rate
         FROM (SELECT rate FROM ref_exchange_rate
-               WHERE from_currency = p_from_currency AND to_currency = p_to_currency
+               WHERE company_id = l_co AND from_currency = p_from_currency AND to_currency = p_to_currency
                  AND rate_type_id = p_rate_type_id AND status_code = 'APPROVED' AND effective_at <= p_at
                ORDER BY effective_at DESC)
        WHERE ROWNUM = 1;
@@ -100,7 +103,7 @@ CREATE OR REPLACE PACKAGE BODY NOONA_REFERENCE_PKG AS
       -- الاتجاه العكسي محسوب تلقائياً بدقة مضبوطة (12.9)
       SELECT ROUND(1 / rate, 12) INTO l_rate
         FROM (SELECT rate FROM ref_exchange_rate
-               WHERE from_currency = p_to_currency AND to_currency = p_from_currency
+               WHERE company_id = l_co AND from_currency = p_to_currency AND to_currency = p_from_currency
                  AND rate_type_id = p_rate_type_id AND status_code = 'APPROVED' AND effective_at <= p_at
                ORDER BY effective_at DESC)
        WHERE ROWNUM = 1;

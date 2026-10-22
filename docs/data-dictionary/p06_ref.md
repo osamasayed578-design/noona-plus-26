@@ -18,7 +18,7 @@
 | [`REF_LOOKUP_VALUE`](#ref_lookup_value) | قيم القوائم المرجعية | Lookup Values | TO | INTERNAL |
 | [`REF_TRANSLATION`](#ref_translation) | الترجمات الإضافية | Translations | TO | INTERNAL |
 | [`REF_RATE_TYPE`](#ref_rate_type) | أنواع أسعار الصرف | Exchange Rate Types | T | INTERNAL |
-| [`REF_EXCHANGE_RATE`](#ref_exchange_rate) | أسعار الصرف | Exchange Rates | T | INTERNAL |
+| [`REF_EXCHANGE_RATE`](#ref_exchange_rate) | أسعار الصرف | Exchange Rates | C | INTERNAL |
 | [`REF_DOC_SEQUENCE`](#ref_doc_sequence) | تسلسلات ترقيم المستندات | Document Sequences | C | INTERNAL |
 | [`REF_DOC_NUMBER_LOG`](#ref_doc_number_log) | سجل الأرقام المخصصة | Document Number Allocation Log | T | INTERNAL |
 | [`REF_PAYMENT_TERM`](#ref_payment_term) | شروط الدفع | Payment Terms | T | INTERNAL |
@@ -347,33 +347,34 @@
 | الاسم العربي | أسعار الصرف |
 | English | Exchange Rates |
 | الحزمة المالكة | 06 — `NOONA_REFERENCE_PKG` |
-| نطاق الملكية | `T` — مملوك للمؤسسة Tenant-Owned |
+| نطاق الملكية | `C` — مملوك للشركة Company-Owned |
 | الحساسية | INTERNAL |
 | النمط | قابل للتعديل وفق دورة الحياة |
-| الغرض | لا تتغير المعاملات القديمة عند تعديل الجدول؛ المعاملة تحفظ سعرها |
-| مفاتيح فريدة | UK1: (TENANT_ID, RATE_TYPE_ID, FROM_CURRENCY, TO_CURRENCY, EFFECTIVE_AT) |
+| الغرض | أسعار كل شركة مستقلة عن غيرها وتدار من المالية؛ لا تتغير المعاملات القديمة عند تعديل الجدول؛ المعاملة تحفظ سعرها |
+| مفاتيح فريدة | UK1: (TENANT_ID, COMPANY_ID, RATE_TYPE_ID, FROM_CURRENCY, TO_CURRENCY, EFFECTIVE_AT) |
 | قيود أعمال | RATE > 0<br>FROM_CURRENCY <> TO_CURRENCY |
 
 | # | العمود | النوع المنطقي | Oracle Type | إلزامي | افتراضي | مفاتيح | القيم المقبولة | المصدر | PII | الوصف |
 |---:|---|---|---|:---:|---|---|---|---|:---:|---|
 | 1 | `ID` | معرف | `NUMBER(19)` | ✔ |  | PK |  | النظام/الحزمة |  | المفتاح الداخلي الثابت (Identity) - لا يعاد استخدامه |
 | 2 | `TENANT_ID` | معرف | `NUMBER(19)` | ✔ |  | FK→PLT_TENANT UK1 |  | Security Context |  | المؤسسة المالكة؛ يملأ من Security Context الموثوق لا من مدخلات المستخدم |
-| 3 | `RATE_TYPE_ID` | معرف | `NUMBER(19)` | ✔ |  | FK→REF_RATE_TYPE UK1 |  | إدخال المستخدم |  | نوع السعر |
-| 4 | `FROM_CURRENCY` | رمز عملة ISO | `VARCHAR2(3 CHAR)` | ✔ |  | FK→REF_CURRENCY UK1 |  | إدخال المستخدم |  | من عملة |
-| 5 | `TO_CURRENCY` | رمز عملة ISO | `VARCHAR2(3 CHAR)` | ✔ |  | FK→REF_CURRENCY UK1 |  | إدخال المستخدم |  | إلى عملة |
-| 6 | `RATE_DATE` | تاريخ | `DATE` | ✔ |  |  |  | إدخال المستخدم |  | تاريخ السعر |
-| 7 | `EFFECTIVE_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` | ✔ |  | UK1 |  | إدخال المستخدم |  | وقت السريان (يسمح بأكثر من سعر في اليوم) |
-| 8 | `RATE` | سعر/معدل | `NUMBER(28,12)` | ✔ |  |  |  | إدخال المستخدم |  | السعر (الاتجاه الرئيسي المعتمد للمؤسسة) |
-| 9 | `INVERSE_RATE` | سعر/معدل | `NUMBER(28,12)` |  |  |  |  | محسوب |  | السعر العكسي المحسوب |
-| 10 | `SOURCE_CODE` | رمز | `VARCHAR2(30 CHAR)` | ✔ | 'MANUAL' |  | MANUAL, IMPORT, API | إدخال المستخدم |  | مصدر السعر |
-| 11 | `APPROVED_BY` | اسم مستخدم | `VARCHAR2(128 CHAR)` |  |  |  |  | إدخال المستخدم |  | المعتمد |
-| 12 | `REASON` | نص | `VARCHAR2(1000 CHAR)` |  |  |  |  | إدخال المستخدم |  | سبب الإدخال/التعديل اليدوي |
-| 13 | `STATUS_CODE` | رمز | `VARCHAR2(30 CHAR)` | ✔ | 'DRAFT' |  | DRAFT, APPROVED, SUPERSEDED, REJECTED | النظام/الحزمة |  | الحالة ضمن دورة الحياة المعتمدة |
-| 14 | `ROW_VERSION` | عدد صحيح | `NUMBER(10)` | ✔ | 1 |  |  | Trigger |  | رقم الإصدار للتحكم في التزامن المتفائل |
-| 15 | `CREATED_BY` | اسم مستخدم | `VARCHAR2(128 CHAR)` | ✔ |  |  |  | Trigger |  | منشئ السجل |
-| 16 | `CREATED_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` | ✔ | SYSTIMESTAMP |  |  | Trigger |  | وقت الإنشاء |
-| 17 | `UPDATED_BY` | اسم مستخدم | `VARCHAR2(128 CHAR)` |  |  |  |  | Trigger |  | آخر من عدل السجل |
-| 18 | `UPDATED_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` |  |  |  |  | Trigger |  | وقت آخر تعديل |
+| 3 | `COMPANY_ID` | معرف | `NUMBER(19)` | ✔ |  | FK→ORG_COMPANY UK1 |  | Security Context |  | الشركة (الكيان القانوني) المالكة للسجل |
+| 4 | `RATE_TYPE_ID` | معرف | `NUMBER(19)` | ✔ |  | FK→REF_RATE_TYPE UK1 |  | إدخال المستخدم |  | نوع السعر |
+| 5 | `FROM_CURRENCY` | رمز عملة ISO | `VARCHAR2(3 CHAR)` | ✔ |  | FK→REF_CURRENCY UK1 |  | إدخال المستخدم |  | من عملة |
+| 6 | `TO_CURRENCY` | رمز عملة ISO | `VARCHAR2(3 CHAR)` | ✔ |  | FK→REF_CURRENCY UK1 |  | إدخال المستخدم |  | إلى عملة |
+| 7 | `RATE_DATE` | تاريخ | `DATE` | ✔ |  |  |  | إدخال المستخدم |  | تاريخ السعر |
+| 8 | `EFFECTIVE_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` | ✔ |  | UK1 |  | إدخال المستخدم |  | وقت السريان (يسمح بأكثر من سعر في اليوم) |
+| 9 | `RATE` | سعر/معدل | `NUMBER(28,12)` | ✔ |  |  |  | إدخال المستخدم |  | السعر (الاتجاه الرئيسي المعتمد للشركة) |
+| 10 | `INVERSE_RATE` | سعر/معدل | `NUMBER(28,12)` |  |  |  |  | محسوب |  | السعر العكسي المحسوب |
+| 11 | `SOURCE_CODE` | رمز | `VARCHAR2(30 CHAR)` | ✔ | 'MANUAL' |  | MANUAL, IMPORT, API | إدخال المستخدم |  | مصدر السعر |
+| 12 | `APPROVED_BY` | اسم مستخدم | `VARCHAR2(128 CHAR)` |  |  |  |  | إدخال المستخدم |  | المعتمد |
+| 13 | `REASON` | نص | `VARCHAR2(1000 CHAR)` |  |  |  |  | إدخال المستخدم |  | سبب الإدخال/التعديل اليدوي |
+| 14 | `STATUS_CODE` | رمز | `VARCHAR2(30 CHAR)` | ✔ | 'DRAFT' |  | DRAFT, APPROVED, SUPERSEDED, REJECTED | النظام/الحزمة |  | الحالة ضمن دورة الحياة المعتمدة |
+| 15 | `ROW_VERSION` | عدد صحيح | `NUMBER(10)` | ✔ | 1 |  |  | Trigger |  | رقم الإصدار للتحكم في التزامن المتفائل |
+| 16 | `CREATED_BY` | اسم مستخدم | `VARCHAR2(128 CHAR)` | ✔ |  |  |  | Trigger |  | منشئ السجل |
+| 17 | `CREATED_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` | ✔ | SYSTIMESTAMP |  |  | Trigger |  | وقت الإنشاء |
+| 18 | `UPDATED_BY` | اسم مستخدم | `VARCHAR2(128 CHAR)` |  |  |  |  | Trigger |  | آخر من عدل السجل |
+| 19 | `UPDATED_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` |  |  |  |  | Trigger |  | وقت آخر تعديل |
 
 ## REF_DOC_SEQUENCE
 

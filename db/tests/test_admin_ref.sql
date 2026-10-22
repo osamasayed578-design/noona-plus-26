@@ -58,6 +58,14 @@ BEGIN
   EXCEPTION WHEN OTHERS THEN expect('duplicate rate rejected', 'NOONA-REF-105', SQLERRM); END;
   SELECT ROUND(inverse_rate, 6) INTO l_n FROM ref_exchange_rate WHERE id = l_rate;
   ok('inverse rate computed', l_n = ROUND(1 / 3.75, 6), l_n);
+  -- أسعار كل شركة مستقلة: السعر يخص الشركة الحالية ولا يستخدم في غيرها
+  SELECT company_id INTO l_n FROM ref_exchange_rate WHERE id = l_rate;
+  ok('rate belongs to the current company', l_n = l_co, l_n);
+  l_type := NOONA_REFDATA_PKG.create_rate_type('U' || l_sfx, 'سعر اختبار مباشر', 'MANUAL', 'N');
+  l_n := NOONA_REFDATA_PKG.add_rate(l_type, 'EUR', 'SAR', TRUNC(SYSDATE), 4.1);
+  ok('rate used in its own company', NOONA_REFERENCE_PKG.get_rate('EUR', 'SAR', l_type) = 4.1);
+  SELECT NVL(MIN(id), -1) INTO l_n FROM org_company WHERE id <> l_co;
+  ok('rate not used by another company', NOONA_REFERENCE_PKG.get_rate('EUR', 'SAR', l_type, SYSTIMESTAMP, l_n) IS NULL);
 
   -- شروط الدفع
   l_term := NOONA_REFDATA_PKG.create_payment_term('P' || l_sfx, 'صافي 60', 'DOC_DATE', 60, 2, 10);

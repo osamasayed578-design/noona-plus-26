@@ -18,7 +18,7 @@ set /p OWNER_PWD=NOONA_OWNER password:
 set /p APP_PWD=NOONA_APP password: 
 echo.
 
-for %%U in (upgrade_01_apex_layer upgrade_02_portal upgrade_03_apex_error upgrade_04_ui upgrade_05_admin upgrade_06_brand upgrade_07_admin_complete upgrade_08_limits upgrade_09_gl upgrade_10_cash upgrade_11_reports upgrade_12_fin_docs upgrade_13_dms upgrade_14_dms_storage upgrade_15_journal_types upgrade_16_supply_chain upgrade_17_manufacturing upgrade_18_tenant_admin) do (
+for %%U in (upgrade_01_apex_layer upgrade_02_portal upgrade_03_apex_error upgrade_04_ui upgrade_05_admin upgrade_06_brand upgrade_07_admin_complete upgrade_08_limits upgrade_09_gl upgrade_10_cash upgrade_11_reports upgrade_12_fin_docs upgrade_13_dms upgrade_14_dms_storage upgrade_15_journal_types upgrade_16_supply_chain upgrade_17_manufacturing upgrade_18_tenant_admin upgrade_19_company_rates) do (
   echo ===== %%U
   sqlplus -S -L NOONA_OWNER/"%OWNER_PWD%"@%CONN% @%%U.sql < nul
   if errorlevel 1 goto :fail

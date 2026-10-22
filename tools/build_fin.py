@@ -658,19 +658,24 @@ p.process(20, 'AFTER_SUBMIT', 'Reopen Year', 'noona_gl_pkg.reopen_year(:P13_YEAR
           success='تمت إعادة فتح السنة وعكس قيد الإقفال')
 p.branch(10, url(13, clear='13') + '&success_msg=#SUCCESS_MSG#')
 
-# =============================================================== 48) أسعار الصرف
+# =============================================================== 48) أسعار الصرف (لكل شركة)
 p = app.page(48, 'Exchange Rates', 'EXCHANGE-RATES', 'أسعار الصرف', scheme=TENANT)
-p.ir('أسعار الصرف المحاسبية', 10, [
-    "select r.id, r.from_currency || ' - ' || c.name_ar as cur, r.to_currency, to_char(r.rate_date, 'YYYY-MM-DD') as rate_date,",
-    "       r.rate, round(1 / r.rate, 6) as inverse_rate, noona_ui_pkg.status_badge(r.status_code) as status_html, r.reason,",
-    '       r.created_by, r.approved_by',
+p.ir('أسعار صرف الشركة', 10, [
+    "select r.id, r.from_currency || ' - ' || c.name_ar as cur, r.to_currency, t.name_ar as rate_type,",
+    "       to_char(r.rate_date, 'YYYY-MM-DD') as rate_date, r.rate, round(1 / r.rate, 6) as inverse_rate,",
+    "       noona_ui_pkg.status_badge(r.status_code) as status_html, r.reason, r.created_by, r.approved_by",
     '  from ref_exchange_rate r join ref_rate_type t on t.id = r.rate_type_id left join ref_currency c on c.currency_code = r.from_currency',
-    " where t.code = 'ACCOUNTING' order by r.rate_date desc, r.from_currency"],
-    [('ID', '#', {'hidden': True, 'type': 'NUMBER'}), ('CUR', 'العملة', {}), ('TO_CURRENCY', 'مقابل', {}), ('RATE_DATE', 'ساري من', {}),
-     ('RATE', 'السعر', {'type': 'NUMBER'}), ('INVERSE_RATE', 'العكسي', {'type': 'NUMBER'}), ('STATUS_HTML', 'الحالة', {'html': True}),
-     ('REASON', 'المصدر / الملاحظة', {}), ('CREATED_BY', 'أدخله', {}), ('APPROVED_BY', 'اعتمده', {})])
-f = p.static('سعر جديد', 20, text='<p class="nn-hint">السعر = عدد وحدات العملة الوظيفية لوحدة واحدة من العملة الأجنبية، ويسري من تاريخه '
-                                   'حتى يضاف سعر أحدث. يستخدم آلياً في القيود والسندات بالعملات الأجنبية.</p>')
+    " where r.company_id = noona_gl_pkg.company order by r.rate_date desc, r.from_currency"],
+    [('ID', '#', {'hidden': True, 'type': 'NUMBER'}), ('CUR', 'العملة', {}), ('TO_CURRENCY', 'مقابل', {}), ('RATE_TYPE', 'نوع السعر', {}),
+     ('RATE_DATE', 'ساري من', {}), ('RATE', 'السعر', {'type': 'NUMBER'}), ('INVERSE_RATE', 'العكسي', {'type': 'NUMBER'}),
+     ('STATUS_HTML', 'الحالة', {'html': True}), ('REASON', 'المصدر / الملاحظة', {}), ('CREATED_BY', 'أدخله', {}),
+     ('APPROVED_BY', 'اعتمده', {})])
+f = p.static('سعر جديد', 20, text='<p class="nn-hint">أسعار الصرف خاصة بالشركة الحالية ولا تظهر ولا تستخدم في غيرها. '
+                                   'السعر = عدد وحدات العملة الوظيفية لوحدة واحدة من العملة الأجنبية، ويسري من تاريخه '
+                                   'حتى يضاف سعر أحدث. السعر المحاسبي يستخدم آلياً في القيود والسندات بالعملات الأجنبية.</p>')
+p.select('P48_TYPE', f, 5, 'نوع السعر', null_text=None, lov_sql=(
+    "select name_ar d, id r from ref_rate_type where is_active = 'Y' "
+    "order by case code when 'ACCOUNTING' then 0 else 1 end, name_ar"))
 p.select('P48_CUR', f, 10, 'العملة', lov_sql=(
     "select currency_code || ' - ' || name_ar d, currency_code r from ref_currency where is_active = 'Y' "
     "and currency_code <> noona_gl_pkg.ledger_currency order by currency_code"))
@@ -679,12 +684,19 @@ p.number('P48_RATE', f, 30, 'السعر')
 p.text('P48_REASON', f, 40, 'المصدر (مثل: البنك المركزي)')
 b1 = p.button(f, 10, 'ADD_RATE', 'إضافة السعر', hot=True)
 b2 = p.button(f, 20, 'SEED_RATES', 'إضافة أسعار الربط الافتراضية')
-p.process(10, 'AFTER_SUBMIT', 'Add Rate', [
-    'declare l_id number;',
+p.process(5, 'BEFORE_HEADER', 'Defaults', [
     'begin',
-    "    l_id := noona_refdata_pkg.add_rate(noona_gl_pkg.rate_type, :P48_CUR, noona_gl_pkg.ledger_currency,",
+    '    if :P48_TYPE is null then :P48_TYPE := noona_gl_pkg.rate_type; end if;',
+    'end;'])
+p.process(10, 'AFTER_SUBMIT', 'Add Rate', [
+    'declare l_id number; l_status varchar2(30);',
+    'begin',
+    "    l_id := noona_refdata_pkg.add_rate(nvl(:P48_TYPE, noona_gl_pkg.rate_type), :P48_CUR, noona_gl_pkg.ledger_currency,",
     "                                       to_date(:P48_DATE, 'YYYY-MM-DD'), :P48_RATE, :P48_REASON);",
-    'end;'], when_button=b1, success='تمت إضافة السعر')
+    '    select status_code into l_status from ref_exchange_rate where id = l_id;',
+    "    apex_application.g_print_success_message := case l_status",
+    "        when 'DRAFT' then 'تم حفظ السعر بانتظار اعتماد مستخدم آخر' else 'تمت إضافة السعر' end;",
+    'end;'], when_button=b1)
 p.process(20, 'AFTER_SUBMIT', 'Seed Rates', [
     'declare l_n number;',
     'begin',
@@ -692,6 +704,18 @@ p.process(20, 'AFTER_SUBMIT', 'Seed Rates', [
     "    apex_application.g_print_success_message := case when l_n > 0 then 'أضيف ' || l_n || ' سعر ربط رسمي (راجعها)'",
     "                                                     else 'لا توجد أسعار ناقصة (أو العملة الوظيفية ليست الريال)' end;",
     'end;'], when_button=b2)
+ap = p.static('اعتماد الأسعار المعلقة (لا يعتمد المدخل سعره)', 30)
+p.select('P48_PENDING', ap, 10, 'سعر معلق', lov_sql=(
+    "select to_char(r.rate_date, 'YYYY-MM-DD') || ' · ' || r.from_currency || '/' || r.to_currency || ' = ' || r.rate "
+    "|| ' · ' || r.created_by d, r.id r from ref_exchange_rate r "
+    "where r.status_code = 'DRAFT' and r.company_id = noona_gl_pkg.company order by r.rate_date desc"))
+p.text('P48_REJECT_REASON', ap, 20, 'سبب الرفض')
+b_ap = p.button(ap, 10, 'APPROVE_RATE', 'اعتماد', hot=True)
+b_rj = p.button(ap, 20, 'REJECT_RATE', 'رفض')
+p.process(30, 'AFTER_SUBMIT', 'Approve Rate', 'noona_refdata_pkg.approve_rate(:P48_PENDING);', when_button=b_ap,
+          success='تم اعتماد السعر')
+p.process(40, 'AFTER_SUBMIT', 'Reject Rate', 'noona_refdata_pkg.reject_rate(:P48_PENDING, :P48_REJECT_REASON);',
+          when_button=b_rj, success='تم رفض السعر')
 p.branch(10, url(48, clear='48') + '&success_msg=#SUCCESS_MSG#')
 
 download_page(app, 49, TENANT)

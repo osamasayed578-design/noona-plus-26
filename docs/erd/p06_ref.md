@@ -74,6 +74,7 @@ erDiagram
   REF_EXCHANGE_RATE {
     NUMBER ID PK
     NUMBER TENANT_ID FK,UK
+    NUMBER COMPANY_ID FK,UK
     NUMBER RATE_TYPE_ID FK,UK
     VARCHAR2 FROM_CURRENCY FK,UK
     VARCHAR2 TO_CURRENCY FK,UK
@@ -247,6 +248,7 @@ erDiagram
   ORG_COMPANY |o--o{ REF_ADDRESS : "COMPANY_ID"
   ORG_COMPANY |o--o{ REF_CONTACT : "COMPANY_ID"
   ORG_COMPANY ||--o{ REF_DOC_SEQUENCE : "COMPANY_ID"
+  ORG_COMPANY ||--o{ REF_EXCHANGE_RATE : "COMPANY_ID"
   ORG_COMPANY ||--o{ REF_RECORD_SHARE : "COMPANY_ID"
   PTY_PARTY |o--o{ PTY_ALIAS : "SOURCE_PARTY_ID"
   PTY_PARTY |o--o{ PTY_PARTY : "MERGED_INTO_PARTY_ID"
@@ -302,7 +304,7 @@ erDiagram
 | `REF_LOOKUP_VALUE` | قيم القوائم المرجعية | Lookup Values | TO |
 | `REF_TRANSLATION` | الترجمات الإضافية | Translations | TO |
 | `REF_RATE_TYPE` | أنواع أسعار الصرف | Exchange Rate Types | T |
-| `REF_EXCHANGE_RATE` | أسعار الصرف | Exchange Rates | T |
+| `REF_EXCHANGE_RATE` | أسعار الصرف | Exchange Rates | C |
 | `REF_DOC_SEQUENCE` | تسلسلات ترقيم المستندات | Document Sequences | C |
 | `REF_DOC_NUMBER_LOG` | سجل الأرقام المخصصة | Document Number Allocation Log | T |
 | `REF_PAYMENT_TERM` | شروط الدفع | Payment Terms | T |

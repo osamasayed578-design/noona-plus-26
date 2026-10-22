@@ -11,10 +11,10 @@ CREATE OR REPLACE PACKAGE NOONA_REFDATA_PKG AUTHID DEFINER AS
 
   FUNCTION create_rate_type(p_code IN VARCHAR2, p_name_ar IN VARCHAR2, p_category IN VARCHAR2 DEFAULT 'MANUAL',
                             p_requires_approval IN VARCHAR2 DEFAULT 'N') RETURN NUMBER;
-  -- سعر الصرف: معتمد مباشرة، أو مسودة إن تطلب نوع السعر الاعتماد
+  -- سعر الصرف للشركة الحالية (لكل شركة أسعارها): معتمد مباشرة، أو مسودة إن تطلب نوع السعر الاعتماد
   FUNCTION add_rate(p_rate_type_id IN NUMBER, p_from IN VARCHAR2, p_to IN VARCHAR2, p_rate_date IN DATE,
                     p_rate IN NUMBER, p_reason IN VARCHAR2 DEFAULT NULL) RETURN NUMBER;
-  -- اعتماد سعر مسودة: لا يعتمده من أدخله (NOONA-REF-104)
+  -- اعتماد سعر مسودة: لا يعتمده من أدخله (NOONA-REF-104)، ولا يعتمد سعر شركة أخرى (NOONA-REF-109)
   PROCEDURE approve_rate(p_rate_id IN NUMBER);
   PROCEDURE reject_rate(p_rate_id IN NUMBER, p_reason IN VARCHAR2);
 
@@ -43,6 +43,13 @@ CREATE OR REPLACE PACKAGE BODY NOONA_REFDATA_PKG AS
     NOONA_SECURITY_PKG.assert_permission(p_permission, p_company_id);
   END guard;
 
+  -- أسعار الصرف خاصة بكل شركة: لا يعتمد أو يرفض سعر شركة غير الشركة الحالية
+  PROCEDURE same_company(p_company_id NUMBER) IS
+  BEGIN
+    NOONA_CORE_PKG.assert(NVL(p_company_id = NOONA_CTX_PKG.company_id, FALSE), 'NOONA-REF-109', 'السعر يخص شركة أخرى',
+      'The rate belongs to another company');
+  END same_company;
+
   PROCEDURE assert_currency(p_code VARCHAR2) IS
     l_n NUMBER;
   BEGIN
@@ -69,16 +76,19 @@ CREATE OR REPLACE PACKAGE BODY NOONA_REFDATA_PKG AS
                     p_rate IN NUMBER, p_reason IN VARCHAR2 DEFAULT NULL) RETURN NUMBER IS
     l_type ref_rate_type%ROWTYPE;
     l_id   NUMBER;
+    l_co   NUMBER := NOONA_CTX_PKG.company_id;
   BEGIN
-    guard('REF_EXCHANGE_RATE.CREATE');
+    NOONA_CORE_PKG.assert(l_co IS NOT NULL, 'NOONA-REF-108', 'اختر الشركة أولاً: أسعار الصرف خاصة بكل شركة',
+      'Select a company first: exchange rates are per company');
+    guard('REF_EXCHANGE_RATE.CREATE', l_co);
     SELECT * INTO l_type FROM ref_rate_type WHERE id = p_rate_type_id;
     assert_currency(p_from);
     assert_currency(p_to);
     NOONA_CORE_PKG.assert(p_from <> p_to, 'NOONA-REF-102', 'العملتان متطابقتان', 'Currencies must differ');
     NOONA_CORE_PKG.assert(p_rate > 0, 'NOONA-REF-103', 'السعر يجب أن يكون أكبر من صفر', 'Rate must be positive');
-    INSERT INTO ref_exchange_rate (rate_type_id, from_currency, to_currency, rate_date, effective_at, rate, inverse_rate,
-                                   source_code, reason, status_code, approved_by)
-    VALUES (p_rate_type_id, p_from, p_to, TRUNC(p_rate_date), CAST(TRUNC(p_rate_date) AS TIMESTAMP), p_rate,
+    INSERT INTO ref_exchange_rate (company_id, rate_type_id, from_currency, to_currency, rate_date, effective_at, rate,
+                                   inverse_rate, source_code, reason, status_code, approved_by)
+    VALUES (l_co, p_rate_type_id, p_from, p_to, TRUNC(p_rate_date), CAST(TRUNC(p_rate_date) AS TIMESTAMP), p_rate,
             ROUND(1 / p_rate, 10), 'MANUAL', p_reason,
             CASE l_type.requires_approval WHEN 'Y' THEN 'DRAFT' ELSE 'APPROVED' END,
             CASE l_type.requires_approval WHEN 'Y' THEN NULL ELSE NOONA_CTX_PKG.current_user_name END)
@@ -95,8 +105,9 @@ CREATE OR REPLACE PACKAGE BODY NOONA_REFDATA_PKG AS
   PROCEDURE approve_rate(p_rate_id IN NUMBER) IS
     l_r ref_exchange_rate%ROWTYPE;
   BEGIN
-    guard('REF_EXCHANGE_RATE.APPROVE');
     SELECT * INTO l_r FROM ref_exchange_rate WHERE id = p_rate_id FOR UPDATE;
+    same_company(l_r.company_id);
+    guard('REF_EXCHANGE_RATE.APPROVE', l_r.company_id);
     NOONA_CORE_PKG.assert(l_r.status_code = 'DRAFT', 'NOONA-REF-106', 'السعر ليس بانتظار الاعتماد', 'Rate is not pending');
     NOONA_CORE_PKG.assert(l_r.created_by <> NOONA_CTX_PKG.current_user_name, 'NOONA-REF-104',
       'لا يعتمد السعر من أدخله', 'Maker cannot approve their own rate');
@@ -107,9 +118,10 @@ CREATE OR REPLACE PACKAGE BODY NOONA_REFDATA_PKG AS
   PROCEDURE reject_rate(p_rate_id IN NUMBER, p_reason IN VARCHAR2) IS
     l_r ref_exchange_rate%ROWTYPE;
   BEGIN
-    guard('REF_EXCHANGE_RATE.REJECT');
     NOONA_CORE_PKG.assert(p_reason IS NOT NULL, 'NOONA-REF-107', 'سبب الرفض إلزامي', 'Reason is required');
     SELECT * INTO l_r FROM ref_exchange_rate WHERE id = p_rate_id FOR UPDATE;
+    same_company(l_r.company_id);
+    guard('REF_EXCHANGE_RATE.REJECT', l_r.company_id);
     NOONA_CORE_PKG.assert(l_r.status_code = 'DRAFT', 'NOONA-REF-106', 'السعر ليس بانتظار الاعتماد', 'Rate is not pending');
     UPDATE ref_exchange_rate SET status_code = 'REJECTED', reason = SUBSTR(p_reason, 1, 500) WHERE id = p_rate_id;
     NOONA_AUDIT_PKG.log_event('APPROVAL', 'REF_EXCHANGE_RATE', p_rate_id, 'REJECT', 'SUCCESS', p_reason => p_reason);

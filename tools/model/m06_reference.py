@@ -89,20 +89,20 @@ REQUIRES_APPROVAL YN NN D='N'    | يحتاج اعتماد قبل الاستخد
 MAX_DEVIATION_PCT PCT            | أقصى انحراف مسموح عن السعر السابق قبل التنبيه
 ''', purpose='يسمح بأكثر من نوع سعر وأكثر من سعر في اليوم (احتياج السودان)')
 
-table('REF_EXCHANGE_RATE', 'أسعار الصرف', 'Exchange Rates', scope='T', mix='status', status='DRAFT APPROVED SUPERSEDED REJECTED', cols='''
+table('REF_EXCHANGE_RATE', 'أسعار الصرف', 'Exchange Rates', scope='C', mix='status', status='DRAFT APPROVED SUPERSEDED REJECTED', cols='''
 RATE_TYPE_ID    ID   NN >REF_RATE_TYPE | نوع السعر
 FROM_CURRENCY   CUR  NN          | من عملة
 TO_CURRENCY     CUR  NN          | إلى عملة
 RATE_DATE       DATE NN          | تاريخ السعر
 EFFECTIVE_AT    TS   NN          | وقت السريان (يسمح بأكثر من سعر في اليوم)
-RATE            RATE NN          | السعر (الاتجاه الرئيسي المعتمد للمؤسسة)
+RATE            RATE NN          | السعر (الاتجاه الرئيسي المعتمد للشركة)
 INVERSE_RATE    RATE @CALC       | السعر العكسي المحسوب
 SOURCE_CODE     CODE NN D='MANUAL' IN:MANUAL,IMPORT,API | مصدر السعر
 APPROVED_BY     USR              | المعتمد
 REASON          V1000            | سبب الإدخال/التعديل اليدوي
-''', uk=[('TENANT_ID', 'RATE_TYPE_ID', 'FROM_CURRENCY', 'TO_CURRENCY', 'EFFECTIVE_AT')],
+''', uk=[('TENANT_ID', 'COMPANY_ID', 'RATE_TYPE_ID', 'FROM_CURRENCY', 'TO_CURRENCY', 'EFFECTIVE_AT')],
       chk=['RATE > 0', 'FROM_CURRENCY <> TO_CURRENCY'],
-      purpose='لا تتغير المعاملات القديمة عند تعديل الجدول؛ المعاملة تحفظ سعرها')
+      purpose='أسعار كل شركة مستقلة عن غيرها وتدار من المالية؛ لا تتغير المعاملات القديمة عند تعديل الجدول؛ المعاملة تحفظ سعرها')
 
 # ---------------------------------------------------------------- Numbering, payment terms
 table('REF_DOC_SEQUENCE', 'تسلسلات ترقيم المستندات', 'Document Sequences', scope='C', mix='branch active', cols='''

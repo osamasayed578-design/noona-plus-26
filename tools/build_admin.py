@@ -908,44 +908,19 @@ p.ir('العملات', 10, [
      ('NAME_EN', 'بالإنجليزية', {}), ('SYMBOL', 'الرمز المختصر', {}), ('DECIMAL_PLACES', 'الخانات العشرية', {'type': 'NUMBER'}),
      ('MINOR_UNIT_AR', 'الوحدة الصغرى', {}), ('ROUNDING', 'التقريب', {}), ('ACTIVE', 'فعالة', {})])
 
-# =============================================================== 51) أسعار الصرف
-p = app.page(51, 'Exchange Rates', 'EXCHANGE-RATES', 'أسعار الصرف', scheme=ADMIN)
-p.ir('أسعار الصرف', 10, [
-    'select r.id, r.rate_date, t.name_ar as rate_type, r.from_currency || \' / \' || r.to_currency as pair,',
-    '       r.rate, r.inverse_rate, r.created_by, r.approved_by, noona_ui_pkg.status_badge(r.status_code) as status_html',
-    '  from ref_exchange_rate r join ref_rate_type t on t.id = r.rate_type_id order by r.rate_date desc, r.id desc'],
-    [('ID', '#', {'hidden': True, 'type': 'NUMBER'}), ('RATE_DATE', 'التاريخ', {'type': 'DATE'}), ('RATE_TYPE', 'نوع السعر', {}),
-     ('PAIR', 'العملتان', {}), ('RATE', 'السعر', {'type': 'NUMBER'}), ('INVERSE_RATE', 'المعكوس', {'type': 'NUMBER'}),
-     ('CREATED_BY', 'أدخله', {}), ('APPROVED_BY', 'اعتمده', {}), ('STATUS_HTML', 'الحالة', {'html': True})])
-RATE_TYPES = "select name_ar || ' (' || code || ')' d, id r from ref_rate_type where is_active = 'Y' order by 1"
-f = p.static('سعر جديد', 20)
-p.select('P51_TYPE', f, 10, 'نوع السعر', required=True, lov_sql=RATE_TYPES)
-p.date('P51_DATE', f, 20, 'التاريخ', required=True)
-p.select('P51_FROM', f, 30, 'من عملة', lov_name='NOONA_CURRENCIES', required=True)
-p.select('P51_TO', f, 40, 'إلى عملة', lov_name='NOONA_CURRENCIES', required=True)
-p.number('P51_RATE', f, 50, 'السعر (وحدة واحدة من الأولى = ؟ من الثانية)', required=True)
-p.text('P51_NOTE', f, 60, 'المصدر أو الملاحظة')
-b_add = p.button(f, 10, 'ADD_RATE', 'حفظ السعر', hot=True)
-p.process(10, 'BEFORE_HEADER', 'Defaults', [":P51_DATE := nvl(:P51_DATE, to_char(sysdate, 'YYYY-MM-DD'));"])
-p.process(10, 'AFTER_SUBMIT', 'Add Rate', [
-    'declare l_id number; l_status varchar2(30);',
-    'begin',
-    "    l_id := noona_refdata_pkg.add_rate(:P51_TYPE, :P51_FROM, :P51_TO, to_date(:P51_DATE, 'YYYY-MM-DD'), :P51_RATE, :P51_NOTE);",
-    '    select status_code into l_status from ref_exchange_rate where id = l_id;',
-    "    apex_application.g_print_success_message := case l_status",
-    "        when 'DRAFT' then 'تم حفظ السعر بانتظار اعتماد مستخدم آخر' else 'تم حفظ السعر واعتماده' end;",
-    'end;'], when_button=b_add)
-ap = p.static('اعتماد الأسعار المعلقة (لا يعتمد المدخل سعره)', 30)
-p.select('P51_PENDING', ap, 10, 'سعر معلق', lov_sql=(
-    "select to_char(r.rate_date, 'YYYY-MM-DD') || ' · ' || r.from_currency || '/' || r.to_currency || ' = ' || r.rate "
-    "|| ' · ' || r.created_by d, r.id r from ref_exchange_rate r where r.status_code = 'DRAFT' order by r.rate_date desc"))
-p.text('P51_REJECT_REASON', ap, 20, 'سبب الرفض')
-b_ap = p.button(ap, 10, 'APPROVE_RATE', 'اعتماد', hot=True)
-b_rj = p.button(ap, 20, 'REJECT_RATE', 'رفض')
-p.process(20, 'AFTER_SUBMIT', 'Approve Rate', 'noona_refdata_pkg.approve_rate(:P51_PENDING);', when_button=b_ap,
-          success='تم اعتماد السعر')
-p.process(30, 'AFTER_SUBMIT', 'Reject Rate', 'noona_refdata_pkg.reject_rate(:P51_PENDING, :P51_REJECT_REASON);',
-          when_button=b_rj, success='تم رفض السعر')
+# =============================================================== 51) أنواع أسعار الصرف
+# أنواع الأسعار مرجع للمؤسسة؛ الأسعار نفسها خاصة بكل شركة وتدار من تطبيق المالية (لا تعرض هنا أسعار الشركات)
+p = app.page(51, 'Rate Types', 'RATE-TYPES', 'أنواع أسعار الصرف', scheme=ADMIN)
+p.ir('أنواع أسعار الصرف', 10, [
+    "select t.id, t.code, t.name_ar, case t.rate_category when 'MANUAL' then 'يدوي' when 'OFFICIAL' then 'رسمي'",
+    "         when 'CENTRAL_BANK' then 'البنك المركزي' when 'BANK' then 'بنكي' when 'BUY' then 'شراء' when 'SELL' then 'بيع'",
+    "         when 'AVERAGE' then 'متوسط' when 'CLOSING' then 'إقفال' else t.rate_category end as category,",
+    "       noona_ui_pkg.code_label(t.requires_approval) as approval, noona_ui_pkg.code_label(t.is_active) as active",
+    '  from ref_rate_type t order by t.code'],
+    [('ID', '#', {'hidden': True, 'type': 'NUMBER'}), ('CODE', 'الرمز', {}), ('NAME_AR', 'النوع', {}),
+     ('CATEGORY', 'الفئة', {}), ('APPROVAL', 'يتطلب اعتماداً', {}), ('ACTIVE', 'فعال', {})])
+p.static('أسعار الصرف', 20, text='<p class="nn-hint">أسعار الصرف خاصة بكل شركة ومستقلة عن الشركات الأخرى: تدخل وتعتمد من '
+                                  'تطبيق <b>المالية ← الأستاذ العام ← أسعار الصرف</b> بعد اختيار الشركة.</p>')
 rt = p.static('نوع سعر جديد', 40)
 p.text('P51_RT_CODE', rt, 10, 'الرمز', maxlen=50, width=20)
 p.text('P51_RT_NAME', rt, 20, 'الاسم')
@@ -953,7 +928,7 @@ p.select('P51_RT_CAT', rt, 30, 'الفئة', null_text=None, lov_sql=(
     'STATIC2:يدوي;MANUAL,رسمي;OFFICIAL,البنك المركزي;CENTRAL_BANK,بنكي;BANK,شراء;BUY,بيع;SELL,متوسط;AVERAGE,إقفال;CLOSING'))
 p.yesno('P51_RT_APPROVAL', rt, 40, 'يتطلب اعتماد مستخدم آخر')
 b_rt = p.button(rt, 10, 'ADD_TYPE', 'إضافة النوع')
-p.process(40, 'AFTER_SUBMIT', 'Add Rate Type', [
+p.process(10, 'AFTER_SUBMIT', 'Add Rate Type', [
     'declare l_id number;',
     'begin',
     "    l_id := noona_refdata_pkg.create_rate_type(:P51_RT_CODE, :P51_RT_NAME, :P51_RT_CAT, nvl(:P51_RT_APPROVAL, 'N'));",
@@ -1088,7 +1063,7 @@ app.nav_item('التفويضات', 43, 'fa-share', 53, parent=wfn, scheme=ADMIN)
 
 ref = app.nav_item('البيانات المرجعية', None, 'fa-database', 60, scheme=ADMIN)
 app.nav_item('العملات', 50, 'fa-money', 61, parent=ref, scheme=ADMIN)
-app.nav_item('أسعار الصرف', 51, 'fa-exchange', 62, parent=ref, scheme=ADMIN)
+app.nav_item('أنواع أسعار الصرف', 51, 'fa-exchange', 62, parent=ref, scheme=ADMIN)
 app.nav_item('شروط الدفع', 52, 'fa-calendar-check-o', 63, parent=ref, scheme=ADMIN)
 app.nav_item('تسلسلات المستندات', 53, 'fa-sort-numeric-asc', 64, parent=ref, scheme=ADMIN)
 app.nav_item('سجل التدقيق', 60, 'fa-shield', 70, scheme=ADMIN)

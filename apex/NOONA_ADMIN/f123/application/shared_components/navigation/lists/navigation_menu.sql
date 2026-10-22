@@ -90,33 +90,33 @@ wwv_flow_imp_shared.create_list_item(
 ,p_list_item_current_type=>'TARGET_PAGE'
 );
 wwv_flow_imp_shared.create_list_item(
- p_id=>wwv_flow_imp.id(91820262000000694)
+ p_id=>wwv_flow_imp.id(91820262000000670)
 ,p_list_item_display_sequence=>40
 ,p_list_item_link_text=>'المستخدمون والصلاحيات'
 ,p_list_item_link_target=>''
 ,p_list_item_icon=>'fa-users'
 );
 wwv_flow_imp_shared.create_list_item(
- p_id=>wwv_flow_imp.id(91820262000000695)
+ p_id=>wwv_flow_imp.id(91820262000000671)
 ,p_list_item_display_sequence=>41
 ,p_list_item_link_text=>'المستخدمون'
 ,p_list_item_link_target=>'f?p=&APP_ID.:30:&APP_SESSION.::&DEBUG.:::'
 ,p_list_item_icon=>'fa-user'
-,p_parent_list_item_id=>wwv_flow_imp.id(91820262000000694)
+,p_parent_list_item_id=>wwv_flow_imp.id(91820262000000670)
 ,p_list_item_current_type=>'TARGET_PAGE'
 );
 wwv_flow_imp_shared.create_list_item(
- p_id=>wwv_flow_imp.id(91820262000000696)
+ p_id=>wwv_flow_imp.id(91820262000000672)
 ,p_list_item_display_sequence=>42
 ,p_list_item_link_text=>'الأدوار والصلاحيات'
 ,p_list_item_link_target=>'f?p=&APP_ID.:32:&APP_SESSION.::&DEBUG.:::'
 ,p_list_item_icon=>'fa-key'
-,p_parent_list_item_id=>wwv_flow_imp.id(91820262000000694)
+,p_parent_list_item_id=>wwv_flow_imp.id(91820262000000670)
 ,p_security_scheme=>wwv_flow_imp.id(17758617306442989)
 ,p_list_item_current_type=>'TARGET_PAGE'
 );
 wwv_flow_imp_shared.create_list_item(
- p_id=>wwv_flow_imp.id(91820262000000697)
+ p_id=>wwv_flow_imp.id(91820262000000673)
 ,p_list_item_display_sequence=>50
 ,p_list_item_link_text=>'مسارات الاعتماد والتفويض'
 ,p_list_item_link_target=>''
@@ -124,37 +124,37 @@ wwv_flow_imp_shared.create_list_item(
 ,p_security_scheme=>wwv_flow_imp.id(17758617306442989)
 );
 wwv_flow_imp_shared.create_list_item(
- p_id=>wwv_flow_imp.id(91820262000000698)
+ p_id=>wwv_flow_imp.id(91820262000000674)
 ,p_list_item_display_sequence=>51
 ,p_list_item_link_text=>'مسارات الاعتماد'
 ,p_list_item_link_target=>'f?p=&APP_ID.:40:&APP_SESSION.::&DEBUG.:::'
 ,p_list_item_icon=>'fa-random'
-,p_parent_list_item_id=>wwv_flow_imp.id(91820262000000697)
+,p_parent_list_item_id=>wwv_flow_imp.id(91820262000000673)
 ,p_security_scheme=>wwv_flow_imp.id(17758617306442989)
 ,p_list_item_current_type=>'TARGET_PAGE'
 );
 wwv_flow_imp_shared.create_list_item(
- p_id=>wwv_flow_imp.id(91820262000000699)
+ p_id=>wwv_flow_imp.id(91820262000000675)
 ,p_list_item_display_sequence=>52
 ,p_list_item_link_text=>'شروط التوجيه'
 ,p_list_item_link_target=>'f?p=&APP_ID.:42:&APP_SESSION.::&DEBUG.:::'
 ,p_list_item_icon=>'fa-filter'
-,p_parent_list_item_id=>wwv_flow_imp.id(91820262000000697)
+,p_parent_list_item_id=>wwv_flow_imp.id(91820262000000673)
 ,p_security_scheme=>wwv_flow_imp.id(17758617306442989)
 ,p_list_item_current_type=>'TARGET_PAGE'
 );
 wwv_flow_imp_shared.create_list_item(
- p_id=>wwv_flow_imp.id(91820262000000700)
+ p_id=>wwv_flow_imp.id(91820262000000676)
 ,p_list_item_display_sequence=>53
 ,p_list_item_link_text=>'التفويضات'
 ,p_list_item_link_target=>'f?p=&APP_ID.:43:&APP_SESSION.::&DEBUG.:::'
 ,p_list_item_icon=>'fa-share'
-,p_parent_list_item_id=>wwv_flow_imp.id(91820262000000697)
+,p_parent_list_item_id=>wwv_flow_imp.id(91820262000000673)
 ,p_security_scheme=>wwv_flow_imp.id(17758617306442989)
 ,p_list_item_current_type=>'TARGET_PAGE'
 );
 wwv_flow_imp_shared.create_list_item(
- p_id=>wwv_flow_imp.id(91820262000000701)
+ p_id=>wwv_flow_imp.id(91820262000000677)
 ,p_list_item_display_sequence=>60
 ,p_list_item_link_text=>'البيانات المرجعية'
 ,p_list_item_link_target=>''
@@ -162,47 +162,47 @@ wwv_flow_imp_shared.create_list_item(
 ,p_security_scheme=>wwv_flow_imp.id(17758617306442989)
 );
 wwv_flow_imp_shared.create_list_item(
- p_id=>wwv_flow_imp.id(91820262000000702)
+ p_id=>wwv_flow_imp.id(91820262000000678)
 ,p_list_item_display_sequence=>61
 ,p_list_item_link_text=>'العملات'
 ,p_list_item_link_target=>'f?p=&APP_ID.:50:&APP_SESSION.::&DEBUG.:::'
 ,p_list_item_icon=>'fa-money'
-,p_parent_list_item_id=>wwv_flow_imp.id(91820262000000701)
+,p_parent_list_item_id=>wwv_flow_imp.id(91820262000000677)
 ,p_security_scheme=>wwv_flow_imp.id(17758617306442989)
 ,p_list_item_current_type=>'TARGET_PAGE'
 );
 wwv_flow_imp_shared.create_list_item(
- p_id=>wwv_flow_imp.id(91820262000000703)
+ p_id=>wwv_flow_imp.id(91820262000000679)
 ,p_list_item_display_sequence=>62
-,p_list_item_link_text=>'أسعار الصرف'
+,p_list_item_link_text=>'أنواع أسعار الصرف'
 ,p_list_item_link_target=>'f?p=&APP_ID.:51:&APP_SESSION.::&DEBUG.:::'
 ,p_list_item_icon=>'fa-exchange'
-,p_parent_list_item_id=>wwv_flow_imp.id(91820262000000701)
+,p_parent_list_item_id=>wwv_flow_imp.id(91820262000000677)
 ,p_security_scheme=>wwv_flow_imp.id(17758617306442989)
 ,p_list_item_current_type=>'TARGET_PAGE'
 );
 wwv_flow_imp_shared.create_list_item(
- p_id=>wwv_flow_imp.id(91820262000000704)
+ p_id=>wwv_flow_imp.id(91820262000000680)
 ,p_list_item_display_sequence=>63
 ,p_list_item_link_text=>'شروط الدفع'
 ,p_list_item_link_target=>'f?p=&APP_ID.:52:&APP_SESSION.::&DEBUG.:::'
 ,p_list_item_icon=>'fa-calendar-check-o'
-,p_parent_list_item_id=>wwv_flow_imp.id(91820262000000701)
+,p_parent_list_item_id=>wwv_flow_imp.id(91820262000000677)
 ,p_security_scheme=>wwv_flow_imp.id(17758617306442989)
 ,p_list_item_current_type=>'TARGET_PAGE'
 );
 wwv_flow_imp_shared.create_list_item(
- p_id=>wwv_flow_imp.id(91820262000000705)
+ p_id=>wwv_flow_imp.id(91820262000000681)
 ,p_list_item_display_sequence=>64
 ,p_list_item_link_text=>'تسلسلات المستندات'
 ,p_list_item_link_target=>'f?p=&APP_ID.:53:&APP_SESSION.::&DEBUG.:::'
 ,p_list_item_icon=>'fa-sort-numeric-asc'
-,p_parent_list_item_id=>wwv_flow_imp.id(91820262000000701)
+,p_parent_list_item_id=>wwv_flow_imp.id(91820262000000677)
 ,p_security_scheme=>wwv_flow_imp.id(17758617306442989)
 ,p_list_item_current_type=>'TARGET_PAGE'
 );
 wwv_flow_imp_shared.create_list_item(
- p_id=>wwv_flow_imp.id(91820262000000706)
+ p_id=>wwv_flow_imp.id(91820262000000682)
 ,p_list_item_display_sequence=>70
 ,p_list_item_link_text=>'سجل التدقيق'
 ,p_list_item_link_target=>'f?p=&APP_ID.:60:&APP_SESSION.::&DEBUG.:::'
