@@ -264,7 +264,7 @@ CREATE OR REPLACE PACKAGE BODY NOONA_HR_PKG AS
       UPDATE pty_party SET party_no = 'P-' || LPAD(l_party, 6, '0') WHERE id = l_party;
       INSERT INTO pty_person (party_id, first_name_ar, gender, birth_date, nationality)
       VALUES (l_party, l_name, v_gender, v_birth, l_nat);
-      SELECT NVL(MAX(TO_NUMBER(REGEXP_SUBSTR(employee_no, '[0-9]+$'))), 1000) + 1 INTO l_n FROM hr_employee WHERE employee_no LIKE 'E%';
+      SELECT NVL(MAX(TO_NUMBER(SUBSTR(employee_no, 2))), 1000) + 1 INTO l_n FROM hr_employee WHERE REGEXP_LIKE(employee_no, '^E[0-9]{4,6}$');
       l_no := 'E' || l_n;
       INSERT INTO hr_employee (person_party_id, employee_no, original_hire_date, work_email, work_mobile, national_id, id_expiry_date,
                                nationality, gender, birth_date, status_code)

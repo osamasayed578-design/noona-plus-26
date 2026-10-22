@@ -1,0 +1,473 @@
+prompt --application/pages/page_00070
+begin
+--   Manifest
+--     PAGE: 00070
+--   Manifest End
+wwv_flow_imp.component_begin (
+ p_version_yyyy_mm_dd=>'2024.11.30'
+,p_release=>'24.2.0'
+,p_default_workspace_id=>17663301221950901
+,p_default_application_id=>137
+,p_default_id_offset=>0
+,p_default_owner=>'NOONA_APP'
+);
+wwv_flow_imp_page.create_page(
+ p_id=>70
+,p_name=>'Settings'
+,p_alias=>'SETTINGS'
+,p_step_title=>'إعدادات الموارد البشرية والرواتب'
+,p_autocomplete_on_off=>'OFF'
+,p_page_template_options=>'#DEFAULT#'
+,p_required_role=>wwv_flow_imp.id(91820272000000009)
+,p_protection_level=>'C'
+);
+wwv_flow_imp_page.create_page_plug(
+ p_id=>wwv_flow_imp.id(91820272000000328)
+,p_plug_name=>'التجهيز'
+,p_region_template_options=>'#DEFAULT#'
+,p_plug_template=>4072358936313175081
+,p_plug_display_sequence=>5
+,p_attributes=>wwv_flow_t_plugin_attributes(wwv_flow_t_varchar2(
+  'expand_shortcuts', 'N',
+  'output_as', 'HTML',
+  'show_line_breaks', 'Y')).to_clob
+);
+wwv_flow_imp_page.create_page_button(
+ p_id=>wwv_flow_imp.id(91820272000000329)
+,p_button_sequence=>10
+,p_button_plug_id=>wwv_flow_imp.id(91820272000000328)
+,p_button_name=>'SETUP'
+,p_button_action=>'SUBMIT'
+,p_button_template_options=>'#DEFAULT#'
+,p_button_template_id=>4072362960822175091
+,p_button_is_hot=>'Y'
+,p_button_image_alt=>'تجهيز / استكمال الإعدادات (الحسابات والفترات والوردية)'
+,p_button_position=>'NEXT'
+);
+wwv_flow_imp_page.create_page_process(
+ p_id=>wwv_flow_imp.id(91820272000000330)
+,p_process_sequence=>10
+,p_process_point=>'AFTER_SUBMIT'
+,p_process_type=>'NATIVE_PLSQL'
+,p_process_name=>'Setup'
+,p_process_sql_clob=>wwv_flow_string.join(wwv_flow_t_varchar2(
+'declare l_n number;',
+'begin',
+'    l_n := noona_pay_pkg.quick_setup;',
+'    apex_application.g_print_success_message := ''تم التجهيز ('' || l_n || '' إضافة)'';',
+'end;'))
+,p_process_clob_language=>'PLSQL'
+,p_error_display_location=>'INLINE_IN_NOTIFICATION'
+,p_process_when_button_id=>wwv_flow_imp.id(91820272000000329)
+,p_internal_uid=>91820272000000330
+);
+wwv_flow_imp_page.create_page_plug(
+ p_id=>wwv_flow_imp.id(91820272000000331)
+,p_plug_name=>'عناصر الراتب'
+,p_region_template_options=>'#DEFAULT#:t-Region--scrollBody'
+,p_component_template_options=>'#DEFAULT#'
+,p_plug_template=>4072358936313175081
+,p_plug_display_sequence=>10
+,p_query_type=>'SQL'
+,p_plug_source=>wwv_flow_string.join(wwv_flow_t_varchar2(
+'select e.id, e.code, e.name_ar, case e.element_type when ''EARNING'' then ''استحقاق'' when ''EMPLOYER_CONTRIBUTION'' then ''على المنشأة''',
+'       else ''استقطاع'' end as typ, noona_ui_pkg.code_label(e.affects_eos) as eos, noona_ui_pkg.code_label(e.is_recurring) as rec',
+'  from pay_element e where e.is_active = ''Y'' order by e.sort_order'))
+,p_plug_source_type=>'NATIVE_IR'
+,p_prn_page_header=>'عناصر الراتب'
+);
+wwv_flow_imp_page.create_worksheet(
+ p_id=>wwv_flow_imp.id(91820272000000332)
+,p_max_row_count=>'1000000'
+,p_no_data_found_message=>'لا توجد بيانات'
+,p_pagination_type=>'ROWS_X_TO_Y'
+,p_pagination_display_pos=>'BOTTOM_RIGHT'
+,p_report_list_mode=>'TABS'
+,p_lazy_loading=>false
+,p_show_detail_link=>'N'
+,p_show_notify=>'N'
+,p_download_formats=>'CSV:HTML:XLSX:PDF'
+,p_enable_mail_download=>'N'
+,p_owner=>'NOONA'
+,p_internal_uid=>91820272000000332
+);
+wwv_flow_imp_page.create_worksheet_column(
+ p_id=>wwv_flow_imp.id(91820272000000334)
+,p_db_column_name=>'ID'
+,p_display_order=>10
+,p_column_identifier=>'A'
+,p_column_label=>'#'
+,p_column_type=>'NUMBER'
+,p_display_text_as=>'HIDDEN'
+,p_heading_alignment=>'CENTER'
+,p_use_as_row_header=>'N'
+);
+wwv_flow_imp_page.create_worksheet_column(
+ p_id=>wwv_flow_imp.id(91820272000000335)
+,p_db_column_name=>'CODE'
+,p_display_order=>20
+,p_column_identifier=>'B'
+,p_column_label=>'الرمز'
+,p_column_type=>'STRING'
+,p_heading_alignment=>'CENTER'
+,p_use_as_row_header=>'N'
+);
+wwv_flow_imp_page.create_worksheet_column(
+ p_id=>wwv_flow_imp.id(91820272000000336)
+,p_db_column_name=>'NAME_AR'
+,p_display_order=>30
+,p_column_identifier=>'C'
+,p_column_label=>'العنصر'
+,p_column_type=>'STRING'
+,p_heading_alignment=>'CENTER'
+,p_use_as_row_header=>'N'
+);
+wwv_flow_imp_page.create_worksheet_column(
+ p_id=>wwv_flow_imp.id(91820272000000337)
+,p_db_column_name=>'TYP'
+,p_display_order=>40
+,p_column_identifier=>'D'
+,p_column_label=>'النوع'
+,p_column_type=>'STRING'
+,p_heading_alignment=>'CENTER'
+,p_use_as_row_header=>'N'
+);
+wwv_flow_imp_page.create_worksheet_column(
+ p_id=>wwv_flow_imp.id(91820272000000338)
+,p_db_column_name=>'EOS'
+,p_display_order=>50
+,p_column_identifier=>'E'
+,p_column_label=>'يدخل في نهاية الخدمة'
+,p_column_type=>'STRING'
+,p_heading_alignment=>'CENTER'
+,p_use_as_row_header=>'N'
+);
+wwv_flow_imp_page.create_worksheet_column(
+ p_id=>wwv_flow_imp.id(91820272000000339)
+,p_db_column_name=>'REC'
+,p_display_order=>60
+,p_column_identifier=>'F'
+,p_column_label=>'ثابت شهري'
+,p_column_type=>'STRING'
+,p_heading_alignment=>'CENTER'
+,p_use_as_row_header=>'N'
+);
+wwv_flow_imp_page.create_worksheet_rpt(
+ p_id=>wwv_flow_imp.id(91820272000000333)
+,p_application_user=>'APXWS_DEFAULT'
+,p_report_seq=>10
+,p_report_alias=>'333'
+,p_status=>'PUBLIC'
+,p_is_default=>'Y'
+,p_report_columns=>'CODE:NAME_AR:TYP:EOS:REC'
+);
+wwv_flow_imp_page.create_page_plug(
+ p_id=>wwv_flow_imp.id(91820272000000340)
+,p_plug_name=>'قواعد التأمينات الاجتماعية والإضافي'
+,p_region_template_options=>'#DEFAULT#:t-Region--scrollBody'
+,p_component_template_options=>'#DEFAULT#'
+,p_plug_template=>4072358936313175081
+,p_plug_display_sequence=>20
+,p_query_type=>'SQL'
+,p_plug_source=>wwv_flow_string.join(wwv_flow_t_varchar2(
+'select r.id, e.name_ar as element, decode(r.employee_category, ''SAUDI'', ''سعودي'', ''NON_SAUDI'', ''غير سعودي'', ''الكل'') as category,',
+'       json_value(r.parameters, ''$.pct'') as pct, json_value(r.parameters, ''$.min'') as min_base, json_value(r.parameters, ''$.max'') as max_base,',
+'       to_char(r.effective_from, ''YYYY-MM-DD'') as eff',
+'  from pay_element_rule r join pay_element e on e.id = r.element_id where r.status_code = ''ACTIVE'' order by e.sort_order, r.version_no'))
+,p_plug_source_type=>'NATIVE_IR'
+,p_prn_page_header=>'قواعد التأمينات الاجتماعية والإضافي'
+);
+wwv_flow_imp_page.create_worksheet(
+ p_id=>wwv_flow_imp.id(91820272000000341)
+,p_max_row_count=>'1000000'
+,p_no_data_found_message=>'لا توجد بيانات'
+,p_pagination_type=>'ROWS_X_TO_Y'
+,p_pagination_display_pos=>'BOTTOM_RIGHT'
+,p_report_list_mode=>'TABS'
+,p_lazy_loading=>false
+,p_show_detail_link=>'N'
+,p_show_notify=>'N'
+,p_download_formats=>'CSV:HTML:XLSX:PDF'
+,p_enable_mail_download=>'N'
+,p_owner=>'NOONA'
+,p_internal_uid=>91820272000000341
+);
+wwv_flow_imp_page.create_worksheet_column(
+ p_id=>wwv_flow_imp.id(91820272000000343)
+,p_db_column_name=>'ID'
+,p_display_order=>10
+,p_column_identifier=>'A'
+,p_column_label=>'#'
+,p_column_type=>'NUMBER'
+,p_display_text_as=>'HIDDEN'
+,p_heading_alignment=>'CENTER'
+,p_use_as_row_header=>'N'
+);
+wwv_flow_imp_page.create_worksheet_column(
+ p_id=>wwv_flow_imp.id(91820272000000344)
+,p_db_column_name=>'ELEMENT'
+,p_display_order=>20
+,p_column_identifier=>'B'
+,p_column_label=>'العنصر'
+,p_column_type=>'STRING'
+,p_heading_alignment=>'CENTER'
+,p_use_as_row_header=>'N'
+);
+wwv_flow_imp_page.create_worksheet_column(
+ p_id=>wwv_flow_imp.id(91820272000000345)
+,p_db_column_name=>'CATEGORY'
+,p_display_order=>30
+,p_column_identifier=>'C'
+,p_column_label=>'الفئة'
+,p_column_type=>'STRING'
+,p_heading_alignment=>'CENTER'
+,p_use_as_row_header=>'N'
+);
+wwv_flow_imp_page.create_worksheet_column(
+ p_id=>wwv_flow_imp.id(91820272000000346)
+,p_db_column_name=>'PCT'
+,p_display_order=>40
+,p_column_identifier=>'D'
+,p_column_label=>'النسبة %'
+,p_column_type=>'STRING'
+,p_heading_alignment=>'CENTER'
+,p_use_as_row_header=>'N'
+);
+wwv_flow_imp_page.create_worksheet_column(
+ p_id=>wwv_flow_imp.id(91820272000000347)
+,p_db_column_name=>'MIN_BASE'
+,p_display_order=>50
+,p_column_identifier=>'E'
+,p_column_label=>'الحد الأدنى للأجر'
+,p_column_type=>'STRING'
+,p_heading_alignment=>'CENTER'
+,p_use_as_row_header=>'N'
+);
+wwv_flow_imp_page.create_worksheet_column(
+ p_id=>wwv_flow_imp.id(91820272000000348)
+,p_db_column_name=>'MAX_BASE'
+,p_display_order=>60
+,p_column_identifier=>'F'
+,p_column_label=>'الحد الأعلى للأجر'
+,p_column_type=>'STRING'
+,p_heading_alignment=>'CENTER'
+,p_use_as_row_header=>'N'
+);
+wwv_flow_imp_page.create_worksheet_column(
+ p_id=>wwv_flow_imp.id(91820272000000349)
+,p_db_column_name=>'EFF'
+,p_display_order=>70
+,p_column_identifier=>'G'
+,p_column_label=>'ساري من'
+,p_column_type=>'STRING'
+,p_heading_alignment=>'CENTER'
+,p_use_as_row_header=>'N'
+);
+wwv_flow_imp_page.create_worksheet_rpt(
+ p_id=>wwv_flow_imp.id(91820272000000342)
+,p_application_user=>'APXWS_DEFAULT'
+,p_report_seq=>10
+,p_report_alias=>'342'
+,p_status=>'PUBLIC'
+,p_is_default=>'Y'
+,p_report_columns=>'ELEMENT:CATEGORY:PCT:MIN_BASE:MAX_BASE:EFF'
+);
+wwv_flow_imp_page.create_page_plug(
+ p_id=>wwv_flow_imp.id(91820272000000350)
+,p_plug_name=>'أنواع الإجازات'
+,p_region_template_options=>'#DEFAULT#:t-Region--scrollBody'
+,p_component_template_options=>'#DEFAULT#'
+,p_plug_template=>4072358936313175081
+,p_plug_display_sequence=>30
+,p_query_type=>'SQL'
+,p_plug_source=>wwv_flow_string.join(wwv_flow_t_varchar2(
+'select t.id, t.code, t.name_ar, noona_ui_pkg.code_label(t.is_paid) as paid, decode(t.unit_code, ''HOUR'', ''ساعة'', ''يوم'') as unit,',
+'       t.max_per_year from hr_leave_type t where t.is_active = ''Y'' order by t.id'))
+,p_plug_source_type=>'NATIVE_IR'
+,p_prn_page_header=>'أنواع الإجازات'
+);
+wwv_flow_imp_page.create_worksheet(
+ p_id=>wwv_flow_imp.id(91820272000000351)
+,p_max_row_count=>'1000000'
+,p_no_data_found_message=>'لا توجد بيانات'
+,p_pagination_type=>'ROWS_X_TO_Y'
+,p_pagination_display_pos=>'BOTTOM_RIGHT'
+,p_report_list_mode=>'TABS'
+,p_lazy_loading=>false
+,p_show_detail_link=>'N'
+,p_show_notify=>'N'
+,p_download_formats=>'CSV:HTML:XLSX:PDF'
+,p_enable_mail_download=>'N'
+,p_owner=>'NOONA'
+,p_internal_uid=>91820272000000351
+);
+wwv_flow_imp_page.create_worksheet_column(
+ p_id=>wwv_flow_imp.id(91820272000000353)
+,p_db_column_name=>'ID'
+,p_display_order=>10
+,p_column_identifier=>'A'
+,p_column_label=>'#'
+,p_column_type=>'NUMBER'
+,p_display_text_as=>'HIDDEN'
+,p_heading_alignment=>'CENTER'
+,p_use_as_row_header=>'N'
+);
+wwv_flow_imp_page.create_worksheet_column(
+ p_id=>wwv_flow_imp.id(91820272000000354)
+,p_db_column_name=>'CODE'
+,p_display_order=>20
+,p_column_identifier=>'B'
+,p_column_label=>'الرمز'
+,p_column_type=>'STRING'
+,p_heading_alignment=>'CENTER'
+,p_use_as_row_header=>'N'
+);
+wwv_flow_imp_page.create_worksheet_column(
+ p_id=>wwv_flow_imp.id(91820272000000355)
+,p_db_column_name=>'NAME_AR'
+,p_display_order=>30
+,p_column_identifier=>'C'
+,p_column_label=>'النوع'
+,p_column_type=>'STRING'
+,p_heading_alignment=>'CENTER'
+,p_use_as_row_header=>'N'
+);
+wwv_flow_imp_page.create_worksheet_column(
+ p_id=>wwv_flow_imp.id(91820272000000356)
+,p_db_column_name=>'PAID'
+,p_display_order=>40
+,p_column_identifier=>'D'
+,p_column_label=>'مدفوعة'
+,p_column_type=>'STRING'
+,p_heading_alignment=>'CENTER'
+,p_use_as_row_header=>'N'
+);
+wwv_flow_imp_page.create_worksheet_column(
+ p_id=>wwv_flow_imp.id(91820272000000357)
+,p_db_column_name=>'UNIT'
+,p_display_order=>50
+,p_column_identifier=>'E'
+,p_column_label=>'الوحدة'
+,p_column_type=>'STRING'
+,p_heading_alignment=>'CENTER'
+,p_use_as_row_header=>'N'
+);
+wwv_flow_imp_page.create_worksheet_column(
+ p_id=>wwv_flow_imp.id(91820272000000358)
+,p_db_column_name=>'MAX_PER_YEAR'
+,p_display_order=>60
+,p_column_identifier=>'F'
+,p_column_label=>'الحد السنوي'
+,p_column_type=>'NUMBER'
+,p_heading_alignment=>'CENTER'
+,p_use_as_row_header=>'N'
+);
+wwv_flow_imp_page.create_worksheet_rpt(
+ p_id=>wwv_flow_imp.id(91820272000000352)
+,p_application_user=>'APXWS_DEFAULT'
+,p_report_seq=>10
+,p_report_alias=>'352'
+,p_status=>'PUBLIC'
+,p_is_default=>'Y'
+,p_report_columns=>'CODE:NAME_AR:PAID:UNIT:MAX_PER_YEAR'
+);
+wwv_flow_imp_page.create_page_plug(
+ p_id=>wwv_flow_imp.id(91820272000000359)
+,p_plug_name=>'فترات الرواتب'
+,p_region_template_options=>'#DEFAULT#:t-Region--scrollBody'
+,p_component_template_options=>'#DEFAULT#'
+,p_plug_template=>4072358936313175081
+,p_plug_display_sequence=>40
+,p_query_type=>'SQL'
+,p_plug_source=>wwv_flow_string.join(wwv_flow_t_varchar2(
+'select p.id, p.period_code, to_char(p.start_date, ''YYYY-MM-DD'') as s, to_char(p.end_date, ''YYYY-MM-DD'') as e,',
+'       to_char(p.pay_date, ''YYYY-MM-DD'') as pay from pay_period p where p.company_id = noona_pay_pkg.company order by p.start_date desc'))
+,p_plug_source_type=>'NATIVE_IR'
+,p_prn_page_header=>'فترات الرواتب'
+);
+wwv_flow_imp_page.create_worksheet(
+ p_id=>wwv_flow_imp.id(91820272000000360)
+,p_max_row_count=>'1000000'
+,p_no_data_found_message=>'لا توجد بيانات'
+,p_pagination_type=>'ROWS_X_TO_Y'
+,p_pagination_display_pos=>'BOTTOM_RIGHT'
+,p_report_list_mode=>'TABS'
+,p_lazy_loading=>false
+,p_show_detail_link=>'N'
+,p_show_notify=>'N'
+,p_download_formats=>'CSV:HTML:XLSX:PDF'
+,p_enable_mail_download=>'N'
+,p_owner=>'NOONA'
+,p_internal_uid=>91820272000000360
+);
+wwv_flow_imp_page.create_worksheet_column(
+ p_id=>wwv_flow_imp.id(91820272000000362)
+,p_db_column_name=>'ID'
+,p_display_order=>10
+,p_column_identifier=>'A'
+,p_column_label=>'#'
+,p_column_type=>'NUMBER'
+,p_display_text_as=>'HIDDEN'
+,p_heading_alignment=>'CENTER'
+,p_use_as_row_header=>'N'
+);
+wwv_flow_imp_page.create_worksheet_column(
+ p_id=>wwv_flow_imp.id(91820272000000363)
+,p_db_column_name=>'PERIOD_CODE'
+,p_display_order=>20
+,p_column_identifier=>'B'
+,p_column_label=>'الفترة'
+,p_column_type=>'STRING'
+,p_heading_alignment=>'CENTER'
+,p_use_as_row_header=>'N'
+);
+wwv_flow_imp_page.create_worksheet_column(
+ p_id=>wwv_flow_imp.id(91820272000000364)
+,p_db_column_name=>'S'
+,p_display_order=>30
+,p_column_identifier=>'C'
+,p_column_label=>'من'
+,p_column_type=>'STRING'
+,p_heading_alignment=>'CENTER'
+,p_use_as_row_header=>'N'
+);
+wwv_flow_imp_page.create_worksheet_column(
+ p_id=>wwv_flow_imp.id(91820272000000365)
+,p_db_column_name=>'E'
+,p_display_order=>40
+,p_column_identifier=>'D'
+,p_column_label=>'إلى'
+,p_column_type=>'STRING'
+,p_heading_alignment=>'CENTER'
+,p_use_as_row_header=>'N'
+);
+wwv_flow_imp_page.create_worksheet_column(
+ p_id=>wwv_flow_imp.id(91820272000000366)
+,p_db_column_name=>'PAY'
+,p_display_order=>50
+,p_column_identifier=>'E'
+,p_column_label=>'تاريخ الصرف'
+,p_column_type=>'STRING'
+,p_heading_alignment=>'CENTER'
+,p_use_as_row_header=>'N'
+);
+wwv_flow_imp_page.create_worksheet_rpt(
+ p_id=>wwv_flow_imp.id(91820272000000361)
+,p_application_user=>'APXWS_DEFAULT'
+,p_report_seq=>10
+,p_report_alias=>'361'
+,p_status=>'PUBLIC'
+,p_is_default=>'Y'
+,p_report_columns=>'PERIOD_CODE:S:E:PAY'
+);
+wwv_flow_imp_page.create_page_branch(
+ p_id=>wwv_flow_imp.id(91820272000000367)
+,p_branch_action=>'f?p=&APP_ID.:70:&SESSION.::&DEBUG.:::&success_msg=#SUCCESS_MSG#'
+,p_branch_point=>'AFTER_PROCESSING'
+,p_branch_type=>'REDIRECT_URL'
+,p_branch_sequence=>10
+);
+
+wwv_flow_imp.component_end;
+end;
+/

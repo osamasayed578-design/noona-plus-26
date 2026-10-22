@@ -55,6 +55,8 @@ CREATE OR REPLACE PACKAGE NOONA_PAY_PKG AUTHID DEFINER AS
 
   -- العرض والتقارير
   FUNCTION status_label(p_status IN VARCHAR2) RETURN VARCHAR2;
+  FUNCTION run_status(p_run_id IN NUMBER) RETURN VARCHAR2;
+  FUNCTION run_file(p_run_id IN NUMBER) RETURN NUMBER;
   FUNCTION pay_summary RETURN CLOB;
   FUNCTION run_header_html(p_run_id IN NUMBER) RETURN CLOB;
   FUNCTION run_register_html(p_run_id IN NUMBER, p_link IN VARCHAR2 DEFAULT NULL) RETURN CLOB;
@@ -965,6 +967,20 @@ CREATE OR REPLACE PACKAGE BODY NOONA_PAY_PKG AS
         || fnum(l_s.net_settlement) || '</td></tr></tbody></table>';
   END settlement_html;
 
+  FUNCTION run_status(p_run_id IN NUMBER) RETURN VARCHAR2 IS
+    l VARCHAR2(30);
+  BEGIN
+    SELECT MAX(status_code) INTO l FROM pay_run WHERE id = p_run_id AND company_id = company;
+    RETURN l;
+  END run_status;
+
+  FUNCTION run_file(p_run_id IN NUMBER) RETURN NUMBER IS
+    l NUMBER;
+  BEGIN
+    SELECT MAX(id) INTO l FROM pay_bank_file WHERE run_id = p_run_id AND company_id = company;
+    RETURN l;
+  END run_file;
+
   -- ================================================================ التقارير
   FUNCTION kpi(p_label VARCHAR2, p_value VARCHAR2, p_icon VARCHAR2, p_cls VARCHAR2 DEFAULT 'is-info') RETURN VARCHAR2 IS
   BEGIN
@@ -1185,10 +1201,10 @@ CREATE OR REPLACE PACKAGE BODY NOONA_PAY_PKG AS
     l_out CLOB := '<table class="nn-rpt"><thead><tr><th>مركز التكلفة</th><th>الموظفون</th><th>الإجمالي</th><th>حصة المنشأة في التأمينات</th>'
                || '<th>التكلفة على المنشأة</th></tr></thead><tbody>';
   BEGIN
-    FOR x IN (SELECT NVL(c.code || ' - ' || c.name_ar, 'غير محدد') cc, COUNT(*) n, SUM(re.gross_amount) g,
+    FOR x IN (SELECT CASE WHEN c.id IS NULL THEN 'غير محدد' ELSE c.code || ' - ' || c.name_ar END cc, COUNT(*) n, SUM(re.gross_amount) g,
                      SUM(re.employer_cost - re.gross_amount) er, SUM(re.employer_cost) t
                 FROM pay_run_employee re JOIN hr_employment m ON m.id = re.employment_id LEFT JOIN gl_cost_center c ON c.id = m.cost_center_id
-               WHERE re.run_id = l_r.id GROUP BY NVL(c.code || ' - ' || c.name_ar, 'غير محدد') ORDER BY 1) LOOP
+               WHERE re.run_id = l_r.id GROUP BY CASE WHEN c.id IS NULL THEN 'غير محدد' ELSE c.code || ' - ' || c.name_ar END ORDER BY 1) LOOP
       l_out := l_out || ('<tr><td class="nn-rpt-text">' || esc(x.cc) || '</td><td>' || x.n || '</td><td>' || fnum(x.g) || '</td><td>' || fnum(x.er)
             || '</td><td>' || fnum(x.t) || '</td></tr>');
     END LOOP;

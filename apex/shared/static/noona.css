@@ -836,3 +836,37 @@ tr:hover .nn-badge { transform: scale(1.05); }
 }
 .nn-mail-f span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .t-Region:has(#P50_OPEN) { display: none; }
+
+/* ===================================================================== الموارد البشرية والرواتب */
+.nn-hr-card { display: flex; align-items: center; gap: 16px; padding: 4px 0 14px; }
+.nn-hr-av { flex: 0 0 56px; width: 56px; height: 56px; border-radius: 50%; background: var(--nn-primary); color: #fff; display: flex;
+  align-items: center; justify-content: center; font-size: 1.5rem; font-weight: 700; }
+.nn-hr-id { flex: 1; display: flex; flex-direction: column; gap: 2px; }
+.nn-hr-id b { font-size: 1.2rem; color: var(--nn-text); }
+.nn-hr-id span { color: var(--nn-muted); font-size: .9rem; }
+.nn-hr-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 18px; }
+.nn-hr-grid h4 { margin: 4px 0 8px; color: var(--nn-head-text); font-size: .95rem; }
+.nn-hr-bal { font-size: 1.05rem; padding: 6px 0; }
+.nn-hr-bal b { color: var(--nn-primary); font-size: 1.3rem; }
+.nn-hr-runbar { margin: 10px 0 4px; color: var(--nn-muted); }
+.nn-hr-runbar b { color: var(--nn-text); }
+.nn-hr-anom { margin-top: 10px; background: var(--nn-warning-50); border: 1px solid #f6d7a7; border-radius: 8px; padding: 10px 14px; }
+.nn-hr-anom ul { margin: 6px 0 0; padding-inline-start: 20px; }
+.nn-hr-anom li.is-err { color: var(--nn-danger); font-weight: 700; }
+.nn-hr-reg td, .nn-hr-reg th { white-space: nowrap; }
+.nn-hr-reg td.nn-hr-strong { font-weight: 700; }
+.nn-hr-reg tr.is-err td { background: var(--nn-danger-50); }
+.nn-hr-err { color: var(--nn-danger); font-size: .8rem; }
+.nn-payslip { max-width: 820px; margin: 0 auto; border: 1px solid var(--nn-border); border-radius: 10px; padding: 20px 24px; background: #fff; }
+.nn-payslip-h { display: flex; justify-content: space-between; align-items: center; border-bottom: 3px solid var(--nn-primary);
+  padding-bottom: 12px; margin-bottom: 14px; }
+.nn-payslip-h > div:first-child { display: flex; flex-direction: column; }
+.nn-payslip-h b { font-size: 1.2rem; }
+.nn-payslip-h span { color: var(--nn-muted); }
+.nn-payslip-net { text-align: center; background: var(--nn-primary-50); border-radius: 10px; padding: 8px 18px; }
+.nn-payslip-net span { display: block; color: var(--nn-muted); font-size: .8rem; }
+.nn-payslip-net b { font-size: 1.6rem; color: var(--nn-primary); }
+.nn-payslip-id { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px 18px; margin-bottom: 16px; }
+.nn-payslip-id span { display: block; color: var(--nn-muted); font-size: .8rem; }
+.nn-payslip-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+@media (max-width: 700px) { .nn-payslip-id { grid-template-columns: 1fr 1fr; } .nn-payslip-cols { grid-template-columns: 1fr; } }
