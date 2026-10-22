@@ -31,7 +31,7 @@
 | 08 | العملاء والحسابات المدينة | Customers & Accounts Receivable | `NOONA_AR_PKG` | 19 | [p08_ar](p08_ar.md) |
 | 09 | الموردون والحسابات الدائنة | Suppliers & Accounts Payable | `NOONA_AP_PKG` | 12 | [p09_ap](p09_ap.md) |
 | 10 | النقدية والبنوك | Cash & Banks | `NOONA_CASH_PKG` | 13 | [p10_csh](p10_csh.md) |
-| 11 | المخزون والبيانات السلعية | Inventory & Item Master | `NOONA_INVENTORY_PKG` | 23 | [p11_inv](p11_inv.md) |
+| 11 | المخزون والبيانات السلعية | Inventory & Item Master | `NOONA_INVENTORY_PKG` | 25 | [p11_inv](p11_inv.md) |
 | 12 | المشتريات | Procurement | `NOONA_PROCUREMENT_PKG` | 17 | [p12_pur](p12_pur.md) |
 | 13 | المبيعات ونقاط البيع | Sales & Point of Sale | `NOONA_SALES_PKG` | 20 | [p13_sal](p13_sal.md) |
 | 14 | الأصول الثابتة | Fixed Assets | `NOONA_ASSETS_PKG` | 11 | [p14_fa](p14_fa.md) |
@@ -52,5 +52,5 @@
 | 29 | النشر الإنتاجي والإصدارات | Deployment & Release Management | `NOONA_DEPLOYMENT_PKG` | 6 | [p29_dep](p29_dep.md) |
 | 30 | التشغيل والدعم والتطوير المستمر | Operations, Support & Continuous Improvement | `NOONA_OPERATIONS_PKG` | 12 | [p30_ops](p30_ops.md) |
 
-**الإجمالي:** 572 جدول · 9790 عمود.
+**الإجمالي:** 574 جدول · 9862 عمود.
 

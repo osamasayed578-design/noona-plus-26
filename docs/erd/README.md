@@ -16,7 +16,7 @@
 | 08 | العملاء والحسابات المدينة | Customers & Accounts Receivable | 19 | [p08_ar](p08_ar.md) |
 | 09 | الموردون والحسابات الدائنة | Suppliers & Accounts Payable | 12 | [p09_ap](p09_ap.md) |
 | 10 | النقدية والبنوك | Cash & Banks | 13 | [p10_csh](p10_csh.md) |
-| 11 | المخزون والبيانات السلعية | Inventory & Item Master | 23 | [p11_inv](p11_inv.md) |
+| 11 | المخزون والبيانات السلعية | Inventory & Item Master | 25 | [p11_inv](p11_inv.md) |
 | 12 | المشتريات | Procurement | 17 | [p12_pur](p12_pur.md) |
 | 13 | المبيعات ونقاط البيع | Sales & Point of Sale | 20 | [p13_sal](p13_sal.md) |
 | 14 | الأصول الثابتة | Fixed Assets | 11 | [p14_fa](p14_fa.md) |
@@ -37,7 +37,7 @@
 | 29 | النشر الإنتاجي والإصدارات | Deployment & Release Management | 6 | [p29_dep](p29_dep.md) |
 | 30 | التشغيل والدعم والتطوير المستمر | Operations, Support & Continuous Improvement | 12 | [p30_ops](p30_ops.md) |
 
-**الإجمالي: 572 جدول.**
+**الإجمالي: 574 جدول.**
 
 ## خريطة اعتماديات الحزم
 
@@ -79,6 +79,7 @@ flowchart LR
   AI --> SEC
   AP --> CSH
   AP --> GL
+  AP --> INV
   AP --> LOC
   AP --> PRJ
   AP --> PUR
@@ -160,6 +161,7 @@ flowchart LR
   RE --> WF
   REF --> PLT
   SAL --> AR
+  SAL --> CSH
   SAL --> GL
   SAL --> INV
   SAL --> LOC
@@ -350,6 +352,7 @@ erDiagram
   HR_EMPLOYMENT ||--o{ ORG_POSITION_ASSIGNMENT : "EMPLOYMENT_ID"
   INV_ITEM |o--o{ GL_JOURNAL_LINE : "ITEM_ID"
   INV_ITEM |o--o{ RE_UNIT : "ITEM_ID"
+  INV_TRANSACTION |o--o{ SAL_INVOICE : "INV_TRANSACTION_ID"
   ORG_BRANCH |o--o{ PTY_PARTY : "OWNER_BRANCH_ID"
   ORG_BRANCH |o--o{ SEC_USER_MEMBERSHIP : "DEFAULT_BRANCH_ID"
   ORG_BUSINESS_GROUP |o--o{ ORG_COMPANY : "BUSINESS_GROUP_ID"

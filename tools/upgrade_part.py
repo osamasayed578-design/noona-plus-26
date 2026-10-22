@@ -14,7 +14,13 @@ seed = open(f'{D}/seed/01_registry_seed.sql', encoding='utf-8').read().splitline
 vpd = open(f'{D}/security/30_vpd_policies.sql', encoding='utf-8').read()
 L = ["-- مولد من tools/upgrade_part.py (لا تعدله يدوياً)", "DECLARE", "  l_n NUMBER;",
      "  PROCEDURE ex(p VARCHAR2) IS BEGIN EXECUTE IMMEDIATE p; EXCEPTION WHEN OTHERS THEN"
-     " IF SQLCODE NOT IN (-955, -1430, -2275, -1408, -2260, -1442) THEN RAISE; END IF; END;", "BEGIN"]
+     " IF SQLCODE NOT IN (-955, -1430, -2275, -1408, -2260, -1442, -2264) THEN RAISE; END IF; END;", 
+     "  -- إضافة أعمدة إلزامية وقيود على جداول محمية بـ VPD تتطلب قراءة كامل الجدول: تعطل السياسات مؤقتاً",
+     "  PROCEDURE rls(p_on BOOLEAN) IS BEGIN",
+     "    FOR r IN (SELECT object_name, policy_name FROM user_policies WHERE object_name IN (" + (", ".join(sorted({"'" + a.split('.')[0] + "'" for a in adds})) or "NULL") + ")) LOOP",
+     "      DBMS_RLS.ENABLE_POLICY(USER, r.object_name, r.policy_name, p_on);",
+     "    END LOOP;",
+     "  END;", "BEGIN", "  rls(FALSE);"]
 for t in tables:
     create = re.search(rf"CREATE TABLE {t} \(.*?\n\);", ddl, re.S).group(0)
     L += [f"  SELECT COUNT(*) INTO l_n FROM user_tables WHERE table_name = '{t}';",
@@ -23,15 +29,24 @@ for t in tables:
         if l.startswith(f'ALTER TABLE {t} ') or l.startswith(f'CREATE INDEX {t}_') or \
            (l.startswith('COMMENT ON') and re.search(rf'\b{t}\b', l)):
             L.append("  ex(q'~" + l.rstrip(';') + "~');")
+ALL = '\n'.join(open(os.path.join(D, 'ddl', f), encoding='utf-8').read() for f in sorted(os.listdir(os.path.join(D, 'ddl')))
+                if f.endswith('.sql'))
 for a in adds:
     t, c = a.split('.')
-    m = re.search(rf"CREATE TABLE {t} \(.*?\n\);", ddl, re.S).group(0)
+    m = re.search(rf"CREATE TABLE {t} \(.*?\n\);", ALL, re.S).group(0)
     col = re.search(rf"^\s+{c}\s+(.+?),?$", m, re.M).group(1).rstrip(',')
-    L.append(f"  ex('ALTER TABLE {t} ADD ({c} {col})');")
-    for l in ddl.splitlines():
-        if l.startswith(f'COMMENT ON COLUMN {t}.{c} '):
+    L.append(f"  ex('ALTER TABLE {t} ADD ({c} {col.replace(chr(39), chr(39) * 2)})');")
+    # القيود والفهارس والتعليق الخاصة بالعمود المضاف (قد تكون في ملف وحدة أخرى)
+    ck = re.search(rf"^\s+CONSTRAINT ({t}_{c}_CK CHECK \(.*\)),?$", m, re.M)
+    if ck:
+        L.append("  ex(q'~ALTER TABLE " + t + " ADD CONSTRAINT " + ck.group(1).rstrip(',') + "~');")
+    for l in ALL.splitlines():
+        if (l.startswith(f'ALTER TABLE {t} ADD CONSTRAINT {t}_{c}_FK ') or l.startswith(f'CREATE INDEX {t}_{c}_IX ')
+                or l.startswith(f'COMMENT ON COLUMN {t}.{c} ')
+                or (l.startswith(f'CREATE UNIQUE INDEX {t}_NUK') and re.search(rf'\b{c}\b', l))
+                or (l.startswith(f'CREATE INDEX {t}_') and re.search(rf'\({"TENANT_ID"}, {c}\)', l))):
             L.append("  ex(q'~" + l.rstrip(';') + "~');")
-L += ["END;", "/"]
+L += ["  rls(TRUE);", "EXCEPTION WHEN OTHERS THEN", "  rls(TRUE);", "  RAISE;", "END;", "/"]
 for t in tables:
     L.append(re.search(rf"CREATE OR REPLACE TRIGGER {t}_BIU.*?\nEND;\n/", trg, re.S).group(0))
 L.append("BEGIN\n  NOONA_CORE_PKG.begin_system;")

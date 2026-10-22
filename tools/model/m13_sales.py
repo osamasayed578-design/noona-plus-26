@@ -150,6 +150,12 @@ EINVOICE_STATUS CODE NN D='NOT_REQUIRED' IN:NOT_REQUIRED,PENDING,SUBMITTED,ACCEP
 EINVOICE_SUBMISSION_ID ID >LOC_EINVOICE_SUBMISSION | الإرسال
 LEGAL_DOCUMENT_ID ID >DMS_DOCUMENT | النسخة القانونية المحفوظة
 ISSUED_AT       TS               | وقت الإصدار
+WAREHOUSE_ID    ID   >INV_WAREHOUSE | مستودع الصرف
+INV_TRANSACTION_ID ID >INV_TRANSACTION | حركة الصرف
+PAYMENT_MODE    CODE NN D='CREDIT' IN:CREDIT,CASH | آجل أو نقدي
+SETTLE_PLACE    V30              | الصندوق/البنك للفاتورة النقدية (BOX:n / BANK:n)
+COGS_AMOUNT     AMT  NN D=0      | تكلفة البضاعة المباعة
+COST_CENTER_ID  ID   >GL_COST_CENTER | مركز الربحية
 ''', ix=[('TENANT_ID', 'COMPANY_ID', 'CUSTOMER_ACCOUNT_ID', 'STATUS_CODE'), ('TENANT_ID', 'COMPANY_ID', 'DOC_DATE')],
       area='invoice', purpose='POSTED_AT يملؤه محرك الترحيل لا نموذج APEX؛ لا تعدل الفاتورة المرسلة (45.1)')
 
@@ -202,6 +208,8 @@ table('POS_TERMINAL', 'محطات نقاط البيع', 'POS Terminals', scope='
 SITE_ID         ID   >ORG_BUSINESS_SITE | المتجر/المعرض
 WAREHOUSE_ID    ID   NN >INV_WAREHOUSE | مستودع الصرف
 CASH_BOX_ID     ID   >CSH_CASH_BOX | درج النقد الافتراضي
+BANK_ACCOUNT_ID ID   >CSH_BANK_ACCOUNT | حساب تسوية البطاقات والتطبيقات البنكية
+COST_CENTER_ID  ID   >GL_COST_CENTER | مركز الربحية
 PRICE_LIST_ID   ID   >SAL_PRICE_LIST | قائمة الأسعار
 DEVICE_FINGERPRINT HASH          | بصمة الجهاز
 OFFLINE_ALLOWED YN   NN D='N'    | يسمح بالعمل دون اتصال
@@ -222,6 +230,8 @@ EXPECTED_CASH   AMT  @CALC       | النقد المتوقع
 COUNTED_CASH    AMT              | النقد المعدود
 VARIANCE_AMOUNT AMT  @CALC       | الفرق
 SUPERVISOR_MEMBER_ID ID >SEC_USER_MEMBERSHIP | المشرف المعتمد للإغلاق
+SALES_TOTAL     AMT  NN D=0      | إجمالي المبيعات
+GL_JOURNAL_ID   ID   >GL_JOURNAL | قيد الوردية
 ''', ix=[('TENANT_ID', 'TERMINAL_ID', 'STATUS_CODE')], area='pos')
 
 table('POS_SALE', 'مبيعات نقاط البيع', 'POS Sales / Receipts', scope='C', mix='pub branch cur posted status',

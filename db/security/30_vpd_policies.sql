@@ -237,10 +237,12 @@ BEGIN
   NOONA_VPD_PKG.add_tenant_policy('INV_COUNT');
   NOONA_VPD_PKG.add_tenant_policy('INV_COUNT_LINE');
   NOONA_VPD_PKG.add_tenant_policy('INV_ITEM');
+  NOONA_VPD_PKG.add_tenant_policy('INV_ITEM_ALTERNATE');
   NOONA_VPD_PKG.add_tenant_policy('INV_ITEM_BARCODE');
   NOONA_VPD_PKG.add_tenant_policy('INV_ITEM_CATEGORY');
   NOONA_VPD_PKG.add_tenant_policy('INV_ITEM_COMPANY');
   NOONA_VPD_PKG.add_tenant_policy('INV_ITEM_COST');
+  NOONA_VPD_PKG.add_tenant_policy('INV_ITEM_FITMENT');
   NOONA_VPD_PKG.add_tenant_policy('INV_LOCATION');
   NOONA_VPD_PKG.add_tenant_policy('INV_LOT');
   NOONA_VPD_PKG.add_tenant_policy('INV_ONHAND');

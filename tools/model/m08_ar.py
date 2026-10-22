@@ -91,6 +91,8 @@ CUSTOMER_ACCOUNT_ID ID NN >AR_CUSTOMER_ACCOUNT | الحساب
 PAYMENT_METHOD_ID ID NN >REF_PAYMENT_METHOD | الطريقة
 CASH_TRANSACTION_ID ID >CSH_TRANSACTION | حركة النقدية/البنك
 CHEQUE_ID       ID   >CSH_CHEQUE | الشيك
+CASH_BOX_ID     ID   >CSH_CASH_BOX | الصندوق المستلم
+BANK_ACCOUNT_ID ID   >CSH_BANK_ACCOUNT | الحساب البنكي المستلم
 AMOUNT          AMT  NN          | المبلغ
 AMOUNT_FUNC     AMT              | المبلغ الوظيفي
 UNAPPLIED_AMOUNT AMT NN D=0 @CALC | غير المخصص (UNAPPLIED CASH)

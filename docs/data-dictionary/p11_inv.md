@@ -13,6 +13,8 @@
 | [`INV_UOM_CONVERSION`](#inv_uom_conversion) | تحويلات الوحدات | UOM Conversions | T | INTERNAL |
 | [`INV_ITEM_CATEGORY`](#inv_item_category) | فئات الأصناف | Item Categories | T | INTERNAL |
 | [`INV_ITEM`](#inv_item) | الأصناف | Items | T | INTERNAL |
+| [`INV_ITEM_FITMENT`](#inv_item_fitment) | توافق قطع الغيار مع المركبات | Spare Part Vehicle Fitment | T | INTERNAL |
+| [`INV_ITEM_ALTERNATE`](#inv_item_alternate) | البدائل والأصناف المكافئة | Item Alternates | T | INTERNAL |
 | [`INV_ITEM_BARCODE`](#inv_item_barcode) | باركود الأصناف | Item Barcodes | T | INTERNAL |
 | [`INV_ITEM_COMPANY`](#inv_item_company) | إعدادات الصنف لكل شركة | Item Company Settings | C | INTERNAL |
 | [`INV_WAREHOUSE`](#inv_warehouse) | المستودعات | Warehouses | C | INTERNAL |
@@ -139,12 +141,17 @@
 | 6 | `PARENT_CATEGORY_ID` | معرف | `NUMBER(19)` |  |  | FK→INV_ITEM_CATEGORY |  | إدخال المستخدم |  | الفئة الأم |
 | 7 | `DEFAULT_COSTING_METHOD` | رمز | `VARCHAR2(30 CHAR)` |  |  |  | FIFO, WEIGHTED_AVERAGE, STANDARD | إدخال المستخدم |  | طريقة التكلفة الافتراضية |
 | 8 | `DEFAULT_TAX_CODE_ID` | معرف | `NUMBER(19)` |  |  | FK→LOC_TAX_CODE |  | إدخال المستخدم |  | الضريبة الافتراضية |
-| 9 | `IS_ACTIVE` | منطقي Y/N | `CHAR(1 CHAR)` | ✔ | 'Y' |  | Y, N | إدخال المستخدم |  | نشط؟ |
-| 10 | `ROW_VERSION` | عدد صحيح | `NUMBER(10)` | ✔ | 1 |  |  | Trigger |  | رقم الإصدار للتحكم في التزامن المتفائل |
-| 11 | `CREATED_BY` | اسم مستخدم | `VARCHAR2(128 CHAR)` | ✔ |  |  |  | Trigger |  | منشئ السجل |
-| 12 | `CREATED_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` | ✔ | SYSTIMESTAMP |  |  | Trigger |  | وقت الإنشاء |
-| 13 | `UPDATED_BY` | اسم مستخدم | `VARCHAR2(128 CHAR)` |  |  |  |  | Trigger |  | آخر من عدل السجل |
-| 14 | `UPDATED_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` |  |  |  |  | Trigger |  | وقت آخر تعديل |
+| 9 | `PRODUCT_PROFILE` | رمز | `VARCHAR2(30 CHAR)` | ✔ | 'GENERAL' |  | GENERAL, AUTO_PART, PHARMA, FOOD, ELECTRONICS, APPAREL, RAW_MATERIAL | إدخال المستخدم |  | ملف الأصناف الافتراضي |
+| 10 | `INVENTORY_ACCOUNT_ID` | معرف | `NUMBER(19)` |  |  | FK→GL_ACCOUNT |  | إدخال المستخدم |  | حساب المخزون الافتراضي للفئة |
+| 11 | `COGS_ACCOUNT_ID` | معرف | `NUMBER(19)` |  |  | FK→GL_ACCOUNT |  | إدخال المستخدم |  | حساب تكلفة المبيعات |
+| 12 | `REVENUE_ACCOUNT_ID` | معرف | `NUMBER(19)` |  |  | FK→GL_ACCOUNT |  | إدخال المستخدم |  | حساب الإيراد |
+| 13 | `EXPENSE_ACCOUNT_ID` | معرف | `NUMBER(19)` |  |  | FK→GL_ACCOUNT |  | إدخال المستخدم |  | حساب المصروف (الأصناف غير المخزنية والخدمات) |
+| 14 | `IS_ACTIVE` | منطقي Y/N | `CHAR(1 CHAR)` | ✔ | 'Y' |  | Y, N | إدخال المستخدم |  | نشط؟ |
+| 15 | `ROW_VERSION` | عدد صحيح | `NUMBER(10)` | ✔ | 1 |  |  | Trigger |  | رقم الإصدار للتحكم في التزامن المتفائل |
+| 16 | `CREATED_BY` | اسم مستخدم | `VARCHAR2(128 CHAR)` | ✔ |  |  |  | Trigger |  | منشئ السجل |
+| 17 | `CREATED_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` | ✔ | SYSTIMESTAMP |  |  | Trigger |  | وقت الإنشاء |
+| 18 | `UPDATED_BY` | اسم مستخدم | `VARCHAR2(128 CHAR)` |  |  |  |  | Trigger |  | آخر من عدل السجل |
+| 19 | `UPDATED_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` |  |  |  |  | Trigger |  | وقت آخر تعديل |
 
 ## INV_ITEM
 
@@ -157,6 +164,7 @@
 | الحساسية | INTERNAL |
 | النمط | قابل للتعديل وفق دورة الحياة |
 | مفاتيح فريدة | UK2: (PUBLIC_ID)<br>UK3: (TENANT_ID, ITEM_NO) |
+| مفاتيح فريدة مشروطة | NUK1: (TENANT_ID, ITEM_CODE) عند عدم فراغ ITEM_CODE |
 
 | # | العمود | النوع المنطقي | Oracle Type | إلزامي | افتراضي | مفاتيح | القيم المقبولة | المصدر | PII | الوصف |
 |---:|---|---|---|:---:|---|---|---|---|:---:|---|
@@ -183,12 +191,77 @@
 | 21 | `TAX_CATEGORY` | رمز | `VARCHAR2(30 CHAR)` |  |  |  |  | إدخال المستخدم |  | الفئة الضريبية |
 | 22 | `STORAGE_REQUIREMENTS` | نص | `VARCHAR2(500 CHAR)` |  |  |  |  | إدخال المستخدم |  | متطلبات التخزين (حرارة، جودة) |
 | 23 | `ATTRIBUTES` | JSON | `CLOB` |  |  |  | JSON صالح | إدخال المستخدم |  | خصائص إضافية |
-| 24 | `STATUS_CODE` | رمز | `VARCHAR2(30 CHAR)` | ✔ | 'DRAFT' |  | DRAFT, ACTIVE, INACTIVE, OBSOLETE, BLOCKED | النظام/الحزمة |  | الحالة ضمن دورة الحياة المعتمدة |
-| 25 | `ROW_VERSION` | عدد صحيح | `NUMBER(10)` | ✔ | 1 |  |  | Trigger |  | رقم الإصدار للتحكم في التزامن المتفائل |
-| 26 | `CREATED_BY` | اسم مستخدم | `VARCHAR2(128 CHAR)` | ✔ |  |  |  | Trigger |  | منشئ السجل |
-| 27 | `CREATED_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` | ✔ | SYSTIMESTAMP |  |  | Trigger |  | وقت الإنشاء |
-| 28 | `UPDATED_BY` | اسم مستخدم | `VARCHAR2(128 CHAR)` |  |  |  |  | Trigger |  | آخر من عدل السجل |
-| 29 | `UPDATED_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` |  |  |  |  | Trigger |  | وقت آخر تعديل |
+| 24 | `ITEM_CODE` | نص | `VARCHAR2(50 CHAR)` |  |  | NUK1 |  | إدخال المستخدم |  | الكود المختصر (داخلي/SKU) |
+| 25 | `PRODUCT_PROFILE` | رمز | `VARCHAR2(30 CHAR)` | ✔ | 'GENERAL' |  | GENERAL, AUTO_PART, PHARMA, FOOD, ELECTRONICS, APPAREL, RAW_MATERIAL | إدخال المستخدم |  | ملف الصنف (يحدد الحقول الخاصة) |
+| 26 | `BRAND` | نص | `VARCHAR2(100 CHAR)` |  |  |  |  | إدخال المستخدم |  | العلامة التجارية |
+| 27 | `MANUFACTURER` | نص | `VARCHAR2(200 CHAR)` |  |  |  |  | إدخال المستخدم |  | الشركة المصنعة |
+| 28 | `MANUFACTURER_PART_NO` | نص | `VARCHAR2(100 CHAR)` |  |  |  |  | إدخال المستخدم |  | رقم القطعة لدى المصنع (OEM) |
+| 29 | `GENERIC_NAME` | نص | `VARCHAR2(200 CHAR)` |  |  |  |  | إدخال المستخدم |  | المادة الفعالة / الاسم العلمي |
+| 30 | `STRENGTH` | نص | `VARCHAR2(100 CHAR)` |  |  |  |  | إدخال المستخدم |  | التركيز |
+| 31 | `DOSAGE_FORM` | نص | `VARCHAR2(100 CHAR)` |  |  |  |  | إدخال المستخدم |  | الشكل الصيدلاني |
+| 32 | `REQUIRES_PRESCRIPTION` | منطقي Y/N | `CHAR(1 CHAR)` | ✔ | 'N' |  | Y, N | إدخال المستخدم |  | يصرف بوصفة طبية |
+| 33 | `REGULATORY_REG_NO` | نص | `VARCHAR2(100 CHAR)` |  |  |  |  | إدخال المستخدم |  | رقم التسجيل لدى الجهة الرقابية |
+| 34 | `STATUS_CODE` | رمز | `VARCHAR2(30 CHAR)` | ✔ | 'DRAFT' |  | DRAFT, ACTIVE, INACTIVE, OBSOLETE, BLOCKED | النظام/الحزمة |  | الحالة ضمن دورة الحياة المعتمدة |
+| 35 | `ROW_VERSION` | عدد صحيح | `NUMBER(10)` | ✔ | 1 |  |  | Trigger |  | رقم الإصدار للتحكم في التزامن المتفائل |
+| 36 | `CREATED_BY` | اسم مستخدم | `VARCHAR2(128 CHAR)` | ✔ |  |  |  | Trigger |  | منشئ السجل |
+| 37 | `CREATED_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` | ✔ | SYSTIMESTAMP |  |  | Trigger |  | وقت الإنشاء |
+| 38 | `UPDATED_BY` | اسم مستخدم | `VARCHAR2(128 CHAR)` |  |  |  |  | Trigger |  | آخر من عدل السجل |
+| 39 | `UPDATED_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` |  |  |  |  | Trigger |  | وقت آخر تعديل |
+
+## INV_ITEM_FITMENT
+
+| البند | القيمة |
+|---|---|
+| الاسم العربي | توافق قطع الغيار مع المركبات |
+| English | Spare Part Vehicle Fitment |
+| الحزمة المالكة | 11 — `NOONA_INVENTORY_PKG` |
+| نطاق الملكية | `T` — مملوك للمؤسسة Tenant-Owned |
+| الحساسية | INTERNAL |
+| النمط | قابل للتعديل وفق دورة الحياة |
+
+| # | العمود | النوع المنطقي | Oracle Type | إلزامي | افتراضي | مفاتيح | القيم المقبولة | المصدر | PII | الوصف |
+|---:|---|---|---|:---:|---|---|---|---|:---:|---|
+| 1 | `ID` | معرف | `NUMBER(19)` | ✔ |  | PK |  | النظام/الحزمة |  | المفتاح الداخلي الثابت (Identity) - لا يعاد استخدامه |
+| 2 | `TENANT_ID` | معرف | `NUMBER(19)` | ✔ |  | FK→PLT_TENANT |  | Security Context |  | المؤسسة المالكة؛ يملأ من Security Context الموثوق لا من مدخلات المستخدم |
+| 3 | `ITEM_ID` | معرف | `NUMBER(19)` | ✔ |  | FK→INV_ITEM |  | إدخال المستخدم |  | القطعة |
+| 4 | `VEHICLE_MAKE` | نص | `VARCHAR2(100 CHAR)` | ✔ |  |  |  | إدخال المستخدم |  | الشركة المصنعة للمركبة |
+| 5 | `VEHICLE_MODEL` | نص | `VARCHAR2(100 CHAR)` |  |  |  |  | إدخال المستخدم |  | الطراز |
+| 6 | `YEAR_FROM` | عدد صحيح | `NUMBER(10)` |  |  |  |  | إدخال المستخدم |  | من سنة |
+| 7 | `YEAR_TO` | عدد صحيح | `NUMBER(10)` |  |  |  |  | إدخال المستخدم |  | إلى سنة |
+| 8 | `ENGINE` | نص | `VARCHAR2(100 CHAR)` |  |  |  |  | إدخال المستخدم |  | المحرك |
+| 9 | `NOTES` | نص | `VARCHAR2(500 CHAR)` |  |  |  |  | إدخال المستخدم |  | ملاحظات |
+| 10 | `ROW_VERSION` | عدد صحيح | `NUMBER(10)` | ✔ | 1 |  |  | Trigger |  | رقم الإصدار للتحكم في التزامن المتفائل |
+| 11 | `CREATED_BY` | اسم مستخدم | `VARCHAR2(128 CHAR)` | ✔ |  |  |  | Trigger |  | منشئ السجل |
+| 12 | `CREATED_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` | ✔ | SYSTIMESTAMP |  |  | Trigger |  | وقت الإنشاء |
+| 13 | `UPDATED_BY` | اسم مستخدم | `VARCHAR2(128 CHAR)` |  |  |  |  | Trigger |  | آخر من عدل السجل |
+| 14 | `UPDATED_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` |  |  |  |  | Trigger |  | وقت آخر تعديل |
+
+## INV_ITEM_ALTERNATE
+
+| البند | القيمة |
+|---|---|
+| الاسم العربي | البدائل والأصناف المكافئة |
+| English | Item Alternates |
+| الحزمة المالكة | 11 — `NOONA_INVENTORY_PKG` |
+| نطاق الملكية | `T` — مملوك للمؤسسة Tenant-Owned |
+| الحساسية | INTERNAL |
+| النمط | قابل للتعديل وفق دورة الحياة |
+| مفاتيح فريدة | UK1: (ITEM_ID, ALT_ITEM_ID) |
+| قيود أعمال | ITEM_ID <> ALT_ITEM_ID |
+
+| # | العمود | النوع المنطقي | Oracle Type | إلزامي | افتراضي | مفاتيح | القيم المقبولة | المصدر | PII | الوصف |
+|---:|---|---|---|:---:|---|---|---|---|:---:|---|
+| 1 | `ID` | معرف | `NUMBER(19)` | ✔ |  | PK |  | النظام/الحزمة |  | المفتاح الداخلي الثابت (Identity) - لا يعاد استخدامه |
+| 2 | `TENANT_ID` | معرف | `NUMBER(19)` | ✔ |  | FK→PLT_TENANT |  | Security Context |  | المؤسسة المالكة؛ يملأ من Security Context الموثوق لا من مدخلات المستخدم |
+| 3 | `ITEM_ID` | معرف | `NUMBER(19)` | ✔ |  | FK→INV_ITEM UK1 |  | إدخال المستخدم |  | الصنف |
+| 4 | `ALT_ITEM_ID` | معرف | `NUMBER(19)` | ✔ |  | FK→INV_ITEM UK1 |  | إدخال المستخدم |  | البديل |
+| 5 | `ALT_TYPE` | رمز | `VARCHAR2(30 CHAR)` | ✔ | 'SUBSTITUTE' |  | SUBSTITUTE, OEM_EQUIVALENT, GENERIC_EQUIVALENT, UPGRADE | إدخال المستخدم |  | نوع البدل |
+| 6 | `NOTES` | نص | `VARCHAR2(500 CHAR)` |  |  |  |  | إدخال المستخدم |  | ملاحظات |
+| 7 | `ROW_VERSION` | عدد صحيح | `NUMBER(10)` | ✔ | 1 |  |  | Trigger |  | رقم الإصدار للتحكم في التزامن المتفائل |
+| 8 | `CREATED_BY` | اسم مستخدم | `VARCHAR2(128 CHAR)` | ✔ |  |  |  | Trigger |  | منشئ السجل |
+| 9 | `CREATED_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` | ✔ | SYSTIMESTAMP |  |  | Trigger |  | وقت الإنشاء |
+| 10 | `UPDATED_BY` | اسم مستخدم | `VARCHAR2(128 CHAR)` |  |  |  |  | Trigger |  | آخر من عدل السجل |
+| 11 | `UPDATED_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` |  |  |  |  | Trigger |  | وقت آخر تعديل |
 
 ## INV_ITEM_BARCODE
 
@@ -246,12 +319,19 @@
 | 13 | `REORDER_QTY` | كمية | `NUMBER(24,6)` |  |  |  |  | إدخال المستخدم |  | كمية إعادة الطلب |
 | 14 | `LEAD_TIME_DAYS` | عدد صحيح | `NUMBER(10)` |  |  |  |  | إدخال المستخدم |  | مدة التوريد |
 | 15 | `STANDARD_COST` | مبلغ | `NUMBER(24,6)` |  |  |  |  | إدخال المستخدم |  | التكلفة المعيارية |
-| 16 | `IS_ACTIVE` | منطقي Y/N | `CHAR(1 CHAR)` | ✔ | 'Y' |  | Y, N | إدخال المستخدم |  | نشط؟ |
-| 17 | `ROW_VERSION` | عدد صحيح | `NUMBER(10)` | ✔ | 1 |  |  | Trigger |  | رقم الإصدار للتحكم في التزامن المتفائل |
-| 18 | `CREATED_BY` | اسم مستخدم | `VARCHAR2(128 CHAR)` | ✔ |  |  |  | Trigger |  | منشئ السجل |
-| 19 | `CREATED_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` | ✔ | SYSTIMESTAMP |  |  | Trigger |  | وقت الإنشاء |
-| 20 | `UPDATED_BY` | اسم مستخدم | `VARCHAR2(128 CHAR)` |  |  |  |  | Trigger |  | آخر من عدل السجل |
-| 21 | `UPDATED_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` |  |  |  |  | Trigger |  | وقت آخر تعديل |
+| 16 | `EXPENSE_ACCOUNT_ID` | معرف | `NUMBER(19)` |  |  | FK→GL_ACCOUNT |  | إدخال المستخدم |  | حساب المصروف (غير المخزني والخدمات) |
+| 17 | `DEFAULT_COST_CENTER_ID` | معرف | `NUMBER(19)` |  |  | FK→GL_COST_CENTER |  | إدخال المستخدم |  | مركز التكلفة الافتراضي |
+| 18 | `DEFAULT_WAREHOUSE_ID` | معرف | `NUMBER(19)` |  |  | FK→INV_WAREHOUSE |  | إدخال المستخدم |  | المستودع الافتراضي |
+| 19 | `SALE_PRICE` | مبلغ | `NUMBER(24,6)` |  |  |  |  | إدخال المستخدم |  | سعر البيع |
+| 20 | `MIN_SALE_PRICE` | مبلغ | `NUMBER(24,6)` |  |  |  |  | إدخال المستخدم |  | أدنى سعر بيع دون موافقة |
+| 21 | `LAST_PURCHASE_PRICE` | مبلغ | `NUMBER(24,6)` |  |  |  |  | إدخال المستخدم |  | آخر سعر شراء |
+| 22 | `PRICES_INCLUDE_TAX` | منطقي Y/N | `CHAR(1 CHAR)` | ✔ | 'N' |  | Y, N | إدخال المستخدم |  | سعر البيع شامل الضريبة |
+| 23 | `IS_ACTIVE` | منطقي Y/N | `CHAR(1 CHAR)` | ✔ | 'Y' |  | Y, N | إدخال المستخدم |  | نشط؟ |
+| 24 | `ROW_VERSION` | عدد صحيح | `NUMBER(10)` | ✔ | 1 |  |  | Trigger |  | رقم الإصدار للتحكم في التزامن المتفائل |
+| 25 | `CREATED_BY` | اسم مستخدم | `VARCHAR2(128 CHAR)` | ✔ |  |  |  | Trigger |  | منشئ السجل |
+| 26 | `CREATED_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` | ✔ | SYSTIMESTAMP |  |  | Trigger |  | وقت الإنشاء |
+| 27 | `UPDATED_BY` | اسم مستخدم | `VARCHAR2(128 CHAR)` |  |  |  |  | Trigger |  | آخر من عدل السجل |
+| 28 | `UPDATED_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` |  |  |  |  | Trigger |  | وقت آخر تعديل |
 
 ## INV_WAREHOUSE
 
@@ -280,14 +360,15 @@
 | 10 | `MANAGER_EMPLOYEE_ID` | معرف | `NUMBER(19)` |  |  | FK→HR_EMPLOYEE |  | إدخال المستخدم |  | أمين المستودع |
 | 11 | `PROJECT_ID` | معرف | `NUMBER(19)` |  |  | FK→PRJ_PROJECT |  | إدخال المستخدم |  | المشروع (مستودع موقع) |
 | 12 | `ALLOW_NEGATIVE` | منطقي Y/N | `CHAR(1 CHAR)` | ✔ | 'N' |  | Y, N | إدخال المستخدم |  | يسمح بالسالب |
-| 13 | `STATUS_CODE` | رمز | `VARCHAR2(30 CHAR)` | ✔ | 'ACTIVE' |  | ACTIVE, BLOCKED, CLOSED | النظام/الحزمة |  | الحالة ضمن دورة الحياة المعتمدة |
-| 14 | `EFFECTIVE_FROM` | تاريخ | `DATE` | ✔ | TRUNC(SYSDATE) |  |  | إدخال المستخدم |  | تاريخ بداية السريان |
-| 15 | `EFFECTIVE_TO` | تاريخ | `DATE` |  |  |  |  | إدخال المستخدم |  | تاريخ نهاية السريان (فارغ = مفتوح) |
-| 16 | `ROW_VERSION` | عدد صحيح | `NUMBER(10)` | ✔ | 1 |  |  | Trigger |  | رقم الإصدار للتحكم في التزامن المتفائل |
-| 17 | `CREATED_BY` | اسم مستخدم | `VARCHAR2(128 CHAR)` | ✔ |  |  |  | Trigger |  | منشئ السجل |
-| 18 | `CREATED_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` | ✔ | SYSTIMESTAMP |  |  | Trigger |  | وقت الإنشاء |
-| 19 | `UPDATED_BY` | اسم مستخدم | `VARCHAR2(128 CHAR)` |  |  |  |  | Trigger |  | آخر من عدل السجل |
-| 20 | `UPDATED_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` |  |  |  |  | Trigger |  | وقت آخر تعديل |
+| 13 | `COST_CENTER_ID` | معرف | `NUMBER(19)` |  |  | FK→GL_COST_CENTER |  | إدخال المستخدم |  | مركز التكلفة |
+| 14 | `STATUS_CODE` | رمز | `VARCHAR2(30 CHAR)` | ✔ | 'ACTIVE' |  | ACTIVE, BLOCKED, CLOSED | النظام/الحزمة |  | الحالة ضمن دورة الحياة المعتمدة |
+| 15 | `EFFECTIVE_FROM` | تاريخ | `DATE` | ✔ | TRUNC(SYSDATE) |  |  | إدخال المستخدم |  | تاريخ بداية السريان |
+| 16 | `EFFECTIVE_TO` | تاريخ | `DATE` |  |  |  |  | إدخال المستخدم |  | تاريخ نهاية السريان (فارغ = مفتوح) |
+| 17 | `ROW_VERSION` | عدد صحيح | `NUMBER(10)` | ✔ | 1 |  |  | Trigger |  | رقم الإصدار للتحكم في التزامن المتفائل |
+| 18 | `CREATED_BY` | اسم مستخدم | `VARCHAR2(128 CHAR)` | ✔ |  |  |  | Trigger |  | منشئ السجل |
+| 19 | `CREATED_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` | ✔ | SYSTIMESTAMP |  |  | Trigger |  | وقت الإنشاء |
+| 20 | `UPDATED_BY` | اسم مستخدم | `VARCHAR2(128 CHAR)` |  |  |  |  | Trigger |  | آخر من عدل السجل |
+| 21 | `UPDATED_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` |  |  |  |  | Trigger |  | وقت آخر تعديل |
 
 ## INV_LOCATION
 

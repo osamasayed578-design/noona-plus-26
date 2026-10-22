@@ -55,6 +55,7 @@ PROMPT ========== 4/7 Core PL/SQL services
 @@plsql/101_noona_ace_pkg.sql
 @@plsql/102_noona_csh_pkg.sql
 @@plsql/103_noona_fin_rpt_pkg.sql
+@@plsql/104_noona_inv_pkg.sql
 
 PROMPT ========== 5/7 Seed: registry & reference data
 @@seed/01_registry_seed.sql
@@ -62,6 +63,7 @@ PROMPT ========== 5/7 Seed: registry & reference data
 @@seed/03_banks.sql
 @@seed/04_dms_types.sql
 @@seed/05_journal_types.sql
+@@seed/06_supply_chain.sql
 
 PROMPT ========== 6/7 Row-Level Security (VPD)
 @@security/20_noona_vpd_pkg.sql

@@ -25,6 +25,11 @@ table('INV_ITEM_CATEGORY', 'فئات الأصناف', 'Item Categories', scope='
 PARENT_CATEGORY_ID ID >INV_ITEM_CATEGORY | الفئة الأم
 DEFAULT_COSTING_METHOD CODE IN:FIFO,WEIGHTED_AVERAGE,STANDARD | طريقة التكلفة الافتراضية
 DEFAULT_TAX_CODE_ID ID >LOC_TAX_CODE | الضريبة الافتراضية
+PRODUCT_PROFILE CODE NN D='GENERAL' IN:GENERAL,AUTO_PART,PHARMA,FOOD,ELECTRONICS,APPAREL,RAW_MATERIAL | ملف الأصناف الافتراضي
+INVENTORY_ACCOUNT_ID ID >GL_ACCOUNT | حساب المخزون الافتراضي للفئة
+COGS_ACCOUNT_ID ID   >GL_ACCOUNT | حساب تكلفة المبيعات
+REVENUE_ACCOUNT_ID ID >GL_ACCOUNT | حساب الإيراد
+EXPENSE_ACCOUNT_ID ID >GL_ACCOUNT | حساب المصروف (الأصناف غير المخزنية والخدمات)
 ''', area='item')
 
 table('INV_ITEM', 'الأصناف', 'Items', scope='T', mix='pub names desc status', status='DRAFT ACTIVE INACTIVE OBSOLETE BLOCKED', cols='''
@@ -45,7 +50,35 @@ WEIGHT_KG       QTY              | الوزن
 TAX_CATEGORY    CODE             | الفئة الضريبية
 STORAGE_REQUIREMENTS V500        | متطلبات التخزين (حرارة، جودة)
 ATTRIBUTES      JSON             | خصائص إضافية
-''', ix=[('TENANT_ID', 'CATEGORY_ID'), ('TENANT_ID', 'NAME_AR')], area='item')
+ITEM_CODE       V50              | الكود المختصر (داخلي/SKU)
+PRODUCT_PROFILE CODE NN D='GENERAL' IN:GENERAL,AUTO_PART,PHARMA,FOOD,ELECTRONICS,APPAREL,RAW_MATERIAL | ملف الصنف (يحدد الحقول الخاصة)
+BRAND           V100             | العلامة التجارية
+MANUFACTURER    V200             | الشركة المصنعة
+MANUFACTURER_PART_NO V100        | رقم القطعة لدى المصنع (OEM)
+GENERIC_NAME    V200             | المادة الفعالة / الاسم العلمي
+STRENGTH        V100             | التركيز
+DOSAGE_FORM     V100             | الشكل الصيدلاني
+REQUIRES_PRESCRIPTION YN NN D='N' | يصرف بوصفة طبية
+REGULATORY_REG_NO V100           | رقم التسجيل لدى الجهة الرقابية
+''', ix=[('TENANT_ID', 'CATEGORY_ID'), ('TENANT_ID', 'NAME_AR'), ('TENANT_ID', 'MANUFACTURER_PART_NO'), ('TENANT_ID', 'GENERIC_NAME')],
+      nuk=[('TENANT_ID', 'ITEM_CODE')], area='item')
+
+table('INV_ITEM_FITMENT', 'توافق قطع الغيار مع المركبات', 'Spare Part Vehicle Fitment', scope='T', cols='''
+ITEM_ID         ID   NN >INV_ITEM | القطعة
+VEHICLE_MAKE    V100 NN          | الشركة المصنعة للمركبة
+VEHICLE_MODEL   V100             | الطراز
+YEAR_FROM       INT              | من سنة
+YEAR_TO         INT              | إلى سنة
+ENGINE          V100             | المحرك
+NOTES           V500             | ملاحظات
+''', ix=[('TENANT_ID', 'VEHICLE_MAKE', 'VEHICLE_MODEL')], area='item')
+
+table('INV_ITEM_ALTERNATE', 'البدائل والأصناف المكافئة', 'Item Alternates', scope='T', cols='''
+ITEM_ID         ID   NN >INV_ITEM | الصنف
+ALT_ITEM_ID     ID   NN >INV_ITEM | البديل
+ALT_TYPE        CODE NN D='SUBSTITUTE' IN:SUBSTITUTE,OEM_EQUIVALENT,GENERIC_EQUIVALENT,UPGRADE | نوع البدل
+NOTES           V500             | ملاحظات
+''', uk=[('ITEM_ID', 'ALT_ITEM_ID')], chk=['ITEM_ID <> ALT_ITEM_ID'], area='item')
 
 table('INV_ITEM_BARCODE', 'باركود الأصناف', 'Item Barcodes', scope='T', mix='active', cols='''
 ITEM_ID         ID   NN >INV_ITEM | الصنف
@@ -67,6 +100,13 @@ MAX_QTY         QTY              | الحد الأعلى
 REORDER_QTY     QTY              | كمية إعادة الطلب
 LEAD_TIME_DAYS  INT              | مدة التوريد
 STANDARD_COST   AMT              | التكلفة المعيارية
+EXPENSE_ACCOUNT_ID ID >GL_ACCOUNT | حساب المصروف (غير المخزني والخدمات)
+DEFAULT_COST_CENTER_ID ID >GL_COST_CENTER | مركز التكلفة الافتراضي
+DEFAULT_WAREHOUSE_ID ID >INV_WAREHOUSE | المستودع الافتراضي
+SALE_PRICE      AMT              | سعر البيع
+MIN_SALE_PRICE  AMT              | أدنى سعر بيع دون موافقة
+LAST_PURCHASE_PRICE AMT          | آخر سعر شراء
+PRICES_INCLUDE_TAX YN NN D='N'   | سعر البيع شامل الضريبة
 ''', uk=[('TENANT_ID', 'COMPANY_ID', 'ITEM_ID')], area='item')
 
 table('INV_WAREHOUSE', 'المستودعات', 'Warehouses', scope='C', mix='code names branch eff status', status='ACTIVE BLOCKED CLOSED', cols='''
@@ -75,6 +115,7 @@ WAREHOUSE_TYPE  CODE NN D='MAIN' IN:MAIN,STORE,TRANSIT,QUARANTINE,CONSIGNMENT,PR
 MANAGER_EMPLOYEE_ID ID >HR_EMPLOYEE | أمين المستودع
 PROJECT_ID      ID   >PRJ_PROJECT | المشروع (مستودع موقع)
 ALLOW_NEGATIVE  YN   NN D='N'    | يسمح بالسالب
+COST_CENTER_ID  ID   >GL_COST_CENTER | مركز التكلفة
 ''', area='location')
 
 table('INV_LOCATION', 'مواقع التخزين', 'Storage Locations', scope='C', mix='code names active', codeuk=False, cols='''

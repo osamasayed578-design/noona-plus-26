@@ -52,6 +52,11 @@ WITHHOLDING_AMOUNT AMT NN D=0    | الاستقطاع
 RETENTION_AMOUNT AMT NN D=0      | المحتجز (Retention)
 TOTAL_AMOUNT    AMT  NN D=0      | الإجمالي
 MATCH_STATUS    CODE NN D='NOT_REQUIRED' IN:NOT_REQUIRED,PENDING,MATCHED,EXCEPTION,OVERRIDDEN | حالة المطابقة
+WAREHOUSE_ID    ID   >INV_WAREHOUSE | مستودع الاستلام المباشر
+INV_TRANSACTION_ID ID >INV_TRANSACTION | حركة المخزون
+PAYMENT_MODE    CODE NN D='CREDIT' IN:CREDIT,CASH | آجل أو نقدي
+SETTLE_PLACE    V30              | الصندوق/البنك للفاتورة النقدية (BOX:n / BANK:n)
+COST_CENTER_ID  ID   >GL_COST_CENTER | مركز التكلفة الافتراضي
 DUPLICATE_CHECK_KEY V200 @CALC   | مفتاح كشف التكرار (المورد + الرقم المعياري + السنة)
 ''', uk=[('TENANT_ID', 'COMPANY_ID', 'SUPPLIER_ACCOUNT_ID', 'SUPPLIER_INVOICE_NO', 'INVOICE_TYPE')],
       ix=[('TENANT_ID', 'DUPLICATE_CHECK_KEY'), ('TENANT_ID', 'COMPANY_ID', 'STATUS_CODE')], area='invoice')
@@ -74,6 +79,10 @@ COST_CENTER_ID  ID   >GL_COST_CENTER | مركز التكلفة
 PROJECT_ID      ID   >PRJ_PROJECT | المشروع
 WBS_ID          ID   >PRJ_WBS    | بند العمل
 ASSET_ID        ID   >FA_ASSET   | الأصل (رسملة)
+DISCOUNT_AMOUNT AMT  NN D=0      | الخصم
+TAX_AMOUNT      AMT  NN D=0      | الضريبة
+LOT_NO          V100             | رقم الدفعة المستلمة
+EXPIRY_DATE     DATE             | تاريخ الانتهاء
 ''', uk=[('INVOICE_ID', 'LINE_NO')], area='invoice')
 
 table('AP_INVOICE_MATCH', 'نتائج المطابقة الثلاثية', 'Three-Way Match Results', scope='C', mix='status', status='MATCHED VARIANCE OVERRIDDEN REJECTED', cols='''
@@ -128,6 +137,7 @@ PAYMENT_METHOD_ID ID NN >REF_PAYMENT_METHOD | الطريقة
 PAYEE_BANK_ACCOUNT_ID ID >PTY_BANK_ACCOUNT | الحساب البنكي المستخدم فعلياً (Snapshot)
 PAYEE_IBAN_MASKED V40            | IBAN وقت الدفع مقنعاً
 COMPANY_BANK_ACCOUNT_ID ID >CSH_BANK_ACCOUNT | حساب الشركة
+CASH_BOX_ID     ID   >CSH_CASH_BOX | الصندوق
 CASH_TRANSACTION_ID ID >CSH_TRANSACTION | حركة البنك/الصندوق
 CHEQUE_ID       ID   >CSH_CHEQUE | الشيك
 AMOUNT          AMT  NN          | المبلغ

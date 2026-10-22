@@ -141,8 +141,10 @@ DUE_DAYS        INT  NN          | الأيام من تاريخ الأساس
 ''', uk=[('PAYMENT_TERM_ID', 'LINE_NO')])
 
 table('REF_PAYMENT_METHOD', 'طرق الدفع', 'Payment Methods', scope='T', mix='code names active', cols='''
-METHOD_TYPE     CODE NN IN:CASH,BANK_TRANSFER,CHEQUE,CARD,WALLET,GATEWAY,DIRECT_DEBIT,OFFSET | نوع الطريقة
+METHOD_TYPE     CODE NN IN:CASH,BANK_TRANSFER,CHEQUE,CARD,WALLET,GATEWAY,DIRECT_DEBIT,OFFSET,CREDIT | نوع الطريقة
 REQUIRES_REFERENCE YN NN D='N'   | يتطلب مرجعاً خارجياً
+SORT_ORDER      INT              | ترتيب العرض في نقطة البيع
+ICON_CLASS      V50              | أيقونة الزر
 ''')
 
 table('REF_BANK', 'البنوك', 'Banks', scope='TO', mix='code names active', cols='''
