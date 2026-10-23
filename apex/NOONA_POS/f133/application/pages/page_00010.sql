@@ -22,7 +22,7 @@ wwv_flow_imp_page.create_page(
 ,p_protection_level=>'C'
 );
 wwv_flow_imp_page.create_page_plug(
- p_id=>wwv_flow_imp.id(91820269000000022)
+ p_id=>wwv_flow_imp.id(91820269000000023)
 ,p_plug_name=>'العملاء'
 ,p_region_template_options=>'#DEFAULT#'
 ,p_component_template_options=>'#DEFAULT#'
@@ -42,7 +42,7 @@ wwv_flow_imp_page.create_page_plug(
 ,p_prn_page_header=>'العملاء'
 );
 wwv_flow_imp_page.create_worksheet(
- p_id=>wwv_flow_imp.id(91820269000000023)
+ p_id=>wwv_flow_imp.id(91820269000000024)
 ,p_max_row_count=>'1000000'
 ,p_no_data_found_message=>'لا توجد بيانات'
 ,p_pagination_type=>'ROWS_X_TO_Y'
@@ -56,10 +56,10 @@ wwv_flow_imp_page.create_worksheet(
 ,p_detail_link=>'f?p=&APP_ID.:11:&SESSION.::&DEBUG.:RP,11:P11_ID:#ID#'
 ,p_detail_link_text=>'<span role="img" aria-label="تعديل" class="fa fa-edit" title="فتح"></span>'
 ,p_owner=>'NOONA'
-,p_internal_uid=>91820269000000023
+,p_internal_uid=>91820269000000024
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820269000000025)
+ p_id=>wwv_flow_imp.id(91820269000000026)
 ,p_db_column_name=>'ID'
 ,p_display_order=>10
 ,p_column_identifier=>'A'
@@ -70,7 +70,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820269000000026)
+ p_id=>wwv_flow_imp.id(91820269000000027)
 ,p_db_column_name=>'CUSTOMER_NO'
 ,p_display_order=>20
 ,p_column_identifier=>'B'
@@ -80,7 +80,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820269000000027)
+ p_id=>wwv_flow_imp.id(91820269000000028)
 ,p_db_column_name=>'NAME_AR'
 ,p_display_order=>30
 ,p_column_identifier=>'C'
@@ -90,7 +90,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820269000000028)
+ p_id=>wwv_flow_imp.id(91820269000000029)
 ,p_db_column_name=>'KIND'
 ,p_display_order=>40
 ,p_column_identifier=>'D'
@@ -100,7 +100,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820269000000029)
+ p_id=>wwv_flow_imp.id(91820269000000030)
 ,p_db_column_name=>'TAX_NUMBER'
 ,p_display_order=>50
 ,p_column_identifier=>'E'
@@ -110,7 +110,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820269000000030)
+ p_id=>wwv_flow_imp.id(91820269000000031)
 ,p_db_column_name=>'PHONE'
 ,p_display_order=>60
 ,p_column_identifier=>'F'
@@ -120,7 +120,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820269000000031)
+ p_id=>wwv_flow_imp.id(91820269000000032)
 ,p_db_column_name=>'TERM'
 ,p_display_order=>70
 ,p_column_identifier=>'G'
@@ -130,7 +130,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820269000000032)
+ p_id=>wwv_flow_imp.id(91820269000000033)
 ,p_db_column_name=>'CREDIT_LIMIT'
 ,p_display_order=>80
 ,p_column_identifier=>'H'
@@ -140,7 +140,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820269000000033)
+ p_id=>wwv_flow_imp.id(91820269000000034)
 ,p_db_column_name=>'BALANCE'
 ,p_display_order=>90
 ,p_column_identifier=>'I'
@@ -150,7 +150,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820269000000034)
+ p_id=>wwv_flow_imp.id(91820269000000035)
 ,p_db_column_name=>'OVERDUE'
 ,p_display_order=>100
 ,p_column_identifier=>'J'
@@ -160,7 +160,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820269000000035)
+ p_id=>wwv_flow_imp.id(91820269000000036)
 ,p_db_column_name=>'STATUS_HTML'
 ,p_display_order=>110
 ,p_column_identifier=>'K'
@@ -171,18 +171,18 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_rpt(
- p_id=>wwv_flow_imp.id(91820269000000024)
+ p_id=>wwv_flow_imp.id(91820269000000025)
 ,p_application_user=>'APXWS_DEFAULT'
 ,p_report_seq=>10
-,p_report_alias=>'24'
+,p_report_alias=>'25'
 ,p_status=>'PUBLIC'
 ,p_is_default=>'Y'
 ,p_report_columns=>'CUSTOMER_NO:NAME_AR:KIND:TAX_NUMBER:PHONE:TERM:CREDIT_LIMIT:BALANCE:OVERDUE:STATUS_HTML'
 );
 wwv_flow_imp_page.create_page_button(
- p_id=>wwv_flow_imp.id(91820269000000036)
+ p_id=>wwv_flow_imp.id(91820269000000037)
 ,p_button_sequence=>10
-,p_button_plug_id=>wwv_flow_imp.id(91820269000000022)
+,p_button_plug_id=>wwv_flow_imp.id(91820269000000023)
 ,p_button_name=>'NEW'
 ,p_button_action=>'REDIRECT_URL'
 ,p_button_template_options=>'#DEFAULT#'

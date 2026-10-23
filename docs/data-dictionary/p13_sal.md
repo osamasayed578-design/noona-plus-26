@@ -28,6 +28,10 @@ Quotation → Sales Order → Reservation → Delivery → Sales Invoice → Col
 | [`POS_PAYMENT`](#pos_payment) | مدفوعات نقاط البيع | POS Payments | C | INTERNAL |
 | [`POS_CASH_MOVEMENT`](#pos_cash_movement) | حركات الدرج النقدية | Drawer Cash Movements | C | INTERNAL |
 | [`POS_OVERRIDE`](#pos_override) | موافقات المشرف السريعة | Supervisor Overrides | C | INTERNAL |
+| [`RST_AREA`](#rst_area) | صالات المطعم | Restaurant Dining Areas | C | INTERNAL |
+| [`RST_TABLE`](#rst_table) | طاولات المطعم | Restaurant Tables | C | INTERNAL |
+| [`RST_ORDER`](#rst_order) | طلبات المطعم | Restaurant Orders | C | INTERNAL |
+| [`RST_ORDER_LINE`](#rst_order_line) | أصناف طلبات المطعم | Restaurant Order Lines | C | INTERNAL |
 
 ## SAL_PRICE_LIST
 
@@ -791,4 +795,147 @@ Quotation → Sales Order → Reservation → Delivery → Sales Invoice → Col
 | 10 | `NEW_VALUE` | نص | `VARCHAR2(200 CHAR)` |  |  |  |  | إدخال المستخدم |  | القيمة الجديدة |
 | 11 | `CREATED_BY` | اسم مستخدم | `VARCHAR2(128 CHAR)` | ✔ |  |  |  | Trigger |  | منشئ السجل |
 | 12 | `CREATED_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` | ✔ | SYSTIMESTAMP |  |  | Trigger |  | وقت الإنشاء UTC |
+
+## RST_AREA
+
+| البند | القيمة |
+|---|---|
+| الاسم العربي | صالات المطعم |
+| English | Restaurant Dining Areas |
+| الحزمة المالكة | 13 — `NOONA_SALES_PKG` |
+| نطاق الملكية | `C` — مملوك للشركة Company-Owned |
+| الحساسية | INTERNAL |
+| النمط | قابل للتعديل وفق دورة الحياة |
+| مفاتيح فريدة | UK2: (TENANT_ID, COMPANY_ID, CODE) |
+
+| # | العمود | النوع المنطقي | Oracle Type | إلزامي | افتراضي | مفاتيح | القيم المقبولة | المصدر | PII | الوصف |
+|---:|---|---|---|:---:|---|---|---|---|:---:|---|
+| 1 | `ID` | معرف | `NUMBER(19)` | ✔ |  | PK |  | النظام/الحزمة |  | المفتاح الداخلي الثابت (Identity) - لا يعاد استخدامه |
+| 2 | `TENANT_ID` | معرف | `NUMBER(19)` | ✔ |  | FK→PLT_TENANT UK2 |  | Security Context |  | المؤسسة المالكة؛ يملأ من Security Context الموثوق لا من مدخلات المستخدم |
+| 3 | `COMPANY_ID` | معرف | `NUMBER(19)` | ✔ |  | FK→ORG_COMPANY UK2 |  | Security Context |  | الشركة (الكيان القانوني) المالكة للسجل |
+| 4 | `CODE` | نص | `VARCHAR2(50 CHAR)` | ✔ |  | UK2 |  | إدخال المستخدم |  | الرمز الفريد ضمن النطاق |
+| 5 | `NAME_AR` | اسم | `VARCHAR2(200 CHAR)` | ✔ |  |  |  | إدخال المستخدم |  | الاسم بالعربية |
+| 6 | `NAME_EN` | اسم | `VARCHAR2(200 CHAR)` |  |  |  |  | إدخال المستخدم |  | الاسم بالإنجليزية |
+| 7 | `TERMINAL_ID` | معرف | `NUMBER(19)` |  |  | FK→POS_TERMINAL |  | إدخال المستخدم |  | نقطة البيع التي تحاسب طاولات الصالة |
+| 8 | `SORT_ORDER` | عدد صحيح | `NUMBER(10)` | ✔ | 0 |  |  | إدخال المستخدم |  | الترتيب |
+| 9 | `STATUS_CODE` | رمز | `VARCHAR2(30 CHAR)` | ✔ | 'ACTIVE' |  | ACTIVE, INACTIVE | النظام/الحزمة |  | الحالة ضمن دورة الحياة المعتمدة |
+| 10 | `ROW_VERSION` | عدد صحيح | `NUMBER(10)` | ✔ | 1 |  |  | Trigger |  | رقم الإصدار للتحكم في التزامن المتفائل |
+| 11 | `CREATED_BY` | اسم مستخدم | `VARCHAR2(128 CHAR)` | ✔ |  |  |  | Trigger |  | منشئ السجل |
+| 12 | `CREATED_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` | ✔ | SYSTIMESTAMP |  |  | Trigger |  | وقت الإنشاء |
+| 13 | `UPDATED_BY` | اسم مستخدم | `VARCHAR2(128 CHAR)` |  |  |  |  | Trigger |  | آخر من عدل السجل |
+| 14 | `UPDATED_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` |  |  |  |  | Trigger |  | وقت آخر تعديل |
+
+## RST_TABLE
+
+| البند | القيمة |
+|---|---|
+| الاسم العربي | طاولات المطعم |
+| English | Restaurant Tables |
+| الحزمة المالكة | 13 — `NOONA_SALES_PKG` |
+| نطاق الملكية | `C` — مملوك للشركة Company-Owned |
+| الحساسية | INTERNAL |
+| النمط | قابل للتعديل وفق دورة الحياة |
+| مفاتيح فريدة | UK2: (TENANT_ID, COMPANY_ID, CODE) |
+
+| # | العمود | النوع المنطقي | Oracle Type | إلزامي | افتراضي | مفاتيح | القيم المقبولة | المصدر | PII | الوصف |
+|---:|---|---|---|:---:|---|---|---|---|:---:|---|
+| 1 | `ID` | معرف | `NUMBER(19)` | ✔ |  | PK |  | النظام/الحزمة |  | المفتاح الداخلي الثابت (Identity) - لا يعاد استخدامه |
+| 2 | `TENANT_ID` | معرف | `NUMBER(19)` | ✔ |  | FK→PLT_TENANT UK2 |  | Security Context |  | المؤسسة المالكة؛ يملأ من Security Context الموثوق لا من مدخلات المستخدم |
+| 3 | `COMPANY_ID` | معرف | `NUMBER(19)` | ✔ |  | FK→ORG_COMPANY UK2 |  | Security Context |  | الشركة (الكيان القانوني) المالكة للسجل |
+| 4 | `CODE` | نص | `VARCHAR2(50 CHAR)` | ✔ |  | UK2 |  | إدخال المستخدم |  | الرمز الفريد ضمن النطاق |
+| 5 | `NAME_AR` | اسم | `VARCHAR2(200 CHAR)` | ✔ |  |  |  | إدخال المستخدم |  | الاسم بالعربية |
+| 6 | `NAME_EN` | اسم | `VARCHAR2(200 CHAR)` |  |  |  |  | إدخال المستخدم |  | الاسم بالإنجليزية |
+| 7 | `AREA_ID` | معرف | `NUMBER(19)` | ✔ |  | FK→RST_AREA |  | إدخال المستخدم |  | الصالة |
+| 8 | `SEATS` | عدد صحيح | `NUMBER(10)` | ✔ | 4 |  |  | إدخال المستخدم |  | عدد المقاعد |
+| 9 | `SHAPE` | رمز | `VARCHAR2(30 CHAR)` | ✔ | 'SQUARE' |  | SQUARE, ROUND, LONG, BOOTH | إدخال المستخدم |  | الشكل |
+| 10 | `SORT_ORDER` | عدد صحيح | `NUMBER(10)` | ✔ | 0 |  |  | إدخال المستخدم |  | الترتيب |
+| 11 | `STATUS_CODE` | رمز | `VARCHAR2(30 CHAR)` | ✔ | 'ACTIVE' |  | ACTIVE, INACTIVE | النظام/الحزمة |  | الحالة ضمن دورة الحياة المعتمدة |
+| 12 | `ROW_VERSION` | عدد صحيح | `NUMBER(10)` | ✔ | 1 |  |  | Trigger |  | رقم الإصدار للتحكم في التزامن المتفائل |
+| 13 | `CREATED_BY` | اسم مستخدم | `VARCHAR2(128 CHAR)` | ✔ |  |  |  | Trigger |  | منشئ السجل |
+| 14 | `CREATED_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` | ✔ | SYSTIMESTAMP |  |  | Trigger |  | وقت الإنشاء |
+| 15 | `UPDATED_BY` | اسم مستخدم | `VARCHAR2(128 CHAR)` |  |  |  |  | Trigger |  | آخر من عدل السجل |
+| 16 | `UPDATED_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` |  |  |  |  | Trigger |  | وقت آخر تعديل |
+
+## RST_ORDER
+
+| البند | القيمة |
+|---|---|
+| الاسم العربي | طلبات المطعم |
+| English | Restaurant Orders |
+| الحزمة المالكة | 13 — `NOONA_SALES_PKG` |
+| نطاق الملكية | `C` — مملوك للشركة Company-Owned |
+| الحساسية | INTERNAL |
+| النمط | قابل للتعديل وفق دورة الحياة |
+| مفاتيح فريدة | UK2: (TENANT_ID, COMPANY_ID, ORDER_NO) |
+
+| # | العمود | النوع المنطقي | Oracle Type | إلزامي | افتراضي | مفاتيح | القيم المقبولة | المصدر | PII | الوصف |
+|---:|---|---|---|:---:|---|---|---|---|:---:|---|
+| 1 | `ID` | معرف | `NUMBER(19)` | ✔ |  | PK |  | النظام/الحزمة |  | المفتاح الداخلي الثابت (Identity) - لا يعاد استخدامه |
+| 2 | `TENANT_ID` | معرف | `NUMBER(19)` | ✔ |  | FK→PLT_TENANT UK2 |  | Security Context |  | المؤسسة المالكة؛ يملأ من Security Context الموثوق لا من مدخلات المستخدم |
+| 3 | `COMPANY_ID` | معرف | `NUMBER(19)` | ✔ |  | FK→ORG_COMPANY UK2 |  | Security Context |  | الشركة (الكيان القانوني) المالكة للسجل |
+| 4 | `BRANCH_ID` | معرف | `NUMBER(19)` |  |  | FK→ORG_BRANCH |  | إدخال المستخدم |  | الفرع |
+| 5 | `ORDER_NO` | نص | `VARCHAR2(50 CHAR)` | ✔ |  | UK2 |  | إدخال المستخدم |  | رقم الطلب |
+| 6 | `ORDER_TYPE` | رمز | `VARCHAR2(30 CHAR)` | ✔ | 'DINE_IN' |  | DINE_IN, TAKEAWAY, DELIVERY | إدخال المستخدم |  | النوع (صالة، سفري، توصيل) |
+| 7 | `TERMINAL_ID` | معرف | `NUMBER(19)` | ✔ |  | FK→POS_TERMINAL |  | إدخال المستخدم |  | نقطة البيع |
+| 8 | `TABLE_ID` | معرف | `NUMBER(19)` |  |  | FK→RST_TABLE |  | إدخال المستخدم |  | الطاولة |
+| 9 | `GUESTS` | عدد صحيح | `NUMBER(10)` |  |  |  |  | إدخال المستخدم |  | عدد الأشخاص |
+| 10 | `WAITER_NAME` | نص | `VARCHAR2(100 CHAR)` |  |  |  |  | إدخال المستخدم |  | النادل |
+| 11 | `CUSTOMER_ACCOUNT_ID` | معرف | `NUMBER(19)` |  |  | FK→AR_CUSTOMER_ACCOUNT |  | إدخال المستخدم |  | العميل (للآجل) |
+| 12 | `CUSTOMER_NAME` | نص | `VARCHAR2(200 CHAR)` |  |  |  |  | إدخال المستخدم |  | اسم العميل/صاحب الطلب |
+| 13 | `CUSTOMER_PHONE` | نص | `VARCHAR2(30 CHAR)` |  |  |  |  | إدخال المستخدم |  | الجوال |
+| 14 | `DELIVERY_ADDRESS` | نص | `VARCHAR2(500 CHAR)` |  |  |  |  | إدخال المستخدم |  | عنوان التوصيل |
+| 15 | `OPENED_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` | ✔ | SYSTIMESTAMP |  |  | إدخال المستخدم |  | وقت الفتح |
+| 16 | `BILLED_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` |  |  |  |  | إدخال المستخدم |  | وقت طباعة الحساب |
+| 17 | `CLOSED_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` |  |  |  |  | إدخال المستخدم |  | وقت السداد/الإقفال |
+| 18 | `KITCHEN_ROUND` | عدد صحيح | `NUMBER(10)` | ✔ | 0 |  |  | إدخال المستخدم |  | آخر دفعة للمطبخ |
+| 19 | `DISCOUNT_PCT` | نسبة | `NUMBER(9,6)` |  |  |  |  | إدخال المستخدم |  | نسبة الخصم على الحساب |
+| 20 | `SUBTOTAL` | مبلغ | `NUMBER(24,6)` | ✔ | 0 |  |  | إدخال المستخدم |  | قبل الضريبة |
+| 21 | `TAX_AMOUNT` | مبلغ | `NUMBER(24,6)` | ✔ | 0 |  |  | إدخال المستخدم |  | الضريبة |
+| 22 | `TOTAL_AMOUNT` | مبلغ | `NUMBER(24,6)` | ✔ | 0 |  |  | إدخال المستخدم |  | الإجمالي |
+| 23 | `SETTLE_MODE` | رمز | `VARCHAR2(30 CHAR)` |  |  |  | PAID, CREDIT, MIXED | إدخال المستخدم |  | طريقة الإقفال (مدفوع، آجل، مختلط) |
+| 24 | `POS_SALE_ID` | معرف | `NUMBER(19)` |  |  | FK→POS_SALE |  | إدخال المستخدم |  | إيصال نقطة البيع |
+| 25 | `CANCEL_REASON` | نص | `VARCHAR2(500 CHAR)` |  |  |  |  | إدخال المستخدم |  | سبب الإلغاء |
+| 26 | `NOTES` | نص | `VARCHAR2(500 CHAR)` |  |  |  |  | إدخال المستخدم |  | ملاحظات |
+| 27 | `STATUS_CODE` | رمز | `VARCHAR2(30 CHAR)` | ✔ | 'OPEN' |  | OPEN, BILLED, PAID, CHARGED, CANCELLED | النظام/الحزمة |  | الحالة ضمن دورة الحياة المعتمدة |
+| 28 | `ROW_VERSION` | عدد صحيح | `NUMBER(10)` | ✔ | 1 |  |  | Trigger |  | رقم الإصدار للتحكم في التزامن المتفائل |
+| 29 | `CREATED_BY` | اسم مستخدم | `VARCHAR2(128 CHAR)` | ✔ |  |  |  | Trigger |  | منشئ السجل |
+| 30 | `CREATED_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` | ✔ | SYSTIMESTAMP |  |  | Trigger |  | وقت الإنشاء |
+| 31 | `UPDATED_BY` | اسم مستخدم | `VARCHAR2(128 CHAR)` |  |  |  |  | Trigger |  | آخر من عدل السجل |
+| 32 | `UPDATED_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` |  |  |  |  | Trigger |  | وقت آخر تعديل |
+
+## RST_ORDER_LINE
+
+| البند | القيمة |
+|---|---|
+| الاسم العربي | أصناف طلبات المطعم |
+| English | Restaurant Order Lines |
+| الحزمة المالكة | 13 — `NOONA_SALES_PKG` |
+| نطاق الملكية | `C` — مملوك للشركة Company-Owned |
+| الحساسية | INTERNAL |
+| النمط | قابل للتعديل وفق دورة الحياة |
+| مفاتيح فريدة | UK1: (ORDER_ID, LINE_NO) |
+| قيود أعمال | QUANTITY > 0 |
+
+| # | العمود | النوع المنطقي | Oracle Type | إلزامي | افتراضي | مفاتيح | القيم المقبولة | المصدر | PII | الوصف |
+|---:|---|---|---|:---:|---|---|---|---|:---:|---|
+| 1 | `ID` | معرف | `NUMBER(19)` | ✔ |  | PK |  | النظام/الحزمة |  | المفتاح الداخلي الثابت (Identity) - لا يعاد استخدامه |
+| 2 | `TENANT_ID` | معرف | `NUMBER(19)` | ✔ |  | FK→PLT_TENANT |  | Security Context |  | المؤسسة المالكة؛ يملأ من Security Context الموثوق لا من مدخلات المستخدم |
+| 3 | `COMPANY_ID` | معرف | `NUMBER(19)` | ✔ |  | FK→ORG_COMPANY |  | Security Context |  | الشركة (الكيان القانوني) المالكة للسجل |
+| 4 | `ORDER_ID` | معرف | `NUMBER(19)` | ✔ |  | FK→RST_ORDER UK1 |  | إدخال المستخدم |  | الطلب |
+| 5 | `LINE_NO` | عدد صحيح | `NUMBER(10)` | ✔ |  | UK1 |  | إدخال المستخدم |  | السطر |
+| 6 | `ITEM_ID` | معرف | `NUMBER(19)` | ✔ |  | FK→INV_ITEM |  | إدخال المستخدم |  | الصنف |
+| 7 | `QUANTITY` | كمية | `NUMBER(24,6)` | ✔ |  |  |  | إدخال المستخدم |  | الكمية |
+| 8 | `UNIT_PRICE` | مبلغ | `NUMBER(24,6)` | ✔ |  |  |  | إدخال المستخدم |  | سعر الوحدة شامل الضريبة |
+| 9 | `LINE_TOTAL` | مبلغ | `NUMBER(24,6)` | ✔ |  |  |  | إدخال المستخدم |  | الإجمالي شامل الضريبة |
+| 10 | `NOTES` | نص | `VARCHAR2(200 CHAR)` |  |  |  |  | إدخال المستخدم |  | ملاحظات التحضير (بدون بصل، حار...) |
+| 11 | `KITCHEN_STATUS` | رمز | `VARCHAR2(30 CHAR)` | ✔ | 'NEW' |  | NEW, SENT, READY, SERVED, VOID | إدخال المستخدم |  | حالة المطبخ |
+| 12 | `ROUND_NO` | عدد صحيح | `NUMBER(10)` |  |  |  |  | إدخال المستخدم |  | دفعة الإرسال للمطبخ |
+| 13 | `SENT_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` |  |  |  |  | إدخال المستخدم |  | وقت الإرسال |
+| 14 | `READY_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` |  |  |  |  | إدخال المستخدم |  | وقت الجاهزية |
+| 15 | `VOID_REASON` | نص | `VARCHAR2(200 CHAR)` |  |  |  |  | إدخال المستخدم |  | سبب الإلغاء |
+| 16 | `ROW_VERSION` | عدد صحيح | `NUMBER(10)` | ✔ | 1 |  |  | Trigger |  | رقم الإصدار للتحكم في التزامن المتفائل |
+| 17 | `CREATED_BY` | اسم مستخدم | `VARCHAR2(128 CHAR)` | ✔ |  |  |  | Trigger |  | منشئ السجل |
+| 18 | `CREATED_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` | ✔ | SYSTIMESTAMP |  |  | Trigger |  | وقت الإنشاء |
+| 19 | `UPDATED_BY` | اسم مستخدم | `VARCHAR2(128 CHAR)` |  |  |  |  | Trigger |  | آخر من عدل السجل |
+| 20 | `UPDATED_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` |  |  |  |  | Trigger |  | وقت آخر تعديل |
 

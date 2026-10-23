@@ -121,6 +121,18 @@ wwv_flow_imp_page.create_page_button(
 );
 wwv_flow_imp_page.create_page_button(
  p_id=>wwv_flow_imp.id(91820269000000016)
+,p_button_sequence=>15
+,p_button_plug_id=>wwv_flow_imp.id(91820269000000014)
+,p_button_name=>'RESTAURANT'
+,p_button_action=>'REDIRECT_URL'
+,p_button_template_options=>'#DEFAULT#'
+,p_button_template_id=>4072362960822175091
+,p_button_image_alt=>'المطعم والكافتريا'
+,p_button_position=>'NEXT'
+,p_button_redirect_url=>'f?p=&APP_ID.:61:&SESSION.::&DEBUG.:::'
+);
+wwv_flow_imp_page.create_page_button(
+ p_id=>wwv_flow_imp.id(91820269000000017)
 ,p_button_sequence=>20
 ,p_button_plug_id=>wwv_flow_imp.id(91820269000000014)
 ,p_button_name=>'NEW_SI'
@@ -132,7 +144,7 @@ wwv_flow_imp_page.create_page_button(
 ,p_button_redirect_url=>'f?p=&APP_ID.:21:&SESSION.::&DEBUG.:RP,21::'
 );
 wwv_flow_imp_page.create_page_button(
- p_id=>wwv_flow_imp.id(91820269000000017)
+ p_id=>wwv_flow_imp.id(91820269000000018)
 ,p_button_sequence=>30
 ,p_button_plug_id=>wwv_flow_imp.id(91820269000000014)
 ,p_button_name=>'RECEIVE'
@@ -144,7 +156,7 @@ wwv_flow_imp_page.create_page_button(
 ,p_button_redirect_url=>'f?p=&APP_ID.:24:&SESSION.::&DEBUG.:RP,24::'
 );
 wwv_flow_imp_page.create_page_button(
- p_id=>wwv_flow_imp.id(91820269000000018)
+ p_id=>wwv_flow_imp.id(91820269000000019)
 ,p_button_sequence=>40
 ,p_button_plug_id=>wwv_flow_imp.id(91820269000000014)
 ,p_button_name=>'NEW_CUST'
@@ -156,7 +168,7 @@ wwv_flow_imp_page.create_page_button(
 ,p_button_redirect_url=>'f?p=&APP_ID.:11:&SESSION.::&DEBUG.:RP,11::'
 );
 wwv_flow_imp_page.create_page_button(
- p_id=>wwv_flow_imp.id(91820269000000019)
+ p_id=>wwv_flow_imp.id(91820269000000020)
 ,p_button_sequence=>50
 ,p_button_plug_id=>wwv_flow_imp.id(91820269000000014)
 ,p_button_name=>'CLOSE_SHIFT'
@@ -168,7 +180,7 @@ wwv_flow_imp_page.create_page_button(
 ,p_button_redirect_url=>'f?p=&APP_ID.:32:&SESSION.::&DEBUG.:::'
 );
 wwv_flow_imp_page.create_page_button(
- p_id=>wwv_flow_imp.id(91820269000000020)
+ p_id=>wwv_flow_imp.id(91820269000000021)
 ,p_button_sequence=>60
 ,p_button_plug_id=>wwv_flow_imp.id(91820269000000014)
 ,p_button_name=>'REPORTS'
@@ -180,7 +192,7 @@ wwv_flow_imp_page.create_page_button(
 ,p_button_redirect_url=>'f?p=&APP_ID.:50:&SESSION.::&DEBUG.:::'
 );
 wwv_flow_imp_page.create_page_branch(
- p_id=>wwv_flow_imp.id(91820269000000021)
+ p_id=>wwv_flow_imp.id(91820269000000022)
 ,p_branch_action=>'f?p=&APP_ID.:1:&SESSION.::&DEBUG.:::&success_msg=#SUCCESS_MSG#'
 ,p_branch_point=>'AFTER_PROCESSING'
 ,p_branch_type=>'REDIRECT_URL'

@@ -22,7 +22,7 @@ wwv_flow_imp_page.create_page(
 ,p_protection_level=>'C'
 );
 wwv_flow_imp_page.create_page_plug(
- p_id=>wwv_flow_imp.id(91820269000000147)
+ p_id=>wwv_flow_imp.id(91820269000000148)
 ,p_plug_name=>'اختر نقطة البيع'
 ,p_region_template_options=>'#DEFAULT#:t-Region--scrollBody'
 ,p_component_template_options=>'#DEFAULT#'
@@ -41,7 +41,7 @@ wwv_flow_imp_page.create_page_plug(
 ,p_prn_page_header=>'اختر نقطة البيع'
 );
 wwv_flow_imp_page.create_worksheet(
- p_id=>wwv_flow_imp.id(91820269000000148)
+ p_id=>wwv_flow_imp.id(91820269000000149)
 ,p_max_row_count=>'1000000'
 ,p_no_data_found_message=>'لا توجد بيانات'
 ,p_pagination_type=>'ROWS_X_TO_Y'
@@ -53,10 +53,10 @@ wwv_flow_imp_page.create_worksheet(
 ,p_download_formats=>'CSV:HTML:XLSX:PDF'
 ,p_enable_mail_download=>'N'
 ,p_owner=>'NOONA'
-,p_internal_uid=>91820269000000148
+,p_internal_uid=>91820269000000149
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820269000000150)
+ p_id=>wwv_flow_imp.id(91820269000000151)
 ,p_db_column_name=>'ID'
 ,p_display_order=>10
 ,p_column_identifier=>'A'
@@ -67,7 +67,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820269000000151)
+ p_id=>wwv_flow_imp.id(91820269000000152)
 ,p_db_column_name=>'CODE'
 ,p_display_order=>20
 ,p_column_identifier=>'B'
@@ -77,7 +77,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820269000000152)
+ p_id=>wwv_flow_imp.id(91820269000000153)
 ,p_db_column_name=>'NAME_AR'
 ,p_display_order=>30
 ,p_column_identifier=>'C'
@@ -87,7 +87,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820269000000153)
+ p_id=>wwv_flow_imp.id(91820269000000154)
 ,p_db_column_name=>'WAREHOUSE'
 ,p_display_order=>40
 ,p_column_identifier=>'D'
@@ -97,7 +97,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820269000000154)
+ p_id=>wwv_flow_imp.id(91820269000000155)
 ,p_db_column_name=>'DRAWER'
 ,p_display_order=>50
 ,p_column_identifier=>'E'
@@ -107,7 +107,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820269000000155)
+ p_id=>wwv_flow_imp.id(91820269000000156)
 ,p_db_column_name=>'OPEN_SHIFT'
 ,p_display_order=>60
 ,p_column_identifier=>'F'
@@ -117,7 +117,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820269000000156)
+ p_id=>wwv_flow_imp.id(91820269000000157)
 ,p_db_column_name=>'CASHIER'
 ,p_display_order=>70
 ,p_column_identifier=>'G'
@@ -127,7 +127,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820269000000157)
+ p_id=>wwv_flow_imp.id(91820269000000158)
 ,p_db_column_name=>'GO'
 ,p_display_order=>80
 ,p_column_identifier=>'H'
@@ -140,10 +140,10 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_rpt(
- p_id=>wwv_flow_imp.id(91820269000000149)
+ p_id=>wwv_flow_imp.id(91820269000000150)
 ,p_application_user=>'APXWS_DEFAULT'
 ,p_report_seq=>10
-,p_report_alias=>'149'
+,p_report_alias=>'150'
 ,p_status=>'PUBLIC'
 ,p_is_default=>'Y'
 ,p_report_columns=>'CODE:NAME_AR:WAREHOUSE:DRAWER:OPEN_SHIFT:CASHIER:GO'

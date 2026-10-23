@@ -1,0 +1,256 @@
+prompt --application/pages/page_00066
+begin
+--   Manifest
+--     PAGE: 00066
+--   Manifest End
+wwv_flow_imp.component_begin (
+ p_version_yyyy_mm_dd=>'2024.11.30'
+,p_release=>'24.2.0'
+,p_default_workspace_id=>17663301221950901
+,p_default_application_id=>133
+,p_default_id_offset=>0
+,p_default_owner=>'NOONA_APP'
+);
+wwv_flow_imp_page.create_page(
+ p_id=>66
+,p_name=>'Restaurant Orders'
+,p_alias=>'RESTAURANT-ORDERS'
+,p_step_title=>'سجل طلبات المطعم'
+,p_autocomplete_on_off=>'OFF'
+,p_page_template_options=>'#DEFAULT#'
+,p_required_role=>wwv_flow_imp.id(91820269000000002)
+,p_protection_level=>'C'
+);
+wwv_flow_imp_page.create_page_plug(
+ p_id=>wwv_flow_imp.id(91820269000000340)
+,p_plug_name=>'الطلبات'
+,p_region_template_options=>'#DEFAULT#:t-Region--scrollBody'
+,p_component_template_options=>'#DEFAULT#'
+,p_plug_template=>4072358936313175081
+,p_plug_display_sequence=>10
+,p_query_type=>'SQL'
+,p_plug_source=>wwv_flow_string.join(wwv_flow_t_varchar2(
+'select o.id, o.order_no, to_char(o.opened_at, ''YYYY-MM-DD HH24:MI'') as opened, noona_rst_pkg.type_label(o.order_type) as otype,',
+'       t.code as tbl, o.guests, o.waiter_name, nvl(o.customer_name, noona_sal_pkg.customer_label(o.customer_account_id)) as cust,',
+'       o.customer_phone, noona_rst_pkg.status_label(o.status_code) as status,',
+'       case o.settle_mode when ''PAID'' then ''مدفوع'' when ''CREDIT'' then ''آجل'' when ''MIXED'' then ''مختلط'' end as settle,',
+'       o.discount_pct, o.total_amount, s.receipt_no, o.pos_sale_id, to_char(o.closed_at, ''YYYY-MM-DD HH24:MI'') as closed, o.cancel_reason,',
+'       case when o.pos_sale_id is not null then ''<span class="fa fa-print" aria-hidden="true"></span> الإيصال'' end as rcpt',
+'  from rst_order o left join rst_table t on t.id = o.table_id left join pos_sale s on s.id = o.pos_sale_id',
+' where o.company_id = noona_rst_pkg.company order by o.id desc'))
+,p_plug_source_type=>'NATIVE_IR'
+,p_prn_page_header=>'الطلبات'
+);
+wwv_flow_imp_page.create_worksheet(
+ p_id=>wwv_flow_imp.id(91820269000000341)
+,p_max_row_count=>'1000000'
+,p_no_data_found_message=>'لا توجد بيانات'
+,p_pagination_type=>'ROWS_X_TO_Y'
+,p_pagination_display_pos=>'BOTTOM_RIGHT'
+,p_report_list_mode=>'TABS'
+,p_lazy_loading=>false
+,p_show_detail_link=>'N'
+,p_show_notify=>'N'
+,p_download_formats=>'CSV:HTML:XLSX:PDF'
+,p_enable_mail_download=>'N'
+,p_owner=>'NOONA'
+,p_internal_uid=>91820269000000341
+);
+wwv_flow_imp_page.create_worksheet_column(
+ p_id=>wwv_flow_imp.id(91820269000000343)
+,p_db_column_name=>'ID'
+,p_display_order=>10
+,p_column_identifier=>'A'
+,p_column_label=>'#'
+,p_column_type=>'NUMBER'
+,p_display_text_as=>'HIDDEN'
+,p_heading_alignment=>'CENTER'
+,p_use_as_row_header=>'N'
+);
+wwv_flow_imp_page.create_worksheet_column(
+ p_id=>wwv_flow_imp.id(91820269000000344)
+,p_db_column_name=>'ORDER_NO'
+,p_display_order=>20
+,p_column_identifier=>'B'
+,p_column_label=>'الطلب'
+,p_column_type=>'STRING'
+,p_heading_alignment=>'CENTER'
+,p_use_as_row_header=>'N'
+);
+wwv_flow_imp_page.create_worksheet_column(
+ p_id=>wwv_flow_imp.id(91820269000000345)
+,p_db_column_name=>'OPENED'
+,p_display_order=>30
+,p_column_identifier=>'C'
+,p_column_label=>'الفتح'
+,p_column_type=>'STRING'
+,p_heading_alignment=>'CENTER'
+,p_use_as_row_header=>'N'
+);
+wwv_flow_imp_page.create_worksheet_column(
+ p_id=>wwv_flow_imp.id(91820269000000346)
+,p_db_column_name=>'OTYPE'
+,p_display_order=>40
+,p_column_identifier=>'D'
+,p_column_label=>'النوع'
+,p_column_type=>'STRING'
+,p_heading_alignment=>'CENTER'
+,p_use_as_row_header=>'N'
+);
+wwv_flow_imp_page.create_worksheet_column(
+ p_id=>wwv_flow_imp.id(91820269000000347)
+,p_db_column_name=>'TBL'
+,p_display_order=>50
+,p_column_identifier=>'E'
+,p_column_label=>'الطاولة'
+,p_column_type=>'STRING'
+,p_heading_alignment=>'CENTER'
+,p_use_as_row_header=>'N'
+);
+wwv_flow_imp_page.create_worksheet_column(
+ p_id=>wwv_flow_imp.id(91820269000000348)
+,p_db_column_name=>'GUESTS'
+,p_display_order=>60
+,p_column_identifier=>'F'
+,p_column_label=>'الأشخاص'
+,p_column_type=>'NUMBER'
+,p_heading_alignment=>'CENTER'
+,p_use_as_row_header=>'N'
+);
+wwv_flow_imp_page.create_worksheet_column(
+ p_id=>wwv_flow_imp.id(91820269000000349)
+,p_db_column_name=>'WAITER_NAME'
+,p_display_order=>70
+,p_column_identifier=>'G'
+,p_column_label=>'النادل'
+,p_column_type=>'STRING'
+,p_heading_alignment=>'CENTER'
+,p_use_as_row_header=>'N'
+);
+wwv_flow_imp_page.create_worksheet_column(
+ p_id=>wwv_flow_imp.id(91820269000000350)
+,p_db_column_name=>'CUST'
+,p_display_order=>80
+,p_column_identifier=>'H'
+,p_column_label=>'العميل'
+,p_column_type=>'STRING'
+,p_heading_alignment=>'CENTER'
+,p_use_as_row_header=>'N'
+);
+wwv_flow_imp_page.create_worksheet_column(
+ p_id=>wwv_flow_imp.id(91820269000000351)
+,p_db_column_name=>'CUSTOMER_PHONE'
+,p_display_order=>90
+,p_column_identifier=>'I'
+,p_column_label=>'الجوال'
+,p_column_type=>'STRING'
+,p_heading_alignment=>'CENTER'
+,p_use_as_row_header=>'N'
+);
+wwv_flow_imp_page.create_worksheet_column(
+ p_id=>wwv_flow_imp.id(91820269000000352)
+,p_db_column_name=>'STATUS'
+,p_display_order=>100
+,p_column_identifier=>'J'
+,p_column_label=>'الحالة'
+,p_column_type=>'STRING'
+,p_heading_alignment=>'CENTER'
+,p_use_as_row_header=>'N'
+);
+wwv_flow_imp_page.create_worksheet_column(
+ p_id=>wwv_flow_imp.id(91820269000000353)
+,p_db_column_name=>'SETTLE'
+,p_display_order=>110
+,p_column_identifier=>'K'
+,p_column_label=>'السداد'
+,p_column_type=>'STRING'
+,p_heading_alignment=>'CENTER'
+,p_use_as_row_header=>'N'
+);
+wwv_flow_imp_page.create_worksheet_column(
+ p_id=>wwv_flow_imp.id(91820269000000354)
+,p_db_column_name=>'DISCOUNT_PCT'
+,p_display_order=>120
+,p_column_identifier=>'L'
+,p_column_label=>'خصم %'
+,p_column_type=>'NUMBER'
+,p_heading_alignment=>'CENTER'
+,p_use_as_row_header=>'N'
+);
+wwv_flow_imp_page.create_worksheet_column(
+ p_id=>wwv_flow_imp.id(91820269000000355)
+,p_db_column_name=>'TOTAL_AMOUNT'
+,p_display_order=>130
+,p_column_identifier=>'M'
+,p_column_label=>'الإجمالي'
+,p_column_type=>'NUMBER'
+,p_heading_alignment=>'CENTER'
+,p_use_as_row_header=>'N'
+);
+wwv_flow_imp_page.create_worksheet_column(
+ p_id=>wwv_flow_imp.id(91820269000000356)
+,p_db_column_name=>'RECEIPT_NO'
+,p_display_order=>140
+,p_column_identifier=>'N'
+,p_column_label=>'الإيصال'
+,p_column_type=>'STRING'
+,p_heading_alignment=>'CENTER'
+,p_use_as_row_header=>'N'
+);
+wwv_flow_imp_page.create_worksheet_column(
+ p_id=>wwv_flow_imp.id(91820269000000357)
+,p_db_column_name=>'POS_SALE_ID'
+,p_display_order=>150
+,p_column_identifier=>'O'
+,p_column_label=>'رقم البيع'
+,p_column_type=>'NUMBER'
+,p_display_text_as=>'HIDDEN'
+,p_heading_alignment=>'CENTER'
+,p_use_as_row_header=>'N'
+);
+wwv_flow_imp_page.create_worksheet_column(
+ p_id=>wwv_flow_imp.id(91820269000000358)
+,p_db_column_name=>'CLOSED'
+,p_display_order=>160
+,p_column_identifier=>'P'
+,p_column_label=>'الإقفال'
+,p_column_type=>'STRING'
+,p_heading_alignment=>'CENTER'
+,p_use_as_row_header=>'N'
+);
+wwv_flow_imp_page.create_worksheet_column(
+ p_id=>wwv_flow_imp.id(91820269000000359)
+,p_db_column_name=>'CANCEL_REASON'
+,p_display_order=>170
+,p_column_identifier=>'Q'
+,p_column_label=>'سبب الإلغاء'
+,p_column_type=>'STRING'
+,p_heading_alignment=>'CENTER'
+,p_use_as_row_header=>'N'
+);
+wwv_flow_imp_page.create_worksheet_column(
+ p_id=>wwv_flow_imp.id(91820269000000360)
+,p_db_column_name=>'RCPT'
+,p_display_order=>180
+,p_column_identifier=>'R'
+,p_column_label=>'طباعة'
+,p_column_type=>'STRING'
+,p_display_text_as=>'WITHOUT_MODIFICATION'
+,p_column_link=>'f?p=&APP_ID.:33:&SESSION.::&DEBUG.:RP,33:P33_ID:#POS_SALE_ID#'
+,p_column_linktext=>'#RCPT#'
+,p_heading_alignment=>'CENTER'
+,p_use_as_row_header=>'N'
+);
+wwv_flow_imp_page.create_worksheet_rpt(
+ p_id=>wwv_flow_imp.id(91820269000000342)
+,p_application_user=>'APXWS_DEFAULT'
+,p_report_seq=>10
+,p_report_alias=>'342'
+,p_status=>'PUBLIC'
+,p_is_default=>'Y'
+,p_report_columns=>'ORDER_NO:OPENED:OTYPE:TBL:GUESTS:WAITER_NAME:CUST:CUSTOMER_PHONE:STATUS:SETTLE:DISCOUNT_PCT:TOTAL_AMOUNT:RECEIPT_NO:CLOSED:CANCEL_REASON:RCPT'
+);
+
+wwv_flow_imp.component_end;
+end;
+/

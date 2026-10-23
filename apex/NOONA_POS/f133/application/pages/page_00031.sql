@@ -305,7 +305,7 @@ wwv_flow_imp_page.create_page(
 ,p_protection_level=>'N'
 );
 wwv_flow_imp_page.create_page_plug(
- p_id=>wwv_flow_imp.id(91820269000000158)
+ p_id=>wwv_flow_imp.id(91820269000000159)
 ,p_plug_name=>'المحطة'
 ,p_region_template_options=>'#DEFAULT#:t-Region--noUI:t-Region--removeHeader js-removeLandmark'
 ,p_plug_template=>4072358936313175081
@@ -316,17 +316,17 @@ wwv_flow_imp_page.create_page_plug(
   'show_line_breaks', 'Y')).to_clob
 );
 wwv_flow_imp_page.create_page_item(
- p_id=>wwv_flow_imp.id(91820269000000159)
+ p_id=>wwv_flow_imp.id(91820269000000160)
 ,p_name=>'P31_TERM'
 ,p_item_sequence=>1
-,p_item_plug_id=>wwv_flow_imp.id(91820269000000158)
+,p_item_plug_id=>wwv_flow_imp.id(91820269000000159)
 ,p_display_as=>'NATIVE_HIDDEN'
 ,p_protection_level=>'N'
 ,p_attributes=>wwv_flow_t_plugin_attributes(wwv_flow_t_varchar2(
   'value_protected', 'N')).to_clob
 );
 wwv_flow_imp_page.create_page_plug(
- p_id=>wwv_flow_imp.id(91820269000000160)
+ p_id=>wwv_flow_imp.id(91820269000000161)
 ,p_plug_name=>'نقطة البيع'
 ,p_region_template_options=>'#DEFAULT#:t-Region--noUI:t-Region--removeHeader js-removeLandmark:t-Region--noUI'
 ,p_plug_template=>4072358936313175081
@@ -341,7 +341,7 @@ wwv_flow_imp_page.create_page_plug(
 ,p_plug_source_type=>'NATIVE_DYNAMIC_CONTENT'
 );
 wwv_flow_imp_page.create_page_process(
- p_id=>wwv_flow_imp.id(91820269000000161)
+ p_id=>wwv_flow_imp.id(91820269000000162)
 ,p_process_sequence=>1
 ,p_process_point=>'ON_DEMAND'
 ,p_process_type=>'NATIVE_PLSQL'
@@ -358,10 +358,10 @@ wwv_flow_imp_page.create_page_process(
 'end;'))
 ,p_process_clob_language=>'PLSQL'
 ,p_error_display_location=>'INLINE_IN_NOTIFICATION'
-,p_internal_uid=>91820269000000161
+,p_internal_uid=>91820269000000162
 );
 wwv_flow_imp_page.create_page_process(
- p_id=>wwv_flow_imp.id(91820269000000162)
+ p_id=>wwv_flow_imp.id(91820269000000163)
 ,p_process_sequence=>2
 ,p_process_point=>'ON_DEMAND'
 ,p_process_type=>'NATIVE_PLSQL'
@@ -378,10 +378,10 @@ wwv_flow_imp_page.create_page_process(
 'end;'))
 ,p_process_clob_language=>'PLSQL'
 ,p_error_display_location=>'INLINE_IN_NOTIFICATION'
-,p_internal_uid=>91820269000000162
+,p_internal_uid=>91820269000000163
 );
 wwv_flow_imp_page.create_page_process(
- p_id=>wwv_flow_imp.id(91820269000000163)
+ p_id=>wwv_flow_imp.id(91820269000000164)
 ,p_process_sequence=>3
 ,p_process_point=>'ON_DEMAND'
 ,p_process_type=>'NATIVE_PLSQL'
@@ -398,10 +398,10 @@ wwv_flow_imp_page.create_page_process(
 'end;'))
 ,p_process_clob_language=>'PLSQL'
 ,p_error_display_location=>'INLINE_IN_NOTIFICATION'
-,p_internal_uid=>91820269000000163
+,p_internal_uid=>91820269000000164
 );
 wwv_flow_imp_page.create_page_process(
- p_id=>wwv_flow_imp.id(91820269000000164)
+ p_id=>wwv_flow_imp.id(91820269000000165)
 ,p_process_sequence=>4
 ,p_process_point=>'ON_DEMAND'
 ,p_process_type=>'NATIVE_PLSQL'
@@ -418,10 +418,10 @@ wwv_flow_imp_page.create_page_process(
 'end;'))
 ,p_process_clob_language=>'PLSQL'
 ,p_error_display_location=>'INLINE_IN_NOTIFICATION'
-,p_internal_uid=>91820269000000164
+,p_internal_uid=>91820269000000165
 );
 wwv_flow_imp_page.create_page_process(
- p_id=>wwv_flow_imp.id(91820269000000165)
+ p_id=>wwv_flow_imp.id(91820269000000166)
 ,p_process_sequence=>5
 ,p_process_point=>'ON_DEMAND'
 ,p_process_type=>'NATIVE_PLSQL'
@@ -438,10 +438,10 @@ wwv_flow_imp_page.create_page_process(
 'end;'))
 ,p_process_clob_language=>'PLSQL'
 ,p_error_display_location=>'INLINE_IN_NOTIFICATION'
-,p_internal_uid=>91820269000000165
+,p_internal_uid=>91820269000000166
 );
 wwv_flow_imp_page.create_page_plug(
- p_id=>wwv_flow_imp.id(91820269000000166)
+ p_id=>wwv_flow_imp.id(91820269000000167)
 ,p_plug_name=>'الوردية'
 ,p_region_template_options=>'#DEFAULT#'
 ,p_plug_template=>4072358936313175081
@@ -455,9 +455,9 @@ wwv_flow_imp_page.create_page_plug(
   'show_line_breaks', 'Y')).to_clob
 );
 wwv_flow_imp_page.create_page_button(
- p_id=>wwv_flow_imp.id(91820269000000167)
+ p_id=>wwv_flow_imp.id(91820269000000168)
 ,p_button_sequence=>10
-,p_button_plug_id=>wwv_flow_imp.id(91820269000000166)
+,p_button_plug_id=>wwv_flow_imp.id(91820269000000167)
 ,p_button_name=>'CLOSE_SHIFT'
 ,p_button_action=>'REDIRECT_URL'
 ,p_button_template_options=>'#DEFAULT#'

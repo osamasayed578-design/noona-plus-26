@@ -18,7 +18,7 @@
 | 10 | النقدية والبنوك | Cash & Banks | 13 | [p10_csh](p10_csh.md) |
 | 11 | المخزون والبيانات السلعية | Inventory & Item Master | 25 | [p11_inv](p11_inv.md) |
 | 12 | المشتريات | Procurement | 17 | [p12_pur](p12_pur.md) |
-| 13 | المبيعات ونقاط البيع | Sales & Point of Sale | 20 | [p13_sal](p13_sal.md) |
+| 13 | المبيعات ونقاط البيع | Sales & Point of Sale | 24 | [p13_sal](p13_sal.md) |
 | 14 | الأصول الثابتة | Fixed Assets | 11 | [p14_fa](p14_fa.md) |
 | 15 | المشروعات والمقاولات والإنشاءات | Projects, Contracting & Construction | 15 | [p15_prj](p15_prj.md) |
 | 16 | التطوير العقاري وبيع الوحدات | Real Estate Development & Unit Sales | 17 | [p16_re](p16_re.md) |
@@ -37,7 +37,7 @@
 | 29 | النشر الإنتاجي والإصدارات | Deployment & Release Management | 6 | [p29_dep](p29_dep.md) |
 | 30 | التشغيل والدعم والتطوير المستمر | Operations, Support & Continuous Improvement | 12 | [p30_ops](p30_ops.md) |
 
-**الإجمالي: 574 جدول.**
+**الإجمالي: 578 جدول.**
 
 ## خريطة اعتماديات الحزم
 

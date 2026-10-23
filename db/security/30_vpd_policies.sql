@@ -475,6 +475,10 @@ BEGIN
   NOONA_VPD_PKG.add_tenant_policy('RE_TITLE_TRANSFER');
   NOONA_VPD_PKG.add_tenant_policy('RE_UNIT');
   NOONA_VPD_PKG.add_tenant_policy('RE_UNIT_OWNERSHIP');
+  NOONA_VPD_PKG.add_tenant_policy('RST_AREA');
+  NOONA_VPD_PKG.add_tenant_policy('RST_ORDER');
+  NOONA_VPD_PKG.add_tenant_policy('RST_ORDER_LINE');
+  NOONA_VPD_PKG.add_tenant_policy('RST_TABLE');
   NOONA_VPD_PKG.add_tenant_policy('SAL_DELIVERY');
   NOONA_VPD_PKG.add_tenant_policy('SAL_DELIVERY_LINE');
   NOONA_VPD_PKG.add_tenant_policy('SAL_DISCOUNT_RULE');

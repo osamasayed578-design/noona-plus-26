@@ -51,6 +51,7 @@ p.dynamic('نقاط البيع', 10, 'return noona_pos_pkg.pos_summary;', hide_h
 p.dynamic('المبيعات', 12, 'return noona_sal_pkg.sal_summary;', hide_header=True, condition=READY)
 qa = p.static('إجراءات سريعة', 15, condition=READY)
 p.button(qa, 10, 'POS', 'فتح نقطة البيع', hot=True, redirect=url(30))
+p.button(qa, 15, 'RESTAURANT', 'المطعم والكافتريا', redirect=url(61))
 p.button(qa, 20, 'NEW_SI', 'فاتورة مبيعات', redirect=url(21, clear='RP,21'))
 p.button(qa, 30, 'RECEIVE', 'تحصيل من عميل', redirect=url(24, clear='RP,24'))
 p.button(qa, 40, 'NEW_CUST', 'عميل جديد', redirect=url(11, clear='RP,11'))
@@ -371,6 +372,10 @@ p.onload([
     "    sel.addEventListener('change', function () { sync(); apex.submit('RUN'); });",
     '    sync();',
     '})();'])
+
+# =============================================================== 60-66) المطاعم والكافتريا
+from rst_pages import build as rst_pages
+rst_pages(app, url, TENANT)
 
 # =============================================================== القائمة
 app.nav_item('لوحة المبيعات', 1, 'fa-line-chart', 10)

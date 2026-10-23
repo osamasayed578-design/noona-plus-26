@@ -26,7 +26,7 @@ for t in tables:
     L += [f"  SELECT COUNT(*) INTO l_n FROM user_tables WHERE table_name = '{t}';",
           "  IF l_n = 0 THEN", "    EXECUTE IMMEDIATE q'~" + create.rstrip(';') + "~';", "  END IF;"]
     for l in ddl.splitlines():
-        if l.startswith(f'ALTER TABLE {t} ') or l.startswith(f'CREATE INDEX {t}_') or \
+        if l.startswith(f'ALTER TABLE {t} ') or (l.startswith(f'CREATE INDEX {t}_') and f' ON {t} (' in l) or \
            (l.startswith('COMMENT ON') and re.search(rf'\b{t}\b', l)):
             L.append("  ex(q'~" + l.rstrip(';') + "~');")
 ALL = '\n'.join(open(os.path.join(D, 'ddl', f), encoding='utf-8').read() for f in sorted(os.listdir(os.path.join(D, 'ddl')))

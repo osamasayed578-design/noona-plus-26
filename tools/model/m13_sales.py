@@ -306,3 +306,56 @@ REASON          V500 NN          | السبب
 OLD_VALUE       V200             | القيمة السابقة
 NEW_VALUE       V200             | القيمة الجديدة
 ''', area='pos', purpose='الاستثناءات الحساسة بموافقة مشرف موثقة بدل دورة أمر البيع')
+
+# =============================================================== المطاعم والكافتريا (على محرك نقاط البيع)
+table('RST_AREA', 'صالات المطعم', 'Restaurant Dining Areas', scope='C', mix='code names status', status='ACTIVE INACTIVE', cols='''
+TERMINAL_ID     ID   >POS_TERMINAL | نقطة البيع التي تحاسب طاولات الصالة
+SORT_ORDER      INT  NN D=0      | الترتيب
+''', area='rst')
+
+table('RST_TABLE', 'طاولات المطعم', 'Restaurant Tables', scope='C', mix='code names status', status='ACTIVE INACTIVE', cols='''
+AREA_ID         ID   NN >RST_AREA | الصالة
+SEATS           INT  NN D=4      | عدد المقاعد
+SHAPE           CODE NN D='SQUARE' IN:SQUARE,ROUND,LONG,BOOTH | الشكل
+SORT_ORDER      INT  NN D=0      | الترتيب
+''', ix=[('TENANT_ID', 'AREA_ID')], area='rst')
+
+table('RST_ORDER', 'طلبات المطعم', 'Restaurant Orders', scope='C', mix='branch status', status='OPEN BILLED PAID CHARGED CANCELLED', cols='''
+ORDER_NO        V50  NN          | رقم الطلب
+ORDER_TYPE      CODE NN D='DINE_IN' IN:DINE_IN,TAKEAWAY,DELIVERY | النوع (صالة، سفري، توصيل)
+TERMINAL_ID     ID   NN >POS_TERMINAL | نقطة البيع
+TABLE_ID        ID   >RST_TABLE  | الطاولة
+GUESTS          INT              | عدد الأشخاص
+WAITER_NAME     V100             | النادل
+CUSTOMER_ACCOUNT_ID ID >AR_CUSTOMER_ACCOUNT | العميل (للآجل)
+CUSTOMER_NAME   V200             | اسم العميل/صاحب الطلب
+CUSTOMER_PHONE  V30              | الجوال
+DELIVERY_ADDRESS V500            | عنوان التوصيل
+OPENED_AT       TS   NN D=SYSTIMESTAMP | وقت الفتح
+BILLED_AT       TS               | وقت طباعة الحساب
+CLOSED_AT       TS               | وقت السداد/الإقفال
+KITCHEN_ROUND   INT  NN D=0      | آخر دفعة للمطبخ
+DISCOUNT_PCT    PCT              | نسبة الخصم على الحساب
+SUBTOTAL        AMT  NN D=0      | قبل الضريبة
+TAX_AMOUNT      AMT  NN D=0      | الضريبة
+TOTAL_AMOUNT    AMT  NN D=0      | الإجمالي
+SETTLE_MODE     CODE IN:PAID,CREDIT,MIXED | طريقة الإقفال (مدفوع، آجل، مختلط)
+POS_SALE_ID     ID   >POS_SALE   | إيصال نقطة البيع
+CANCEL_REASON   V500             | سبب الإلغاء
+NOTES           V500             | ملاحظات
+''', uk=[('TENANT_ID', 'COMPANY_ID', 'ORDER_NO')], ix=[('TENANT_ID', 'TABLE_ID', 'STATUS_CODE'), ('TENANT_ID', 'POS_SALE_ID')], area='rst')
+
+table('RST_ORDER_LINE', 'أصناف طلبات المطعم', 'Restaurant Order Lines', scope='C', cols='''
+ORDER_ID        ID   NN >RST_ORDER | الطلب
+LINE_NO         INT  NN          | السطر
+ITEM_ID         ID   NN >INV_ITEM | الصنف
+QUANTITY        QTY  NN          | الكمية
+UNIT_PRICE      AMT  NN          | سعر الوحدة شامل الضريبة
+LINE_TOTAL      AMT  NN          | الإجمالي شامل الضريبة
+NOTES           V200             | ملاحظات التحضير (بدون بصل، حار...)
+KITCHEN_STATUS  CODE NN D='NEW' IN:NEW,SENT,READY,SERVED,VOID | حالة المطبخ
+ROUND_NO        INT              | دفعة الإرسال للمطبخ
+SENT_AT         TS               | وقت الإرسال
+READY_AT        TS               | وقت الجاهزية
+VOID_REASON     V200             | سبب الإلغاء
+''', uk=[('ORDER_ID', 'LINE_NO')], chk=['QUANTITY > 0'], area='rst')
