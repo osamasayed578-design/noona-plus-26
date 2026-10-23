@@ -22,7 +22,7 @@ wwv_flow_imp_page.create_page(
 ,p_protection_level=>'C'
 );
 wwv_flow_imp_page.create_page_plug(
- p_id=>wwv_flow_imp.id(91820269000000340)
+ p_id=>wwv_flow_imp.id(91820269000000359)
 ,p_plug_name=>'الطلبات'
 ,p_region_template_options=>'#DEFAULT#:t-Region--scrollBody'
 ,p_component_template_options=>'#DEFAULT#'
@@ -42,7 +42,7 @@ wwv_flow_imp_page.create_page_plug(
 ,p_prn_page_header=>'الطلبات'
 );
 wwv_flow_imp_page.create_worksheet(
- p_id=>wwv_flow_imp.id(91820269000000341)
+ p_id=>wwv_flow_imp.id(91820269000000360)
 ,p_max_row_count=>'1000000'
 ,p_no_data_found_message=>'لا توجد بيانات'
 ,p_pagination_type=>'ROWS_X_TO_Y'
@@ -54,10 +54,10 @@ wwv_flow_imp_page.create_worksheet(
 ,p_download_formats=>'CSV:HTML:XLSX:PDF'
 ,p_enable_mail_download=>'N'
 ,p_owner=>'NOONA'
-,p_internal_uid=>91820269000000341
+,p_internal_uid=>91820269000000360
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820269000000343)
+ p_id=>wwv_flow_imp.id(91820269000000362)
 ,p_db_column_name=>'ID'
 ,p_display_order=>10
 ,p_column_identifier=>'A'
@@ -68,7 +68,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820269000000344)
+ p_id=>wwv_flow_imp.id(91820269000000363)
 ,p_db_column_name=>'ORDER_NO'
 ,p_display_order=>20
 ,p_column_identifier=>'B'
@@ -78,7 +78,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820269000000345)
+ p_id=>wwv_flow_imp.id(91820269000000364)
 ,p_db_column_name=>'OPENED'
 ,p_display_order=>30
 ,p_column_identifier=>'C'
@@ -88,7 +88,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820269000000346)
+ p_id=>wwv_flow_imp.id(91820269000000365)
 ,p_db_column_name=>'OTYPE'
 ,p_display_order=>40
 ,p_column_identifier=>'D'
@@ -98,7 +98,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820269000000347)
+ p_id=>wwv_flow_imp.id(91820269000000366)
 ,p_db_column_name=>'TBL'
 ,p_display_order=>50
 ,p_column_identifier=>'E'
@@ -108,7 +108,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820269000000348)
+ p_id=>wwv_flow_imp.id(91820269000000367)
 ,p_db_column_name=>'GUESTS'
 ,p_display_order=>60
 ,p_column_identifier=>'F'
@@ -118,7 +118,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820269000000349)
+ p_id=>wwv_flow_imp.id(91820269000000368)
 ,p_db_column_name=>'WAITER_NAME'
 ,p_display_order=>70
 ,p_column_identifier=>'G'
@@ -128,7 +128,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820269000000350)
+ p_id=>wwv_flow_imp.id(91820269000000369)
 ,p_db_column_name=>'CUST'
 ,p_display_order=>80
 ,p_column_identifier=>'H'
@@ -138,7 +138,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820269000000351)
+ p_id=>wwv_flow_imp.id(91820269000000370)
 ,p_db_column_name=>'CUSTOMER_PHONE'
 ,p_display_order=>90
 ,p_column_identifier=>'I'
@@ -148,7 +148,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820269000000352)
+ p_id=>wwv_flow_imp.id(91820269000000371)
 ,p_db_column_name=>'STATUS'
 ,p_display_order=>100
 ,p_column_identifier=>'J'
@@ -158,7 +158,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820269000000353)
+ p_id=>wwv_flow_imp.id(91820269000000372)
 ,p_db_column_name=>'SETTLE'
 ,p_display_order=>110
 ,p_column_identifier=>'K'
@@ -168,7 +168,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820269000000354)
+ p_id=>wwv_flow_imp.id(91820269000000373)
 ,p_db_column_name=>'DISCOUNT_PCT'
 ,p_display_order=>120
 ,p_column_identifier=>'L'
@@ -178,7 +178,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820269000000355)
+ p_id=>wwv_flow_imp.id(91820269000000374)
 ,p_db_column_name=>'TOTAL_AMOUNT'
 ,p_display_order=>130
 ,p_column_identifier=>'M'
@@ -188,7 +188,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820269000000356)
+ p_id=>wwv_flow_imp.id(91820269000000375)
 ,p_db_column_name=>'RECEIPT_NO'
 ,p_display_order=>140
 ,p_column_identifier=>'N'
@@ -198,7 +198,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820269000000357)
+ p_id=>wwv_flow_imp.id(91820269000000376)
 ,p_db_column_name=>'POS_SALE_ID'
 ,p_display_order=>150
 ,p_column_identifier=>'O'
@@ -209,7 +209,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820269000000358)
+ p_id=>wwv_flow_imp.id(91820269000000377)
 ,p_db_column_name=>'CLOSED'
 ,p_display_order=>160
 ,p_column_identifier=>'P'
@@ -219,7 +219,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820269000000359)
+ p_id=>wwv_flow_imp.id(91820269000000378)
 ,p_db_column_name=>'CANCEL_REASON'
 ,p_display_order=>170
 ,p_column_identifier=>'Q'
@@ -229,7 +229,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820269000000360)
+ p_id=>wwv_flow_imp.id(91820269000000379)
 ,p_db_column_name=>'RCPT'
 ,p_display_order=>180
 ,p_column_identifier=>'R'
@@ -242,10 +242,10 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_rpt(
- p_id=>wwv_flow_imp.id(91820269000000342)
+ p_id=>wwv_flow_imp.id(91820269000000361)
 ,p_application_user=>'APXWS_DEFAULT'
 ,p_report_seq=>10
-,p_report_alias=>'342'
+,p_report_alias=>'361'
 ,p_status=>'PUBLIC'
 ,p_is_default=>'Y'
 ,p_report_columns=>'ORDER_NO:OPENED:OTYPE:TBL:GUESTS:WAITER_NAME:CUST:CUSTOMER_PHONE:STATUS:SETTLE:DISCOUNT_PCT:TOTAL_AMOUNT:RECEIPT_NO:CLOSED:CANCEL_REASON:RCPT'

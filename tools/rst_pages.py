@@ -94,6 +94,13 @@ def build(app, url, scheme):
                      "or parent_category_id = (select min(id) from inv_item_category where code = 'MENU')) order by i.name_ar")
     STATUS_LOV = 'STATIC2:نشط;ACTIVE,موقوف;INACTIVE'
     SHAPE_LOV = 'STATIC2:مربعة;SQUARE,دائرية;ROUND,طويلة;LONG,ركن;BOOTH'
+    STOCK_LOV = 'STATIC2:وجبة/مشروب محضر يصرف مكونات وصفته;RECIPE,صنف مخزني يباع كما هو (علبة، مياه);STOCK'
+    PREP_LOV = MENU_ITEM_LOV.replace('where i.category_id', "where i.item_type in ('NON_STOCK', 'SERVICE') and i.category_id")
+    ING_LOV = ("select i.name_ar || ' (' || u.name_ar || ')' d, i.id r from inv_item i join inv_uom u on u.id = i.base_uom_id "
+               "where i.item_type not in ('SERVICE', 'NON_STOCK') and i.status_code = 'ACTIVE' "
+               "order by case when i.category_id = (select min(id) from inv_item_category where code = 'RST_ING') then 0 else 1 end, i.name_ar")
+    UOM_LOV = ("select name_ar || ' (' || code || ')' d, id r from inv_uom where is_active = 'Y' "
+               "order by case code when 'KG' then 0 when 'L' then 1 when 'PCS' then 2 else 3 end, name_ar")
 
     # =========================================================== 60) لوحة المطعم
     p = app.page(60, 'Restaurant', 'RESTAURANT', 'المطاعم والكافتريا', scheme=scheme)
@@ -220,8 +227,9 @@ def build(app, url, scheme):
     p.process(6, 'BEFORE_HEADER', 'Load Item', [
         'begin',
         '    if :P65_M_ITEM is not null then',
-        "        select i.name_ar, i.category_id, c.sale_price, case i.status_code when 'ACTIVE' then 'ACTIVE' else 'INACTIVE' end",
-        '          into :P65_M_NAME, :P65_M_CAT, :P65_M_PRICE, :P65_M_STATUS',
+        "        select i.name_ar, i.category_id, c.sale_price, case i.status_code when 'ACTIVE' then 'ACTIVE' else 'INACTIVE' end,",
+        "               case when i.item_type in ('NON_STOCK', 'SERVICE') then 'RECIPE' else 'STOCK' end",
+        '          into :P65_M_NAME, :P65_M_CAT, :P65_M_PRICE, :P65_M_STATUS, :P65_M_STOCK',
         '          from inv_item i left join inv_item_company c on c.item_id = i.id and c.company_id = noona_rst_pkg.company where i.id = :P65_M_ITEM;',
         '    end if;',
         'exception when no_data_found then null;',
@@ -230,17 +238,41 @@ def build(app, url, scheme):
     p.select('P65_M_CAT', fm, 20, 'فئة القائمة', lov_sql=MCAT_LOV, null_text=None)
     p.number('P65_M_PRICE', fm, 30, 'السعر شامل الضريبة')
     p.select('P65_M_STATUS', fm, 40, 'الحالة', lov_sql=STATUS_LOV, null_text=None)
+    p.select('P65_M_STOCK', fm, 50, 'الخصم من المخزون', lov_sql=STOCK_LOV, null_text=None)
     b_item = p.button(fm, 10, 'SAVE_ITEM', 'حفظ الصنف', hot=True)
     fc = p.static('فئة جديدة في القائمة', 35)
     p.text('P65_C_CODE', fc, 10, 'الرمز', maxlen=30, width=12)
     p.text('P65_C_NAME', fc, 20, 'اسم الفئة (مشروبات ساخنة، وجبات، حلويات...)', maxlen=200, width=30)
     b_cat = p.button(fc, 10, 'ADD_CAT', 'إضافة الفئة')
     p.process(30, 'AFTER_SUBMIT', 'Item', ['declare l number;', 'begin',
-        '    l := noona_rst_pkg.save_menu_item(to_number(:P65_M_ITEM), :P65_M_NAME, to_number(:P65_M_CAT), to_number(:P65_M_PRICE), :P65_M_STATUS);',
+        '    l := noona_rst_pkg.save_menu_item(to_number(:P65_M_ITEM), :P65_M_NAME, to_number(:P65_M_CAT), to_number(:P65_M_PRICE), :P65_M_STATUS,',
+        '                                      :P65_M_STOCK);',
+        "    if :P65_M_STOCK = 'RECIPE' then :P65_R_ITEM := l; end if;   -- انتقل لتعريف وصفته",
         "    :P65_M_ITEM := null; :P65_M_NAME := null; :P65_M_PRICE := null;", 'end;'],
         when_button=b_item, success='تم حفظ صنف القائمة')
     p.process(35, 'AFTER_SUBMIT', 'Category', ['declare l number;', 'begin',
         '    l := noona_rst_pkg.menu_category(:P65_C_CODE, :P65_C_NAME);', 'end;'], when_button=b_cat, success='تمت إضافة الفئة')
+    # الوصفات: مكونات كل وجبة تصرف من مستودع نقطة البيع عند السداد
+    fr = p.static('الوصفة (مكونات الصنف المصروفة من المخزون)', 36)
+    p.select('P65_R_ITEM', fr, 10, 'صنف القائمة', lov_sql=PREP_LOV, null_text='- اختر الوجبة -', submit=True)
+    p.select('P65_R_COMP', fr, 20, 'المكون (مادة خام أو صنف مخزني)', lov_sql=ING_LOV, null_text='- اختر المكون -')
+    p.number('P65_R_QTY', fr, 30, 'الكمية لكل حصة (بوحدة المكون: 0.150 كجم مثلاً)')
+    b_rc = p.button(fr, 10, 'SET_COMP', 'إضافة / تعديل المكون', hot=True)
+    b_rd = p.button(fr, 20, 'DEL_COMP', 'حذف المكون')
+    p.dynamic('مكونات الوصفة وتكلفة الحصة', 37, 'return noona_rst_pkg.recipe_html(:P65_R_ITEM);', condition=':P65_R_ITEM is not null')
+    p.process(40, 'AFTER_SUBMIT', 'Recipe Set', 'noona_rst_pkg.recipe_set(to_number(:P65_R_ITEM), to_number(:P65_R_COMP), to_number(:P65_R_QTY));',
+              when_button=b_rc, success='تم حفظ المكون في الوصفة')
+    p.process(45, 'AFTER_SUBMIT', 'Recipe Remove', 'noona_rst_pkg.recipe_remove(to_number(:P65_R_ITEM), to_number(:P65_R_COMP));',
+              when_button=b_rd, success='تم حذف المكون من الوصفة')
+    fg = p.static('مادة خام جديدة للمطبخ', 38)
+    p.text('P65_G_NAME', fg, 10, 'اسم المادة (أرز بسمتي، صدر دجاج، حليب...)', maxlen=200, width=30)
+    p.select('P65_G_UOM', fg, 20, 'وحدة القياس', lov_sql=UOM_LOV, null_text=None)
+    b_g = p.button(fg, 10, 'ADD_ING', 'إضافة المادة')
+    p.static('ملاحظة المخزون', 39, text='<p class="nn-hint">تدخل أرصدة المواد الخام بالمشتريات أو برصيد افتتاحي من تطبيق «سلسلة الإمداد والمخزون»، '
+                                       'وتصرف تلقائياً من مستودع نقطة البيع عند سداد كل طلب، وتقيد تكلفتها عند إقفال الوردية.</p>')
+    p.process(50, 'AFTER_SUBMIT', 'Ingredient', ['declare l number;', 'begin',
+        '    l := noona_rst_pkg.save_ingredient(:P65_G_NAME, to_number(:P65_G_UOM));',
+        '    :P65_R_COMP := l; :P65_G_NAME := null;', 'end;'], when_button=b_g, success='تمت إضافة المادة الخام؛ اخترها مكوناً في الوصفة')
     p.ir('الصالات والطاولات', 40, [
         "select t.id, a.name_ar as area, t.code, t.name_ar, t.seats, case t.shape when 'ROUND' then 'دائرية' when 'LONG' then 'طويلة'",
         "       when 'BOOTH' then 'ركن' else 'مربعة' end as shape, (select code from pos_terminal where id = a.terminal_id) as terminal,",
@@ -251,15 +283,22 @@ def build(app, url, scheme):
         titled=True, rows=25)
     p.ir('قائمة الطعام', 50, [
         "select i.id, g.name_ar as cat, i.item_no, i.name_ar, c.sale_price, case c.prices_include_tax when 'Y' then 'شامل' else 'غير شامل' end as incl,",
+        "       case when i.item_type not in ('NON_STOCK', 'SERVICE') then 'صنف مخزني' when noona_rst_pkg.recipe_cost(i.id) is not null then 'وصفة'",
+        "            else 'بلا خصم (لا وصفة)' end as stock_mode,",
+        "       case when i.item_type in ('NON_STOCK', 'SERVICE') then noona_rst_pkg.recipe_cost(i.id) else noona_inv_pkg.avg_cost(i.id) end as unit_cost,",
+        "       round(100 * case when i.item_type in ('NON_STOCK', 'SERVICE') then noona_rst_pkg.recipe_cost(i.id) else noona_inv_pkg.avg_cost(i.id) end",
+        "             / nullif(c.sale_price / 1.15, 0), 1) as cost_pct,",
         "       case i.status_code when 'ACTIVE' then 'نشط' else 'موقوف' end as status",
         "  from inv_item i join inv_item_category g on g.id = i.category_id",
         "  left join inv_item_company c on c.item_id = i.id and c.company_id = noona_rst_pkg.company",
         " where g.code = 'MENU' or g.parent_category_id = (select min(id) from inv_item_category where code = 'MENU') order by g.name_ar, i.name_ar"],
         [('ID', '#', {'hidden': True, 'type': 'NUMBER'}), ('CAT', 'الفئة', {}), ('ITEM_NO', 'رقم الصنف', {}), ('NAME_AR', 'الصنف', {}),
-         ('SALE_PRICE', 'السعر', {'type': 'NUMBER', 'fmt': '999G999G990D00'}), ('INCL', 'الضريبة', {}), ('STATUS', 'الحالة', {})],
+         ('SALE_PRICE', 'السعر', {'type': 'NUMBER', 'fmt': '999G999G990D00'}), ('INCL', 'الضريبة', {}),
+         ('STOCK_MODE', 'الخصم من المخزون', {}), ('UNIT_COST', 'تكلفة الحصة', {'type': 'NUMBER'}), ('COST_PCT', 'نسبة التكلفة %', {'type': 'NUMBER'}),
+         ('STATUS', 'الحالة', {})],
         titled=True, rows=50)
-    p.static('ملاحظة', 60, text='<p class="nn-hint">تظهر في شاشة الطلب كل الأصناف القابلة للبيع ولها سعر بيع (ومنها أصناف المخزون كالمشروبات المعلبة '
-                                 'التي تصرف من المستودع تلقائياً). أصناف القائمة المضافة هنا أصناف خدمية لا تتبع مخزونياً.</p>')
+    p.static('ملاحظة', 60, text='<p class="nn-hint">الوجبات والمشروبات المحضرة تصرف مكونات وصفتها من المخزون عند السداد؛ '
+                                 'والأصناف المخزنية (علب المشروبات والمياه) تصرف بنفسها. الصنف المحضر بلا وصفة لا يصرف شيئاً.</p>')
     p.branch(10, url(65) + '&success_msg=#SUCCESS_MSG#')
 
     # =========================================================== 66) سجل الطلبات

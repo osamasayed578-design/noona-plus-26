@@ -386,8 +386,9 @@ wwv_flow_imp_page.create_page_process(
 ,p_process_sql_clob=>wwv_flow_string.join(wwv_flow_t_varchar2(
 'begin',
 '    if :P65_M_ITEM is not null then',
-'        select i.name_ar, i.category_id, c.sale_price, case i.status_code when ''ACTIVE'' then ''ACTIVE'' else ''INACTIVE'' end',
-'          into :P65_M_NAME, :P65_M_CAT, :P65_M_PRICE, :P65_M_STATUS',
+'        select i.name_ar, i.category_id, c.sale_price, case i.status_code when ''ACTIVE'' then ''ACTIVE'' else ''INACTIVE'' end,',
+'               case when i.item_type in (''NON_STOCK'', ''SERVICE'') then ''RECIPE'' else ''STOCK'' end',
+'          into :P65_M_NAME, :P65_M_CAT, :P65_M_PRICE, :P65_M_STATUS, :P65_M_STOCK',
 '          from inv_item i left join inv_item_company c on c.item_id = i.id and c.company_id = noona_rst_pkg.company where i.id = :P65_M_ITEM;',
 '    end if;',
 'exception when no_data_found then null;',
@@ -459,8 +460,24 @@ wwv_flow_imp_page.create_page_item(
 ,p_attributes=>wwv_flow_t_plugin_attributes(wwv_flow_t_varchar2(
   'page_action_on_selection', 'NONE')).to_clob
 );
-wwv_flow_imp_page.create_page_button(
+wwv_flow_imp_page.create_page_item(
  p_id=>wwv_flow_imp.id(91820269000000310)
+,p_name=>'P65_M_STOCK'
+,p_item_sequence=>50
+,p_item_plug_id=>wwv_flow_imp.id(91820269000000303)
+,p_prompt=>'الخصم من المخزون'
+,p_display_as=>'NATIVE_SELECT_LIST'
+,p_lov=>'STATIC2:وجبة/مشروب محضر يصرف مكونات وصفته;RECIPE,صنف مخزني يباع كما هو (علبة، مياه);STOCK'
+,p_cHeight=>1
+,p_lov_display_extra=>'NO'
+,p_begin_on_new_line=>'N'
+,p_field_template=>1609121967514267634
+,p_item_template_options=>'#DEFAULT#'
+,p_attributes=>wwv_flow_t_plugin_attributes(wwv_flow_t_varchar2(
+  'page_action_on_selection', 'NONE')).to_clob
+);
+wwv_flow_imp_page.create_page_button(
+ p_id=>wwv_flow_imp.id(91820269000000311)
 ,p_button_sequence=>10
 ,p_button_plug_id=>wwv_flow_imp.id(91820269000000303)
 ,p_button_name=>'SAVE_ITEM'
@@ -472,7 +489,7 @@ wwv_flow_imp_page.create_page_button(
 ,p_button_position=>'NEXT'
 );
 wwv_flow_imp_page.create_page_plug(
- p_id=>wwv_flow_imp.id(91820269000000311)
+ p_id=>wwv_flow_imp.id(91820269000000312)
 ,p_plug_name=>'فئة جديدة في القائمة'
 ,p_region_template_options=>'#DEFAULT#'
 ,p_plug_template=>4072358936313175081
@@ -483,10 +500,10 @@ wwv_flow_imp_page.create_page_plug(
   'show_line_breaks', 'Y')).to_clob
 );
 wwv_flow_imp_page.create_page_item(
- p_id=>wwv_flow_imp.id(91820269000000312)
+ p_id=>wwv_flow_imp.id(91820269000000313)
 ,p_name=>'P65_C_CODE'
 ,p_item_sequence=>10
-,p_item_plug_id=>wwv_flow_imp.id(91820269000000311)
+,p_item_plug_id=>wwv_flow_imp.id(91820269000000312)
 ,p_prompt=>'الرمز'
 ,p_display_as=>'NATIVE_TEXT_FIELD'
 ,p_cSize=>12
@@ -500,10 +517,10 @@ wwv_flow_imp_page.create_page_item(
   'trim_spaces', 'BOTH')).to_clob
 );
 wwv_flow_imp_page.create_page_item(
- p_id=>wwv_flow_imp.id(91820269000000313)
+ p_id=>wwv_flow_imp.id(91820269000000314)
 ,p_name=>'P65_C_NAME'
 ,p_item_sequence=>20
-,p_item_plug_id=>wwv_flow_imp.id(91820269000000311)
+,p_item_plug_id=>wwv_flow_imp.id(91820269000000312)
 ,p_prompt=>'اسم الفئة (مشروبات ساخنة، وجبات، حلويات...)'
 ,p_display_as=>'NATIVE_TEXT_FIELD'
 ,p_cSize=>30
@@ -518,9 +535,9 @@ wwv_flow_imp_page.create_page_item(
   'trim_spaces', 'BOTH')).to_clob
 );
 wwv_flow_imp_page.create_page_button(
- p_id=>wwv_flow_imp.id(91820269000000314)
+ p_id=>wwv_flow_imp.id(91820269000000315)
 ,p_button_sequence=>10
-,p_button_plug_id=>wwv_flow_imp.id(91820269000000311)
+,p_button_plug_id=>wwv_flow_imp.id(91820269000000312)
 ,p_button_name=>'ADD_CAT'
 ,p_button_action=>'SUBMIT'
 ,p_button_template_options=>'#DEFAULT#'
@@ -529,7 +546,7 @@ wwv_flow_imp_page.create_page_button(
 ,p_button_position=>'NEXT'
 );
 wwv_flow_imp_page.create_page_process(
- p_id=>wwv_flow_imp.id(91820269000000315)
+ p_id=>wwv_flow_imp.id(91820269000000316)
 ,p_process_sequence=>30
 ,p_process_point=>'AFTER_SUBMIT'
 ,p_process_type=>'NATIVE_PLSQL'
@@ -537,17 +554,19 @@ wwv_flow_imp_page.create_page_process(
 ,p_process_sql_clob=>wwv_flow_string.join(wwv_flow_t_varchar2(
 'declare l number;',
 'begin',
-'    l := noona_rst_pkg.save_menu_item(to_number(:P65_M_ITEM), :P65_M_NAME, to_number(:P65_M_CAT), to_number(:P65_M_PRICE), :P65_M_STATUS);',
+'    l := noona_rst_pkg.save_menu_item(to_number(:P65_M_ITEM), :P65_M_NAME, to_number(:P65_M_CAT), to_number(:P65_M_PRICE), :P65_M_STATUS,',
+'                                      :P65_M_STOCK);',
+'    if :P65_M_STOCK = ''RECIPE'' then :P65_R_ITEM := l; end if;   -- انتقل لتعريف وصفته',
 '    :P65_M_ITEM := null; :P65_M_NAME := null; :P65_M_PRICE := null;',
 'end;'))
 ,p_process_clob_language=>'PLSQL'
 ,p_error_display_location=>'INLINE_IN_NOTIFICATION'
-,p_process_when_button_id=>wwv_flow_imp.id(91820269000000310)
+,p_process_when_button_id=>wwv_flow_imp.id(91820269000000311)
 ,p_process_success_message=>'تم حفظ صنف القائمة'
-,p_internal_uid=>91820269000000315
+,p_internal_uid=>91820269000000316
 );
 wwv_flow_imp_page.create_page_process(
- p_id=>wwv_flow_imp.id(91820269000000316)
+ p_id=>wwv_flow_imp.id(91820269000000317)
 ,p_process_sequence=>35
 ,p_process_point=>'AFTER_SUBMIT'
 ,p_process_type=>'NATIVE_PLSQL'
@@ -559,12 +578,223 @@ wwv_flow_imp_page.create_page_process(
 'end;'))
 ,p_process_clob_language=>'PLSQL'
 ,p_error_display_location=>'INLINE_IN_NOTIFICATION'
-,p_process_when_button_id=>wwv_flow_imp.id(91820269000000314)
+,p_process_when_button_id=>wwv_flow_imp.id(91820269000000315)
 ,p_process_success_message=>'تمت إضافة الفئة'
-,p_internal_uid=>91820269000000316
+,p_internal_uid=>91820269000000317
 );
 wwv_flow_imp_page.create_page_plug(
- p_id=>wwv_flow_imp.id(91820269000000317)
+ p_id=>wwv_flow_imp.id(91820269000000318)
+,p_plug_name=>'الوصفة (مكونات الصنف المصروفة من المخزون)'
+,p_region_template_options=>'#DEFAULT#'
+,p_plug_template=>4072358936313175081
+,p_plug_display_sequence=>36
+,p_attributes=>wwv_flow_t_plugin_attributes(wwv_flow_t_varchar2(
+  'expand_shortcuts', 'N',
+  'output_as', 'HTML',
+  'show_line_breaks', 'Y')).to_clob
+);
+wwv_flow_imp_page.create_page_item(
+ p_id=>wwv_flow_imp.id(91820269000000319)
+,p_name=>'P65_R_ITEM'
+,p_item_sequence=>10
+,p_item_plug_id=>wwv_flow_imp.id(91820269000000318)
+,p_prompt=>'صنف القائمة'
+,p_display_as=>'NATIVE_SELECT_LIST'
+,p_lov=>'select i.name_ar d, i.id r from inv_item i where i.item_type in (''NON_STOCK'', ''SERVICE'') and i.category_id in (select id from inv_item_category where code = ''MENU'' or parent_category_id = (select min(id) from inv_item_category where code = ''MENU'')) order by i.name_ar'
+,p_lov_display_null=>'YES'
+,p_lov_null_text=>'- اختر الوجبة -'
+,p_cHeight=>1
+,p_lov_display_extra=>'NO'
+,p_field_template=>1609121967514267634
+,p_item_template_options=>'#DEFAULT#'
+,p_attributes=>wwv_flow_t_plugin_attributes(wwv_flow_t_varchar2(
+  'page_action_on_selection', 'SUBMIT')).to_clob
+);
+wwv_flow_imp_page.create_page_item(
+ p_id=>wwv_flow_imp.id(91820269000000320)
+,p_name=>'P65_R_COMP'
+,p_item_sequence=>20
+,p_item_plug_id=>wwv_flow_imp.id(91820269000000318)
+,p_prompt=>'المكون (مادة خام أو صنف مخزني)'
+,p_display_as=>'NATIVE_SELECT_LIST'
+,p_lov=>'select i.name_ar || '' ('' || u.name_ar || '')'' d, i.id r from inv_item i join inv_uom u on u.id = i.base_uom_id where i.item_type not in (''SERVICE'', ''NON_STOCK'') and i.status_code = ''ACTIVE'' order by case when i.category_id = (select min(id) from inv_item_category where code = ''RST_ING'') then 0 else 1 end, i.name_ar'
+,p_lov_display_null=>'YES'
+,p_lov_null_text=>'- اختر المكون -'
+,p_cHeight=>1
+,p_lov_display_extra=>'NO'
+,p_begin_on_new_line=>'N'
+,p_field_template=>1609121967514267634
+,p_item_template_options=>'#DEFAULT#'
+,p_attributes=>wwv_flow_t_plugin_attributes(wwv_flow_t_varchar2(
+  'page_action_on_selection', 'NONE')).to_clob
+);
+wwv_flow_imp_page.create_page_item(
+ p_id=>wwv_flow_imp.id(91820269000000321)
+,p_name=>'P65_R_QTY'
+,p_item_sequence=>30
+,p_item_plug_id=>wwv_flow_imp.id(91820269000000318)
+,p_prompt=>'الكمية لكل حصة (بوحدة المكون: 0.150 كجم مثلاً)'
+,p_display_as=>'NATIVE_NUMBER_FIELD'
+,p_cSize=>20
+,p_field_template=>1609121967514267634
+,p_item_template_options=>'#DEFAULT#'
+,p_attributes=>wwv_flow_t_plugin_attributes(wwv_flow_t_varchar2(
+  'number_alignment', 'left',
+  'virtual_keyboard', 'decimal')).to_clob
+);
+wwv_flow_imp_page.create_page_button(
+ p_id=>wwv_flow_imp.id(91820269000000322)
+,p_button_sequence=>10
+,p_button_plug_id=>wwv_flow_imp.id(91820269000000318)
+,p_button_name=>'SET_COMP'
+,p_button_action=>'SUBMIT'
+,p_button_template_options=>'#DEFAULT#'
+,p_button_template_id=>4072362960822175091
+,p_button_is_hot=>'Y'
+,p_button_image_alt=>'إضافة / تعديل المكون'
+,p_button_position=>'NEXT'
+);
+wwv_flow_imp_page.create_page_button(
+ p_id=>wwv_flow_imp.id(91820269000000323)
+,p_button_sequence=>20
+,p_button_plug_id=>wwv_flow_imp.id(91820269000000318)
+,p_button_name=>'DEL_COMP'
+,p_button_action=>'SUBMIT'
+,p_button_template_options=>'#DEFAULT#'
+,p_button_template_id=>4072362960822175091
+,p_button_image_alt=>'حذف المكون'
+,p_button_position=>'NEXT'
+);
+wwv_flow_imp_page.create_page_plug(
+ p_id=>wwv_flow_imp.id(91820269000000324)
+,p_plug_name=>'مكونات الوصفة وتكلفة الحصة'
+,p_region_template_options=>'#DEFAULT#:t-Region--scrollBody'
+,p_plug_template=>4072358936313175081
+,p_plug_display_sequence=>37
+,p_plug_display_condition_type=>'EXPRESSION'
+,p_plug_display_when_condition=>':P65_R_ITEM is not null'
+,p_plug_display_when_cond2=>'PLSQL'
+,p_function_body_language=>'PLSQL'
+,p_plug_source=>wwv_flow_string.join(wwv_flow_t_varchar2(
+'return noona_rst_pkg.recipe_html(:P65_R_ITEM);'))
+,p_plug_source_type=>'NATIVE_DYNAMIC_CONTENT'
+);
+wwv_flow_imp_page.create_page_process(
+ p_id=>wwv_flow_imp.id(91820269000000325)
+,p_process_sequence=>40
+,p_process_point=>'AFTER_SUBMIT'
+,p_process_type=>'NATIVE_PLSQL'
+,p_process_name=>'Recipe Set'
+,p_process_sql_clob=>wwv_flow_string.join(wwv_flow_t_varchar2(
+'noona_rst_pkg.recipe_set(to_number(:P65_R_ITEM), to_number(:P65_R_COMP), to_number(:P65_R_QTY));'))
+,p_process_clob_language=>'PLSQL'
+,p_error_display_location=>'INLINE_IN_NOTIFICATION'
+,p_process_when_button_id=>wwv_flow_imp.id(91820269000000322)
+,p_process_success_message=>'تم حفظ المكون في الوصفة'
+,p_internal_uid=>91820269000000325
+);
+wwv_flow_imp_page.create_page_process(
+ p_id=>wwv_flow_imp.id(91820269000000326)
+,p_process_sequence=>45
+,p_process_point=>'AFTER_SUBMIT'
+,p_process_type=>'NATIVE_PLSQL'
+,p_process_name=>'Recipe Remove'
+,p_process_sql_clob=>wwv_flow_string.join(wwv_flow_t_varchar2(
+'noona_rst_pkg.recipe_remove(to_number(:P65_R_ITEM), to_number(:P65_R_COMP));'))
+,p_process_clob_language=>'PLSQL'
+,p_error_display_location=>'INLINE_IN_NOTIFICATION'
+,p_process_when_button_id=>wwv_flow_imp.id(91820269000000323)
+,p_process_success_message=>'تم حذف المكون من الوصفة'
+,p_internal_uid=>91820269000000326
+);
+wwv_flow_imp_page.create_page_plug(
+ p_id=>wwv_flow_imp.id(91820269000000327)
+,p_plug_name=>'مادة خام جديدة للمطبخ'
+,p_region_template_options=>'#DEFAULT#'
+,p_plug_template=>4072358936313175081
+,p_plug_display_sequence=>38
+,p_attributes=>wwv_flow_t_plugin_attributes(wwv_flow_t_varchar2(
+  'expand_shortcuts', 'N',
+  'output_as', 'HTML',
+  'show_line_breaks', 'Y')).to_clob
+);
+wwv_flow_imp_page.create_page_item(
+ p_id=>wwv_flow_imp.id(91820269000000328)
+,p_name=>'P65_G_NAME'
+,p_item_sequence=>10
+,p_item_plug_id=>wwv_flow_imp.id(91820269000000327)
+,p_prompt=>'اسم المادة (أرز بسمتي، صدر دجاج، حليب...)'
+,p_display_as=>'NATIVE_TEXT_FIELD'
+,p_cSize=>30
+,p_cMaxlength=>200
+,p_field_template=>1609121967514267634
+,p_item_template_options=>'#DEFAULT#'
+,p_attributes=>wwv_flow_t_plugin_attributes(wwv_flow_t_varchar2(
+  'disabled', 'N',
+  'submit_when_enter_pressed', 'N',
+  'subtype', 'TEXT',
+  'trim_spaces', 'BOTH')).to_clob
+);
+wwv_flow_imp_page.create_page_item(
+ p_id=>wwv_flow_imp.id(91820269000000329)
+,p_name=>'P65_G_UOM'
+,p_item_sequence=>20
+,p_item_plug_id=>wwv_flow_imp.id(91820269000000327)
+,p_prompt=>'وحدة القياس'
+,p_display_as=>'NATIVE_SELECT_LIST'
+,p_lov=>'select name_ar || '' ('' || code || '')'' d, id r from inv_uom where is_active = ''Y'' order by case code when ''KG'' then 0 when ''L'' then 1 when ''PCS'' then 2 else 3 end, name_ar'
+,p_cHeight=>1
+,p_lov_display_extra=>'NO'
+,p_begin_on_new_line=>'N'
+,p_field_template=>1609121967514267634
+,p_item_template_options=>'#DEFAULT#'
+,p_attributes=>wwv_flow_t_plugin_attributes(wwv_flow_t_varchar2(
+  'page_action_on_selection', 'NONE')).to_clob
+);
+wwv_flow_imp_page.create_page_button(
+ p_id=>wwv_flow_imp.id(91820269000000330)
+,p_button_sequence=>10
+,p_button_plug_id=>wwv_flow_imp.id(91820269000000327)
+,p_button_name=>'ADD_ING'
+,p_button_action=>'SUBMIT'
+,p_button_template_options=>'#DEFAULT#'
+,p_button_template_id=>4072362960822175091
+,p_button_image_alt=>'إضافة المادة'
+,p_button_position=>'NEXT'
+);
+wwv_flow_imp_page.create_page_plug(
+ p_id=>wwv_flow_imp.id(91820269000000331)
+,p_plug_name=>'ملاحظة المخزون'
+,p_region_template_options=>'#DEFAULT#'
+,p_plug_template=>4072358936313175081
+,p_plug_display_sequence=>39
+,p_plug_source=>wwv_flow_string.join(wwv_flow_t_varchar2(
+'<p class="nn-hint">تدخل أرصدة المواد الخام بالمشتريات أو برصيد افتتاحي من تطبيق «سلسلة الإمداد والمخزون»، وتصرف تلقائياً من مستودع نقطة البيع عند سداد كل طلب، وتقيد تكلفتها عند إقفال الوردية.</p>'))
+,p_attributes=>wwv_flow_t_plugin_attributes(wwv_flow_t_varchar2(
+  'expand_shortcuts', 'N',
+  'output_as', 'HTML',
+  'show_line_breaks', 'Y')).to_clob
+);
+wwv_flow_imp_page.create_page_process(
+ p_id=>wwv_flow_imp.id(91820269000000332)
+,p_process_sequence=>50
+,p_process_point=>'AFTER_SUBMIT'
+,p_process_type=>'NATIVE_PLSQL'
+,p_process_name=>'Ingredient'
+,p_process_sql_clob=>wwv_flow_string.join(wwv_flow_t_varchar2(
+'declare l number;',
+'begin',
+'    l := noona_rst_pkg.save_ingredient(:P65_G_NAME, to_number(:P65_G_UOM));',
+'    :P65_R_COMP := l; :P65_G_NAME := null;',
+'end;'))
+,p_process_clob_language=>'PLSQL'
+,p_error_display_location=>'INLINE_IN_NOTIFICATION'
+,p_process_when_button_id=>wwv_flow_imp.id(91820269000000330)
+,p_process_success_message=>'تمت إضافة المادة الخام؛ اخترها مكوناً في الوصفة'
+,p_internal_uid=>91820269000000332
+);
+wwv_flow_imp_page.create_page_plug(
+ p_id=>wwv_flow_imp.id(91820269000000333)
 ,p_plug_name=>'الصالات والطاولات'
 ,p_region_template_options=>'#DEFAULT#:t-Region--scrollBody'
 ,p_component_template_options=>'#DEFAULT#'
@@ -580,7 +810,7 @@ wwv_flow_imp_page.create_page_plug(
 ,p_prn_page_header=>'الصالات والطاولات'
 );
 wwv_flow_imp_page.create_worksheet(
- p_id=>wwv_flow_imp.id(91820269000000318)
+ p_id=>wwv_flow_imp.id(91820269000000334)
 ,p_max_row_count=>'1000000'
 ,p_no_data_found_message=>'لا توجد بيانات'
 ,p_pagination_type=>'ROWS_X_TO_Y'
@@ -592,10 +822,10 @@ wwv_flow_imp_page.create_worksheet(
 ,p_download_formats=>'CSV:HTML:XLSX:PDF'
 ,p_enable_mail_download=>'N'
 ,p_owner=>'NOONA'
-,p_internal_uid=>91820269000000318
+,p_internal_uid=>91820269000000334
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820269000000320)
+ p_id=>wwv_flow_imp.id(91820269000000336)
 ,p_db_column_name=>'ID'
 ,p_display_order=>10
 ,p_column_identifier=>'A'
@@ -606,7 +836,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820269000000321)
+ p_id=>wwv_flow_imp.id(91820269000000337)
 ,p_db_column_name=>'AREA'
 ,p_display_order=>20
 ,p_column_identifier=>'B'
@@ -616,7 +846,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820269000000322)
+ p_id=>wwv_flow_imp.id(91820269000000338)
 ,p_db_column_name=>'CODE'
 ,p_display_order=>30
 ,p_column_identifier=>'C'
@@ -626,7 +856,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820269000000323)
+ p_id=>wwv_flow_imp.id(91820269000000339)
 ,p_db_column_name=>'NAME_AR'
 ,p_display_order=>40
 ,p_column_identifier=>'D'
@@ -636,7 +866,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820269000000324)
+ p_id=>wwv_flow_imp.id(91820269000000340)
 ,p_db_column_name=>'SEATS'
 ,p_display_order=>50
 ,p_column_identifier=>'E'
@@ -646,7 +876,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820269000000325)
+ p_id=>wwv_flow_imp.id(91820269000000341)
 ,p_db_column_name=>'SHAPE'
 ,p_display_order=>60
 ,p_column_identifier=>'F'
@@ -656,7 +886,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820269000000326)
+ p_id=>wwv_flow_imp.id(91820269000000342)
 ,p_db_column_name=>'TERMINAL'
 ,p_display_order=>70
 ,p_column_identifier=>'G'
@@ -666,7 +896,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820269000000327)
+ p_id=>wwv_flow_imp.id(91820269000000343)
 ,p_db_column_name=>'STATUS'
 ,p_display_order=>80
 ,p_column_identifier=>'H'
@@ -676,16 +906,16 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_rpt(
- p_id=>wwv_flow_imp.id(91820269000000319)
+ p_id=>wwv_flow_imp.id(91820269000000335)
 ,p_application_user=>'APXWS_DEFAULT'
 ,p_report_seq=>10
-,p_report_alias=>'319'
+,p_report_alias=>'335'
 ,p_status=>'PUBLIC'
 ,p_is_default=>'Y'
 ,p_report_columns=>'AREA:CODE:NAME_AR:SEATS:SHAPE:TERMINAL:STATUS'
 );
 wwv_flow_imp_page.create_page_plug(
- p_id=>wwv_flow_imp.id(91820269000000328)
+ p_id=>wwv_flow_imp.id(91820269000000344)
 ,p_plug_name=>'قائمة الطعام'
 ,p_region_template_options=>'#DEFAULT#:t-Region--scrollBody'
 ,p_component_template_options=>'#DEFAULT#'
@@ -694,6 +924,11 @@ wwv_flow_imp_page.create_page_plug(
 ,p_query_type=>'SQL'
 ,p_plug_source=>wwv_flow_string.join(wwv_flow_t_varchar2(
 'select i.id, g.name_ar as cat, i.item_no, i.name_ar, c.sale_price, case c.prices_include_tax when ''Y'' then ''شامل'' else ''غير شامل'' end as incl,',
+'       case when i.item_type not in (''NON_STOCK'', ''SERVICE'') then ''صنف مخزني'' when noona_rst_pkg.recipe_cost(i.id) is not null then ''وصفة''',
+'            else ''بلا خصم (لا وصفة)'' end as stock_mode,',
+'       case when i.item_type in (''NON_STOCK'', ''SERVICE'') then noona_rst_pkg.recipe_cost(i.id) else noona_inv_pkg.avg_cost(i.id) end as unit_cost,',
+'       round(100 * case when i.item_type in (''NON_STOCK'', ''SERVICE'') then noona_rst_pkg.recipe_cost(i.id) else noona_inv_pkg.avg_cost(i.id) end',
+'             / nullif(c.sale_price / 1.15, 0), 1) as cost_pct,',
 '       case i.status_code when ''ACTIVE'' then ''نشط'' else ''موقوف'' end as status',
 '  from inv_item i join inv_item_category g on g.id = i.category_id',
 '  left join inv_item_company c on c.item_id = i.id and c.company_id = noona_rst_pkg.company',
@@ -702,7 +937,7 @@ wwv_flow_imp_page.create_page_plug(
 ,p_prn_page_header=>'قائمة الطعام'
 );
 wwv_flow_imp_page.create_worksheet(
- p_id=>wwv_flow_imp.id(91820269000000329)
+ p_id=>wwv_flow_imp.id(91820269000000345)
 ,p_max_row_count=>'1000000'
 ,p_no_data_found_message=>'لا توجد بيانات'
 ,p_pagination_type=>'ROWS_X_TO_Y'
@@ -714,10 +949,10 @@ wwv_flow_imp_page.create_worksheet(
 ,p_download_formats=>'CSV:HTML:XLSX:PDF'
 ,p_enable_mail_download=>'N'
 ,p_owner=>'NOONA'
-,p_internal_uid=>91820269000000329
+,p_internal_uid=>91820269000000345
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820269000000331)
+ p_id=>wwv_flow_imp.id(91820269000000347)
 ,p_db_column_name=>'ID'
 ,p_display_order=>10
 ,p_column_identifier=>'A'
@@ -728,7 +963,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820269000000332)
+ p_id=>wwv_flow_imp.id(91820269000000348)
 ,p_db_column_name=>'CAT'
 ,p_display_order=>20
 ,p_column_identifier=>'B'
@@ -738,7 +973,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820269000000333)
+ p_id=>wwv_flow_imp.id(91820269000000349)
 ,p_db_column_name=>'ITEM_NO'
 ,p_display_order=>30
 ,p_column_identifier=>'C'
@@ -748,7 +983,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820269000000334)
+ p_id=>wwv_flow_imp.id(91820269000000350)
 ,p_db_column_name=>'NAME_AR'
 ,p_display_order=>40
 ,p_column_identifier=>'D'
@@ -758,7 +993,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820269000000335)
+ p_id=>wwv_flow_imp.id(91820269000000351)
 ,p_db_column_name=>'SALE_PRICE'
 ,p_display_order=>50
 ,p_column_identifier=>'E'
@@ -768,7 +1003,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820269000000336)
+ p_id=>wwv_flow_imp.id(91820269000000352)
 ,p_db_column_name=>'INCL'
 ,p_display_order=>60
 ,p_column_identifier=>'F'
@@ -778,39 +1013,69 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820269000000337)
-,p_db_column_name=>'STATUS'
+ p_id=>wwv_flow_imp.id(91820269000000353)
+,p_db_column_name=>'STOCK_MODE'
 ,p_display_order=>70
 ,p_column_identifier=>'G'
+,p_column_label=>'الخصم من المخزون'
+,p_column_type=>'STRING'
+,p_heading_alignment=>'CENTER'
+,p_use_as_row_header=>'N'
+);
+wwv_flow_imp_page.create_worksheet_column(
+ p_id=>wwv_flow_imp.id(91820269000000354)
+,p_db_column_name=>'UNIT_COST'
+,p_display_order=>80
+,p_column_identifier=>'H'
+,p_column_label=>'تكلفة الحصة'
+,p_column_type=>'NUMBER'
+,p_heading_alignment=>'CENTER'
+,p_use_as_row_header=>'N'
+);
+wwv_flow_imp_page.create_worksheet_column(
+ p_id=>wwv_flow_imp.id(91820269000000355)
+,p_db_column_name=>'COST_PCT'
+,p_display_order=>90
+,p_column_identifier=>'I'
+,p_column_label=>'نسبة التكلفة %'
+,p_column_type=>'NUMBER'
+,p_heading_alignment=>'CENTER'
+,p_use_as_row_header=>'N'
+);
+wwv_flow_imp_page.create_worksheet_column(
+ p_id=>wwv_flow_imp.id(91820269000000356)
+,p_db_column_name=>'STATUS'
+,p_display_order=>100
+,p_column_identifier=>'J'
 ,p_column_label=>'الحالة'
 ,p_column_type=>'STRING'
 ,p_heading_alignment=>'CENTER'
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_rpt(
- p_id=>wwv_flow_imp.id(91820269000000330)
+ p_id=>wwv_flow_imp.id(91820269000000346)
 ,p_application_user=>'APXWS_DEFAULT'
 ,p_report_seq=>10
-,p_report_alias=>'330'
+,p_report_alias=>'346'
 ,p_status=>'PUBLIC'
 ,p_is_default=>'Y'
-,p_report_columns=>'CAT:ITEM_NO:NAME_AR:SALE_PRICE:INCL:STATUS'
+,p_report_columns=>'CAT:ITEM_NO:NAME_AR:SALE_PRICE:INCL:STOCK_MODE:UNIT_COST:COST_PCT:STATUS'
 );
 wwv_flow_imp_page.create_page_plug(
- p_id=>wwv_flow_imp.id(91820269000000338)
+ p_id=>wwv_flow_imp.id(91820269000000357)
 ,p_plug_name=>'ملاحظة'
 ,p_region_template_options=>'#DEFAULT#'
 ,p_plug_template=>4072358936313175081
 ,p_plug_display_sequence=>60
 ,p_plug_source=>wwv_flow_string.join(wwv_flow_t_varchar2(
-'<p class="nn-hint">تظهر في شاشة الطلب كل الأصناف القابلة للبيع ولها سعر بيع (ومنها أصناف المخزون كالمشروبات المعلبة التي تصرف من المستودع تلقائياً). أصناف القائمة المضافة هنا أصناف خدمية لا تتبع مخزونياً.</p>'))
+'<p class="nn-hint">الوجبات والمشروبات المحضرة تصرف مكونات وصفتها من المخزون عند السداد؛ والأصناف المخزنية (علب المشروبات والمياه) تصرف بنفسها. الصنف المحضر بلا وصفة لا يصرف شيئاً.</p>'))
 ,p_attributes=>wwv_flow_t_plugin_attributes(wwv_flow_t_varchar2(
   'expand_shortcuts', 'N',
   'output_as', 'HTML',
   'show_line_breaks', 'Y')).to_clob
 );
 wwv_flow_imp_page.create_page_branch(
- p_id=>wwv_flow_imp.id(91820269000000339)
+ p_id=>wwv_flow_imp.id(91820269000000358)
 ,p_branch_action=>'f?p=&APP_ID.:65:&SESSION.::&DEBUG.:::&success_msg=#SUCCESS_MSG#'
 ,p_branch_point=>'AFTER_PROCESSING'
 ,p_branch_type=>'REDIRECT_URL'

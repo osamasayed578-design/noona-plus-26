@@ -21,8 +21,17 @@ CREATE OR REPLACE PACKAGE NOONA_RST_PKG AUTHID DEFINER AS
                       p_shape IN VARCHAR2 DEFAULT 'SQUARE', p_status IN VARCHAR2 DEFAULT 'ACTIVE') RETURN NUMBER;
   -- قائمة الطعام: فئة فرعية تحت «قائمة الطعام» وصنف خدمي بسعر شامل الضريبة
   FUNCTION menu_category(p_code IN VARCHAR2, p_name_ar IN VARCHAR2) RETURN NUMBER;
+  -- p_stock: RECIPE = وجبة تصرف مكونات وصفتها من المخزون عند البيع، STOCK = صنف مخزني يباع كما هو (علبة مشروب، مياه)
   FUNCTION save_menu_item(p_id IN NUMBER, p_name_ar IN VARCHAR2, p_category_id IN NUMBER, p_price IN NUMBER,
-                          p_status IN VARCHAR2 DEFAULT 'ACTIVE') RETURN NUMBER;
+                          p_status IN VARCHAR2 DEFAULT 'ACTIVE', p_stock IN VARCHAR2 DEFAULT 'RECIPE') RETURN NUMBER;
+  -- الوصفة: كمية المكون (بوحدته الأساسية) لكل حصة واحدة؛ تحفظ كقائمة المواد الافتراضية للصنف
+  PROCEDURE recipe_set(p_item_id IN NUMBER, p_component_id IN NUMBER, p_qty IN NUMBER);
+  PROCEDURE recipe_remove(p_item_id IN NUMBER, p_component_id IN NUMBER);
+  -- تكلفة الحصة بمتوسط تكلفة المكونات الحالي
+  FUNCTION recipe_cost(p_item_id IN NUMBER) RETURN NUMBER;
+  FUNCTION recipe_html(p_item_id IN NUMBER) RETURN CLOB;
+  -- مادة خام للمطبخ (صنف مخزني يشترى ولا يباع) في فئة «مواد خام المطبخ»
+  FUNCTION save_ingredient(p_name_ar IN VARCHAR2, p_uom_id IN NUMBER) RETURN NUMBER;
 
   -- ---------------------------------------------------------- التشغيل
   -- المحطة والوردية وطرق السداد والفئات والأصناف بأسعارها الشاملة والصالات
@@ -202,17 +211,119 @@ CREATE OR REPLACE PACKAGE BODY NOONA_RST_PKG AS
   END menu_category;
 
   FUNCTION save_menu_item(p_id IN NUMBER, p_name_ar IN VARCHAR2, p_category_id IN NUMBER, p_price IN NUMBER,
-                          p_status IN VARCHAR2 DEFAULT 'ACTIVE') RETURN NUMBER IS
+                          p_status IN VARCHAR2 DEFAULT 'ACTIVE', p_stock IN VARCHAR2 DEFAULT 'RECIPE') RETURN NUMBER IS
     l_doc CLOB;
     l_cat NUMBER := NVL(p_category_id, menu_root);
   BEGIN
     NOONA_CORE_PKG.assert(NVL(p_price, -1) >= 0, 'NOONA-RST-006', 'أدخل سعر الصنف', 'Price is required');
-    SELECT JSON_OBJECT('id' VALUE p_id, 'name' VALUE p_name_ar, 'type' VALUE 'NON_STOCK', 'cat' VALUE l_cat,
-                       'price' VALUE p_price, 'incl' VALUE 'Y', 'tax' VALUE 'VAT15', 'sell' VALUE 'Y', 'buy' VALUE 'N',
+    SELECT JSON_OBJECT('id' VALUE p_id, 'name' VALUE p_name_ar, 'type' VALUE CASE WHEN p_stock = 'STOCK' THEN 'STOCK' ELSE 'NON_STOCK' END, 'cat' VALUE l_cat,
+                       'price' VALUE p_price, 'incl' VALUE 'Y', 'tax' VALUE 'VAT15', 'sell' VALUE 'Y', 'buy' VALUE CASE WHEN p_stock = 'STOCK' THEN 'Y' ELSE 'N' END,
                        'status' VALUE NVL(p_status, 'ACTIVE') RETURNING CLOB)
       INTO l_doc FROM dual;
     RETURN NOONA_INV_PKG.save_item(l_doc);
   END save_menu_item;
+
+  -- ================================================================ الوصفات (قائمة المواد الافتراضية للصنف)
+  FUNCTION recipe_cost(p_item_id IN NUMBER) RETURN NUMBER IS
+    l NUMBER;
+  BEGIN
+    SELECT SUM(bl.quantity / NULLIF(b.base_quantity, 0) * (1 + NVL(bl.scrap_pct, 0) / 100) * NVL(NOONA_INV_PKG.avg_cost(bl.component_item_id), 0))
+      INTO l
+      FROM mfg_bom b JOIN mfg_bom_line bl ON bl.bom_id = b.id
+     WHERE b.company_id = company AND b.item_id = p_item_id AND b.is_default = 'Y' AND b.status_code <> 'OBSOLETE';
+    RETURN ROUND(l, 4);
+  END recipe_cost;
+
+  PROCEDURE recipe_save(p_item_id NUMBER, p_component_id NUMBER, p_qty NUMBER) IS
+    l_lines CLOB;
+    l_bom   NUMBER;
+    l_n     NUMBER;
+    l_co    NUMBER := company;
+  BEGIN
+    SELECT MAX(b.id) INTO l_bom FROM mfg_bom b
+     WHERE b.company_id = l_co AND b.item_id = p_item_id AND b.is_default = 'Y' AND b.status_code <> 'OBSOLETE';
+    SELECT JSON_ARRAYAGG(JSON_OBJECT('i' VALUE x.i, 'q' VALUE x.q) ORDER BY x.o RETURNING CLOB)
+      INTO l_lines
+      FROM (SELECT bl.component_item_id i, bl.quantity / NULLIF(b.base_quantity, 0) q, bl.line_no o
+              FROM mfg_bom b JOIN mfg_bom_line bl ON bl.bom_id = b.id
+             WHERE b.id = l_bom AND bl.component_item_id <> p_component_id
+            UNION ALL
+            SELECT p_component_id, p_qty, 9999 FROM dual WHERE NVL(p_qty, 0) > 0) x;
+    SELECT COUNT(*) INTO l_n FROM JSON_TABLE(NVL(l_lines, TO_CLOB('[]')), '$[*]' COLUMNS (i NUMBER PATH '$.i'));
+    IF l_n = 0 THEN
+      -- آخر مكون حذف: الصنف بلا وصفة (لا يصرف شيئاً من المخزون)
+      UPDATE mfg_bom SET is_default = 'N', status_code = 'OBSOLETE', effective_to = TRUNC(SYSDATE) WHERE id = l_bom;
+    ELSE
+      l_bom := NOONA_INV_PKG.save_bom(p_item_id, l_lines, 1);
+    END IF;
+  END recipe_save;
+
+  PROCEDURE recipe_set(p_item_id IN NUMBER, p_component_id IN NUMBER, p_qty IN NUMBER) IS
+  BEGIN
+    NOONA_CORE_PKG.assert(p_item_id IS NOT NULL AND p_component_id IS NOT NULL, 'NOONA-RST-040', 'اختر صنف القائمة والمكون',
+                          'Choose the menu item and the ingredient');
+    NOONA_CORE_PKG.assert(NVL(p_qty, 0) > 0, 'NOONA-RST-041', 'كمية المكون لكل حصة يجب أن تكون موجبة', 'Quantity must be positive');
+    NOONA_CORE_PKG.assert(NOONA_INV_PKG.is_stocked(p_component_id) = 'Y', 'NOONA-RST-042',
+                          'المكون يجب أن يكون صنفاً مخزنياً (مادة خام أو صنف مخزون)', 'Ingredient must be a stock item');
+    NOONA_CORE_PKG.assert(NOONA_INV_PKG.is_stocked(p_item_id) = 'N', 'NOONA-RST-043',
+                          'الصنف مخزني يصرف بنفسه؛ الوصفة لأصناف القائمة المحضرة فقط', 'Recipes apply to prepared (non-stock) menu items');
+    recipe_save(p_item_id, p_component_id, p_qty);
+  END recipe_set;
+
+  PROCEDURE recipe_remove(p_item_id IN NUMBER, p_component_id IN NUMBER) IS
+  BEGIN
+    recipe_save(p_item_id, p_component_id, 0);
+  END recipe_remove;
+
+  FUNCTION recipe_html(p_item_id IN NUMBER) RETURN CLOB IS
+    l_h     CLOB;
+    l_cost  NUMBER := 0;
+    l_price NUMBER;
+    l_n     PLS_INTEGER := 0;
+    l_co    NUMBER := company;
+  BEGIN
+    IF NOONA_INV_PKG.is_stocked(p_item_id) = 'Y' THEN
+      RETURN '<p class="nn-hint">صنف مخزني يباع كما هو ويصرف بنفسه من المخزون (الرصيد الحالي: '
+          || fqty(NOONA_INV_PKG.on_hand(p_item_id, NULL)) || ')؛ لا يحتاج وصفة.</p>';
+    END IF;
+    l_h := '<table class="nn-rst-cred"><thead><tr><th>المكون</th><th class="n">الكمية لكل حصة</th><th>الوحدة</th><th class="n">متوسط التكلفة</th>'
+        || '<th class="n">التكلفة في الحصة</th><th class="n">الرصيد المتاح</th></tr></thead><tbody>';
+    FOR r IN (SELECT i.name_ar, i.item_no, u.name_ar uom, bl.quantity / NULLIF(b.base_quantity, 0) * (1 + NVL(bl.scrap_pct, 0) / 100) q,
+                     NVL(NOONA_INV_PKG.avg_cost(bl.component_item_id), 0) c, NOONA_INV_PKG.on_hand(bl.component_item_id, NULL) oh
+                FROM mfg_bom b JOIN mfg_bom_line bl ON bl.bom_id = b.id JOIN inv_item i ON i.id = bl.component_item_id
+                JOIN inv_uom u ON u.id = i.base_uom_id
+               WHERE b.company_id = l_co AND b.item_id = p_item_id AND b.is_default = 'Y' AND b.status_code <> 'OBSOLETE'
+               ORDER BY bl.line_no) LOOP
+      l_n := l_n + 1;
+      l_cost := l_cost + r.q * r.c;
+      l_h := l_h || '<tr><td>' || esc(r.name_ar) || ' <small>' || esc(r.item_no) || '</small></td><td class="n">' || fqty(r.q) || '</td><td>'
+          || esc(r.uom) || '</td><td class="n">' || fmt0(r.c) || '</td><td class="n">'
+          || TO_CHAR(ROUND(r.q * r.c, 4), 'FM999G990D0099', 'NLS_NUMERIC_CHARACTERS=''.,''') || '</td><td class="n'
+          || CASE WHEN r.oh < r.q THEN ' nn-neg' END || '">' || fqty(r.oh) || '</td></tr>';
+    END LOOP;
+    IF l_n = 0 THEN
+      RETURN '<p class="nn-hint">لا توجد وصفة لهذا الصنف بعد: لن يصرف شيء من المخزون عند بيعه. أضف مكوناته بالأسفل.</p>';
+    END IF;
+    SELECT MAX(c.sale_price) INTO l_price FROM inv_item_company c WHERE c.item_id = p_item_id AND c.company_id = l_co;
+    l_price := l_price / (1 + NOONA_INV_PKG.tax_rate(NOONA_INV_PKG.item_tax_code(p_item_id, 'SALE')) / 100);   -- السعر قبل الضريبة
+    RETURN l_h || '</tbody><tfoot><tr><td colspan="4">تكلفة الحصة · السعر قبل الضريبة ' || fmt0(l_price) || '</td><td class="n">' || fmt0(l_cost)
+        || '</td><td class="n">' || CASE WHEN l_price > 0 THEN 'نسبة التكلفة ' || ROUND(l_cost * 100 / l_price, 1) || '%' END
+        || '</td></tr></tfoot></table>';
+  END recipe_html;
+
+  FUNCTION save_ingredient(p_name_ar IN VARCHAR2, p_uom_id IN NUMBER) RETURN NUMBER IS
+    l_cat NUMBER;
+    l_doc CLOB;
+  BEGIN
+    NOONA_CORE_PKG.assert(TRIM(p_name_ar) IS NOT NULL, 'NOONA-RST-044', 'اسم المادة الخام إلزامي', 'Ingredient name is required');
+    SELECT MIN(id) INTO l_cat FROM inv_item_category WHERE code = 'RST_ING';
+    IF l_cat IS NULL THEN
+      l_cat := NOONA_INV_PKG.create_category('RST_ING', 'مواد خام المطبخ', 'FOOD');
+    END IF;
+    SELECT JSON_OBJECT('name' VALUE TRIM(p_name_ar), 'type' VALUE 'STOCK', 'cat' VALUE l_cat, 'uom' VALUE p_uom_id, 'sell' VALUE 'N', 'buy' VALUE 'Y'
+                       RETURNING CLOB) INTO l_doc FROM dual;
+    RETURN NOONA_INV_PKG.save_item(l_doc);
+  END save_ingredient;
 
   FUNCTION quick_setup RETURN NUMBER IS
     l_n NUMBER := 0;

@@ -46,6 +46,9 @@ DECLARE
   l_rc   NUMBER;
   l_bal  NUMBER;
   l_s    VARCHAR2(4000);
+  l_g1   NUMBER;
+  l_g2   NUMBER;
+  l_i4   NUMBER;
 
   PROCEDURE ok(p_name VARCHAR2, p_cond BOOLEAN, p_info VARCHAR2 DEFAULT NULL) IS
   BEGIN
@@ -259,14 +262,63 @@ BEGIN
   l_r := NOONA_RST_PKG.settle('{"key":"k8' || l_sfx || '","orders":[' || l_o3 || '],"pays":[{"m":"CASH","a":11.5}]}');
   ok('single order on a table settled alone', st(l_o3) = 'PAID');
 
+  -- ======================================================== الخصم من المخزون: الوصفات والأصناف المخزنية
+  l_cat := NOONA_INV_PKG.create_category('IG' || SUBSTR(l_sfx, -6), 'مواد خام المطبخ اختبار', 'FOOD');
+  SELECT id INTO l_n FROM inv_uom WHERE code = 'KG';
+  l_g1 := NOONA_INV_PKG.save_item('{"name":"صدر دجاج اختبار ' || l_sfx || '","type":"STOCK","cat":' || l_cat || ',"uom":' || l_n || ',"sell":"N"}');
+  l_g2 := NOONA_INV_PKG.save_item('{"name":"خبز برجر اختبار ' || l_sfx || '","type":"STOCK","cat":' || l_cat || ',"sell":"N"}');
+  l_i4 := NOONA_RST_PKG.save_menu_item(NULL, 'مياه معدنية اختبار ' || l_sfx, NULL, 3, 'ACTIVE', 'STOCK');
+  ok('stock menu item sold as is', NOONA_INV_PKG.is_stocked(l_i4) = 'Y' AND NOONA_INV_PKG.is_stocked(l_i2) = 'N');
+  l_n := NOONA_INV_PKG.save_stock_doc('{"type":"OPENING","date":"' || TO_CHAR(SYSDATE, 'YYYY-MM-DD') || '","wh":' || l_wh || ',"action":"POST",'
+         || '"lines":[{"i":' || l_g1 || ',"q":10,"c":20},{"i":' || l_g2 || ',"q":50,"c":1.5},{"i":' || l_i4 || ',"q":24,"c":1}]}');
+  ok('opening stock of ingredients', NOONA_INV_PKG.on_hand(l_g1, l_wh) = 10 AND NOONA_INV_PKG.on_hand(l_g2, l_wh) = 50);
+  BEGIN NOONA_RST_PKG.recipe_set(l_i2, l_i1, 1); ok('recipe component must be stocked', FALSE);
+  EXCEPTION WHEN OTHERS THEN expect('recipe component must be stocked', 'NOONA-RST-042', SQLERRM); END;
+  BEGIN NOONA_RST_PKG.recipe_set(l_i4, l_g1, 1); ok('stock item takes no recipe', FALSE);
+  EXCEPTION WHEN OTHERS THEN expect('stock item takes no recipe', 'NOONA-RST-043', SQLERRM); END;
+  NOONA_RST_PKG.recipe_set(l_i2, l_g1, 0.15);
+  NOONA_RST_PKG.recipe_set(l_i2, l_g2, 1);
+  NOONA_RST_PKG.recipe_set(l_i2, l_g2, 2);      -- تعديل كمية مكون قائم
+  NOONA_RST_PKG.recipe_set(l_i2, l_g2, 1);
+  ok('recipe cost per portion', NOONA_RST_PKG.recipe_cost(l_i2) = 4.5, NOONA_RST_PKG.recipe_cost(l_i2));
+  ok('recipe card with cost ratio', INSTR(NOONA_RST_PKG.recipe_html(l_i2), 'نسبة التكلفة') > 0
+     AND INSTR(NOONA_RST_PKG.recipe_html(l_i4), 'صنف مخزني') > 0);
+  l_o2 := NOONA_RST_PKG.open_order('{"type":"TAKEAWAY","terminal":' || l_term || '}');
+  NOONA_RST_PKG.add_items(l_o2, '[{"i":' || l_i2 || ',"q":2},{"i":' || l_i4 || ',"q":3}]');
+  l_r := NOONA_RST_PKG.settle('{"key":"k9' || l_sfx || '","orders":[' || l_o2 || '],"pays":[{"m":"CASH","a":78}]}');
+  ok('ingredients issued by recipe', NOONA_INV_PKG.on_hand(l_g1, l_wh) = 9.7 AND NOONA_INV_PKG.on_hand(l_g2, l_wh) = 48,
+     NOONA_INV_PKG.on_hand(l_g1, l_wh) || ' / ' || NOONA_INV_PKG.on_hand(l_g2, l_wh));
+  ok('stock menu item issued', NOONA_INV_PKG.on_hand(l_i4, l_wh) = 21, NOONA_INV_PKG.on_hand(l_i4, l_wh));
+  l_sale := TO_NUMBER(js(l_r, 'id'));
+  SELECT MAX(CASE WHEN item_id = l_i2 THEN unit_cost END), MAX(CASE WHEN item_id = l_i4 THEN unit_cost END) INTO l_bal, l_n
+    FROM pos_sale_line WHERE sale_id = l_sale;
+  ok('sale line cost = recipe cost', l_bal = 4.5 AND l_n = 1, l_bal || ' / ' || l_n);
+  -- نقص المكونات يمنع البيع ولا يترك أثراً
+  l_o2 := NOONA_RST_PKG.open_order('{"type":"TAKEAWAY","terminal":' || l_term || '}');
+  NOONA_RST_PKG.add_items(l_o2, '[{"i":' || l_i2 || ',"q":100}]');
+  BEGIN l_r := NOONA_RST_PKG.settle('{"key":"k10' || l_sfx || '","orders":[' || l_o2 || '],"pays":[{"m":"CASH","a":3450}]}');
+    ok('not enough ingredient stock', FALSE);
+  EXCEPTION WHEN OTHERS THEN expect('not enough ingredient stock', 'NOONA-INV-025', SQLERRM); END;
+  SELECT COUNT(*) INTO l_n FROM rst_order_line WHERE order_id = l_o2 AND kitchen_status = 'NEW';
+  ok('failed settle leaves the order open and unsent', st(l_o2) = 'OPEN' AND l_n = 1);
+  NOONA_RST_PKG.cancel_order(l_o2, NULL);
+  -- حذف مكون
+  NOONA_RST_PKG.recipe_remove(l_i2, l_g2);
+  ok('component removed from recipe', NOONA_RST_PKG.recipe_cost(l_i2) = 3, NOONA_RST_PKG.recipe_cost(l_i2));
+
   -- إقفال الوردية: القيد يتضمن الآجل على ذمة العميل
   l_j := NOONA_POS_PKG.close_shift(l_sh, NOONA_POS_PKG.expected_cash(l_sh));
   ok('shift closed with journal', l_j IS NOT NULL);
   ok('shift journal debits receivable for credit sales', jl(l_j, '1103', 'D') = 107.5, jl(l_j, '1103', 'D'));
+  -- 9 مكونات الوجبات (2 × 4.5) + 3 مياه مخزنية: من حـ/ تكلفة المبيعات إلى حـ/ المخزون
+  ok('shift journal: COGS to inventory for recipes and stock items', jl(l_j, '1105', 'C') = 12 AND jl(l_j, '5101', 'D') = 12,
+     jl(l_j, '1105', 'C') || ' / ' || jl(l_j, '5101', 'D'));
+  SELECT SUM(debit_amount) - SUM(credit_amount) INTO l_n FROM gl_journal_line WHERE journal_id = l_j;
+  ok('shift journal balanced', l_n = 0, l_n);
 
   -- اللوحات
   l_c := NOONA_RST_PKG.dashboard_html(TRUNC(SYSDATE), TRUNC(SYSDATE), l_term);
-  ok('dashboard shows sales and breakdowns', INSTR(l_c, '333.50') > 0 AND INSTR(l_c, '<b>5</b>') > 0 AND INSTR(l_c, 'سفري') > 0 AND INSTR(l_c, 'برجر لحم اختبار') > 0
+  ok('dashboard shows sales and breakdowns', INSTR(l_c, '411.50') > 0 AND INSTR(l_c, '<b>6</b>') > 0 AND INSTR(l_c, 'سفري') > 0 AND INSTR(l_c, 'برجر لحم اختبار') > 0
      AND INSTR(l_c, 'المبيعات الآجلة حسب العميل') > 0, DBMS_LOB.SUBSTR(l_c, 400, 1));
   ok('today summary renders', DBMS_LOB.GETLENGTH(NOONA_RST_PKG.today_html) > 300);
   ok('labels', NOONA_RST_PKG.type_label('TAKEAWAY') = 'سفري' AND NOONA_RST_PKG.status_label('CHARGED') = 'آجل على العميل');

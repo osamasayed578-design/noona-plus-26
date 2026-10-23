@@ -310,6 +310,7 @@ CREATE OR REPLACE PACKAGE BODY NOONA_POS_PKG AS
     l_txn   NUMBER;
     l_rno   VARCHAR2(50);
     l_line  NUMBER;
+    l_co    NUMBER := company;
   BEGIN
     guard('POS_SALE.CREATE');
     NOONA_CORE_PKG.assert(TRIM(l_key) IS NOT NULL, 'NOONA-POS-021', 'مفتاح العملية مفقود', 'Idempotency key is required');
@@ -342,6 +343,19 @@ CREATE OR REPLACE PACKAGE BODY NOONA_POS_PKG AS
         l_moves(l_moves.COUNT).item_id := r.i;
         l_moves(l_moves.COUNT).qty := r.q;
         l_moves(l_moves.COUNT).line_ref := TO_CHAR(l_line);
+      ELSE
+        -- صنف غير مخزني له وصفة (قائمة مواد افتراضية): تصرف مكوناته من مستودع المحطة (وجبات المطاعم والمشروبات المحضرة)
+        FOR c IN (SELECT bl.component_item_id, ROUND(bl.quantity * r.q / NULLIF(b.base_quantity, 0) * (1 + NVL(bl.scrap_pct, 0) / 100), 6) q
+                    FROM mfg_bom b JOIN mfg_bom_line bl ON bl.bom_id = b.id
+                   WHERE b.company_id = l_co AND b.item_id = r.i AND b.is_default = 'Y' AND b.status_code <> 'OBSOLETE'
+                     AND NOONA_INV_PKG.is_stocked(bl.component_item_id) = 'Y'
+                   ORDER BY bl.line_no) LOOP
+          CONTINUE WHEN NVL(c.q, 0) <= 0;
+          l_moves.EXTEND;
+          l_moves(l_moves.COUNT).item_id := c.component_item_id;
+          l_moves(l_moves.COUNT).qty := c.q;
+          l_moves(l_moves.COUNT).line_ref := TO_CHAR(l_line);
+        END LOOP;
       END IF;
     END LOOP;
     NOONA_CORE_PKG.assert(l_no > 0, 'NOONA-POS-022', 'السلة فارغة', 'Cart is empty');
@@ -370,9 +384,10 @@ CREATE OR REPLACE PACKAGE BODY NOONA_POS_PKG AS
     -- صرف المخزون فوراً (FEFO، لا تباع دفعة منتهية)
     IF l_moves.COUNT > 0 THEN
       l_txn := NOONA_INV_PKG.move('POS_ISSUE', l_t.warehouse_id, TRUNC(SYSDATE), c_sale, l_id, l_moves, l_rno);
+      -- تكلفة السطر: تكلفة الصنف المصروف، أو مجموع تكلفة مكونات الوصفة
       FOR k IN 1 .. l_moves.COUNT LOOP
-        UPDATE pos_sale_line SET unit_cost = ROUND(l_moves(k).total_cost / l_moves(k).qty, 6),
-                                 lot_id = l_moves(k).lot_id
+        UPDATE pos_sale_line SET unit_cost = ROUND(NVL(unit_cost, 0) + l_moves(k).total_cost / quantity, 6),
+                                 lot_id = CASE WHEN item_id = l_moves(k).item_id THEN l_moves(k).lot_id ELSE lot_id END
          WHERE id = TO_NUMBER(l_moves(k).line_ref);
       END LOOP;
     END IF;
@@ -457,7 +472,8 @@ CREATE OR REPLACE PACKAGE BODY NOONA_POS_PKG AS
       INSERT INTO pos_sale_line (company_id, sale_id, line_no, item_id, quantity, uom_id, unit_price, discount_amount, tax_code_id, tax_amount,
                                  line_total, lot_id, unit_cost, original_line_id)
       VALUES (company, l_id, l_no, l_line.item_id, r.q, l_line.uom_id, l_line.unit_price,
-              ROUND(l_line.discount_amount * r.q / l_line.quantity, 2), l_line.tax_code_id, l_tx, l_net + l_tx, l_line.lot_id, l_line.unit_cost,
+              ROUND(l_line.discount_amount * r.q / l_line.quantity, 2), l_line.tax_code_id, l_tx, l_net + l_tx, l_line.lot_id,
+              CASE WHEN NOONA_INV_PKG.is_stocked(l_line.item_id) = 'Y' THEN l_line.unit_cost END,   -- مكونات الوصفة المستهلكة لا تعود للمخزون
               l_line.id)
       RETURNING id INTO l_nl;
       l_sub := l_sub + l_net; l_tax := l_tax + l_tx;
@@ -612,7 +628,8 @@ CREATE OR REPLACE PACKAGE BODY NOONA_POS_PKG AS
     SELECT COUNT(*) INTO l_n FROM pos_sale WHERE shift_id = p_shift_id AND status_code <> 'OPEN';
     -- الإيراد والضريبة (المرتجعات مدينة لحساب مردودات المبيعات)
     FOR r IN (SELECT s.sale_type, NOONA_INV_PKG.account_for(l.item_id, 'REVENUE') rev, l.tax_code_id,
-                     SUM(l.line_total - l.tax_amount) net, SUM(l.tax_amount) tax, SUM(l.quantity * NVL(l.unit_cost, 0)) cost,
+                     SUM(l.line_total - l.tax_amount) net, SUM(l.tax_amount) tax,
+                     SUM(CASE WHEN NOONA_INV_PKG.is_stocked(l.item_id) = 'Y' THEN l.quantity * NVL(l.unit_cost, 0) ELSE 0 END) cost,
                      NOONA_INV_PKG.account_for(l.item_id, 'COGS') cogs, NOONA_INV_PKG.account_for(l.item_id, 'INVENTORY') inv
                 FROM pos_sale_line l JOIN pos_sale s ON s.id = l.sale_id
                WHERE s.shift_id = p_shift_id AND s.status_code <> 'OPEN'
@@ -630,6 +647,18 @@ CREATE OR REPLACE PACKAGE BODY NOONA_POS_PKG AS
       IF r.cost <> 0 THEN
         add_line(l_lines, r.cogs, l_sg * r.cost, 0, cc(r.cogs, l_cc), NULL, 'تكلفة ' || l_desc);
         add_line(l_lines, r.inv, 0, l_sg * r.cost, NULL, NULL, 'تكلفة ' || l_desc);
+      END IF;
+    END LOOP;
+    -- تكلفة مكونات الوصفات المصروفة: من حـ/ تكلفة الصنف المباع إلى حـ/ مخزون كل مكون (بتكلفة الصرف الفعلية)
+    FOR r IN (SELECT NOONA_INV_PKG.account_for(l.item_id, 'COGS') cogs, NOONA_INV_PKG.account_for(tl.item_id, 'INVENTORY') inv,
+                     SUM(ABS(tl.total_cost)) cost
+                FROM pos_sale_line l JOIN pos_sale s ON s.id = l.sale_id
+                JOIN inv_transaction_line tl ON tl.transaction_id = s.inv_transaction_id AND tl.source_line_ref = TO_CHAR(l.id)
+               WHERE s.shift_id = p_shift_id AND s.status_code <> 'OPEN' AND s.sale_type = 'SALE' AND NOONA_INV_PKG.is_stocked(l.item_id) = 'N'
+               GROUP BY NOONA_INV_PKG.account_for(l.item_id, 'COGS'), NOONA_INV_PKG.account_for(tl.item_id, 'INVENTORY')) LOOP
+      IF NVL(r.cost, 0) <> 0 THEN
+        add_line(l_lines, r.cogs, r.cost, 0, cc(r.cogs, l_cc), NULL, 'تكلفة مكونات الوجبات ' || l_desc);
+        add_line(l_lines, r.inv, 0, r.cost, NULL, NULL, 'صرف مكونات الوجبات ' || l_desc);
       END IF;
     END LOOP;
     -- المتحصلات حسب نوع الطريقة

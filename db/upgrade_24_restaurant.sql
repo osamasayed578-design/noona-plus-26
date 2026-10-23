@@ -4,6 +4,8 @@
 --   * الطلب على الطاولة أو سفري أو توصيل أو على حساب عميل آجل، دفعات المطبخ وشاشة المطبخ، النقل والدمج والتقسيم
 --   * المحاسبة بالطاولة كاملة أو بالطلب: نقدي/شبكة/محافظ/مختلط أو آجل (إيصال نقطة بيع وقيد عند إقفال الوردية)
 --   * العملاء الآجلون والتحصيل منهم، ولوحة مبيعات المطعم
+--   * الخصم من المخزون: وصفة لكل وجبة تصرف مكوناتها عند السداد (ولكل صنف غير مخزني له قائمة مواد في نقاط البيع)،
+--     والأصناف المخزنية تصرف بنفسها؛ التكلفة تقيد عند إقفال الوردية من حـ/ تكلفة المبيعات إلى حـ/ مخزون كل مكون
 --   sqlplus NOONA_OWNER@//host:1521/PDB @upgrade_24_restaurant.sql
 --   sqlplus NOONA_APP@//host:1521/PDB   @security/41_synonyms_noona_app.sql
 -- =============================================================================
@@ -24,7 +26,8 @@ PROMPT ========== جداول المطعم: الصالات والطاولات و�
 @@upgrade_parts/24_restaurant.sql
 PROMPT ========== صلاحيات مسؤول المؤسسة
 @@upgrade_parts/sync_admin_roles.sql
-PROMPT ========== NOONA_RST_PKG
+PROMPT ========== NOONA_POS_PKG (صرف مكونات الوصفات) / NOONA_RST_PKG
+@@plsql/107_noona_pos_pkg.sql
 @@plsql/116_noona_rst_pkg.sql
 GRANT EXECUTE ON NOONA_RST_PKG TO NOONA_APP;
 EXEC DBMS_UTILITY.COMPILE_SCHEMA(USER, FALSE)

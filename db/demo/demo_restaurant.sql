@@ -5,7 +5,8 @@
 -- المحتوى:
 --   * نقطة بيع «كاشير المطعم» بدرج نقدي مستقل
 --   * ثلاث صالات: الرئيسية (10 طاولات)، الجلسات الخارجية (6)، العائلات (4 طاولات دائرية)
---   * قائمة طعام من 6 فئات و26 صنفاً بأسعار شاملة الضريبة
+--   * قائمة طعام من 6 فئات و26 صنفاً بأسعار شاملة الضريبة، و27 مادة خام بأرصدة افتتاحية ووصفة لكل وجبة ومشروب محضر
+--     (تصرف المكونات من المخزون عند السداد)، والمياه والمشروبات الغازية أصناف مخزنية
 --   * ثلاثة عملاء آجلين بحدود ائتمان
 --   * أسبوع من الطلبات المسددة (صالة، سفري، توصيل، آجل، مختلط) موزعة على الساعات، وتحصيل من عميل آجل، وإقفال الوردية بقيدها
 --   * الوضع الحالي: طاولات مشغولة (في المطبخ، جاهزة، طبع الحساب)، طلب سفري وطلب توصيل مفتوحان
@@ -28,6 +29,141 @@ BEGIN
 END;
 /
 
+PROMPT ========== المواد الخام ووصفات قائمة الطعام (الخصم من المخزون)
+DECLARE
+  c_admin CONSTANT VARCHAR2(128) := NVL(UPPER(TRIM('&ADMIN_USER')), 'ADMIN');
+  l_co    NUMBER;
+  l_n     NUMBER;
+  l_cat   NUMBER;
+  l_kg    NUMBER;
+  l_l     NUMBER;
+  l_pcs   NUMBER;
+  l_lines VARCHAR2(32767);
+  l_cnt   PLS_INTEGER := 0;
+  TYPE t_map IS TABLE OF NUMBER INDEX BY VARCHAR2(30);
+  g       t_map;
+  m       t_map;
+
+  PROCEDURE say(p VARCHAR2) IS BEGIN DBMS_OUTPUT.PUT_LINE(p); END;
+  -- صنف القائمة: الموجود بالاسم (من تحميل سابق) أو جديد
+  PROCEDURE menu(p_key VARCHAR2, p_name VARCHAR2, p_price NUMBER, p_stock VARCHAR2 DEFAULT 'RECIPE') IS
+    l NUMBER;
+    l_t VARCHAR2(30);
+  BEGIN
+    SELECT MIN(i.id), MIN(i.item_type) INTO l, l_t FROM inv_item i JOIN inv_item_category c ON c.id = i.category_id
+     WHERE i.name_ar = p_name AND (c.code = 'MENU' OR c.parent_category_id = (SELECT MIN(id) FROM inv_item_category WHERE code = 'MENU'));
+    IF l IS NULL OR (p_stock = 'STOCK' AND l_t IN ('NON_STOCK', 'SERVICE')) THEN
+      l := NOONA_RST_PKG.save_menu_item(l, p_name, l_cat, p_price, 'ACTIVE', p_stock);
+    END IF;
+    m(p_key) := l;
+  END menu;
+  PROCEDURE ing(p_key VARCHAR2, p_name VARCHAR2, p_uom NUMBER, p_cost NUMBER, p_qty NUMBER) IS
+  BEGIN
+    g(p_key) := NOONA_RST_PKG.save_ingredient(p_name, p_uom);
+    l_lines := l_lines || CASE WHEN l_lines IS NOT NULL THEN ',' END || '{"i":' || g(p_key) || ',"q":' || p_qty || ',"c":' || p_cost || '}';
+  END ing;
+  -- «مفتاح:كمية مفتاح:كمية» لكل حصة
+  PROCEDURE recipe(p_key VARCHAR2, p_parts VARCHAR2) IS
+    l_part VARCHAR2(100);
+    k PLS_INTEGER := 1;
+  BEGIN
+    LOOP
+      l_part := REGEXP_SUBSTR(p_parts, '[^ ]+', 1, k);
+      EXIT WHEN l_part IS NULL;
+      NOONA_RST_PKG.recipe_set(m(p_key), g(SUBSTR(l_part, 1, INSTR(l_part, ':') - 1)),
+                               TO_NUMBER(SUBSTR(l_part, INSTR(l_part, ':') + 1), '9999D9999', 'NLS_NUMERIC_CHARACTERS=''.,'''));
+      k := k + 1;
+    END LOOP;
+    l_cnt := l_cnt + 1;
+  END recipe;
+BEGIN
+  NOONA_APEX_PKG.post_auth(c_admin, TRUNC(DBMS_RANDOM.VALUE(1e12, 9e12)));
+  l_co := TO_NUMBER(SYS_CONTEXT('NOONA_CTX', 'COMPANY_ID'));
+  SELECT COUNT(*) INTO l_n FROM inv_item i JOIN inv_item_category c ON c.id = i.category_id WHERE c.code = 'RST_ING' AND i.name_ar = 'أرز بسمتي';
+  IF l_n > 0 THEN
+    say('مكونات ووصفات المطعم التجريبية محملة سابقاً؛ لم يضف شيء.');
+    NOONA_APEX_PKG.cleanup_request;
+    RETURN;
+  END IF;
+  l_n := NOONA_RST_PKG.quick_setup;
+  SELECT MIN(CASE WHEN code = 'KG' THEN id END), MIN(CASE WHEN code = 'L' THEN id END), MIN(CASE WHEN code = 'PCS' THEN id END)
+    INTO l_kg, l_l, l_pcs FROM inv_uom;
+
+  -- قائمة الطعام (الأسعار شاملة الضريبة)؛ المياه والمشروبات الغازية أصناف مخزنية تباع كما هي
+  l_cat := NOONA_RST_PKG.menu_category('RM_HOT', 'مشروبات ساخنة');
+  menu('ARCOF', 'قهوة عربية (دلة)', 25); menu('ESP', 'إسبريسو', 12); menu('LATTE', 'لاتيه', 17); menu('CAPP', 'كابتشينو', 17);
+  menu('TEA', 'شاي بالنعناع', 8);
+  l_cat := NOONA_RST_PKG.menu_category('RM_COLD', 'مشروبات باردة وعصائر');
+  menu('ORJ', 'عصير برتقال طازج', 18); menu('LEMIN', 'ليمون بالنعناع', 16); menu('ICELAT', 'آيس لاتيه', 19);
+  menu('WATER', 'مياه معدنية', 3, 'STOCK'); menu('SODA', 'مشروب غازي', 6, 'STOCK');
+  l_cat := NOONA_RST_PKG.menu_category('RM_STRT', 'مقبلات وسلطات');
+  menu('HUMUS', 'حمص بالطحينة', 14); menu('FATT', 'سلطة فتوش', 16); menu('FRIES', 'بطاطس مقلية', 12); menu('SAMB', 'سمبوسة (6 قطع)', 15);
+  l_cat := NOONA_RST_PKG.menu_category('RM_MAIN', 'الوجبات الرئيسية');
+  menu('KABSA', 'كبسة دجاج', 32); menu('MANDI', 'مندي لحم', 58); menu('GRILL', 'مشاوي مشكلة', 65); menu('PASTA', 'باستا ألفريدو', 36);
+  l_cat := NOONA_RST_PKG.menu_category('RM_SAND', 'البرجر والسندويتشات');
+  menu('BURG', 'برجر لحم كلاسيك', 29); menu('CHBURG', 'برجر دجاج مقرمش', 26); menu('SHAW', 'شاورما دجاج', 14); menu('CLUB', 'كلوب ساندويتش', 24);
+  l_cat := NOONA_RST_PKG.menu_category('RM_DSRT', 'الحلويات');
+  menu('KUN', 'كنافة بالقشطة', 22); menu('CAKE', 'تشيز كيك', 21); menu('UMALI', 'أم علي', 19); menu('ICE', 'آيس كريم (3 كرات)', 15);
+
+  -- المواد الخام بأرصدة افتتاحية في المستودع الرئيسي (مستودع نقاط البيع)
+  ing('RICE', 'أرز بسمتي', l_kg, 8, 100);          ing('CHICKEN', 'دجاج طازج', l_kg, 18, 80);
+  ing('LAMB', 'لحم غنم', l_kg, 55, 40);             ing('BEEF', 'لحم بقري مفروم', l_kg, 42, 30);
+  ing('BUN', 'خبز برجر', l_pcs, 1.2, 400);          ing('BREAD', 'خبز عربي', l_pcs, 0.5, 500);
+  ing('POTATO', 'بطاطس مجمدة', l_kg, 9, 60);        ing('OIL', 'زيت قلي', l_l, 7, 40);
+  ing('VEG', 'خضار مشكلة', l_kg, 6, 50);            ing('CHEESE', 'جبن شرائح', l_kg, 30, 15);
+  ing('COFFEE', 'بن إسبريسو', l_kg, 90, 10);        ing('ARCOF', 'بن قهوة عربية بالهيل', l_kg, 120, 8);
+  ing('MILK', 'حليب طازج', l_l, 6, 60);             ing('TEA', 'شاي', l_kg, 40, 5);
+  ing('ORANGE', 'برتقال عصير', l_kg, 5, 80);        ing('LEMON', 'ليمون ونعناع', l_kg, 7, 30);
+  ing('SUGAR', 'سكر', l_kg, 4, 40);                 ing('PASTA', 'معكرونة', l_kg, 7, 25);
+  ing('CREAM', 'كريمة طبخ', l_l, 14, 20);           ing('CHICKP', 'حمص حب', l_kg, 9, 20);
+  ing('TAHINI', 'طحينة', l_kg, 22, 10);             ing('KUNAFA', 'عجينة كنافة', l_kg, 18, 20);
+  ing('QASHTA', 'قشطة', l_kg, 25, 15);              ing('CREAMCH', 'جبن كريمي', l_kg, 35, 10);
+  ing('BISC', 'بسكويت', l_kg, 15, 10);              ing('ICE', 'آيس كريم', l_l, 20, 30);
+  ing('SAMB', 'رقائق سمبوسة', l_pcs, 0.4, 600);
+  l_n := NOONA_INV_PKG.save_stock_doc('{"type":"OPENING","date":"' || TO_CHAR(SYSDATE - 7, 'YYYY-MM-DD') || '","wh":'
+         || NOONA_INV_PKG.default_warehouse || ',"action":"POST","desc":"رصيد افتتاحي لمواد المطبخ","lines":[' || l_lines || ']}');
+  -- علب المشروبات والمياه
+  l_n := NOONA_INV_PKG.save_stock_doc('{"type":"OPENING","date":"' || TO_CHAR(SYSDATE - 7, 'YYYY-MM-DD') || '","wh":'
+         || NOONA_INV_PKG.default_warehouse || ',"action":"POST","desc":"رصيد افتتاحي للمشروبات المعلبة","lines":[{"i":' || m('WATER')
+         || ',"q":240,"c":0.8},{"i":' || m('SODA') || ',"q":200,"c":2.2}]}');
+
+  -- الوصفات: كمية كل مكون لكل حصة
+  recipe('ARCOF', 'ARCOF:0.03');
+  recipe('ESP', 'COFFEE:0.018');
+  recipe('LATTE', 'COFFEE:0.018 MILK:0.2 SUGAR:0.01');
+  recipe('CAPP', 'COFFEE:0.018 MILK:0.15');
+  recipe('TEA', 'TEA:0.005 SUGAR:0.015 LEMON:0.005');
+  recipe('ORJ', 'ORANGE:0.5');
+  recipe('LEMIN', 'LEMON:0.12 SUGAR:0.03');
+  recipe('ICELAT', 'COFFEE:0.018 MILK:0.2 SUGAR:0.015');
+  recipe('HUMUS', 'CHICKP:0.12 TAHINI:0.04 OIL:0.01');
+  recipe('FATT', 'VEG:0.25 BREAD:1 OIL:0.02');
+  recipe('FRIES', 'POTATO:0.25 OIL:0.05');
+  recipe('SAMB', 'SAMB:6 BEEF:0.1 OIL:0.06');
+  recipe('KABSA', 'RICE:0.25 CHICKEN:0.45 OIL:0.03 VEG:0.05');
+  recipe('MANDI', 'RICE:0.3 LAMB:0.4 OIL:0.03');
+  recipe('GRILL', 'LAMB:0.25 CHICKEN:0.25 BREAD:2 VEG:0.1');
+  recipe('PASTA', 'PASTA:0.15 CREAM:0.12 CHICKEN:0.1 CHEESE:0.03');
+  recipe('BURG', 'BEEF:0.18 BUN:1 CHEESE:0.02 VEG:0.05 POTATO:0.15 OIL:0.04');
+  recipe('CHBURG', 'CHICKEN:0.18 BUN:1 VEG:0.05 OIL:0.06');
+  recipe('SHAW', 'CHICKEN:0.12 BREAD:1 VEG:0.03');
+  recipe('CLUB', 'CHICKEN:0.1 BREAD:3 CHEESE:0.03 VEG:0.05');
+  recipe('KUN', 'KUNAFA:0.15 QASHTA:0.08 SUGAR:0.05');
+  recipe('CAKE', 'CREAMCH:0.08 BISC:0.03 SUGAR:0.02');
+  recipe('UMALI', 'MILK:0.2 BREAD:1 SUGAR:0.03 QASHTA:0.03');
+  recipe('ICE', 'ICE:0.2');
+  COMMIT;
+  say('المطبخ: 27 مادة خام بأرصدة افتتاحية، ' || l_cnt || ' وصفة تصرف مكوناتها عند البيع، والمياه والمشروبات الغازية أصناف مخزنية');
+  NOONA_APEX_PKG.cleanup_request;
+EXCEPTION WHEN OTHERS THEN
+  DBMS_OUTPUT.PUT_LINE('FAILED: ' || SQLERRM || ' ' || DBMS_UTILITY.FORMAT_ERROR_BACKTRACE);
+  ROLLBACK;
+  NOONA_APEX_PKG.cleanup_request;
+  RAISE;
+END;
+/
+
+PROMPT ========== الصالات والعملاء الآجلون وأسبوع من الطلبات
 DECLARE
   c_admin CONSTANT VARCHAR2(128) := NVL(UPPER(TRIM('&ADMIN_USER')), 'ADMIN');
   l_co    NUMBER;
@@ -59,7 +195,10 @@ DECLARE
   END tbl;
   PROCEDURE item(p_key VARCHAR2, p_cat NUMBER, p_name VARCHAR2, p_price NUMBER) IS
   BEGIN
-    it(p_key) := NOONA_RST_PKG.save_menu_item(NULL, p_name, p_cat, p_price);
+    SELECT MIN(i.id) INTO it(p_key) FROM inv_item i WHERE i.name_ar = p_name AND i.category_id = p_cat;   -- أنشئ مع وصفته في الجزء الأول
+    IF it(p_key) IS NULL THEN
+      it(p_key) := NOONA_RST_PKG.save_menu_item(NULL, p_name, p_cat, p_price);
+    END IF;
     l_codes.EXTEND;
     l_codes(l_codes.COUNT) := p_key;
   END item;
