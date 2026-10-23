@@ -1,4 +1,5 @@
-"""NOONA_FIN (المالية): الأستاذ العام، مراكز التكلفة، النقدية والبنوك (سندات القبض والصرف والمصروفات)، القوائم المالية والتحليلات
+"""NOONA_FIN (المالية): الأستاذ العام، مراكز التكلفة، النقدية والبنوك (سندات القبض والصرف والمصروفات)، القوائم المالية والتحليلات،
+الأصول الثابتة (tools/fa_pages.py)
 الاستخدام: python3 tools/build_fin.py   ->  apex/NOONA_FIN/f127
 القيود والسندات: شبكة إدخال رأس/تفاصيل (tools/fin_grid.py) تحفظ السطور JSON في عنصر مخفي؛
 التحقق والترحيل في NOONA_GL_PKG و NOONA_CSH_PKG (عبر المحرك المحاسبي NOONA_ACE_PKG).
@@ -756,5 +757,7 @@ ct = app.nav_item('الرقابة والتدقيق', None, 'fa-shield', 70)
 app.nav_item('الرقابة والتسويات', 46, 'fa-check-square-o', 71, parent=ct)
 app.nav_item('سجل التدقيق المالي', 47, 'fa-history', 72, parent=ct)
 
+from fa_pages import build as fa_pages
+fa_pages(app, url)
 app.finalize()
 print('NOONA_FIN built:', len(app.pages), 'pages')

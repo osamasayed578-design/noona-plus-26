@@ -870,3 +870,8 @@ tr:hover .nn-badge { transform: scale(1.05); }
 .nn-payslip-id span { display: block; color: var(--nn-muted); font-size: .8rem; }
 .nn-payslip-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
 @media (max-width: 700px) { .nn-payslip-id { grid-template-columns: 1fr 1fr; } .nn-payslip-cols { grid-template-columns: 1fr; } }
+/* الأصول الثابتة */
+.nn-fa-card { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 8px; }
+.nn-fa-card .nn-rpt td:first-child { color: var(--nn-muted); width: 42%; }
+.nn-fa-h { font-size: 1.05rem; margin: 18px 0 6px; color: var(--nn-text); }
+@media (max-width: 800px) { .nn-fa-card { grid-template-columns: 1fr; } }

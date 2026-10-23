@@ -205,7 +205,7 @@ BEGIN
   EXCEPTION WHEN OTHERS THEN expect('sale needs a price', 'NOONA-FA-053', SQLERRM); END;
   BEGIN l_n := NOONA_FA_PKG.dispose(l_a, 'DONATION', l_pe, 100, 0, 'BANK', NULL, NULL, NULL, 'x'); ok('donation has no proceeds', FALSE);
   EXCEPTION WHEN OTHERS THEN expect('donation has no proceeds', 'NOONA-FA-052', SQLERRM); END;
-  BEGIN l_n := NOONA_FA_PKG.dispose(l_a, 'SALE', l_ps, 1000, 0, 'BANK', NULL, NULL, NULL, 'x'); ok('disposal date after posted depreciation', FALSE);
+  BEGIN l_n := NOONA_FA_PKG.dispose(l_a, 'SALE', l_ps - 2, 1000, 0, 'BANK', NULL, NULL, NULL, 'x'); ok('disposal date after posted depreciation', FALSE);
   EXCEPTION WHEN OTHERS THEN expect('disposal date after posted depreciation', 'NOONA-FA-054', SQLERRM); END;
   l_dis := NOONA_FA_PKG.dispose(l_a, 'SALE', l_pe, 40000, 6000, 'RECEIVABLE', NULL, NULL, l_pty, 'بيع لجهة خارجية');
   ok('asset disposed', ast(l_a) = 'DISPOSED');
@@ -235,6 +235,18 @@ BEGIN
   SELECT gain_loss INTO l_dr FROM fa_disposal WHERE id = l_n;
   l_j := ev_journal('FA_DISPOSAL', l_n);
   ok('gain on sale credited to disposal gains', l_dr = 50000 AND jl(l_j, '4204', 'C') = 50000, l_dr);
+
+  -- بيع منتصف شهر مهلك: يرد الإهلاك الزائد بعد تاريخ البيع (متناقص 2250 للشهر كاملاً)
+  l_dis2 := NOONA_FA_PKG.dispose(l_v, 'SALE', l_ps + 14, 85000, 12750, 'BANK', NULL, NULL, l_pty, 'بيع منتصف الشهر');
+  l_j := ev_journal('FA_DISPOSAL', l_dis2);
+  ok('mid-month sale reverses excess depreciation', jl(l_j, '5206', 'C') > 1000 AND jl(l_j, '5206', 'C') < 2250, jl(l_j, '5206', 'C'));
+  SELECT gain_loss, nbv_at_disposal INTO l_dr, l_cr FROM fa_disposal WHERE id = l_dis2;
+  ok('mid-month sale: NBV uses depreciation to sale date', l_cr = 90000 - bk(l_v, 'accumulated_depr') AND l_dr = 85000 - l_cr
+     AND bk(l_v, 'accumulated_depr') BETWEEN 1000 AND 1200, l_cr || ' / ' || bk(l_v, 'accumulated_depr'));
+  SELECT SUM(debit_amount), SUM(credit_amount) INTO l_dr, l_cr FROM gl_journal_line WHERE journal_id = l_j;
+  ok('mid-month sale entry balanced', l_dr = l_cr, l_dr || '/' || l_cr);
+  l_n := NOONA_FA_PKG.reverse_disposal(l_dis2, 'إلغاء');
+  ok('vehicle back with full month depreciation', bk(l_v, 'accumulated_depr') = 2250 AND ast(l_v) = 'IN_SERVICE');
 
   -- عكس الإهلاك يتطلب عكس الاستبعاد أولاً
   BEGIN l_n := NOONA_FA_PKG.reverse_run(l_run, 'x'); ok('reverse run blocked by disposal', FALSE);

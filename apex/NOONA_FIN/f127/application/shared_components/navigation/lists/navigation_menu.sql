@@ -316,6 +316,72 @@ wwv_flow_imp_shared.create_list_item(
 ,p_parent_list_item_id=>wwv_flow_imp.id(91820266000000498)
 ,p_list_item_current_type=>'TARGET_PAGE'
 );
+wwv_flow_imp_shared.create_list_item(
+ p_id=>wwv_flow_imp.id(91820266000000711)
+,p_list_item_display_sequence=>65
+,p_list_item_link_text=>'الأصول الثابتة'
+,p_list_item_link_target=>''
+,p_list_item_icon=>'fa-building-o'
+,p_security_scheme=>wwv_flow_imp.id(91820266000000501)
+);
+wwv_flow_imp_shared.create_list_item(
+ p_id=>wwv_flow_imp.id(91820266000000712)
+,p_list_item_display_sequence=>1
+,p_list_item_link_text=>'سجل الأصول'
+,p_list_item_link_target=>'f?p=&APP_ID.:60:&APP_SESSION.::&DEBUG.:::'
+,p_list_item_icon=>'fa-cubes'
+,p_parent_list_item_id=>wwv_flow_imp.id(91820266000000711)
+,p_security_scheme=>wwv_flow_imp.id(91820266000000501)
+,p_list_item_current_type=>'TARGET_PAGE'
+);
+wwv_flow_imp_shared.create_list_item(
+ p_id=>wwv_flow_imp.id(91820266000000713)
+,p_list_item_display_sequence=>2
+,p_list_item_link_text=>'أصل جديد'
+,p_list_item_link_target=>'f?p=&APP_ID.:61:&SESSION.::&DEBUG.:RP,61::'
+,p_list_item_icon=>'fa-plus'
+,p_parent_list_item_id=>wwv_flow_imp.id(91820266000000711)
+,p_security_scheme=>wwv_flow_imp.id(91820266000000501)
+);
+wwv_flow_imp_shared.create_list_item(
+ p_id=>wwv_flow_imp.id(91820266000000714)
+,p_list_item_display_sequence=>3
+,p_list_item_link_text=>'إهلاك الأصول'
+,p_list_item_link_target=>'f?p=&APP_ID.:63:&APP_SESSION.::&DEBUG.:::'
+,p_list_item_icon=>'fa-line-chart'
+,p_parent_list_item_id=>wwv_flow_imp.id(91820266000000711)
+,p_security_scheme=>wwv_flow_imp.id(91820266000000501)
+,p_list_item_current_type=>'TARGET_PAGE'
+);
+wwv_flow_imp_shared.create_list_item(
+ p_id=>wwv_flow_imp.id(91820266000000715)
+,p_list_item_display_sequence=>4
+,p_list_item_link_text=>'بيع وتخريد الأصول'
+,p_list_item_link_target=>'f?p=&APP_ID.:65:&SESSION.::&DEBUG.:RP,65::'
+,p_list_item_icon=>'fa-recycle'
+,p_parent_list_item_id=>wwv_flow_imp.id(91820266000000711)
+,p_security_scheme=>wwv_flow_imp.id(91820266000000501)
+);
+wwv_flow_imp_shared.create_list_item(
+ p_id=>wwv_flow_imp.id(91820266000000716)
+,p_list_item_display_sequence=>5
+,p_list_item_link_text=>'تقارير الأصول'
+,p_list_item_link_target=>'f?p=&APP_ID.:66:&APP_SESSION.::&DEBUG.:::'
+,p_list_item_icon=>'fa-bar-chart'
+,p_parent_list_item_id=>wwv_flow_imp.id(91820266000000711)
+,p_security_scheme=>wwv_flow_imp.id(91820266000000501)
+,p_list_item_current_type=>'TARGET_PAGE'
+);
+wwv_flow_imp_shared.create_list_item(
+ p_id=>wwv_flow_imp.id(91820266000000717)
+,p_list_item_display_sequence=>6
+,p_list_item_link_text=>'فئات الأصول'
+,p_list_item_link_target=>'f?p=&APP_ID.:67:&APP_SESSION.::&DEBUG.:::'
+,p_list_item_icon=>'fa-tags'
+,p_parent_list_item_id=>wwv_flow_imp.id(91820266000000711)
+,p_security_scheme=>wwv_flow_imp.id(91820266000000501)
+,p_list_item_current_type=>'TARGET_PAGE'
+);
 wwv_flow_imp.component_end;
 end;
 /

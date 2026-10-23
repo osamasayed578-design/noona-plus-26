@@ -70,6 +70,8 @@ CREATE OR REPLACE PACKAGE NOONA_FA_PKG AUTHID DEFINER AS
   FUNCTION txn_label(p_type IN VARCHAR2) RETURN VARCHAR2;
   FUNCTION asset_label(p_asset_id IN NUMBER) RETURN VARCHAR2;
   FUNCTION book_id_of(p_asset_id IN NUMBER) RETURN NUMBER;
+  FUNCTION asset_status(p_asset_id IN NUMBER) RETURN VARCHAR2;
+  FUNCTION run_status(p_run_id IN NUMBER) RETURN VARCHAR2;
   FUNCTION fa_summary RETURN CLOB;
   FUNCTION asset_card_html(p_asset_id IN NUMBER) RETURN CLOB;
   FUNCTION schedule_html(p_asset_id IN NUMBER) RETURN CLOB;
@@ -194,6 +196,20 @@ CREATE OR REPLACE PACKAGE BODY NOONA_FA_PKG AS
     SELECT MIN(id) INTO l FROM fa_asset_book WHERE asset_id = p_asset_id AND book_id = default_book;
     RETURN l;
   END book_id_of;
+
+  FUNCTION asset_status(p_asset_id IN NUMBER) RETURN VARCHAR2 IS
+    l VARCHAR2(30);
+  BEGIN
+    SELECT MAX(status_code) INTO l FROM fa_asset WHERE id = p_asset_id AND company_id = company;
+    RETURN l;
+  END asset_status;
+
+  FUNCTION run_status(p_run_id IN NUMBER) RETURN VARCHAR2 IS
+    l VARCHAR2(30);
+  BEGIN
+    SELECT MAX(status_code) INTO l FROM fa_depreciation_run WHERE id = p_run_id AND company_id = company;
+    RETURN l;
+  END run_status;
 
   FUNCTION quick_setup RETURN NUMBER IS
     l_id  NUMBER;
@@ -632,6 +648,21 @@ CREATE OR REPLACE PACKAGE BODY NOONA_FA_PKG AS
     RETURN l;
   END next_period;
 
+  -- تاريخ آخر إهلاك مرحل قبل فترة/تشغيل معين (أو تاريخ الرصيد الافتتاحي)
+  FUNCTION prev_done_to(p_book NUMBER, p_asset NUMBER, p_exclude_run NUMBER, p_before DATE DEFAULT NULL) RETURN DATE IS
+    l DATE;
+  BEGIN
+    SELECT MAX(p.end_date) INTO l FROM fa_depreciation_line l JOIN fa_depreciation_run r ON r.id = l.run_id
+      JOIN gl_period p ON p.id = l.period_id
+     WHERE l.asset_book_id = p_book AND r.status_code = 'POSTED' AND r.id <> NVL(p_exclude_run, -1)
+       AND (p_before IS NULL OR p.start_date < p_before);
+    IF l IS NULL THEN
+      SELECT MAX(CASE WHEN NVL(JSON_VALUE(t.new_values, '$.opening_accum' RETURNING NUMBER), 0) > 0 THEN t.txn_date - 1 END) INTO l
+        FROM fa_transaction t WHERE t.asset_id = p_asset AND t.txn_type = 'CAPITALIZATION' AND t.status_code = 'POSTED';
+    END IF;
+    RETURN l;
+  END prev_done_to;
+
   FUNCTION run_depreciation(p_period_id IN NUMBER, p_book_id IN NUMBER DEFAULT NULL) RETURN NUMBER IS
     l_book  NUMBER := NVL(p_book_id, default_book);
     l_p     gl_period%ROWTYPE;
@@ -893,6 +924,8 @@ CREATE OR REPLACE PACKAGE BODY NOONA_FA_PKG AS
     l_proc  NUMBER := NVL(ROUND(p_proceeds, 2), 0);
     l_vat   NUMBER := NVL(ROUND(p_vat, 2), 0);
     l_catch NUMBER;
+    l_last  NUMBER;
+    l_pst   DATE;
     l_accum NUMBER;
     l_nbv   NUMBER;
     l_gl    NUMBER;
@@ -916,11 +949,28 @@ CREATE OR REPLACE PACKAGE BODY NOONA_FA_PKG AS
     NOONA_CORE_PKG.assert(p_method <> 'SALE' OR l_proc > 0, 'NOONA-FA-053', 'أدخل سعر البيع', 'Sale price required');
     l_b := book_row(p_asset_id);
     SELECT * INTO l_c FROM fa_category WHERE id = l_a.category_id;
-    NOONA_CORE_PKG.assert(l_date >= NVL(l_b.depreciated_to, l_a.acquisition_date) AND l_date >= l_a.acquisition_date, 'NOONA-FA-054',
-      'تاريخ الاستبعاد يسبق آخر إهلاك مرحل (' || fd(l_b.depreciated_to) || ')؛ اعكس الإهلاك أولاً',
-      'Disposal date precedes posted depreciation');
-    -- لحاق الإهلاك حتى تاريخ الاستبعاد
-    l_catch := calc_book(l_b, l_date);
+    NOONA_CORE_PKG.assert(l_date >= l_a.acquisition_date, 'NOONA-FA-054', 'تاريخ الاستبعاد يسبق تاريخ اقتناء الأصل',
+      'Disposal date precedes acquisition');
+    IF l_b.depreciated_to IS NOT NULL AND l_date < l_b.depreciated_to THEN
+      -- الاستبعاد داخل فترة مهلكة: يرد الجزء الزائد من إهلاك آخر فترة (لحاق سالب)
+      BEGIN
+        SELECT amt, pst INTO l_last, l_pst FROM (
+          SELECT l.depreciation_amount amt, p.start_date pst FROM fa_depreciation_line l JOIN fa_depreciation_run r ON r.id = l.run_id
+            JOIN gl_period p ON p.id = l.period_id
+           WHERE l.asset_book_id = l_b.id AND r.status_code = 'POSTED' ORDER BY p.start_date DESC)
+         WHERE ROWNUM = 1;
+      EXCEPTION WHEN NO_DATA_FOUND THEN
+        l_last := 0; l_pst := l_b.depreciated_to;
+      END;
+      NOONA_CORE_PKG.assert(l_date >= l_pst - 1, 'NOONA-FA-054',
+        'تاريخ الاستبعاد يسبق آخر فترة إهلاك مرحلة (' || fd(l_pst) || ')؛ اعكس تشغيلات الإهلاك اللاحقة أولاً',
+        'Disposal date precedes the last posted depreciation period');
+      l_catch := calc(l_b.cost, l_b.residual_value, l_b.accumulated_depr - l_last, l_b.depreciation_method, l_b.useful_life_months,
+                      l_b.depr_start_date, prev_done_to(l_b.id, l_b.asset_id, NULL, l_pst), l_date) - l_last;
+    ELSE
+      -- لحاق الإهلاك حتى تاريخ الاستبعاد
+      l_catch := calc_book(l_b, l_date);
+    END IF;
     l_accum := l_b.accumulated_depr + l_catch;
     l_nbv := l_b.cost - l_accum;
     l_gl := l_proc - l_nbv;
@@ -941,8 +991,9 @@ CREATE OR REPLACE PACKAGE BODY NOONA_FA_PKG AS
                     || ',"book_status":"' || l_b.status_code || '","asset_status":"' || l_a.status_code || '"}',
                     '{"catchup":' || jn(l_catch) || ',"accum":' || jn(l_accum) || ',"disposal":' || l_id || '}',
                     disposal_label(p_method) || ' - ' || p_reason);
-    IF l_catch > 0 THEN
-      add_line(l_lines, l_c.depr_expense_account_id, l_catch, 0, l_a.cost_center_id, 'إهلاك حتى تاريخ الاستبعاد ' || l_a.asset_no);
+    IF l_catch <> 0 THEN
+      add_line(l_lines, l_c.depr_expense_account_id, l_catch, 0, l_a.cost_center_id,
+               CASE WHEN l_catch > 0 THEN 'إهلاك حتى تاريخ الاستبعاد ' ELSE 'رد إهلاك ما بعد تاريخ الاستبعاد ' END || l_a.asset_no);
       add_line(l_lines, l_accd, 0, l_catch, NULL, 'مجمع إهلاك حتى تاريخ الاستبعاد ' || l_a.asset_no, NULL, FALSE);
     END IF;
     add_line(l_lines, l_accd, l_accum, 0, NULL, 'إقفال مجمع إهلاك الأصل ' || l_a.asset_no, NULL, FALSE);
@@ -1063,7 +1114,7 @@ CREATE OR REPLACE PACKAGE BODY NOONA_FA_PKG AS
     SELECT MAX(name_ar) INTO l_br FROM org_branch WHERE id = l_a.branch_id;
     SELECT MAX(code || ' - ' || name_ar) INTO l_cc FROM gl_cost_center WHERE id = l_a.cost_center_id;
     SELECT MAX(p.display_name_ar) INTO l_cu FROM hr_employee e JOIN pty_party p ON p.id = e.person_party_id WHERE e.id = l_a.custodian_employee_id;
-    l_rem := CASE WHEN l_b.depreciation_method = 'NONE' THEN NULL
+    l_rem := CASE WHEN l_b.depreciation_method = 'NONE' OR l_b.status_code = 'DISPOSED' THEN NULL
                   ELSE GREATEST(l_b.useful_life_months - elapsed(l_b.depr_start_date, l_b.depreciated_to, l_b.useful_life_months), 0) END;
     l_out := '<div class="nn-kpis">' || kpi('التكلفة', fnum(l_b.cost), 'fa-building')
           || kpi('مجمع الإهلاك والانخفاض', fnum(l_b.accumulated_depr), 'fa-line-chart', 'is-warning')
@@ -1074,7 +1125,7 @@ CREATE OR REPLACE PACKAGE BODY NOONA_FA_PKG AS
                   WHEN l_a.status_code = 'DISPOSED' THEN 'is-danger' ELSE 'is-warning' END || '">' || status_label(l_a.status_code) || '</span>')
           || row2('الاسم', esc(l_a.name_ar)) || row2('الفئة', esc(l_cat)) || row2('رقم الملصق', esc(l_a.tag_no))
           || row2('الفرع', esc(l_br)) || row2('مركز التكلفة', esc(l_cc)) || row2('العهدة', esc(l_cu)) || row2('الموقع', esc(l_a.location_text))
-          || row2('الرقم التسلسلي / الصانع / الموديل', esc(l_a.serial_no || ' / ' || l_a.manufacturer || ' / ' || l_a.model_no))
+          || row2('الرقم التسلسلي / الصانع / الموديل', esc(NULLIF(l_a.serial_no || ' / ' || l_a.manufacturer || ' / ' || l_a.model_no, ' /  / ')))
           || row2('نهاية الضمان', fd(l_a.warranty_end))
           || '</tbody></table><table class="nn-rpt"><tbody>'
           || row2('تاريخ الاقتناء', fd(l_a.acquisition_date)) || row2('تاريخ التشغيل', fd(l_a.in_service_date))
