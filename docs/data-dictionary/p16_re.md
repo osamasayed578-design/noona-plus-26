@@ -95,12 +95,20 @@
 | 15 | `USAGE_MIX` | نص | `VARCHAR2(200 CHAR)` |  |  |  |  | إدخال المستخدم |  | الاستخدامات (سكني، تجاري، فندقي) |
 | 16 | `TOTAL_AREA_SQM` | كمية | `NUMBER(24,6)` |  |  |  |  | إدخال المستخدم |  | المساحة الكلية |
 | 17 | `CITY_ID` | معرف | `NUMBER(19)` |  |  | FK→REF_CITY |  | إدخال المستخدم |  | المدينة |
-| 18 | `STATUS_CODE` | رمز | `VARCHAR2(30 CHAR)` | ✔ | 'PLANNED' |  | PLANNED, UNDER_DEVELOPMENT, OPERATIONAL, UNDER_RENOVATION, SOLD_OUT, INACTIVE | النظام/الحزمة |  | الحالة ضمن دورة الحياة المعتمدة |
-| 19 | `ROW_VERSION` | عدد صحيح | `NUMBER(10)` | ✔ | 1 |  |  | Trigger |  | رقم الإصدار للتحكم في التزامن المتفائل |
-| 20 | `CREATED_BY` | اسم مستخدم | `VARCHAR2(128 CHAR)` | ✔ |  |  |  | Trigger |  | منشئ السجل |
-| 21 | `CREATED_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` | ✔ | SYSTIMESTAMP |  |  | Trigger |  | وقت الإنشاء |
-| 22 | `UPDATED_BY` | اسم مستخدم | `VARCHAR2(128 CHAR)` |  |  |  |  | Trigger |  | آخر من عدل السجل |
-| 23 | `UPDATED_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` |  |  |  |  | Trigger |  | وقت آخر تعديل |
+| 18 | `ADDRESS_TEXT` | نص | `VARCHAR2(500 CHAR)` |  |  |  |  | إدخال المستخدم |  | العنوان التفصيلي |
+| 19 | `PHONE` | نص | `VARCHAR2(30 CHAR)` |  |  |  |  | إدخال المستخدم |  | هاتف الاستقبال/الإدارة |
+| 20 | `DESCRIPTION` | نص | `VARCHAR2(2000 CHAR)` |  |  |  |  | إدخال المستخدم |  | الوصف والمرافق |
+| 21 | `STAR_RATING` | عدد صحيح | `NUMBER(10)` |  |  |  |  | إدخال المستخدم |  | التصنيف (نجوم الفندق) |
+| 22 | `TOURISM_LICENSE_NO` | نص | `VARCHAR2(100 CHAR)` |  |  |  |  | إدخال المستخدم |  | ترخيص السياحة |
+| 23 | `CHECKIN_TIME` | نص | `VARCHAR2(5 CHAR)` |  |  |  |  | إدخال المستخدم |  | وقت الدخول (HH24:MI) |
+| 24 | `CHECKOUT_TIME` | نص | `VARCHAR2(5 CHAR)` |  |  |  |  | إدخال المستخدم |  | وقت المغادرة (HH24:MI) |
+| 25 | `BUSINESS_DATE` | تاريخ | `DATE` |  |  |  |  | إدخال المستخدم |  | تاريخ العمل الفندقي الحالي (يتقدم بالتدقيق الليلي) |
+| 26 | `STATUS_CODE` | رمز | `VARCHAR2(30 CHAR)` | ✔ | 'PLANNED' |  | PLANNED, UNDER_DEVELOPMENT, OPERATIONAL, UNDER_RENOVATION, SOLD_OUT, INACTIVE | النظام/الحزمة |  | الحالة ضمن دورة الحياة المعتمدة |
+| 27 | `ROW_VERSION` | عدد صحيح | `NUMBER(10)` | ✔ | 1 |  |  | Trigger |  | رقم الإصدار للتحكم في التزامن المتفائل |
+| 28 | `CREATED_BY` | اسم مستخدم | `VARCHAR2(128 CHAR)` | ✔ |  |  |  | Trigger |  | منشئ السجل |
+| 29 | `CREATED_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` | ✔ | SYSTIMESTAMP |  |  | Trigger |  | وقت الإنشاء |
+| 30 | `UPDATED_BY` | اسم مستخدم | `VARCHAR2(128 CHAR)` |  |  |  |  | Trigger |  | آخر من عدل السجل |
+| 31 | `UPDATED_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` |  |  |  |  | Trigger |  | وقت آخر تعديل |
 
 ## RE_BUILDING
 
@@ -200,12 +208,14 @@
 | 21 | `LIST_PRICE` | مبلغ | `NUMBER(24,6)` |  |  |  |  | إدخال المستخدم |  | السعر الحالي |
 | 22 | `ITEM_ID` | معرف | `NUMBER(19)` |  |  | FK→INV_ITEM |  | إدخال المستخدم |  | الصنف (عند البيع كمخزون عقاري) |
 | 23 | `ASSET_ID` | معرف | `NUMBER(19)` |  |  | FK→FA_ASSET |  | إدخال المستخدم |  | الأصل (عند الاحتفاظ للتأجير) |
-| 24 | `STATUS_CODE` | رمز | `VARCHAR2(30 CHAR)` | ✔ | 'PLANNED' |  | PLANNED, UNDER_CONSTRUCTION, AVAILABLE, RESERVED, SOLD, HANDED_OVER, LEASED, OCCUPIED, UNDER_MAINTENANCE, BLOCKED | النظام/الحزمة |  | الحالة ضمن دورة الحياة المعتمدة |
-| 25 | `ROW_VERSION` | عدد صحيح | `NUMBER(10)` | ✔ | 1 |  |  | Trigger |  | رقم الإصدار للتحكم في التزامن المتفائل |
-| 26 | `CREATED_BY` | اسم مستخدم | `VARCHAR2(128 CHAR)` | ✔ |  |  |  | Trigger |  | منشئ السجل |
-| 27 | `CREATED_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` | ✔ | SYSTIMESTAMP |  |  | Trigger |  | وقت الإنشاء |
-| 28 | `UPDATED_BY` | اسم مستخدم | `VARCHAR2(128 CHAR)` |  |  |  |  | Trigger |  | آخر من عدل السجل |
-| 29 | `UPDATED_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` |  |  |  |  | Trigger |  | وقت آخر تعديل |
+| 24 | `AMENITIES` | نص | `VARCHAR2(1000 CHAR)` |  |  |  |  | إدخال المستخدم |  | التجهيزات والمرافق |
+| 25 | `NOTES` | نص | `VARCHAR2(1000 CHAR)` |  |  |  |  | إدخال المستخدم |  | ملاحظات |
+| 26 | `STATUS_CODE` | رمز | `VARCHAR2(30 CHAR)` | ✔ | 'PLANNED' |  | PLANNED, UNDER_CONSTRUCTION, AVAILABLE, RESERVED, SOLD, HANDED_OVER, LEASED, OCCUPIED, UNDER_MAINTENANCE, BLOCKED | النظام/الحزمة |  | الحالة ضمن دورة الحياة المعتمدة |
+| 27 | `ROW_VERSION` | عدد صحيح | `NUMBER(10)` | ✔ | 1 |  |  | Trigger |  | رقم الإصدار للتحكم في التزامن المتفائل |
+| 28 | `CREATED_BY` | اسم مستخدم | `VARCHAR2(128 CHAR)` | ✔ |  |  |  | Trigger |  | منشئ السجل |
+| 29 | `CREATED_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` | ✔ | SYSTIMESTAMP |  |  | Trigger |  | وقت الإنشاء |
+| 30 | `UPDATED_BY` | اسم مستخدم | `VARCHAR2(128 CHAR)` |  |  |  |  | Trigger |  | آخر من عدل السجل |
+| 31 | `UPDATED_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` |  |  |  |  | Trigger |  | وقت آخر تعديل |
 
 ## RE_UNIT_OWNERSHIP
 

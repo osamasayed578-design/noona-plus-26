@@ -31,6 +31,14 @@ MANAGEMENT_MODE CODE NN D='OWNED' IN:OWNED,MANAGED_FOR_OWNER,JOINT | الملك�
 USAGE_MIX       V200             | الاستخدامات (سكني، تجاري، فندقي)
 TOTAL_AREA_SQM  QTY              | المساحة الكلية
 CITY_ID         ID   >REF_CITY   | المدينة
+ADDRESS_TEXT    V500             | العنوان التفصيلي
+PHONE           V30              | هاتف الاستقبال/الإدارة
+DESCRIPTION     V2000            | الوصف والمرافق
+STAR_RATING     INT              | التصنيف (نجوم الفندق)
+TOURISM_LICENSE_NO V100          | ترخيص السياحة
+CHECKIN_TIME    V5               | وقت الدخول (HH24:MI)
+CHECKOUT_TIME   V5               | وقت المغادرة (HH24:MI)
+BUSINESS_DATE   DATE             | تاريخ العمل الفندقي الحالي (يتقدم بالتدقيق الليلي)
 ''', area='registry')
 
 table('RE_BUILDING', 'المباني', 'Buildings', scope='C', mix='code names status', codeuk=False, status='PLANNED UNDER_CONSTRUCTION COMPLETED OPERATIONAL', cols='''
@@ -62,6 +70,8 @@ TITLE_DEED_NO   V100             | رقم صك الوحدة
 LIST_PRICE      AMT              | السعر الحالي
 ITEM_ID         ID   >INV_ITEM   | الصنف (عند البيع كمخزون عقاري)
 ASSET_ID        ID   >FA_ASSET   | الأصل (عند الاحتفاظ للتأجير)
+AMENITIES       V1000            | التجهيزات والمرافق
+NOTES           V1000            | ملاحظات
 ''', uk=[('TENANT_ID', 'PROPERTY_ID', 'CODE')], ix=[('TENANT_ID', 'PROPERTY_ID', 'STATUS_CODE')], area='registry',
       purpose='السجل الموحد للوحدات يستخدمه البيع والتأجير والضيافة والصيانة دون تكرار')
 

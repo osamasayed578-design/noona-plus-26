@@ -465,12 +465,13 @@
 | 10 | `FRONT_DESK_STATUS` | رمز | `VARCHAR2(30 CHAR)` | ✔ | 'VACANT' |  | VACANT, OCCUPIED, DUE_OUT, DUE_IN, RESERVED, BLOCKED | إدخال المستخدم |  | حالة الاستقبال |
 | 11 | `HOUSEKEEPING_STATUS` | رمز | `VARCHAR2(30 CHAR)` | ✔ | 'CLEAN' |  | CLEAN, DIRTY, INSPECTED, IN_PROGRESS, OUT_OF_ORDER | إدخال المستخدم |  | حالة النظافة |
 | 12 | `CONNECTED_ROOM_ID` | معرف | `NUMBER(19)` |  |  | FK→HSP_ROOM |  | إدخال المستخدم |  | غرفة متصلة |
-| 13 | `STATUS_CODE` | رمز | `VARCHAR2(30 CHAR)` | ✔ | 'ACTIVE' |  | ACTIVE, OUT_OF_ORDER, OUT_OF_SERVICE, INACTIVE | النظام/الحزمة |  | الحالة ضمن دورة الحياة المعتمدة |
-| 14 | `ROW_VERSION` | عدد صحيح | `NUMBER(10)` | ✔ | 1 |  |  | Trigger |  | رقم الإصدار للتحكم في التزامن المتفائل |
-| 15 | `CREATED_BY` | اسم مستخدم | `VARCHAR2(128 CHAR)` | ✔ |  |  |  | Trigger |  | منشئ السجل |
-| 16 | `CREATED_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` | ✔ | SYSTIMESTAMP |  |  | Trigger |  | وقت الإنشاء |
-| 17 | `UPDATED_BY` | اسم مستخدم | `VARCHAR2(128 CHAR)` |  |  |  |  | Trigger |  | آخر من عدل السجل |
-| 18 | `UPDATED_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` |  |  |  |  | Trigger |  | وقت آخر تعديل |
+| 13 | `NOTES` | نص | `VARCHAR2(500 CHAR)` |  |  |  |  | إدخال المستخدم |  | ملاحظات الغرفة |
+| 14 | `STATUS_CODE` | رمز | `VARCHAR2(30 CHAR)` | ✔ | 'ACTIVE' |  | ACTIVE, OUT_OF_ORDER, OUT_OF_SERVICE, INACTIVE | النظام/الحزمة |  | الحالة ضمن دورة الحياة المعتمدة |
+| 15 | `ROW_VERSION` | عدد صحيح | `NUMBER(10)` | ✔ | 1 |  |  | Trigger |  | رقم الإصدار للتحكم في التزامن المتفائل |
+| 16 | `CREATED_BY` | اسم مستخدم | `VARCHAR2(128 CHAR)` | ✔ |  |  |  | Trigger |  | منشئ السجل |
+| 17 | `CREATED_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` | ✔ | SYSTIMESTAMP |  |  | Trigger |  | وقت الإنشاء |
+| 18 | `UPDATED_BY` | اسم مستخدم | `VARCHAR2(128 CHAR)` |  |  |  |  | Trigger |  | آخر من عدل السجل |
+| 19 | `UPDATED_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` |  |  |  |  | Trigger |  | وقت آخر تعديل |
 
 ## HSP_RATE_PLAN
 
@@ -673,12 +674,14 @@
 | 9 | `CHECK_OUT_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` |  |  |  |  | إدخال المستخدم |  | وقت الخروج |
 | 10 | `CHECKED_IN_BY_MEMBER_ID` | معرف | `NUMBER(19)` |  |  | FK→SEC_USER_MEMBERSHIP |  | إدخال المستخدم |  | موظف الاستقبال |
 | 11 | `PREVIOUS_STAY_ID` | معرف | `NUMBER(19)` |  |  | FK→HSP_STAY |  | إدخال المستخدم |  | الإقامة السابقة عند تغيير الغرفة |
-| 12 | `STATUS_CODE` | رمز | `VARCHAR2(30 CHAR)` | ✔ | 'IN_HOUSE' |  | IN_HOUSE, CHECKED_OUT, ROOM_MOVED, CANCELLED | النظام/الحزمة |  | الحالة ضمن دورة الحياة المعتمدة |
-| 13 | `ROW_VERSION` | عدد صحيح | `NUMBER(10)` | ✔ | 1 |  |  | Trigger |  | رقم الإصدار للتحكم في التزامن المتفائل |
-| 14 | `CREATED_BY` | اسم مستخدم | `VARCHAR2(128 CHAR)` | ✔ |  |  |  | Trigger |  | منشئ السجل |
-| 15 | `CREATED_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` | ✔ | SYSTIMESTAMP |  |  | Trigger |  | وقت الإنشاء |
-| 16 | `UPDATED_BY` | اسم مستخدم | `VARCHAR2(128 CHAR)` |  |  |  |  | Trigger |  | آخر من عدل السجل |
-| 17 | `UPDATED_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` |  |  |  |  | Trigger |  | وقت آخر تعديل |
+| 12 | `NIGHTLY_RATE` | مبلغ | `NUMBER(24,6)` |  |  |  |  | إدخال المستخدم |  | سعر الليلة المطبق |
+| 13 | `LAST_CHARGED_DATE` | تاريخ | `DATE` |  |  |  |  | إدخال المستخدم |  | آخر ليلة رحلت رسومها |
+| 14 | `STATUS_CODE` | رمز | `VARCHAR2(30 CHAR)` | ✔ | 'IN_HOUSE' |  | IN_HOUSE, CHECKED_OUT, ROOM_MOVED, CANCELLED | النظام/الحزمة |  | الحالة ضمن دورة الحياة المعتمدة |
+| 15 | `ROW_VERSION` | عدد صحيح | `NUMBER(10)` | ✔ | 1 |  |  | Trigger |  | رقم الإصدار للتحكم في التزامن المتفائل |
+| 16 | `CREATED_BY` | اسم مستخدم | `VARCHAR2(128 CHAR)` | ✔ |  |  |  | Trigger |  | منشئ السجل |
+| 17 | `CREATED_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` | ✔ | SYSTIMESTAMP |  |  | Trigger |  | وقت الإنشاء |
+| 18 | `UPDATED_BY` | اسم مستخدم | `VARCHAR2(128 CHAR)` |  |  |  |  | Trigger |  | آخر من عدل السجل |
+| 19 | `UPDATED_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` |  |  |  |  | Trigger |  | وقت آخر تعديل |
 
 ## HSP_STAY_GUEST
 
@@ -772,8 +775,10 @@
 | 11 | `CASH_TRANSACTION_ID` | معرف | `NUMBER(19)` |  |  | FK→CSH_TRANSACTION |  | إدخال المستخدم |  | الدفعة |
 | 12 | `NIGHT_AUDIT_ID` | معرف | `NUMBER(19)` |  |  | FK→HSP_NIGHT_AUDIT |  | إدخال المستخدم |  | التدقيق الليلي المرحل |
 | 13 | `REVERSAL_OF_ID` | معرف | `NUMBER(19)` |  |  | FK→HSP_FOLIO_LINE |  | إدخال المستخدم |  | السطر المعكوس |
-| 14 | `CREATED_BY` | اسم مستخدم | `VARCHAR2(128 CHAR)` | ✔ |  |  |  | Trigger |  | منشئ السجل |
-| 15 | `CREATED_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` | ✔ | SYSTIMESTAMP |  |  | Trigger |  | وقت الإنشاء UTC |
+| 14 | `PAYMENT_METHOD` | رمز | `VARCHAR2(30 CHAR)` |  |  |  | CASH, CARD, BANK_TRANSFER, CITY_LEDGER | إدخال المستخدم |  | طريقة السداد |
+| 15 | `REFERENCE_NO` | نص | `VARCHAR2(100 CHAR)` |  |  |  |  | إدخال المستخدم |  | المرجع (رقم العملية/الإيصال) |
+| 16 | `CREATED_BY` | اسم مستخدم | `VARCHAR2(128 CHAR)` | ✔ |  |  |  | Trigger |  | منشئ السجل |
+| 17 | `CREATED_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` | ✔ | SYSTIMESTAMP |  |  | Trigger |  | وقت الإنشاء UTC |
 
 ## HSP_NIGHT_AUDIT
 

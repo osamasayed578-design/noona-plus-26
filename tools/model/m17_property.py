@@ -148,6 +148,7 @@ FLOOR_ID        ID   >RE_FLOOR   | الطابق
 FRONT_DESK_STATUS CODE NN D='VACANT' IN:VACANT,OCCUPIED,DUE_OUT,DUE_IN,RESERVED,BLOCKED | حالة الاستقبال
 HOUSEKEEPING_STATUS CODE NN D='CLEAN' IN:CLEAN,DIRTY,INSPECTED,IN_PROGRESS,OUT_OF_ORDER | حالة النظافة
 CONNECTED_ROOM_ID ID >HSP_ROOM   | غرفة متصلة
+NOTES           V500             | ملاحظات الغرفة
 ''', uk=[('PROPERTY_ID', 'ROOM_NO')], area='hospitality')
 
 table('HSP_RATE_PLAN', 'خطط الأسعار', 'Rate Plans', scope='C', mix='code names cur eff active', cols='''
@@ -215,6 +216,8 @@ EXPECTED_CHECK_OUT DATE NN       | المغادرة المتوقعة
 CHECK_OUT_AT    TS               | وقت الخروج
 CHECKED_IN_BY_MEMBER_ID ID >SEC_USER_MEMBERSHIP | موظف الاستقبال
 PREVIOUS_STAY_ID ID  >HSP_STAY   | الإقامة السابقة عند تغيير الغرفة
+NIGHTLY_RATE    AMT              | سعر الليلة المطبق
+LAST_CHARGED_DATE DATE           | آخر ليلة رحلت رسومها
 ''', ix=[('TENANT_ID', 'ROOM_ID', 'STATUS_CODE')], area='hospitality')
 
 table('HSP_STAY_GUEST', 'نزلاء الإقامة', 'Stay Guests', scope='C', cols='''
@@ -248,6 +251,8 @@ POS_SALE_ID     ID   >POS_SALE   | بيع POS المحمل
 CASH_TRANSACTION_ID ID >CSH_TRANSACTION | الدفعة
 NIGHT_AUDIT_ID  ID   >HSP_NIGHT_AUDIT | التدقيق الليلي المرحل
 REVERSAL_OF_ID  ID   >HSP_FOLIO_LINE | السطر المعكوس
+PAYMENT_METHOD  CODE IN:CASH,CARD,BANK_TRANSFER,CITY_LEDGER | طريقة السداد
+REFERENCE_NO    V100             | المرجع (رقم العملية/الإيصال)
 ''', ix=[('TENANT_ID', 'FOLIO_ID')], area='hospitality', purpose='لا تعدل الحركات؛ التصحيح بسطر عكسي')
 
 table('HSP_NIGHT_AUDIT', 'التدقيق الليلي', 'Night Audits', scope='C', mix='status', status='RUNNING COMPLETED FAILED ROLLED_BACK', cols='''

@@ -8,12 +8,16 @@ table('MNT_SERVICE_CATEGORY', 'فئات خدمات الصيانة', 'Service Cat
 PARENT_CATEGORY_ID ID >MNT_SERVICE_CATEGORY | الفئة الأم
 DEFAULT_PRIORITY CODE IN:LOW,NORMAL,HIGH,URGENT,EMERGENCY | الأولوية الافتراضية
 SLA_POLICY_ID   ID   >WF_SLA_POLICY | SLA
+SLA_HOURS       INT              | زمن الإنجاز المستهدف بالساعات
+ICON            V50              | الأيقونة
 ''', area='setup')
 
 table('MNT_TEAM', 'فرق الصيانة', 'Maintenance Teams', scope='C', mix='code names active', cols='''
 SUPERVISOR_EMPLOYEE_ID ID >HR_EMPLOYEE | المشرف
 SUPPLIER_ACCOUNT_ID ID >AP_SUPPLIER_ACCOUNT | مقاول خارجي
 QUEUE_ID        ID   >WF_QUEUE   | قائمة العمل
+SPECIALTY       V200             | التخصص
+PHONE           V30              | هاتف الفريق
 ''', area='setup')
 
 table('MNT_TECHNICIAN', 'الفنيون', 'Technicians', scope='C', mix='active', cols='''
@@ -50,6 +54,15 @@ DESCRIPTION     V4000 NN         | وصف المشكلة
 DUE_AT          TS               | موعد SLA
 CHARGEABLE_TO   CODE NN D='OWNER' IN:OWNER,LESSEE,WARRANTY,CONTRACTOR,INSURANCE | يحمل على
 SATISFACTION_SCORE INT           | تقييم الرضا
+TITLE           V200             | عنوان البلاغ
+REPORTER_NAME   V200             | اسم المبلغ (هاتف/بوابة)
+REPORTER_PHONE  V30              | جوال المبلغ
+TEAM_ID         ID   >MNT_TEAM   | الفريق المكلف
+TECHNICIAN_ID   ID   >MNT_TECHNICIAN | الفني المكلف
+ROOM_OUT_OF_ORDER YN NN D='N'    | أوقف الغرفة حتى الإصلاح
+RESPONDED_AT    TS               | وقت الاستجابة (الإسناد)
+RESOLVED_AT     TS               | وقت الإنجاز
+RESOLUTION_NOTES V2000           | ما تم عمله
 ''', ix=[('TENANT_ID', 'COMPANY_ID', 'STATUS_CODE'), ('TENANT_ID', 'UNIT_ID')], area='request')
 
 table('MNT_PM_PLAN', 'خطط الصيانة الوقائية', 'Preventive Maintenance Plans', scope='C', mix='code names status', status='ACTIVE SUSPENDED RETIRED', cols='''
