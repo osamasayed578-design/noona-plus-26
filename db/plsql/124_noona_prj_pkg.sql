@@ -169,7 +169,7 @@ CREATE OR REPLACE PACKAGE BODY NOONA_PRJ_PKG AS
       WHEN 'ADV_PAID' THEN ensure_account('1141', 'دفعات مقدمة لمقاولي الباطن', '11', 'ASSET')
       WHEN 'ADV_RCVD' THEN ensure_account('2140', 'دفعات مقدمة من عملاء المشروعات', '21', 'LIABILITY')
       WHEN 'RET_PAY' THEN ensure_account('2141', 'محتجزات مقاولي الباطن', '21', 'LIABILITY')
-      WHEN 'REVENUE' THEN ensure_account('4150', 'إيرادات عقود المشروعات', '41', 'REVENUE')
+      WHEN 'REVENUE' THEN ensure_account('4130', 'إيرادات عقود المشروعات', '4', 'REVENUE')
       WHEN 'COST' THEN ensure_account('5150', 'تكاليف المشروعات', '51', 'EXPENSE')
       WHEN 'LABOR_APPLIED' THEN ensure_account('5159', 'تكلفة العمالة المحملة على المشروعات', '51', 'EXPENSE') END;
   END acc;
@@ -262,7 +262,8 @@ CREATE OR REPLACE PACKAGE BODY NOONA_PRJ_PKG AS
     INSERT INTO ref_doc_sequence (company_id, doc_type_code, fiscal_year, prefix, next_number, padding, is_gapless, reset_policy, is_active)
     SELECT company, p_type, NULL, p_prefix, 1, 5, 'N', 'NEVER', 'Y' FROM dual
      WHERE NOT EXISTS (SELECT 1 FROM ref_doc_sequence WHERE company_id = company AND doc_type_code = p_type);
-    RETURN NOONA_REFERENCE_PKG.next_doc_no(p_type, company, NULL, TRUNC(SYSDATE), p_type, NULL);
+    RETURN NOONA_REFERENCE_PKG.next_doc_no(p_type, company, NULL, TRUNC(SYSDATE),
+             CASE WHEN p_type LIKE 'PRJ_CLAIM%' THEN c_claim WHEN p_type = 'PRJ_VARIATION' THEN 'PRJ_VARIATION_ORDER' ELSE p_type END, NULL);
   END next_no;
 
   -- ================================================================ المشروع
@@ -558,7 +559,8 @@ CREATE OR REPLACE PACKAGE BODY NOONA_PRJ_PKG AS
     l_j := NOONA_ACE_PKG.post_source('PRJ_COST_POSTED', 'PROJECTS', c_cost, l_id, l_date, l_desc, NOONA_GL_PKG.ledger_currency, 1,
                                      l_lines, js(l_o, 'ref'), NULL, 'PROJECTS');
     SELECT accounting_event_id INTO l_ev FROM gl_journal WHERE id = l_j;
-    l_x := NOONA_CSH_PKG.record_settlement('PAYMENT', l_place, l_date, l_amt, NULL, l_prj.name_ar, c_cost, l_id, js(l_o, 'ref'), l_desc, l_ev);
+    l_x := NOONA_CSH_PKG.record_settlement('PAYMENT', l_place, l_date, l_amt, NULL, l_prj.name_ar, c_cost, l_id, 'PC-' || l_id,
+                                           l_desc || NVL2(js(l_o, 'ref'), ' - مرجع ' || js(l_o, 'ref'), ''), l_ev);
     RETURN l_id;
   END post_expense;
 
@@ -1018,8 +1020,9 @@ CREATE OR REPLACE PACKAGE BODY NOONA_PRJ_PKG AS
       l_amt := retention_held(p_contract_id);
       NOONA_CORE_PKG.assert(l_amt > 0, 'NOONA-PRJ-085', 'لا يوجد محتجز قائم على العقد', 'No retention held');
     END IF;
-    SELECT NVL(MAX(claim_no), 0) + 1, MAX(period_to) + 1 INTO l_no, l_from FROM prj_progress_claim
-     WHERE contract_id = p_contract_id AND status_code <> 'CANCELLED';
+    -- الرقم التسلسلي لا يعاد استخدامه بعد الإلغاء؛ بداية الفترة بعد آخر مستخلص قائم
+    SELECT NVL(MAX(claim_no), 0) + 1, MAX(CASE WHEN status_code <> 'CANCELLED' THEN period_to END) + 1 INTO l_no, l_from
+      FROM prj_progress_claim WHERE contract_id = p_contract_id;
     INSERT INTO prj_progress_claim (company_id, doc_no, doc_date, currency_code, exchange_rate, contract_id, claim_no, claim_direction, claim_kind,
                                     period_from, period_to, current_gross, status_code)
     VALUES (company, 'DRAFT-' || RAWTOHEX(SYS_GUID()), TRUNC(SYSDATE), l_c.currency_code, 1, p_contract_id, l_no,

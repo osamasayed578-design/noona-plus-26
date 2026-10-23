@@ -62,6 +62,8 @@ BEGIN
   NOONA_APEX_PKG.post_auth('ADMIN', l_sess);
   l_co := TO_NUMBER(SYS_CONTEXT('NOONA_CTX', 'COMPANY_ID'));
   l_ten := TO_NUMBER(SYS_CONTEXT('NOONA_CTX', 'TENANT_ID'));
+  -- يبدأ من مفضلة وسجل فتح فارغين لهذا المستخدم (يتراجع في النهاية)
+  DELETE FROM bi_report_user WHERE membership_id = TO_NUMBER(SYS_CONTEXT('NOONA_CTX', 'MEMBERSHIP_ID'));
 
   -- ======================================================== الكتالوج
   SELECT COUNT(*), COUNT(DISTINCT module_code) INTO l_n, l_s FROM bi_report WHERE status_code = 'PUBLISHED' AND app_alias IS NOT NULL;
