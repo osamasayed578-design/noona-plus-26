@@ -38,7 +38,24 @@ APEX_PAGE_ID    INT              | صفحة APEX
 OUTPUT_FORMATS  V100             | الصيغ المتاحة
 MANDATORY_FILTERS V1000          | الفلاتر الإلزامية للأحجام الكبيرة
 IS_AS_OF_CAPABLE YN NN D='N'     | يدعم «كما كان» تاريخياً
-''', uk=[('TENANT_ID', 'CODE', 'VERSION_NO')], area='catalog')
+APP_ALIAS       V50              | التطبيق الذي يعرض التقرير (Alias)
+PAGE_ALIAS      V100             | صفحة التقرير (Alias)
+PAGE_NO         INT              | رقم الصفحة (لمسح مرشحاتها السابقة عند الفتح)
+PARAM_ITEM      V100             | عنصر اختيار التقرير في مركز تقارير الوحدة
+PARAM_VALUE     V100             | قيمة الاختيار (رمز التقرير)
+PERMISSION_CODE V100             | الصلاحية المطلوبة (فارغ = أي صلاحية في الوحدة)
+ICON_CLASS      V50              | الأيقونة
+SORT_ORDER      INT  NN D=0      | الترتيب داخل الوحدة
+''', uk=[('TENANT_ID', 'CODE', 'VERSION_NO')], area='catalog',
+      purpose='مركز التقارير الموحد: كل تقارير الوحدات في مكان واحد؛ يظهر التقرير متى اشتركت المؤسسة في وحدته وللمستخدم صلاحيته')
+
+table('BI_REPORT_USER', 'تقارير المستخدم المفضلة والأخيرة', 'User Favourite & Recent Reports', scope='T', cols='''
+MEMBERSHIP_ID   ID   NN >SEC_USER_MEMBERSHIP | المستخدم
+REPORT_ID       ID   NN >BI_REPORT | التقرير
+IS_FAVORITE     YN   NN D='N'    | مفضل
+OPEN_COUNT      INT  NN D=0      | مرات الفتح
+LAST_OPENED_AT  TS               | آخر فتح
+''', uk=[('TENANT_ID', 'MEMBERSHIP_ID', 'REPORT_ID')], area='catalog')
 
 table('BI_DASHBOARD', 'لوحات المعلومات', 'Dashboards', scope='TO', mix='code names status', status='DRAFT PUBLISHED RETIRED', cols='''
 AUDIENCE        CODE NN IN:PLATFORM,TENANT_ADMIN,EXECUTIVE,FINANCE,OPERATIONS,HR,PROJECTS,PROPERTY,PERSONAL | الجمهور

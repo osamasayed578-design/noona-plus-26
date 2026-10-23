@@ -88,6 +88,7 @@ CREATE OR REPLACE PACKAGE BODY NOONA_PORTAL_PKG AS
     l_list  VARCHAR2(200) := ',' || REPLACE(p_module_code, ' ') || ',';
     l_n     NUMBER;
     l_on    BOOLEAN := FALSE;
+    l_bi    VARCHAR2(1);
   BEGIN
     IF p_app_alias = 'NOONA_PLATFORM' THEN
       RETURN NOONA_APEX_PKG.is_platform_admin;
@@ -98,6 +99,16 @@ CREATE OR REPLACE PACKAGE BODY NOONA_PORTAL_PKG AS
     IF p_app_alias = 'NOONA_ADMIN' THEN
       -- مسؤول المؤسسة أو مسؤول شركة (دور COMPANY_ADMIN)
       RETURN NOONA_SEC_ADMIN_PKG.is_org_admin;
+    END IF;
+    IF p_app_alias = 'NOONA_BI' THEN
+      -- مركز التقارير: يظهر لمن له تقرير واحد على الأقل في الوحدات المشترك فيها
+      -- (استدعاء ديناميكي: الحزمة تثبت في ترقية لاحقة فلا تتعطل هذه الحزمة قبلها)
+      BEGIN
+        EXECUTE IMMEDIATE 'BEGIN :r := NOONA_BI_PKG.has_reports; END;' USING OUT l_bi;
+      EXCEPTION WHEN OTHERS THEN
+        l_bi := 'N';
+      END;
+      RETURN l_bi;
     END IF;
     IF p_module_code IS NULL THEN
       RETURN 'Y';
@@ -275,8 +286,8 @@ SELECT app_alias, sort_order, app_name_ar, app_name_en, icon_class,
                'أوامر الإنتاج والجودة' FROM dual UNION ALL
         SELECT 'NOONA_DOC', 80, 'المستندات والمراسلات', 'Documents & Correspondence', 'fa-folder-open', 'DMS,COR',
                'الأرشيف والمراسلات الصادرة والواردة' FROM dual UNION ALL
-        SELECT 'NOONA_BI', 90, 'التقارير والذكاء الاصطناعي', 'BI & AI', 'fa-bar-chart', 'BI,AI',
-               'لوحات المؤشرات والتحليلات' FROM dual UNION ALL
+        SELECT 'NOONA_BI', 90, 'مركز التقارير', 'Reports Center', 'fa-bar-chart', NULL,
+               'كل تقارير الأنظمة المشترك فيها في مكان واحد' FROM dual UNION ALL
         SELECT 'NOONA_PLATFORM', 100, 'لوحة المنصة', 'Platform Console', 'fa-server', NULL,
                'المشتركون والاشتراكات والتراخيص' FROM dual)
  WHERE NOONA_PORTAL_PKG.app_visible(app_alias, module_list) = 'Y';

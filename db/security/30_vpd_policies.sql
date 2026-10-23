@@ -86,6 +86,7 @@ BEGIN
   NOONA_VPD_PKG.add_tenant_policy('BI_KPI_VALUE');
   NOONA_VPD_PKG.add_shared_policy('BI_REPORT');
   NOONA_VPD_PKG.add_tenant_policy('BI_REPORT_SCHEDULE');
+  NOONA_VPD_PKG.add_tenant_policy('BI_REPORT_USER');
   NOONA_VPD_PKG.add_tenant_policy('COR_ADDRESSEE');
   NOONA_VPD_PKG.add_tenant_policy('COR_CASE_FILE');
   NOONA_VPD_PKG.add_tenant_policy('COR_CASE_LINK');

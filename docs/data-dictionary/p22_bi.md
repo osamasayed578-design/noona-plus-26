@@ -11,6 +11,7 @@
 | [`BI_KPI`](#bi_kpi) | تعريفات المؤشرات | KPI Definitions | TO | INTERNAL |
 | [`BI_KPI_VALUE`](#bi_kpi_value) | قيم المؤشرات | KPI Snapshots | T | INTERNAL |
 | [`BI_REPORT`](#bi_report) | كتالوج التقارير | Report Catalog | TO | INTERNAL |
+| [`BI_REPORT_USER`](#bi_report_user) | تقارير المستخدم المفضلة والأخيرة | User Favourite & Recent Reports | T | INTERNAL |
 | [`BI_DASHBOARD`](#bi_dashboard) | لوحات المعلومات | Dashboards | TO | INTERNAL |
 | [`BI_DASHBOARD_WIDGET`](#bi_dashboard_widget) | عناصر اللوحات | Dashboard Widgets | TO | INTERNAL |
 | [`BI_REPORT_SCHEDULE`](#bi_report_schedule) | جدولة التقارير | Report Schedules | T | INTERNAL |
@@ -91,6 +92,7 @@
 | نطاق الملكية | `TO` — منصة أو مؤسسة (TENANT_ID اختياري: فارغ = قيمة منصة افتراضية) |
 | الحساسية | INTERNAL |
 | النمط | قابل للتعديل وفق دورة الحياة |
+| الغرض | مركز التقارير الموحد: كل تقارير الوحدات في مكان واحد؛ يظهر التقرير متى اشتركت المؤسسة في وحدته وللمستخدم صلاحيته |
 | مفاتيح فريدة | UK1: (TENANT_ID, CODE, VERSION_NO) |
 
 | # | العمود | النوع المنطقي | Oracle Type | إلزامي | افتراضي | مفاتيح | القيم المقبولة | المصدر | PII | الوصف |
@@ -109,12 +111,47 @@
 | 12 | `OUTPUT_FORMATS` | نص | `VARCHAR2(100 CHAR)` |  |  |  |  | إدخال المستخدم |  | الصيغ المتاحة |
 | 13 | `MANDATORY_FILTERS` | نص | `VARCHAR2(1000 CHAR)` |  |  |  |  | إدخال المستخدم |  | الفلاتر الإلزامية للأحجام الكبيرة |
 | 14 | `IS_AS_OF_CAPABLE` | منطقي Y/N | `CHAR(1 CHAR)` | ✔ | 'N' |  | Y, N | إدخال المستخدم |  | يدعم «كما كان» تاريخياً |
-| 15 | `STATUS_CODE` | رمز | `VARCHAR2(30 CHAR)` | ✔ | 'DRAFT' |  | DRAFT, PUBLISHED, RETIRED | النظام/الحزمة |  | الحالة ضمن دورة الحياة المعتمدة |
-| 16 | `ROW_VERSION` | عدد صحيح | `NUMBER(10)` | ✔ | 1 |  |  | Trigger |  | رقم الإصدار للتحكم في التزامن المتفائل |
-| 17 | `CREATED_BY` | اسم مستخدم | `VARCHAR2(128 CHAR)` | ✔ |  |  |  | Trigger |  | منشئ السجل |
-| 18 | `CREATED_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` | ✔ | SYSTIMESTAMP |  |  | Trigger |  | وقت الإنشاء |
-| 19 | `UPDATED_BY` | اسم مستخدم | `VARCHAR2(128 CHAR)` |  |  |  |  | Trigger |  | آخر من عدل السجل |
-| 20 | `UPDATED_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` |  |  |  |  | Trigger |  | وقت آخر تعديل |
+| 15 | `APP_ALIAS` | نص | `VARCHAR2(50 CHAR)` |  |  |  |  | إدخال المستخدم |  | التطبيق الذي يعرض التقرير (Alias) |
+| 16 | `PAGE_ALIAS` | نص | `VARCHAR2(100 CHAR)` |  |  |  |  | إدخال المستخدم |  | صفحة التقرير (Alias) |
+| 17 | `PAGE_NO` | عدد صحيح | `NUMBER(10)` |  |  |  |  | إدخال المستخدم |  | رقم الصفحة (لمسح مرشحاتها السابقة عند الفتح) |
+| 18 | `PARAM_ITEM` | نص | `VARCHAR2(100 CHAR)` |  |  |  |  | إدخال المستخدم |  | عنصر اختيار التقرير في مركز تقارير الوحدة |
+| 19 | `PARAM_VALUE` | نص | `VARCHAR2(100 CHAR)` |  |  |  |  | إدخال المستخدم |  | قيمة الاختيار (رمز التقرير) |
+| 20 | `PERMISSION_CODE` | نص | `VARCHAR2(100 CHAR)` |  |  |  |  | إدخال المستخدم |  | الصلاحية المطلوبة (فارغ = أي صلاحية في الوحدة) |
+| 21 | `ICON_CLASS` | نص | `VARCHAR2(50 CHAR)` |  |  |  |  | إدخال المستخدم |  | الأيقونة |
+| 22 | `SORT_ORDER` | عدد صحيح | `NUMBER(10)` | ✔ | 0 |  |  | إدخال المستخدم |  | الترتيب داخل الوحدة |
+| 23 | `STATUS_CODE` | رمز | `VARCHAR2(30 CHAR)` | ✔ | 'DRAFT' |  | DRAFT, PUBLISHED, RETIRED | النظام/الحزمة |  | الحالة ضمن دورة الحياة المعتمدة |
+| 24 | `ROW_VERSION` | عدد صحيح | `NUMBER(10)` | ✔ | 1 |  |  | Trigger |  | رقم الإصدار للتحكم في التزامن المتفائل |
+| 25 | `CREATED_BY` | اسم مستخدم | `VARCHAR2(128 CHAR)` | ✔ |  |  |  | Trigger |  | منشئ السجل |
+| 26 | `CREATED_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` | ✔ | SYSTIMESTAMP |  |  | Trigger |  | وقت الإنشاء |
+| 27 | `UPDATED_BY` | اسم مستخدم | `VARCHAR2(128 CHAR)` |  |  |  |  | Trigger |  | آخر من عدل السجل |
+| 28 | `UPDATED_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` |  |  |  |  | Trigger |  | وقت آخر تعديل |
+
+## BI_REPORT_USER
+
+| البند | القيمة |
+|---|---|
+| الاسم العربي | تقارير المستخدم المفضلة والأخيرة |
+| English | User Favourite & Recent Reports |
+| الحزمة المالكة | 22 — `NOONA_BI_PKG` |
+| نطاق الملكية | `T` — مملوك للمؤسسة Tenant-Owned |
+| الحساسية | INTERNAL |
+| النمط | قابل للتعديل وفق دورة الحياة |
+| مفاتيح فريدة | UK1: (TENANT_ID, MEMBERSHIP_ID, REPORT_ID) |
+
+| # | العمود | النوع المنطقي | Oracle Type | إلزامي | افتراضي | مفاتيح | القيم المقبولة | المصدر | PII | الوصف |
+|---:|---|---|---|:---:|---|---|---|---|:---:|---|
+| 1 | `ID` | معرف | `NUMBER(19)` | ✔ |  | PK |  | النظام/الحزمة |  | المفتاح الداخلي الثابت (Identity) - لا يعاد استخدامه |
+| 2 | `TENANT_ID` | معرف | `NUMBER(19)` | ✔ |  | FK→PLT_TENANT UK1 |  | Security Context |  | المؤسسة المالكة؛ يملأ من Security Context الموثوق لا من مدخلات المستخدم |
+| 3 | `MEMBERSHIP_ID` | معرف | `NUMBER(19)` | ✔ |  | FK→SEC_USER_MEMBERSHIP UK1 |  | إدخال المستخدم |  | المستخدم |
+| 4 | `REPORT_ID` | معرف | `NUMBER(19)` | ✔ |  | FK→BI_REPORT UK1 |  | إدخال المستخدم |  | التقرير |
+| 5 | `IS_FAVORITE` | منطقي Y/N | `CHAR(1 CHAR)` | ✔ | 'N' |  | Y, N | إدخال المستخدم |  | مفضل |
+| 6 | `OPEN_COUNT` | عدد صحيح | `NUMBER(10)` | ✔ | 0 |  |  | إدخال المستخدم |  | مرات الفتح |
+| 7 | `LAST_OPENED_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` |  |  |  |  | إدخال المستخدم |  | آخر فتح |
+| 8 | `ROW_VERSION` | عدد صحيح | `NUMBER(10)` | ✔ | 1 |  |  | Trigger |  | رقم الإصدار للتحكم في التزامن المتفائل |
+| 9 | `CREATED_BY` | اسم مستخدم | `VARCHAR2(128 CHAR)` | ✔ |  |  |  | Trigger |  | منشئ السجل |
+| 10 | `CREATED_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` | ✔ | SYSTIMESTAMP |  |  | Trigger |  | وقت الإنشاء |
+| 11 | `UPDATED_BY` | اسم مستخدم | `VARCHAR2(128 CHAR)` |  |  |  |  | Trigger |  | آخر من عدل السجل |
+| 12 | `UPDATED_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` |  |  |  |  | Trigger |  | وقت آخر تعديل |
 
 ## BI_DASHBOARD
 

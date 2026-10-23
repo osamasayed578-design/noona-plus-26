@@ -1,6 +1,6 @@
 # ERD — الحزمة 22: التقارير وذكاء الأعمال
 
-**Reporting & Business Intelligence** · الحزمة البرمجية `NOONA_BI_PKG` · عدد الجداول: **8**
+**Reporting & Business Intelligence** · الحزمة البرمجية `NOONA_BI_PKG` · عدد الجداول: **9**
 
 طبقة تعريف المقاييس KPIs بإصدارات، وكتالوج التقارير ولوحات المعلومات، وسجل التصدير، وجدولة التقارير، ومتابعة تحديث الملخصات؛ مع تطبيق Tenant و Data Scope على المصدر والتصدير.
 
@@ -33,6 +33,12 @@ erDiagram
     NUMBER VERSION_NO UK
     NUMBER PERMISSION_ID FK
     VARCHAR2 STATUS_CODE
+  }
+  BI_REPORT_USER {
+    NUMBER ID PK
+    NUMBER TENANT_ID FK,UK
+    NUMBER MEMBERSHIP_ID FK,UK
+    NUMBER REPORT_ID FK,UK
   }
   BI_DASHBOARD {
     NUMBER ID PK
@@ -92,6 +98,7 @@ erDiagram
   BI_REPORT |o--o{ BI_DASHBOARD_WIDGET : "REPORT_ID"
   BI_REPORT |o--o{ BI_EXPORT_LOG : "REPORT_ID"
   BI_REPORT ||--o{ BI_REPORT_SCHEDULE : "REPORT_ID"
+  BI_REPORT ||--o{ BI_REPORT_USER : "REPORT_ID"
   DMS_DOCUMENT |o--o{ BI_EXPORT_LOG : "FILE_DOCUMENT_ID"
   ORG_BRANCH |o--o{ BI_KPI_VALUE : "BRANCH_ID"
   ORG_COMPANY |o--o{ BI_KPI_VALUE : "COMPANY_ID"
@@ -100,6 +107,7 @@ erDiagram
   SEC_ROLE |o--o{ BI_KPI : "OWNER_ROLE_ID"
   SEC_USER_MEMBERSHIP ||--o{ BI_EXPORT_LOG : "MEMBERSHIP_ID"
   SEC_USER_MEMBERSHIP ||--o{ BI_REPORT_SCHEDULE : "OWNER_MEMBER_ID"
+  SEC_USER_MEMBERSHIP ||--o{ BI_REPORT_USER : "MEMBERSHIP_ID"
 ```
 
 ## الجداول
@@ -109,6 +117,7 @@ erDiagram
 | `BI_KPI` | تعريفات المؤشرات | KPI Definitions | TO |
 | `BI_KPI_VALUE` | قيم المؤشرات | KPI Snapshots | T |
 | `BI_REPORT` | كتالوج التقارير | Report Catalog | TO |
+| `BI_REPORT_USER` | تقارير المستخدم المفضلة والأخيرة | User Favourite & Recent Reports | T |
 | `BI_DASHBOARD` | لوحات المعلومات | Dashboards | TO |
 | `BI_DASHBOARD_WIDGET` | عناصر اللوحات | Dashboard Widgets | TO |
 | `BI_REPORT_SCHEDULE` | جدولة التقارير | Report Schedules | T |
