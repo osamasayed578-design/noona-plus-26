@@ -7,6 +7,8 @@ SET DEFINE OFF
 SET FEEDBACK OFF
 SET SERVEROUTPUT ON
 WHENEVER SQLERROR EXIT SQL.SQLCODE
+-- تعديل الجداول ينتظر حتى دقيقتين إذا كان جدول مستخدماً في جلسة أخرى (بدلاً من الخطأ ORA-00054)
+ALTER SESSION SET DDL_LOCK_TIMEOUT = 120;
 @@plsql/87_noona_apex_error.sql
 SELECT object_name, status FROM user_objects WHERE object_name = 'NOONA_APEX_ERROR';
 PROMPT ========== Upgrade 03 done.
