@@ -35,6 +35,7 @@ PLANNED_START   DATE             | البداية
 PLANNED_END     DATE             | النهاية
 IS_BILLABLE     YN   NN D='Y'    | قابل للفوترة
 IS_CHARGEABLE   YN   NN D='Y'    | يقبل تحميل التكاليف
+PERCENT_COMPLETE PCT NN D=0      | نسبة الإنجاز الحالية
 ''', uk=[('PROJECT_ID', 'CODE')], chk=['PARENT_WBS_ID IS NULL OR PARENT_WBS_ID <> ID'], area='project')
 
 table('PRJ_BUDGET', 'موازنات المشروعات', 'Project Budgets', scope='C', mix='wf status', status='DRAFT SUBMITTED APPROVED BASELINE SUPERSEDED', cols='''
@@ -118,6 +119,7 @@ table('PRJ_PROGRESS_CLAIM', 'المستخلصات', 'Progress Claims / Payment C
 CONTRACT_ID     ID   NN >PRJ_CONTRACT | العقد
 CLAIM_NO        INT  NN          | رقم المستخلص التسلسلي
 CLAIM_DIRECTION CODE NN IN:RECEIVABLE,PAYABLE | لنا من العميل أو علينا للمقاول
+CLAIM_KIND      CODE NN D='PROGRESS' IN:PROGRESS,ADVANCE,RETENTION_RELEASE | مستخلص أعمال، دفعة مقدمة، أو إفراج عن المحتجز
 PERIOD_FROM     DATE NN          | من
 PERIOD_TO       DATE NN          | إلى
 GROSS_TO_DATE   AMT  NN D=0      | الإجمالي التراكمي
@@ -165,6 +167,9 @@ AMOUNT          AMT  NN          | المبلغ
 AMOUNT_FUNC     AMT  NN          | الوظيفي
 GL_JOURNAL_LINE_ID ID >GL_JOURNAL_LINE | سطر القيد
 IS_COMMITMENT   YN   NN D='N'    | التزام (أمر شراء) لا تكلفة فعلية
+DESCRIPTION     V500             | البيان
+REFERENCE       V100             | المرجع
+STATUS_CODE     CODE NN D='POSTED' IN:POSTED,REVERSED | الحالة
 ''', ix=[('TENANT_ID', 'PROJECT_ID', 'WBS_ID'), ('TENANT_ID', 'SOURCE_ENTITY_TYPE', 'SOURCE_ENTITY_ID')], area='cost')
 
 table('PRJ_PROGRESS_UPDATE', 'تحديثات نسب الإنجاز', 'Progress Updates', scope='C', append=True, cols='''

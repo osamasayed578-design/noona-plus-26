@@ -53,5 +53,5 @@
 | 30 | التشغيل والدعم والتطوير المستمر | Operations, Support & Continuous Improvement | `NOONA_OPERATIONS_PKG` | 12 | [p30_ops](p30_ops.md) |
 | 31 | المستشفيات والمراكز الطبية | Hospital & Clinics | `NOONA_HIS_PKG` | 40 | [p31_his](p31_his.md) |
 
-**الإجمالي:** 619 جدول · 10810 عمود.
+**الإجمالي:** 619 جدول · 10815 عمود.
 
