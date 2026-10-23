@@ -120,7 +120,7 @@ BEGIN
   ok('unit details saved', l_n = 2);
 
   -- الأسعار
-  l_plan := NOONA_HSP_PKG.save_rate_plan(NULL, l_prop, 'BAR', 'السعر اليومي', 'DAILY', 'BREAKFAST', 'N', 'إلغاء مجاني قبل 24 ساعة');
+  l_plan := NOONA_HSP_PKG.save_rate_plan(NULL, l_prop, 'T' || l_sfx, 'السعر اليومي', 'DAILY', 'BREAKFAST', 'N', 'إلغاء مجاني قبل 24 ساعة');
   l_bd := NOONA_HSP_PKG.business_date(l_prop);
   l_bd0 := l_bd;
   l_n := NOONA_HSP_PKG.set_rate(l_plan, l_rt, l_bd - 30, l_bd + 365, 450);
@@ -272,9 +272,23 @@ BEGIN
   NOONA_MNT_PKG.cancel_request(l_req, 'بلاغ مكرر');
   ok('request cancelled', NOONA_MNT_PKG.request_status(l_req) = 'CANCELLED');
 
+  -- دخول بعد منتصف الليل قبل التدقيق: الليلة تحسب بتاريخ العمل لا بساعة الجهاز
+  l_n := NOONA_RE_PKG.setup_wizard('{"name_ar":"شقق ليلية ' || l_sfx || '","type":"SERVICED_APARTMENTS","buildings":[{"code":"A","floors":1}],'
+         || '"units":{"per_floor":2,"unit_type":"APARTMENT"},"hospitality":{"room_type_name":"شقة","base_rate":300}}');
+  UPDATE re_property SET business_date = TRUNC(SYSDATE) - 1 WHERE id = l_n;
+  l_st := NOONA_HSP_PKG.walk_in('{"property":' || l_n || ',"guest_name":"ضيف متأخر","nights":1}');
+  l_aud := NOONA_HSP_PKG.night_audit(l_n);
+  l_fol := NOONA_HSP_PKG.folio_of_stay(l_st);
+  SELECT COUNT(*), MAX(business_date) INTO l_dr, l_bd FROM hsp_folio_line WHERE folio_id = l_fol AND line_type = 'ROOM_CHARGE';
+  ok('late check-in night charged on the business date', l_dr = 1 AND l_bd = TRUNC(SYSDATE) - 1, l_dr || ' ' || d(l_bd));
+  l_dr := NOONA_HSP_PKG.post_payment(l_fol, NOONA_HSP_PKG.folio_balance(l_fol), 'CASH');
+  l_dr := NOONA_HSP_PKG.check_out(l_st);
+  SELECT COUNT(*) INTO l_dr FROM hsp_folio_line WHERE folio_id = l_fol AND line_type = 'ROOM_CHARGE';
+  ok('no extra night charged at next-day check-out', l_dr = 1, l_dr);
+
   -- التقارير
   ok('front desk summary renders', DBMS_LOB.GETLENGTH(NOONA_HSP_PKG.front_summary(l_prop)) > 500);
-  ok('occupancy report renders', DBMS_LOB.GETLENGTH(NOONA_HSP_PKG.occupancy_html(l_prop, l_bd0 - 1, l_bd)) > 300);
+  ok('occupancy report renders', DBMS_LOB.GETLENGTH(NOONA_HSP_PKG.occupancy_html(l_prop, l_bd0 - 1, l_bd0 + 1)) > 300);
   ok('maintenance board renders', DBMS_LOB.GETLENGTH(NOONA_MNT_PKG.board_html(l_prop, NULL, '#ID#')) > 300);
   ok('maintenance summary/performance render', DBMS_LOB.GETLENGTH(NOONA_MNT_PKG.summary_html) > 300
      AND DBMS_LOB.GETLENGTH(NOONA_MNT_PKG.performance_html(l_bd0 - 30, l_bd + 1)) > 200);

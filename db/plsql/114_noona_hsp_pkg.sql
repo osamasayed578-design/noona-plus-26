@@ -267,6 +267,8 @@ CREATE OR REPLACE PACKAGE BODY NOONA_HSP_PKG AS
        WHERE id = l_id AND company_id = company;
     END IF;
     RETURN l_id;
+  EXCEPTION WHEN DUP_VAL_ON_INDEX THEN
+    NOONA_CORE_PKG.raise_error('NOONA-HSP-008', 'رمز نوع الغرفة مستخدم في الشركة: ' || UPPER(TRIM(p_code)), 'Room type code exists');
   END save_room_type;
 
   FUNCTION save_rate_plan(p_id IN NUMBER, p_property_id IN NUMBER, p_code IN VARCHAR2, p_name_ar IN VARCHAR2, p_stay_type IN VARCHAR2,
@@ -287,6 +289,8 @@ CREATE OR REPLACE PACKAGE BODY NOONA_HSP_PKG AS
        WHERE id = l_id AND company_id = company;
     END IF;
     RETURN l_id;
+  EXCEPTION WHEN DUP_VAL_ON_INDEX THEN
+    NOONA_CORE_PKG.raise_error('NOONA-HSP-007', 'رمز خطة الأسعار مستخدم في الشركة: ' || UPPER(TRIM(p_code)), 'Rate plan code exists');
   END save_rate_plan;
 
   FUNCTION set_rate(p_rate_plan_id IN NUMBER, p_room_type_id IN NUMBER, p_from IN DATE, p_to IN DATE, p_amount IN NUMBER,
@@ -407,7 +411,10 @@ CREATE OR REPLACE PACKAGE BODY NOONA_HSP_PKG AS
     l_hash VARCHAR2(128);
     l_no   VARCHAR2(50) := REPLACE(TRIM(p_id_no), ' ');
     l_ph   VARCHAR2(30) := REPLACE(TRIM(p_phone), ' ');
+    l_nat  VARCHAR2(2);
   BEGIN
+    -- الجنسية من جدول الدول فقط (غير المعرفة تترك فارغة)
+    SELECT MAX(country_code) INTO l_nat FROM ref_country WHERE country_code = UPPER(NVL(TRIM(p_nationality), 'SA'));
     IF l_no IS NOT NULL THEN
       l_hash := LOWER(RAWTOHEX(DBMS_CRYPTO.HASH(UTL_RAW.CAST_TO_RAW(UPPER(l_no)), DBMS_CRYPTO.HASH_SH256)));
       SELECT MIN(party_id) INTO l_id FROM pty_identification WHERE id_number_hash = l_hash;
@@ -420,10 +427,10 @@ CREATE OR REPLACE PACKAGE BODY NOONA_HSP_PKG AS
     END IF;
     NOONA_CORE_PKG.assert(TRIM(p_name) IS NOT NULL, 'NOONA-HSP-011', 'اسم النزيل مطلوب', 'Guest name required');
     INSERT INTO pty_party (party_no, party_type, display_name_ar, ownership_scope, owner_company_id, country_code, status_code)
-    VALUES ('NEW-' || RAWTOHEX(SYS_GUID()), 'PERSON', TRIM(p_name), 'TENANT_SHARED', company, NVL(p_nationality, 'SA'), 'ACTIVE')
+    VALUES ('NEW-' || RAWTOHEX(SYS_GUID()), 'PERSON', TRIM(p_name), 'TENANT_SHARED', company, l_nat, 'ACTIVE')
     RETURNING id INTO l_id;
     UPDATE pty_party SET party_no = 'P-' || LPAD(l_id, 6, '0') WHERE id = l_id;
-    INSERT INTO pty_person (party_id, first_name_ar, nationality) VALUES (l_id, TRIM(p_name), NVL(p_nationality, 'SA'));
+    INSERT INTO pty_person (party_id, first_name_ar, nationality) VALUES (l_id, TRIM(p_name), l_nat);
     INSERT INTO pty_party_role (party_id, role_code, company_id, status_code) VALUES (l_id, 'GUEST', company, 'ACTIVE');
     IF l_ph IS NOT NULL THEN
       INSERT INTO ref_contact (party_id, contact_role, contact_name, mobile, is_primary) VALUES (l_id, 'GENERAL', TRIM(p_name), l_ph, 'Y');
@@ -431,7 +438,7 @@ CREATE OR REPLACE PACKAGE BODY NOONA_HSP_PKG AS
     IF l_no IS NOT NULL THEN
       INSERT INTO pty_identification (party_id, id_type_code, id_number_masked, id_number_hash, issuing_country, is_primary, status_code)
       VALUES (l_id, NVL(p_id_type, 'NATIONAL_ID'), RPAD('*', GREATEST(LENGTH(l_no) - 4, 0), '*') || SUBSTR(l_no, -4), l_hash,
-              NVL(p_nationality, 'SA'), 'Y', 'ACTIVE');
+              l_nat, 'Y', 'ACTIVE');
     END IF;
     RETURN l_id;
   END guest;
@@ -473,6 +480,14 @@ CREATE OR REPLACE PACKAGE BODY NOONA_HSP_PKG AS
   EXCEPTION WHEN NO_DATA_FOUND THEN
     NOONA_CORE_PKG.raise_error('NOONA-HSP-013', 'الإقامة غير موجودة', 'Stay not found');
   END stay_row;
+
+  -- أول ليلة للإقامة بتاريخ العمل الفندقي عند الدخول (لا بساعة الجهاز)
+  FUNCTION stay_start(p_stay NUMBER) RETURN DATE IS
+    l DATE;
+  BEGIN
+    SELECT MAX(rr.arrival_date) INTO l FROM hsp_stay s JOIN hsp_reservation_room rr ON rr.id = s.reservation_room_id WHERE s.id = p_stay;
+    RETURN l;
+  END stay_start;
 
   FUNCTION property_of_room(p_room NUMBER) RETURN NUMBER IS
     l NUMBER;
@@ -521,7 +536,14 @@ CREATE OR REPLACE PACKAGE BODY NOONA_HSP_PKG AS
     IF l_room IS NOT NULL THEN
       SELECT room_type_id INTO l_rt FROM hsp_room WHERE id = l_room AND property_id = l_prop AND status_code = 'ACTIVE';
     END IF;
-    NOONA_CORE_PKG.assert(l_rt IS NOT NULL, 'NOONA-HSP-017', 'حدد نوع الغرفة أو الغرفة', 'Room type or room required');
+    IF l_rt IS NULL THEN
+      -- بلا نوع محدد: أول نوع لديه غرفة متاحة في الفترة
+      SELECT MIN(r.room_type_id) KEEP (DENSE_RANK FIRST ORDER BY t.code) INTO l_rt
+        FROM hsp_room r JOIN hsp_room_type t ON t.id = r.room_type_id
+       WHERE r.property_id = l_prop AND r.status_code = 'ACTIVE' AND t.is_active = 'Y'
+         AND NOT EXISTS (SELECT 1 FROM hsp_room_block b WHERE b.room_id = r.id AND b.stay_date >= l_arr AND b.stay_date < l_dep);
+    END IF;
+    NOONA_CORE_PKG.assert(l_rt IS NOT NULL, 'NOONA-HSP-017', 'لا توجد غرفة متاحة؛ حدد نوع الغرفة أو الغرفة', 'Room type or room required');
     SELECT max_adults + max_children INTO l_max FROM hsp_room_type WHERE id = l_rt;
     NOONA_CORE_PKG.assert(l_ad + l_ch <= l_max + 1, 'NOONA-HSP-018', 'عدد النزلاء يتجاوز سعة الغرفة (' || l_max || ')', 'Guests exceed capacity');
     IF l_room IS NULL THEN
@@ -640,7 +662,7 @@ CREATE OR REPLACE PACKAGE BODY NOONA_HSP_PKG AS
     -- عند الدخول قبل تاريخ الوصول المحجوز (لا يحدث) أو بعده: الليالي من تاريخ العمل
     UPDATE hsp_room_block SET block_type = 'STAY', stay_id = l_st WHERE reservation_room_id = l_rr.id;
     INSERT INTO hsp_stay_guest (company_id, stay_id, guest_party_id, is_primary) VALUES (company, l_st, l_r.guest_party_id, 'Y');
-    UPDATE hsp_reservation_room SET status_code = 'CHECKED_IN' WHERE id = l_rr.id;
+    UPDATE hsp_reservation_room SET status_code = 'CHECKED_IN', arrival_date = l_bd WHERE id = l_rr.id;
     UPDATE hsp_reservation SET status_code = 'CHECKED_IN', arrival_date = LEAST(arrival_date, l_bd) WHERE id = p_reservation_id;
     UPDATE hsp_folio SET stay_id = l_st WHERE reservation_id = p_reservation_id AND stay_id IS NULL AND status_code = 'OPEN';
     set_room_fd(l_room.id, 'OCCUPIED');
@@ -860,7 +882,7 @@ CREATE OR REPLACE PACKAGE BODY NOONA_HSP_PKG AS
   -- رسوم الليالي غير المرحلة حتى الليلة p_to (شاملة) بسطر واحد عند المغادرة
   PROCEDURE charge_nights(p_s IN OUT NOCOPY hsp_stay%ROWTYPE, p_to DATE) IS
     l_c     t_ctx;
-    l_from  DATE := NVL(p_s.last_charged_date + 1, TRUNC(p_s.check_in_at));
+    l_from  DATE := NVL(p_s.last_charged_date + 1, stay_start(p_s.id));
     l_n     NUMBER;
     l_net   NUMBER;
     l_tax   NUMBER;
@@ -899,7 +921,7 @@ CREATE OR REPLACE PACKAGE BODY NOONA_HSP_PKG AS
     NOONA_CORE_PKG.assert(l_s.status_code = 'IN_HOUSE', 'NOONA-HSP-030', 'النزيل ليس مقيماً', 'Guest is not in house');
     l_bd := business_date(property_of_room(l_s.room_id));
     -- الليالي حتى ليلة أمس بتاريخ العمل؛ الدخول والخروج في اليوم نفسه يحسب ليلة واحدة
-    charge_nights(l_s, GREATEST(l_bd - 1, TRUNC(l_s.check_in_at)));
+    charge_nights(l_s, GREATEST(l_bd - 1, stay_start(p_stay_id)));
     l_fol := folio_of_stay(p_stay_id);
     l_bal := folio_balance(l_fol);
     IF l_bal <> 0 THEN
@@ -1035,10 +1057,10 @@ CREATE OR REPLACE PACKAGE BODY NOONA_HSP_PKG AS
       END LOOP;
     END IF;
     -- ترحيل ليلة اليوم لكل مقيم
-    FOR s IN (SELECT s.id, s.nightly_rate, s.last_charged_date, s.check_in_at, s.reservation_id, r.room_no, s.room_id
-                FROM hsp_stay s JOIN hsp_room r ON r.id = s.room_id
+    FOR s IN (SELECT s.id, s.nightly_rate, s.last_charged_date, rr.arrival_date check_in_at, s.reservation_id, r.room_no, s.room_id
+                FROM hsp_stay s JOIN hsp_room r ON r.id = s.room_id JOIN hsp_reservation_room rr ON rr.id = s.reservation_room_id
                WHERE r.property_id = p_property_id AND s.status_code = 'IN_HOUSE'
-                 AND NVL(s.last_charged_date, TRUNC(s.check_in_at) - 1) < l_bd AND TRUNC(s.check_in_at) <= l_bd
+                 AND NVL(s.last_charged_date, rr.arrival_date - 1) < l_bd AND rr.arrival_date <= l_bd
                ORDER BY r.room_no FOR UPDATE OF s.last_charged_date) LOOP
       SELECT NVL(MAX(p.includes_tax), 'N') INTO l_incl FROM hsp_reservation x LEFT JOIN hsp_rate_plan p ON p.id = x.rate_plan_id
        WHERE x.id = s.reservation_id;
@@ -1168,8 +1190,8 @@ CREATE OR REPLACE PACKAGE BODY NOONA_HSP_PKG AS
     SELECT * INTO l_s FROM hsp_stay WHERE id = p_stay_id AND company_id = company;
     SELECT * INTO l_r FROM hsp_reservation WHERE id = l_s.reservation_id;
     -- رسوم الليالي غير المرحلة حتى المغادرة اليوم (تقديرية شاملة الضريبة)
-    l_n := GREATEST(business_date(l_r.property_id) - 1, TRUNC(CAST(l_s.check_in_at AS DATE)))
-           - NVL(l_s.last_charged_date, TRUNC(CAST(l_s.check_in_at AS DATE)) - 1);
+    l_n := GREATEST(business_date(l_r.property_id) - 1, stay_start(p_stay_id))
+           - NVL(l_s.last_charged_date, stay_start(p_stay_id) - 1);
     SELECT NVL(MAX(p.includes_tax), 'N') INTO l_incl FROM hsp_rate_plan p WHERE p.id = l_r.rate_plan_id;
     l_pend := CASE WHEN l_s.status_code = 'IN_HOUSE' AND l_n > 0 THEN
                 ROUND(l_n * l_s.nightly_rate * CASE WHEN l_incl = 'Y' THEN 1 ELSE 1 + c_vat / 100 END, 2) END;

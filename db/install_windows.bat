@@ -60,9 +60,10 @@ sqlplus -S -L NOONA_APP/"%APP_PWD%"@%CONN% @tests/test_tenant_admin.sql < nul | 
 sqlplus -S -L NOONA_APP/"%APP_PWD%"@%CONN% @tests/test_correspondence.sql < nul | findstr /c:"RESULT" /c:"FAIL" /c:"ORA-"
 sqlplus -S -L NOONA_APP/"%APP_PWD%"@%CONN% @tests/test_hr_payroll.sql < nul | findstr /c:"RESULT" /c:"FAIL" /c:"ORA-"
 sqlplus -S -L NOONA_APP/"%APP_PWD%"@%CONN% @tests/test_fixed_assets.sql < nul | findstr /c:"RESULT" /c:"FAIL" /c:"ORA-"
+sqlplus -S -L NOONA_APP/"%APP_PWD%"@%CONN% @tests/test_property_hospitality.sql < nul | findstr /c:"RESULT" /c:"FAIL" /c:"ORA-"
 
 echo.
-echo ===== Finished. Expected: 79 / 26 / 21 / 25 / 10 / 19 / 18 / 19 / 43 / 29 / 26 / 38 / 24 / 52 / 49 / 54 / 77 / 41 / 47 / 54 / 70 passed, 0 failed (test_dms prints a WARN line when no NOONA_DMS_T[tenant] server folder exists).
+echo ===== Finished. Expected: 79 / 26 / 21 / 25 / 10 / 19 / 18 / 19 / 43 / 29 / 26 / 38 / 24 / 52 / 49 / 54 / 77 / 41 / 47 / 54 / 70 / 72 passed, 0 failed (test_dms prints a WARN line when no NOONA_DMS_T[tenant] server folder exists).
 echo ===== Next: import the APEX apps 115 to 135 (Reuse Application ID), including NOONA_MFG\f135 for manufacturing.
 pause
 exit /b 0
