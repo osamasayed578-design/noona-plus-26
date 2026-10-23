@@ -49,7 +49,13 @@ wwv_flow_imp_page.create_page_process(
 ,p_process_type=>'NATIVE_PLSQL'
 ,p_process_name=>'Open Report'
 ,p_process_sql_clob=>wwv_flow_string.join(wwv_flow_t_varchar2(
-'apex_util.redirect_url(noona_bi_pkg.open_url(:P3_ID, :APP_SESSION));'))
+'declare',
+'    l_url varchar2(4000);',
+'begin',
+'    l_url := noona_bi_pkg.open_url(:P3_ID, :APP_SESSION);',
+'    commit;',
+'    apex_util.redirect_url(l_url);',
+'end;'))
 ,p_process_clob_language=>'PLSQL'
 ,p_error_display_location=>'INLINE_IN_NOTIFICATION'
 ,p_internal_uid=>91820277000000019

@@ -151,7 +151,7 @@ CATALOG = [
     ('HIS_COMM', 'HIS', F, 'NOONA_HIS', 'COMMISSIONS', 73, None, None, 'HIS_COMMISSION.VIEW', 'fa-user-md', 'عمولات الأطباء', 'Doctor commissions',
      'نسبة كل طبيب من الإيراد المحصل والتسويات'),
     # ---------------------------------------------------------------- المستندات (NOONA_DOC)
-    ('DMS_EXPIRING', 'DMS', R, 'NOONA_DOC', 'EXPIRING', 41, None, None, 'DMS_DOCUMENT.VIEW', 'fa-hourglass-end', 'المستندات المنتهية والقريبة الانتهاء', 'Expiring documents',
+    ('DMS_EXPIRING', 'DMS', R, 'NOONA_DOC', 'EXPIRING', None, None, None, 'DMS_DOCUMENT.VIEW', 'fa-hourglass-end', 'المستندات المنتهية والقريبة الانتهاء', 'Expiring documents',
      'السجلات والتراخيص والشهادات التي انتهت أو تقترب من الانتهاء'),
     ('DMS_ACCESS', 'DMS', R, 'NOONA_DOC', 'ACCESS-LOG', None, None, None, 'DMS_DOCUMENT.VIEW', 'fa-eye', 'سجل الوصول للمستندات', 'Document access log',
      'من فتح أو نزل أو عدل كل مستند ومتى'),

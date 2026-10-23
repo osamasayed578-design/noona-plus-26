@@ -70,7 +70,7 @@ BEGIN
          UNION ALL SELECT 'HIS_CLAIM', 'HIS', 'FINANCIAL', 'NOONA_HIS', 'REPORTS', 70, 'P70_REPORT', 'CLAIM', 'HIS_INVOICE.VIEW', 'fa-file-text-o', 'كشف مطالبة جهة', 'Payer claim statement', 'المطالبات المستحقة على شركة تأمين أو جهة متعاقدة لفترة', 620 FROM dual
          UNION ALL SELECT 'HIS_CLAIMS', 'HIS', 'OPERATIONAL', 'NOONA_HIS', 'CLAIMS', 71, NULL, NULL, 'HIS_CLAIM_BATCH.VIEW', 'fa-files-o', 'دفعات مطالبات التأمين', 'Claim batches', 'دفعات المطالبات والمقبول والمرفوض والمسدد لكل جهة', 630 FROM dual
          UNION ALL SELECT 'HIS_COMM', 'HIS', 'FINANCIAL', 'NOONA_HIS', 'COMMISSIONS', 73, NULL, NULL, 'HIS_COMMISSION.VIEW', 'fa-user-md', 'عمولات الأطباء', 'Doctor commissions', 'نسبة كل طبيب من الإيراد المحصل والتسويات', 640 FROM dual
-         UNION ALL SELECT 'DMS_EXPIRING', 'DMS', 'REGULATORY', 'NOONA_DOC', 'EXPIRING', 41, NULL, NULL, 'DMS_DOCUMENT.VIEW', 'fa-hourglass-end', 'المستندات المنتهية والقريبة الانتهاء', 'Expiring documents', 'السجلات والتراخيص والشهادات التي انتهت أو تقترب من الانتهاء', 650 FROM dual
+         UNION ALL SELECT 'DMS_EXPIRING', 'DMS', 'REGULATORY', 'NOONA_DOC', 'EXPIRING', NULL, NULL, NULL, 'DMS_DOCUMENT.VIEW', 'fa-hourglass-end', 'المستندات المنتهية والقريبة الانتهاء', 'Expiring documents', 'السجلات والتراخيص والشهادات التي انتهت أو تقترب من الانتهاء', 650 FROM dual
          UNION ALL SELECT 'DMS_ACCESS', 'DMS', 'REGULATORY', 'NOONA_DOC', 'ACCESS-LOG', NULL, NULL, NULL, 'DMS_DOCUMENT.VIEW', 'fa-eye', 'سجل الوصول للمستندات', 'Document access log', 'من فتح أو نزل أو عدل كل مستند ومتى', 660 FROM dual) x
      ON (r.tenant_id IS NULL AND r.code = x.code AND r.version_no = 1)
    WHEN MATCHED THEN UPDATE SET r.module_code = x.module_code, r.report_type = x.report_type, r.app_alias = x.app_alias,

@@ -81,7 +81,9 @@ p.onload(JS_FAV + [
 p = app.page(3, 'Open Report', 'OPEN', 'فتح التقرير', scheme=TENANT, protection='N')
 r = p.static('فتح التقرير', 10, hide_header=True)
 p.hidden('P3_ID', r, 10, protected=False)
-p.process(1, 'BEFORE_HEADER', 'Open Report', 'apex_util.redirect_url(noona_bi_pkg.open_url(:P3_ID, :APP_SESSION));')
+# الحفظ قبل التحويل: إيقاف محرك APEX عند التحويل لا يحفظ تسجيل الفتح
+p.process(1, 'BEFORE_HEADER', 'Open Report', ['declare', '    l_url varchar2(4000);', 'begin',
+          '    l_url := noona_bi_pkg.open_url(:P3_ID, :APP_SESSION);', '    commit;', '    apex_util.redirect_url(l_url);', 'end;'])
 
 app.nav_item('مركز التقارير', 1, 'fa-bar-chart', 10)
 
