@@ -204,3 +204,167 @@ MATERIAL_TXN_ID ID   >INV_TRANSACTION | حركة صرف المواد
 MATERIAL_COST   AMT              | تكلفة المواد
 NOTES           V500             | ملاحظات الطلب
 ''', uk=[('VISIT_ID', 'LINE_NO')], chk=['QUANTITY > 0'], ix=[('TENANT_ID', 'DEPARTMENT_ID', 'STATUS_CODE')], area='visit', sens='CONFIDENTIAL')
+
+# =============================================================== المرحلة الثانية: المعامل التفصيلية وقوالب التقارير
+table('HIS_LAB_PARAM', 'مكونات التحاليل والمعدلات', 'Lab Test Parameters', scope='C', mix='sort', cols='''
+SERVICE_ID      ID   NN >HIS_SERVICE | التحليل
+CODE            V30  NN          | رمز المكون (WBC، HB...)
+NAME_AR         NAME NN          | اسم المكون
+NAME_EN         NAME             | Parameter name (English)
+UNIT            V30              | الوحدة
+GENDER          CODE IN:M,F      | للجنس (فارغ = الكل)
+AGE_FROM        NUM              | من عمر (سنة)
+AGE_TO          NUM              | إلى عمر (سنة)
+REF_LOW         NUM              | الحد الأدنى الطبيعي
+REF_HIGH        NUM              | الحد الأعلى الطبيعي
+CRIT_LOW        NUM              | حرج أقل من
+CRIT_HIGH       NUM              | حرج أعلى من
+REF_TEXT        V200             | المعدل الطبيعي نصاً (للنتائج الوصفية)
+''', ix=[('TENANT_ID', 'SERVICE_ID')], area='lab')
+
+table('HIS_LAB_RESULT', 'نتائج مكونات التحاليل', 'Lab Results', scope='C', cols='''
+ORDER_ID        ID   NN >HIS_ORDER | الطلب
+PARAM_ID        ID   NN >HIS_LAB_PARAM | المكون
+VALUE_NUM       NUM              | القيمة الرقمية
+VALUE_TEXT      V200             | القيمة الوصفية
+FLAG            CODE IN:N,L,H,LL,HH | التقييم (طبيعي، منخفض، مرتفع، حرج)
+''', uk=[('ORDER_ID', 'PARAM_ID')], area='lab', sens='CONFIDENTIAL')
+
+table('HIS_REPORT_TEMPLATE', 'قوالب التقارير', 'Report Templates', scope='C', mix='code names active', cols='''
+SERVICE_ID      ID   >HIS_SERVICE | الخدمة
+MODALITY        CODE             | الجهاز (لكل خدمات الجهاز)
+BODY            TXT  NN          | نص القالب
+''', area='lab')
+
+# =============================================================== الصيدلية الداخلية
+table('HIS_PRESCRIPTION', 'الوصفات الطبية', 'Prescriptions', scope='C', mix='status', status='ACTIVE PARTIAL DISPENSED CANCELLED', cols='''
+RX_NO           V30  NN          | رقم الوصفة
+VISIT_ID        ID   NN >HIS_VISIT | الزيارة
+DOCTOR_ID       ID   >HIS_DOCTOR | الطبيب
+PHARMACY_ID     ID   >HIS_DEPARTMENT | الصيدلية
+RX_AT           TS   NN D=SYSTIMESTAMP | الوقت
+NOTES           V500             | ملاحظات
+''', uk=[('TENANT_ID', 'COMPANY_ID', 'RX_NO')], ix=[('TENANT_ID', 'VISIT_ID')], area='pharmacy', sens='CONFIDENTIAL')
+
+table('HIS_PRESCRIPTION_LINE', 'أصناف الوصفة', 'Prescription Lines', scope='C', cols='''
+PRESCRIPTION_ID ID   NN >HIS_PRESCRIPTION | الوصفة
+LINE_NO         INT  NN          | السطر
+ITEM_ID         ID   NN >INV_ITEM | الدواء
+DOSE            V100             | الجرعة
+FREQUENCY       V100             | التكرار (مرتين يومياً...)
+DURATION_DAYS   INT              | المدة بالأيام
+QUANTITY        QTY  NN          | الكمية المطلوبة
+DISPENSED_QTY   QTY  NN D=0      | الكمية المصروفة
+INSTRUCTIONS    V500             | تعليمات الاستعمال
+ORDER_ID        ID   >HIS_ORDER  | طلب الفوترة
+''', uk=[('PRESCRIPTION_ID', 'LINE_NO')], chk=['QUANTITY > 0'], area='pharmacy')
+
+# =============================================================== التنويم
+table('HIS_BED', 'الأسرة', 'Beds', scope='C', mix='status', status='AVAILABLE OCCUPIED CLEANING BLOCKED', cols='''
+WARD_ID         ID   NN >HIS_DEPARTMENT | الجناح
+BED_NO          V30  NN          | رقم السرير
+ROOM_NO         V30              | الغرفة
+BED_CLASS       CODE NN D='WARD' IN:WARD,SEMI_PRIVATE,PRIVATE,SUITE,ICU,NICU,ISOLATION | الفئة
+DAY_SERVICE_ID  ID   >HIS_SERVICE | خدمة يوم السرير
+''', uk=[('TENANT_ID', 'COMPANY_ID', 'BED_NO')], area='inpatient')
+
+table('HIS_ADMISSION', 'التنويم', 'Admissions', scope='C', mix='status', status='ADMITTED DISCHARGED CANCELLED', cols='''
+ADMISSION_NO    V30  NN          | رقم التنويم
+VISIT_ID        ID   NN U >HIS_VISIT | الزيارة
+BED_ID          ID   >HIS_BED    | السرير الحالي
+DOCTOR_ID       ID   >HIS_DOCTOR | الطبيب المعالج
+ADMIT_AT        TS   NN          | الدخول
+DISCHARGE_AT    TS               | الخروج
+CHARGED_TO      DATE             | آخر يوم محمل
+ADMIT_REASON    V1000            | سبب التنويم
+DISCHARGE_TYPE  CODE IN:HOME,TRANSFER,AGAINST_ADVICE,DECEASED | نوع الخروج
+DISCHARGE_SUMMARY TXT            | ملخص الخروج
+''', uk=[('TENANT_ID', 'COMPANY_ID', 'ADMISSION_NO')], area='inpatient', sens='CONFIDENTIAL')
+
+table('HIS_BED_MOVE', 'حركات الأسرة', 'Bed Movements', scope='C', append=True, cols='''
+ADMISSION_ID    ID   NN >HIS_ADMISSION | التنويم
+FROM_BED_ID     ID   >HIS_BED    | من سرير
+TO_BED_ID       ID   NN >HIS_BED | إلى سرير
+MOVED_AT        TS   NN          | الوقت
+REASON          V500             | السبب
+''', area='inpatient')
+
+# =============================================================== العمليات والعلاج الطبيعي
+table('HIS_SURGERY', 'جدول العمليات', 'Surgery Schedule', scope='C', mix='status', status='SCHEDULED IN_PROGRESS DONE CANCELLED', cols='''
+VISIT_ID        ID   NN >HIS_VISIT | الزيارة
+ORDER_ID        ID   >HIS_ORDER  | طلب العملية
+SERVICE_ID      ID   NN >HIS_SERVICE | العملية
+THEATER         V30  NN          | غرفة العمليات
+SURGEON_ID      ID   NN >HIS_DOCTOR | الجراح
+ANESTHETIST_ID  ID   >HIS_DOCTOR | طبيب التخدير
+ANESTHESIA      CODE IN:GENERAL,SPINAL,LOCAL,SEDATION | نوع التخدير
+START_AT        TS   NN          | البداية المجدولة
+DURATION_MIN    INT  NN D=60     | المدة بالدقائق
+ACTUAL_START    TS               | البداية الفعلية
+ACTUAL_END      TS               | النهاية الفعلية
+OPERATIVE_NOTES TXT              | تقرير العملية
+''', ix=[('TENANT_ID', 'THEATER', 'START_AT'), ('TENANT_ID', 'SURGEON_ID', 'START_AT')], area='or', sens='CONFIDENTIAL')
+
+table('HIS_THERAPY_PLAN', 'خطط العلاج والجلسات', 'Therapy Plans', scope='C', mix='status', status='ACTIVE COMPLETED CANCELLED', cols='''
+VISIT_ID        ID   NN >HIS_VISIT | الزيارة
+SERVICE_ID      ID   NN >HIS_SERVICE | الجلسة
+ORDER_ID        ID   >HIS_ORDER  | طلب الفوترة
+THERAPIST_ID    ID   >HIS_DOCTOR | المعالج
+SESSIONS_TOTAL  INT  NN          | عدد الجلسات
+SESSIONS_DONE   INT  NN D=0      | المنفذ
+FREQUENCY       V100             | التكرار (3 أسبوعياً...)
+GOALS           V1000            | الأهداف
+''', chk=['SESSIONS_TOTAL > 0'], area='therapy')
+
+table('HIS_THERAPY_SESSION', 'الجلسات المنفذة', 'Therapy Sessions', scope='C', append=True, cols='''
+PLAN_ID         ID   NN >HIS_THERAPY_PLAN | الخطة
+SESSION_NO      INT  NN          | الجلسة
+SESSION_AT      TS   NN          | الوقت
+THERAPIST_ID    ID   >HIS_DOCTOR | المعالج
+NOTES           V1000            | الملاحظات والتقدم
+''', uk=[('PLAN_ID', 'SESSION_NO')], area='therapy')
+
+# =============================================================== الأجهزة الطبية
+table('HIS_DEVICE', 'الأجهزة الطبية', 'Medical Devices', scope='C', mix='code names status', status='IN_SERVICE OUT_OF_SERVICE RETIRED', cols='''
+DEPARTMENT_ID   ID   NN >HIS_DEPARTMENT | القسم
+MODALITY        CODE             | الجهاز (أشعة، رنين، تحاليل...)
+MANUFACTURER    V100             | الشركة المصنعة
+MODEL           V100             | الطراز
+SERIAL_NO       V100             | الرقم التسلسلي
+FA_ASSET_ID     ID   >FA_ASSET   | الأصل الثابت
+INSTALLED_ON    DATE             | التركيب
+WARRANTY_TO     DATE             | نهاية الضمان
+CALIBRATION_DAYS INT             | دورية المعايرة بالأيام
+LAST_CALIBRATION DATE            | آخر معايرة
+NEXT_CALIBRATION DATE            | المعايرة القادمة
+''', area='device')
+
+table('HIS_DEVICE_LOG', 'سجل صيانة ومعايرة الأجهزة', 'Device Service Log', scope='C', append=True, cols='''
+DEVICE_ID       ID   NN >HIS_DEVICE | الجهاز
+LOG_TYPE        CODE NN IN:CALIBRATION,PREVENTIVE,REPAIR,BREAKDOWN,RETURN_TO_SERVICE | النوع
+LOG_DATE        DATE NN          | التاريخ
+VENDOR          V200             | الجهة المنفذة
+COST            AMT              | التكلفة
+NOTES           V1000            | الملاحظات
+''', area='device')
+
+# =============================================================== المطالبات
+table('HIS_CLAIM_BATCH', 'دفعات المطالبات', 'Claim Batches', scope='C', mix='pub doc posted status', status='DRAFT SUBMITTED PARTIAL SETTLED CANCELLED', cols='''
+PAYER_ID        ID   NN >HIS_PAYER | الجهة
+PERIOD_FROM     DATE NN          | من
+PERIOD_TO       DATE NN          | إلى
+CLAIMED_AMOUNT  AMT  NN D=0      | المطالب به
+APPROVED_AMOUNT AMT  NN D=0      | المقبول
+REJECTED_AMOUNT AMT  NN D=0      | المرفوض
+SUBMITTED_AT    TS               | الإرسال
+REFERENCE_NO    V100             | رقم الإرسال لدى الجهة
+''', area='claims')
+
+table('HIS_CLAIM_LINE', 'فواتير الدفعة', 'Claim Lines', scope='C', cols='''
+BATCH_ID        ID   NN >HIS_CLAIM_BATCH | الدفعة
+INVOICE_ID      ID   NN >HIS_INVOICE | الفاتورة
+CLAIMED_AMOUNT  AMT  NN          | المطالب به
+APPROVED_AMOUNT AMT              | المقبول
+REJECTED_AMOUNT AMT  NN D=0      | المرفوض
+REJECT_REASON   V500             | سبب الرفض
+''', uk=[('BATCH_ID', 'INVOICE_ID')], area='claims')

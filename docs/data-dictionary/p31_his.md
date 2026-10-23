@@ -21,6 +21,21 @@
 | [`HIS_VISIT`](#his_visit) | الزيارات | Visits / Encounters | C | CONFIDENTIAL |
 | [`HIS_INVOICE`](#his_invoice) | فواتير الزيارات | Visit Invoices | C | INTERNAL |
 | [`HIS_ORDER`](#his_order) | الطلبات والخدمات الطبية | Medical Orders | C | CONFIDENTIAL |
+| [`HIS_LAB_PARAM`](#his_lab_param) | مكونات التحاليل والمعدلات | Lab Test Parameters | C | INTERNAL |
+| [`HIS_LAB_RESULT`](#his_lab_result) | نتائج مكونات التحاليل | Lab Results | C | CONFIDENTIAL |
+| [`HIS_REPORT_TEMPLATE`](#his_report_template) | قوالب التقارير | Report Templates | C | INTERNAL |
+| [`HIS_PRESCRIPTION`](#his_prescription) | الوصفات الطبية | Prescriptions | C | CONFIDENTIAL |
+| [`HIS_PRESCRIPTION_LINE`](#his_prescription_line) | أصناف الوصفة | Prescription Lines | C | INTERNAL |
+| [`HIS_BED`](#his_bed) | الأسرة | Beds | C | INTERNAL |
+| [`HIS_ADMISSION`](#his_admission) | التنويم | Admissions | C | CONFIDENTIAL |
+| [`HIS_BED_MOVE`](#his_bed_move) | حركات الأسرة | Bed Movements | C | INTERNAL |
+| [`HIS_SURGERY`](#his_surgery) | جدول العمليات | Surgery Schedule | C | CONFIDENTIAL |
+| [`HIS_THERAPY_PLAN`](#his_therapy_plan) | خطط العلاج والجلسات | Therapy Plans | C | INTERNAL |
+| [`HIS_THERAPY_SESSION`](#his_therapy_session) | الجلسات المنفذة | Therapy Sessions | C | INTERNAL |
+| [`HIS_DEVICE`](#his_device) | الأجهزة الطبية | Medical Devices | C | INTERNAL |
+| [`HIS_DEVICE_LOG`](#his_device_log) | سجل صيانة ومعايرة الأجهزة | Device Service Log | C | INTERNAL |
+| [`HIS_CLAIM_BATCH`](#his_claim_batch) | دفعات المطالبات | Claim Batches | C | INTERNAL |
+| [`HIS_CLAIM_LINE`](#his_claim_line) | فواتير الدفعة | Claim Lines | C | INTERNAL |
 
 ## HIS_DEPARTMENT
 
@@ -473,7 +488,7 @@
 | نطاق الملكية | `C` — مملوك للشركة Company-Owned |
 | الحساسية | CONFIDENTIAL |
 | النمط | قابل للتعديل وفق دورة الحياة |
-| مفاتيح فريدة | UK1: (VISIT_ID, LINE_NO) |
+| مفاتيح فريدة | UK2: (VISIT_ID, LINE_NO) |
 | قيود أعمال | QUANTITY > 0 |
 
 | # | العمود | النوع المنطقي | Oracle Type | إلزامي | افتراضي | مفاتيح | القيم المقبولة | المصدر | PII | الوصف |
@@ -481,8 +496,8 @@
 | 1 | `ID` | معرف | `NUMBER(19)` | ✔ |  | PK |  | النظام/الحزمة |  | المفتاح الداخلي الثابت (Identity) - لا يعاد استخدامه |
 | 2 | `TENANT_ID` | معرف | `NUMBER(19)` | ✔ |  | FK→PLT_TENANT |  | Security Context |  | المؤسسة المالكة؛ يملأ من Security Context الموثوق لا من مدخلات المستخدم |
 | 3 | `COMPANY_ID` | معرف | `NUMBER(19)` | ✔ |  | FK→ORG_COMPANY |  | Security Context |  | الشركة (الكيان القانوني) المالكة للسجل |
-| 4 | `VISIT_ID` | معرف | `NUMBER(19)` | ✔ |  | FK→HIS_VISIT UK1 |  | إدخال المستخدم |  | الزيارة |
-| 5 | `LINE_NO` | عدد صحيح | `NUMBER(10)` | ✔ |  | UK1 |  | إدخال المستخدم |  | السطر |
+| 4 | `VISIT_ID` | معرف | `NUMBER(19)` | ✔ |  | FK→HIS_VISIT UK2 |  | إدخال المستخدم |  | الزيارة |
+| 5 | `LINE_NO` | عدد صحيح | `NUMBER(10)` | ✔ |  | UK2 |  | إدخال المستخدم |  | السطر |
 | 6 | `SERVICE_ID` | معرف | `NUMBER(19)` | ✔ |  | FK→HIS_SERVICE |  | إدخال المستخدم |  | الخدمة |
 | 7 | `DEPARTMENT_ID` | معرف | `NUMBER(19)` | ✔ |  | FK→HIS_DEPARTMENT |  | إدخال المستخدم |  | القسم المنفذ (المعمل/الأشعة/العيادة) |
 | 8 | `QUANTITY` | كمية | `NUMBER(24,6)` | ✔ | 1 |  |  | إدخال المستخدم |  | الكمية |
@@ -515,4 +530,471 @@
 | 35 | `CREATED_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` | ✔ | SYSTIMESTAMP |  |  | Trigger |  | وقت الإنشاء |
 | 36 | `UPDATED_BY` | اسم مستخدم | `VARCHAR2(128 CHAR)` |  |  |  |  | Trigger |  | آخر من عدل السجل |
 | 37 | `UPDATED_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` |  |  |  |  | Trigger |  | وقت آخر تعديل |
+
+## HIS_LAB_PARAM
+
+| البند | القيمة |
+|---|---|
+| الاسم العربي | مكونات التحاليل والمعدلات |
+| English | Lab Test Parameters |
+| الحزمة المالكة | 31 — `NOONA_HIS_PKG` |
+| نطاق الملكية | `C` — مملوك للشركة Company-Owned |
+| الحساسية | INTERNAL |
+| النمط | قابل للتعديل وفق دورة الحياة |
+
+| # | العمود | النوع المنطقي | Oracle Type | إلزامي | افتراضي | مفاتيح | القيم المقبولة | المصدر | PII | الوصف |
+|---:|---|---|---|:---:|---|---|---|---|:---:|---|
+| 1 | `ID` | معرف | `NUMBER(19)` | ✔ |  | PK |  | النظام/الحزمة |  | المفتاح الداخلي الثابت (Identity) - لا يعاد استخدامه |
+| 2 | `TENANT_ID` | معرف | `NUMBER(19)` | ✔ |  | FK→PLT_TENANT |  | Security Context |  | المؤسسة المالكة؛ يملأ من Security Context الموثوق لا من مدخلات المستخدم |
+| 3 | `COMPANY_ID` | معرف | `NUMBER(19)` | ✔ |  | FK→ORG_COMPANY |  | Security Context |  | الشركة (الكيان القانوني) المالكة للسجل |
+| 4 | `SERVICE_ID` | معرف | `NUMBER(19)` | ✔ |  | FK→HIS_SERVICE |  | إدخال المستخدم |  | التحليل |
+| 5 | `CODE` | نص | `VARCHAR2(30 CHAR)` | ✔ |  |  |  | إدخال المستخدم |  | رمز المكون (WBC، HB...) |
+| 6 | `NAME_AR` | اسم | `VARCHAR2(200 CHAR)` | ✔ |  |  |  | إدخال المستخدم |  | اسم المكون |
+| 7 | `NAME_EN` | اسم | `VARCHAR2(200 CHAR)` |  |  |  |  | إدخال المستخدم |  | Parameter name (English) |
+| 8 | `UNIT` | نص | `VARCHAR2(30 CHAR)` |  |  |  |  | إدخال المستخدم |  | الوحدة |
+| 9 | `GENDER` | رمز | `VARCHAR2(30 CHAR)` |  |  |  | M, F | إدخال المستخدم |  | للجنس (فارغ = الكل) |
+| 10 | `AGE_FROM` | رقم | `NUMBER` |  |  |  |  | إدخال المستخدم |  | من عمر (سنة) |
+| 11 | `AGE_TO` | رقم | `NUMBER` |  |  |  |  | إدخال المستخدم |  | إلى عمر (سنة) |
+| 12 | `REF_LOW` | رقم | `NUMBER` |  |  |  |  | إدخال المستخدم |  | الحد الأدنى الطبيعي |
+| 13 | `REF_HIGH` | رقم | `NUMBER` |  |  |  |  | إدخال المستخدم |  | الحد الأعلى الطبيعي |
+| 14 | `CRIT_LOW` | رقم | `NUMBER` |  |  |  |  | إدخال المستخدم |  | حرج أقل من |
+| 15 | `CRIT_HIGH` | رقم | `NUMBER` |  |  |  |  | إدخال المستخدم |  | حرج أعلى من |
+| 16 | `REF_TEXT` | نص | `VARCHAR2(200 CHAR)` |  |  |  |  | إدخال المستخدم |  | المعدل الطبيعي نصاً (للنتائج الوصفية) |
+| 17 | `SORT_ORDER` | عدد صحيح | `NUMBER(10)` |  |  |  |  | إدخال المستخدم |  | ترتيب العرض |
+| 18 | `ROW_VERSION` | عدد صحيح | `NUMBER(10)` | ✔ | 1 |  |  | Trigger |  | رقم الإصدار للتحكم في التزامن المتفائل |
+| 19 | `CREATED_BY` | اسم مستخدم | `VARCHAR2(128 CHAR)` | ✔ |  |  |  | Trigger |  | منشئ السجل |
+| 20 | `CREATED_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` | ✔ | SYSTIMESTAMP |  |  | Trigger |  | وقت الإنشاء |
+| 21 | `UPDATED_BY` | اسم مستخدم | `VARCHAR2(128 CHAR)` |  |  |  |  | Trigger |  | آخر من عدل السجل |
+| 22 | `UPDATED_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` |  |  |  |  | Trigger |  | وقت آخر تعديل |
+
+## HIS_LAB_RESULT
+
+| البند | القيمة |
+|---|---|
+| الاسم العربي | نتائج مكونات التحاليل |
+| English | Lab Results |
+| الحزمة المالكة | 31 — `NOONA_HIS_PKG` |
+| نطاق الملكية | `C` — مملوك للشركة Company-Owned |
+| الحساسية | CONFIDENTIAL |
+| النمط | قابل للتعديل وفق دورة الحياة |
+| مفاتيح فريدة | UK1: (ORDER_ID, PARAM_ID) |
+
+| # | العمود | النوع المنطقي | Oracle Type | إلزامي | افتراضي | مفاتيح | القيم المقبولة | المصدر | PII | الوصف |
+|---:|---|---|---|:---:|---|---|---|---|:---:|---|
+| 1 | `ID` | معرف | `NUMBER(19)` | ✔ |  | PK |  | النظام/الحزمة |  | المفتاح الداخلي الثابت (Identity) - لا يعاد استخدامه |
+| 2 | `TENANT_ID` | معرف | `NUMBER(19)` | ✔ |  | FK→PLT_TENANT |  | Security Context |  | المؤسسة المالكة؛ يملأ من Security Context الموثوق لا من مدخلات المستخدم |
+| 3 | `COMPANY_ID` | معرف | `NUMBER(19)` | ✔ |  | FK→ORG_COMPANY |  | Security Context |  | الشركة (الكيان القانوني) المالكة للسجل |
+| 4 | `ORDER_ID` | معرف | `NUMBER(19)` | ✔ |  | FK→HIS_ORDER UK1 |  | إدخال المستخدم |  | الطلب |
+| 5 | `PARAM_ID` | معرف | `NUMBER(19)` | ✔ |  | FK→HIS_LAB_PARAM UK1 |  | إدخال المستخدم |  | المكون |
+| 6 | `VALUE_NUM` | رقم | `NUMBER` |  |  |  |  | إدخال المستخدم |  | القيمة الرقمية |
+| 7 | `VALUE_TEXT` | نص | `VARCHAR2(200 CHAR)` |  |  |  |  | إدخال المستخدم |  | القيمة الوصفية |
+| 8 | `FLAG` | رمز | `VARCHAR2(30 CHAR)` |  |  |  | N, L, H, LL, HH | إدخال المستخدم |  | التقييم (طبيعي، منخفض، مرتفع، حرج) |
+| 9 | `ROW_VERSION` | عدد صحيح | `NUMBER(10)` | ✔ | 1 |  |  | Trigger |  | رقم الإصدار للتحكم في التزامن المتفائل |
+| 10 | `CREATED_BY` | اسم مستخدم | `VARCHAR2(128 CHAR)` | ✔ |  |  |  | Trigger |  | منشئ السجل |
+| 11 | `CREATED_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` | ✔ | SYSTIMESTAMP |  |  | Trigger |  | وقت الإنشاء |
+| 12 | `UPDATED_BY` | اسم مستخدم | `VARCHAR2(128 CHAR)` |  |  |  |  | Trigger |  | آخر من عدل السجل |
+| 13 | `UPDATED_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` |  |  |  |  | Trigger |  | وقت آخر تعديل |
+
+## HIS_REPORT_TEMPLATE
+
+| البند | القيمة |
+|---|---|
+| الاسم العربي | قوالب التقارير |
+| English | Report Templates |
+| الحزمة المالكة | 31 — `NOONA_HIS_PKG` |
+| نطاق الملكية | `C` — مملوك للشركة Company-Owned |
+| الحساسية | INTERNAL |
+| النمط | قابل للتعديل وفق دورة الحياة |
+| مفاتيح فريدة | UK1: (TENANT_ID, COMPANY_ID, CODE) |
+
+| # | العمود | النوع المنطقي | Oracle Type | إلزامي | افتراضي | مفاتيح | القيم المقبولة | المصدر | PII | الوصف |
+|---:|---|---|---|:---:|---|---|---|---|:---:|---|
+| 1 | `ID` | معرف | `NUMBER(19)` | ✔ |  | PK |  | النظام/الحزمة |  | المفتاح الداخلي الثابت (Identity) - لا يعاد استخدامه |
+| 2 | `TENANT_ID` | معرف | `NUMBER(19)` | ✔ |  | FK→PLT_TENANT UK1 |  | Security Context |  | المؤسسة المالكة؛ يملأ من Security Context الموثوق لا من مدخلات المستخدم |
+| 3 | `COMPANY_ID` | معرف | `NUMBER(19)` | ✔ |  | FK→ORG_COMPANY UK1 |  | Security Context |  | الشركة (الكيان القانوني) المالكة للسجل |
+| 4 | `CODE` | نص | `VARCHAR2(50 CHAR)` | ✔ |  | UK1 |  | إدخال المستخدم |  | الرمز الفريد ضمن النطاق |
+| 5 | `NAME_AR` | اسم | `VARCHAR2(200 CHAR)` | ✔ |  |  |  | إدخال المستخدم |  | الاسم بالعربية |
+| 6 | `NAME_EN` | اسم | `VARCHAR2(200 CHAR)` |  |  |  |  | إدخال المستخدم |  | الاسم بالإنجليزية |
+| 7 | `SERVICE_ID` | معرف | `NUMBER(19)` |  |  | FK→HIS_SERVICE |  | إدخال المستخدم |  | الخدمة |
+| 8 | `MODALITY` | رمز | `VARCHAR2(30 CHAR)` |  |  |  |  | إدخال المستخدم |  | الجهاز (لكل خدمات الجهاز) |
+| 9 | `BODY` | نص | `VARCHAR2(4000 CHAR)` | ✔ |  |  |  | إدخال المستخدم |  | نص القالب |
+| 10 | `IS_ACTIVE` | منطقي Y/N | `CHAR(1 CHAR)` | ✔ | 'Y' |  | Y, N | إدخال المستخدم |  | نشط؟ |
+| 11 | `ROW_VERSION` | عدد صحيح | `NUMBER(10)` | ✔ | 1 |  |  | Trigger |  | رقم الإصدار للتحكم في التزامن المتفائل |
+| 12 | `CREATED_BY` | اسم مستخدم | `VARCHAR2(128 CHAR)` | ✔ |  |  |  | Trigger |  | منشئ السجل |
+| 13 | `CREATED_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` | ✔ | SYSTIMESTAMP |  |  | Trigger |  | وقت الإنشاء |
+| 14 | `UPDATED_BY` | اسم مستخدم | `VARCHAR2(128 CHAR)` |  |  |  |  | Trigger |  | آخر من عدل السجل |
+| 15 | `UPDATED_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` |  |  |  |  | Trigger |  | وقت آخر تعديل |
+
+## HIS_PRESCRIPTION
+
+| البند | القيمة |
+|---|---|
+| الاسم العربي | الوصفات الطبية |
+| English | Prescriptions |
+| الحزمة المالكة | 31 — `NOONA_HIS_PKG` |
+| نطاق الملكية | `C` — مملوك للشركة Company-Owned |
+| الحساسية | CONFIDENTIAL |
+| النمط | قابل للتعديل وفق دورة الحياة |
+| مفاتيح فريدة | UK2: (TENANT_ID, COMPANY_ID, RX_NO) |
+
+| # | العمود | النوع المنطقي | Oracle Type | إلزامي | افتراضي | مفاتيح | القيم المقبولة | المصدر | PII | الوصف |
+|---:|---|---|---|:---:|---|---|---|---|:---:|---|
+| 1 | `ID` | معرف | `NUMBER(19)` | ✔ |  | PK |  | النظام/الحزمة |  | المفتاح الداخلي الثابت (Identity) - لا يعاد استخدامه |
+| 2 | `TENANT_ID` | معرف | `NUMBER(19)` | ✔ |  | FK→PLT_TENANT UK2 |  | Security Context |  | المؤسسة المالكة؛ يملأ من Security Context الموثوق لا من مدخلات المستخدم |
+| 3 | `COMPANY_ID` | معرف | `NUMBER(19)` | ✔ |  | FK→ORG_COMPANY UK2 |  | Security Context |  | الشركة (الكيان القانوني) المالكة للسجل |
+| 4 | `RX_NO` | نص | `VARCHAR2(30 CHAR)` | ✔ |  | UK2 |  | إدخال المستخدم |  | رقم الوصفة |
+| 5 | `VISIT_ID` | معرف | `NUMBER(19)` | ✔ |  | FK→HIS_VISIT |  | إدخال المستخدم |  | الزيارة |
+| 6 | `DOCTOR_ID` | معرف | `NUMBER(19)` |  |  | FK→HIS_DOCTOR |  | إدخال المستخدم |  | الطبيب |
+| 7 | `PHARMACY_ID` | معرف | `NUMBER(19)` |  |  | FK→HIS_DEPARTMENT |  | إدخال المستخدم |  | الصيدلية |
+| 8 | `RX_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` | ✔ | SYSTIMESTAMP |  |  | إدخال المستخدم |  | الوقت |
+| 9 | `NOTES` | نص | `VARCHAR2(500 CHAR)` |  |  |  |  | إدخال المستخدم |  | ملاحظات |
+| 10 | `STATUS_CODE` | رمز | `VARCHAR2(30 CHAR)` | ✔ | 'ACTIVE' |  | ACTIVE, PARTIAL, DISPENSED, CANCELLED | النظام/الحزمة |  | الحالة ضمن دورة الحياة المعتمدة |
+| 11 | `ROW_VERSION` | عدد صحيح | `NUMBER(10)` | ✔ | 1 |  |  | Trigger |  | رقم الإصدار للتحكم في التزامن المتفائل |
+| 12 | `CREATED_BY` | اسم مستخدم | `VARCHAR2(128 CHAR)` | ✔ |  |  |  | Trigger |  | منشئ السجل |
+| 13 | `CREATED_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` | ✔ | SYSTIMESTAMP |  |  | Trigger |  | وقت الإنشاء |
+| 14 | `UPDATED_BY` | اسم مستخدم | `VARCHAR2(128 CHAR)` |  |  |  |  | Trigger |  | آخر من عدل السجل |
+| 15 | `UPDATED_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` |  |  |  |  | Trigger |  | وقت آخر تعديل |
+
+## HIS_PRESCRIPTION_LINE
+
+| البند | القيمة |
+|---|---|
+| الاسم العربي | أصناف الوصفة |
+| English | Prescription Lines |
+| الحزمة المالكة | 31 — `NOONA_HIS_PKG` |
+| نطاق الملكية | `C` — مملوك للشركة Company-Owned |
+| الحساسية | INTERNAL |
+| النمط | قابل للتعديل وفق دورة الحياة |
+| مفاتيح فريدة | UK1: (PRESCRIPTION_ID, LINE_NO) |
+| قيود أعمال | QUANTITY > 0 |
+
+| # | العمود | النوع المنطقي | Oracle Type | إلزامي | افتراضي | مفاتيح | القيم المقبولة | المصدر | PII | الوصف |
+|---:|---|---|---|:---:|---|---|---|---|:---:|---|
+| 1 | `ID` | معرف | `NUMBER(19)` | ✔ |  | PK |  | النظام/الحزمة |  | المفتاح الداخلي الثابت (Identity) - لا يعاد استخدامه |
+| 2 | `TENANT_ID` | معرف | `NUMBER(19)` | ✔ |  | FK→PLT_TENANT |  | Security Context |  | المؤسسة المالكة؛ يملأ من Security Context الموثوق لا من مدخلات المستخدم |
+| 3 | `COMPANY_ID` | معرف | `NUMBER(19)` | ✔ |  | FK→ORG_COMPANY |  | Security Context |  | الشركة (الكيان القانوني) المالكة للسجل |
+| 4 | `PRESCRIPTION_ID` | معرف | `NUMBER(19)` | ✔ |  | FK→HIS_PRESCRIPTION UK1 |  | إدخال المستخدم |  | الوصفة |
+| 5 | `LINE_NO` | عدد صحيح | `NUMBER(10)` | ✔ |  | UK1 |  | إدخال المستخدم |  | السطر |
+| 6 | `ITEM_ID` | معرف | `NUMBER(19)` | ✔ |  | FK→INV_ITEM |  | إدخال المستخدم |  | الدواء |
+| 7 | `DOSE` | نص | `VARCHAR2(100 CHAR)` |  |  |  |  | إدخال المستخدم |  | الجرعة |
+| 8 | `FREQUENCY` | نص | `VARCHAR2(100 CHAR)` |  |  |  |  | إدخال المستخدم |  | التكرار (مرتين يومياً...) |
+| 9 | `DURATION_DAYS` | عدد صحيح | `NUMBER(10)` |  |  |  |  | إدخال المستخدم |  | المدة بالأيام |
+| 10 | `QUANTITY` | كمية | `NUMBER(24,6)` | ✔ |  |  |  | إدخال المستخدم |  | الكمية المطلوبة |
+| 11 | `DISPENSED_QTY` | كمية | `NUMBER(24,6)` | ✔ | 0 |  |  | إدخال المستخدم |  | الكمية المصروفة |
+| 12 | `INSTRUCTIONS` | نص | `VARCHAR2(500 CHAR)` |  |  |  |  | إدخال المستخدم |  | تعليمات الاستعمال |
+| 13 | `ORDER_ID` | معرف | `NUMBER(19)` |  |  | FK→HIS_ORDER |  | إدخال المستخدم |  | طلب الفوترة |
+| 14 | `ROW_VERSION` | عدد صحيح | `NUMBER(10)` | ✔ | 1 |  |  | Trigger |  | رقم الإصدار للتحكم في التزامن المتفائل |
+| 15 | `CREATED_BY` | اسم مستخدم | `VARCHAR2(128 CHAR)` | ✔ |  |  |  | Trigger |  | منشئ السجل |
+| 16 | `CREATED_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` | ✔ | SYSTIMESTAMP |  |  | Trigger |  | وقت الإنشاء |
+| 17 | `UPDATED_BY` | اسم مستخدم | `VARCHAR2(128 CHAR)` |  |  |  |  | Trigger |  | آخر من عدل السجل |
+| 18 | `UPDATED_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` |  |  |  |  | Trigger |  | وقت آخر تعديل |
+
+## HIS_BED
+
+| البند | القيمة |
+|---|---|
+| الاسم العربي | الأسرة |
+| English | Beds |
+| الحزمة المالكة | 31 — `NOONA_HIS_PKG` |
+| نطاق الملكية | `C` — مملوك للشركة Company-Owned |
+| الحساسية | INTERNAL |
+| النمط | قابل للتعديل وفق دورة الحياة |
+| مفاتيح فريدة | UK2: (TENANT_ID, COMPANY_ID, BED_NO) |
+
+| # | العمود | النوع المنطقي | Oracle Type | إلزامي | افتراضي | مفاتيح | القيم المقبولة | المصدر | PII | الوصف |
+|---:|---|---|---|:---:|---|---|---|---|:---:|---|
+| 1 | `ID` | معرف | `NUMBER(19)` | ✔ |  | PK |  | النظام/الحزمة |  | المفتاح الداخلي الثابت (Identity) - لا يعاد استخدامه |
+| 2 | `TENANT_ID` | معرف | `NUMBER(19)` | ✔ |  | FK→PLT_TENANT UK2 |  | Security Context |  | المؤسسة المالكة؛ يملأ من Security Context الموثوق لا من مدخلات المستخدم |
+| 3 | `COMPANY_ID` | معرف | `NUMBER(19)` | ✔ |  | FK→ORG_COMPANY UK2 |  | Security Context |  | الشركة (الكيان القانوني) المالكة للسجل |
+| 4 | `WARD_ID` | معرف | `NUMBER(19)` | ✔ |  | FK→HIS_DEPARTMENT |  | إدخال المستخدم |  | الجناح |
+| 5 | `BED_NO` | نص | `VARCHAR2(30 CHAR)` | ✔ |  | UK2 |  | إدخال المستخدم |  | رقم السرير |
+| 6 | `ROOM_NO` | نص | `VARCHAR2(30 CHAR)` |  |  |  |  | إدخال المستخدم |  | الغرفة |
+| 7 | `BED_CLASS` | رمز | `VARCHAR2(30 CHAR)` | ✔ | 'WARD' |  | WARD, SEMI_PRIVATE, PRIVATE, SUITE, ICU, NICU, ISOLATION | إدخال المستخدم |  | الفئة |
+| 8 | `DAY_SERVICE_ID` | معرف | `NUMBER(19)` |  |  | FK→HIS_SERVICE |  | إدخال المستخدم |  | خدمة يوم السرير |
+| 9 | `STATUS_CODE` | رمز | `VARCHAR2(30 CHAR)` | ✔ | 'AVAILABLE' |  | AVAILABLE, OCCUPIED, CLEANING, BLOCKED | النظام/الحزمة |  | الحالة ضمن دورة الحياة المعتمدة |
+| 10 | `ROW_VERSION` | عدد صحيح | `NUMBER(10)` | ✔ | 1 |  |  | Trigger |  | رقم الإصدار للتحكم في التزامن المتفائل |
+| 11 | `CREATED_BY` | اسم مستخدم | `VARCHAR2(128 CHAR)` | ✔ |  |  |  | Trigger |  | منشئ السجل |
+| 12 | `CREATED_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` | ✔ | SYSTIMESTAMP |  |  | Trigger |  | وقت الإنشاء |
+| 13 | `UPDATED_BY` | اسم مستخدم | `VARCHAR2(128 CHAR)` |  |  |  |  | Trigger |  | آخر من عدل السجل |
+| 14 | `UPDATED_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` |  |  |  |  | Trigger |  | وقت آخر تعديل |
+
+## HIS_ADMISSION
+
+| البند | القيمة |
+|---|---|
+| الاسم العربي | التنويم |
+| English | Admissions |
+| الحزمة المالكة | 31 — `NOONA_HIS_PKG` |
+| نطاق الملكية | `C` — مملوك للشركة Company-Owned |
+| الحساسية | CONFIDENTIAL |
+| النمط | قابل للتعديل وفق دورة الحياة |
+| مفاتيح فريدة | UK2: (TENANT_ID, VISIT_ID)<br>UK3: (TENANT_ID, COMPANY_ID, ADMISSION_NO) |
+
+| # | العمود | النوع المنطقي | Oracle Type | إلزامي | افتراضي | مفاتيح | القيم المقبولة | المصدر | PII | الوصف |
+|---:|---|---|---|:---:|---|---|---|---|:---:|---|
+| 1 | `ID` | معرف | `NUMBER(19)` | ✔ |  | PK |  | النظام/الحزمة |  | المفتاح الداخلي الثابت (Identity) - لا يعاد استخدامه |
+| 2 | `TENANT_ID` | معرف | `NUMBER(19)` | ✔ |  | FK→PLT_TENANT UK2 UK3 |  | Security Context |  | المؤسسة المالكة؛ يملأ من Security Context الموثوق لا من مدخلات المستخدم |
+| 3 | `COMPANY_ID` | معرف | `NUMBER(19)` | ✔ |  | FK→ORG_COMPANY UK3 |  | Security Context |  | الشركة (الكيان القانوني) المالكة للسجل |
+| 4 | `ADMISSION_NO` | نص | `VARCHAR2(30 CHAR)` | ✔ |  | UK3 |  | إدخال المستخدم |  | رقم التنويم |
+| 5 | `VISIT_ID` | معرف | `NUMBER(19)` | ✔ |  | FK→HIS_VISIT UK2 |  | إدخال المستخدم |  | الزيارة |
+| 6 | `BED_ID` | معرف | `NUMBER(19)` |  |  | FK→HIS_BED |  | إدخال المستخدم |  | السرير الحالي |
+| 7 | `DOCTOR_ID` | معرف | `NUMBER(19)` |  |  | FK→HIS_DOCTOR |  | إدخال المستخدم |  | الطبيب المعالج |
+| 8 | `ADMIT_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` | ✔ |  |  |  | إدخال المستخدم |  | الدخول |
+| 9 | `DISCHARGE_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` |  |  |  |  | إدخال المستخدم |  | الخروج |
+| 10 | `CHARGED_TO` | تاريخ | `DATE` |  |  |  |  | إدخال المستخدم |  | آخر يوم محمل |
+| 11 | `ADMIT_REASON` | نص | `VARCHAR2(1000 CHAR)` |  |  |  |  | إدخال المستخدم |  | سبب التنويم |
+| 12 | `DISCHARGE_TYPE` | رمز | `VARCHAR2(30 CHAR)` |  |  |  | HOME, TRANSFER, AGAINST_ADVICE, DECEASED | إدخال المستخدم |  | نوع الخروج |
+| 13 | `DISCHARGE_SUMMARY` | نص | `VARCHAR2(4000 CHAR)` |  |  |  |  | إدخال المستخدم |  | ملخص الخروج |
+| 14 | `STATUS_CODE` | رمز | `VARCHAR2(30 CHAR)` | ✔ | 'ADMITTED' |  | ADMITTED, DISCHARGED, CANCELLED | النظام/الحزمة |  | الحالة ضمن دورة الحياة المعتمدة |
+| 15 | `ROW_VERSION` | عدد صحيح | `NUMBER(10)` | ✔ | 1 |  |  | Trigger |  | رقم الإصدار للتحكم في التزامن المتفائل |
+| 16 | `CREATED_BY` | اسم مستخدم | `VARCHAR2(128 CHAR)` | ✔ |  |  |  | Trigger |  | منشئ السجل |
+| 17 | `CREATED_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` | ✔ | SYSTIMESTAMP |  |  | Trigger |  | وقت الإنشاء |
+| 18 | `UPDATED_BY` | اسم مستخدم | `VARCHAR2(128 CHAR)` |  |  |  |  | Trigger |  | آخر من عدل السجل |
+| 19 | `UPDATED_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` |  |  |  |  | Trigger |  | وقت آخر تعديل |
+
+## HIS_BED_MOVE
+
+| البند | القيمة |
+|---|---|
+| الاسم العربي | حركات الأسرة |
+| English | Bed Movements |
+| الحزمة المالكة | 31 — `NOONA_HIS_PKG` |
+| نطاق الملكية | `C` — مملوك للشركة Company-Owned |
+| الحساسية | INTERNAL |
+| النمط | Append-only (غير قابل للتعديل) |
+
+| # | العمود | النوع المنطقي | Oracle Type | إلزامي | افتراضي | مفاتيح | القيم المقبولة | المصدر | PII | الوصف |
+|---:|---|---|---|:---:|---|---|---|---|:---:|---|
+| 1 | `ID` | معرف | `NUMBER(19)` | ✔ |  | PK |  | النظام/الحزمة |  | المفتاح الداخلي الثابت (Identity) - لا يعاد استخدامه |
+| 2 | `TENANT_ID` | معرف | `NUMBER(19)` | ✔ |  | FK→PLT_TENANT |  | Security Context |  | المؤسسة المالكة؛ يملأ من Security Context الموثوق لا من مدخلات المستخدم |
+| 3 | `COMPANY_ID` | معرف | `NUMBER(19)` | ✔ |  | FK→ORG_COMPANY |  | Security Context |  | الشركة (الكيان القانوني) المالكة للسجل |
+| 4 | `ADMISSION_ID` | معرف | `NUMBER(19)` | ✔ |  | FK→HIS_ADMISSION |  | إدخال المستخدم |  | التنويم |
+| 5 | `FROM_BED_ID` | معرف | `NUMBER(19)` |  |  | FK→HIS_BED |  | إدخال المستخدم |  | من سرير |
+| 6 | `TO_BED_ID` | معرف | `NUMBER(19)` | ✔ |  | FK→HIS_BED |  | إدخال المستخدم |  | إلى سرير |
+| 7 | `MOVED_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` | ✔ |  |  |  | إدخال المستخدم |  | الوقت |
+| 8 | `REASON` | نص | `VARCHAR2(500 CHAR)` |  |  |  |  | إدخال المستخدم |  | السبب |
+| 9 | `CREATED_BY` | اسم مستخدم | `VARCHAR2(128 CHAR)` | ✔ |  |  |  | Trigger |  | منشئ السجل |
+| 10 | `CREATED_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` | ✔ | SYSTIMESTAMP |  |  | Trigger |  | وقت الإنشاء UTC |
+
+## HIS_SURGERY
+
+| البند | القيمة |
+|---|---|
+| الاسم العربي | جدول العمليات |
+| English | Surgery Schedule |
+| الحزمة المالكة | 31 — `NOONA_HIS_PKG` |
+| نطاق الملكية | `C` — مملوك للشركة Company-Owned |
+| الحساسية | CONFIDENTIAL |
+| النمط | قابل للتعديل وفق دورة الحياة |
+
+| # | العمود | النوع المنطقي | Oracle Type | إلزامي | افتراضي | مفاتيح | القيم المقبولة | المصدر | PII | الوصف |
+|---:|---|---|---|:---:|---|---|---|---|:---:|---|
+| 1 | `ID` | معرف | `NUMBER(19)` | ✔ |  | PK |  | النظام/الحزمة |  | المفتاح الداخلي الثابت (Identity) - لا يعاد استخدامه |
+| 2 | `TENANT_ID` | معرف | `NUMBER(19)` | ✔ |  | FK→PLT_TENANT |  | Security Context |  | المؤسسة المالكة؛ يملأ من Security Context الموثوق لا من مدخلات المستخدم |
+| 3 | `COMPANY_ID` | معرف | `NUMBER(19)` | ✔ |  | FK→ORG_COMPANY |  | Security Context |  | الشركة (الكيان القانوني) المالكة للسجل |
+| 4 | `VISIT_ID` | معرف | `NUMBER(19)` | ✔ |  | FK→HIS_VISIT |  | إدخال المستخدم |  | الزيارة |
+| 5 | `ORDER_ID` | معرف | `NUMBER(19)` |  |  | FK→HIS_ORDER |  | إدخال المستخدم |  | طلب العملية |
+| 6 | `SERVICE_ID` | معرف | `NUMBER(19)` | ✔ |  | FK→HIS_SERVICE |  | إدخال المستخدم |  | العملية |
+| 7 | `THEATER` | نص | `VARCHAR2(30 CHAR)` | ✔ |  |  |  | إدخال المستخدم |  | غرفة العمليات |
+| 8 | `SURGEON_ID` | معرف | `NUMBER(19)` | ✔ |  | FK→HIS_DOCTOR |  | إدخال المستخدم |  | الجراح |
+| 9 | `ANESTHETIST_ID` | معرف | `NUMBER(19)` |  |  | FK→HIS_DOCTOR |  | إدخال المستخدم |  | طبيب التخدير |
+| 10 | `ANESTHESIA` | رمز | `VARCHAR2(30 CHAR)` |  |  |  | GENERAL, SPINAL, LOCAL, SEDATION | إدخال المستخدم |  | نوع التخدير |
+| 11 | `START_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` | ✔ |  |  |  | إدخال المستخدم |  | البداية المجدولة |
+| 12 | `DURATION_MIN` | عدد صحيح | `NUMBER(10)` | ✔ | 60 |  |  | إدخال المستخدم |  | المدة بالدقائق |
+| 13 | `ACTUAL_START` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` |  |  |  |  | إدخال المستخدم |  | البداية الفعلية |
+| 14 | `ACTUAL_END` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` |  |  |  |  | إدخال المستخدم |  | النهاية الفعلية |
+| 15 | `OPERATIVE_NOTES` | نص | `VARCHAR2(4000 CHAR)` |  |  |  |  | إدخال المستخدم |  | تقرير العملية |
+| 16 | `STATUS_CODE` | رمز | `VARCHAR2(30 CHAR)` | ✔ | 'SCHEDULED' |  | SCHEDULED, IN_PROGRESS, DONE, CANCELLED | النظام/الحزمة |  | الحالة ضمن دورة الحياة المعتمدة |
+| 17 | `ROW_VERSION` | عدد صحيح | `NUMBER(10)` | ✔ | 1 |  |  | Trigger |  | رقم الإصدار للتحكم في التزامن المتفائل |
+| 18 | `CREATED_BY` | اسم مستخدم | `VARCHAR2(128 CHAR)` | ✔ |  |  |  | Trigger |  | منشئ السجل |
+| 19 | `CREATED_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` | ✔ | SYSTIMESTAMP |  |  | Trigger |  | وقت الإنشاء |
+| 20 | `UPDATED_BY` | اسم مستخدم | `VARCHAR2(128 CHAR)` |  |  |  |  | Trigger |  | آخر من عدل السجل |
+| 21 | `UPDATED_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` |  |  |  |  | Trigger |  | وقت آخر تعديل |
+
+## HIS_THERAPY_PLAN
+
+| البند | القيمة |
+|---|---|
+| الاسم العربي | خطط العلاج والجلسات |
+| English | Therapy Plans |
+| الحزمة المالكة | 31 — `NOONA_HIS_PKG` |
+| نطاق الملكية | `C` — مملوك للشركة Company-Owned |
+| الحساسية | INTERNAL |
+| النمط | قابل للتعديل وفق دورة الحياة |
+| قيود أعمال | SESSIONS_TOTAL > 0 |
+
+| # | العمود | النوع المنطقي | Oracle Type | إلزامي | افتراضي | مفاتيح | القيم المقبولة | المصدر | PII | الوصف |
+|---:|---|---|---|:---:|---|---|---|---|:---:|---|
+| 1 | `ID` | معرف | `NUMBER(19)` | ✔ |  | PK |  | النظام/الحزمة |  | المفتاح الداخلي الثابت (Identity) - لا يعاد استخدامه |
+| 2 | `TENANT_ID` | معرف | `NUMBER(19)` | ✔ |  | FK→PLT_TENANT |  | Security Context |  | المؤسسة المالكة؛ يملأ من Security Context الموثوق لا من مدخلات المستخدم |
+| 3 | `COMPANY_ID` | معرف | `NUMBER(19)` | ✔ |  | FK→ORG_COMPANY |  | Security Context |  | الشركة (الكيان القانوني) المالكة للسجل |
+| 4 | `VISIT_ID` | معرف | `NUMBER(19)` | ✔ |  | FK→HIS_VISIT |  | إدخال المستخدم |  | الزيارة |
+| 5 | `SERVICE_ID` | معرف | `NUMBER(19)` | ✔ |  | FK→HIS_SERVICE |  | إدخال المستخدم |  | الجلسة |
+| 6 | `ORDER_ID` | معرف | `NUMBER(19)` |  |  | FK→HIS_ORDER |  | إدخال المستخدم |  | طلب الفوترة |
+| 7 | `THERAPIST_ID` | معرف | `NUMBER(19)` |  |  | FK→HIS_DOCTOR |  | إدخال المستخدم |  | المعالج |
+| 8 | `SESSIONS_TOTAL` | عدد صحيح | `NUMBER(10)` | ✔ |  |  |  | إدخال المستخدم |  | عدد الجلسات |
+| 9 | `SESSIONS_DONE` | عدد صحيح | `NUMBER(10)` | ✔ | 0 |  |  | إدخال المستخدم |  | المنفذ |
+| 10 | `FREQUENCY` | نص | `VARCHAR2(100 CHAR)` |  |  |  |  | إدخال المستخدم |  | التكرار (3 أسبوعياً...) |
+| 11 | `GOALS` | نص | `VARCHAR2(1000 CHAR)` |  |  |  |  | إدخال المستخدم |  | الأهداف |
+| 12 | `STATUS_CODE` | رمز | `VARCHAR2(30 CHAR)` | ✔ | 'ACTIVE' |  | ACTIVE, COMPLETED, CANCELLED | النظام/الحزمة |  | الحالة ضمن دورة الحياة المعتمدة |
+| 13 | `ROW_VERSION` | عدد صحيح | `NUMBER(10)` | ✔ | 1 |  |  | Trigger |  | رقم الإصدار للتحكم في التزامن المتفائل |
+| 14 | `CREATED_BY` | اسم مستخدم | `VARCHAR2(128 CHAR)` | ✔ |  |  |  | Trigger |  | منشئ السجل |
+| 15 | `CREATED_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` | ✔ | SYSTIMESTAMP |  |  | Trigger |  | وقت الإنشاء |
+| 16 | `UPDATED_BY` | اسم مستخدم | `VARCHAR2(128 CHAR)` |  |  |  |  | Trigger |  | آخر من عدل السجل |
+| 17 | `UPDATED_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` |  |  |  |  | Trigger |  | وقت آخر تعديل |
+
+## HIS_THERAPY_SESSION
+
+| البند | القيمة |
+|---|---|
+| الاسم العربي | الجلسات المنفذة |
+| English | Therapy Sessions |
+| الحزمة المالكة | 31 — `NOONA_HIS_PKG` |
+| نطاق الملكية | `C` — مملوك للشركة Company-Owned |
+| الحساسية | INTERNAL |
+| النمط | Append-only (غير قابل للتعديل) |
+| مفاتيح فريدة | UK1: (PLAN_ID, SESSION_NO) |
+
+| # | العمود | النوع المنطقي | Oracle Type | إلزامي | افتراضي | مفاتيح | القيم المقبولة | المصدر | PII | الوصف |
+|---:|---|---|---|:---:|---|---|---|---|:---:|---|
+| 1 | `ID` | معرف | `NUMBER(19)` | ✔ |  | PK |  | النظام/الحزمة |  | المفتاح الداخلي الثابت (Identity) - لا يعاد استخدامه |
+| 2 | `TENANT_ID` | معرف | `NUMBER(19)` | ✔ |  | FK→PLT_TENANT |  | Security Context |  | المؤسسة المالكة؛ يملأ من Security Context الموثوق لا من مدخلات المستخدم |
+| 3 | `COMPANY_ID` | معرف | `NUMBER(19)` | ✔ |  | FK→ORG_COMPANY |  | Security Context |  | الشركة (الكيان القانوني) المالكة للسجل |
+| 4 | `PLAN_ID` | معرف | `NUMBER(19)` | ✔ |  | FK→HIS_THERAPY_PLAN UK1 |  | إدخال المستخدم |  | الخطة |
+| 5 | `SESSION_NO` | عدد صحيح | `NUMBER(10)` | ✔ |  | UK1 |  | إدخال المستخدم |  | الجلسة |
+| 6 | `SESSION_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` | ✔ |  |  |  | إدخال المستخدم |  | الوقت |
+| 7 | `THERAPIST_ID` | معرف | `NUMBER(19)` |  |  | FK→HIS_DOCTOR |  | إدخال المستخدم |  | المعالج |
+| 8 | `NOTES` | نص | `VARCHAR2(1000 CHAR)` |  |  |  |  | إدخال المستخدم |  | الملاحظات والتقدم |
+| 9 | `CREATED_BY` | اسم مستخدم | `VARCHAR2(128 CHAR)` | ✔ |  |  |  | Trigger |  | منشئ السجل |
+| 10 | `CREATED_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` | ✔ | SYSTIMESTAMP |  |  | Trigger |  | وقت الإنشاء UTC |
+
+## HIS_DEVICE
+
+| البند | القيمة |
+|---|---|
+| الاسم العربي | الأجهزة الطبية |
+| English | Medical Devices |
+| الحزمة المالكة | 31 — `NOONA_HIS_PKG` |
+| نطاق الملكية | `C` — مملوك للشركة Company-Owned |
+| الحساسية | INTERNAL |
+| النمط | قابل للتعديل وفق دورة الحياة |
+| مفاتيح فريدة | UK2: (TENANT_ID, COMPANY_ID, CODE) |
+
+| # | العمود | النوع المنطقي | Oracle Type | إلزامي | افتراضي | مفاتيح | القيم المقبولة | المصدر | PII | الوصف |
+|---:|---|---|---|:---:|---|---|---|---|:---:|---|
+| 1 | `ID` | معرف | `NUMBER(19)` | ✔ |  | PK |  | النظام/الحزمة |  | المفتاح الداخلي الثابت (Identity) - لا يعاد استخدامه |
+| 2 | `TENANT_ID` | معرف | `NUMBER(19)` | ✔ |  | FK→PLT_TENANT UK2 |  | Security Context |  | المؤسسة المالكة؛ يملأ من Security Context الموثوق لا من مدخلات المستخدم |
+| 3 | `COMPANY_ID` | معرف | `NUMBER(19)` | ✔ |  | FK→ORG_COMPANY UK2 |  | Security Context |  | الشركة (الكيان القانوني) المالكة للسجل |
+| 4 | `CODE` | نص | `VARCHAR2(50 CHAR)` | ✔ |  | UK2 |  | إدخال المستخدم |  | الرمز الفريد ضمن النطاق |
+| 5 | `NAME_AR` | اسم | `VARCHAR2(200 CHAR)` | ✔ |  |  |  | إدخال المستخدم |  | الاسم بالعربية |
+| 6 | `NAME_EN` | اسم | `VARCHAR2(200 CHAR)` |  |  |  |  | إدخال المستخدم |  | الاسم بالإنجليزية |
+| 7 | `DEPARTMENT_ID` | معرف | `NUMBER(19)` | ✔ |  | FK→HIS_DEPARTMENT |  | إدخال المستخدم |  | القسم |
+| 8 | `MODALITY` | رمز | `VARCHAR2(30 CHAR)` |  |  |  |  | إدخال المستخدم |  | الجهاز (أشعة، رنين، تحاليل...) |
+| 9 | `MANUFACTURER` | نص | `VARCHAR2(100 CHAR)` |  |  |  |  | إدخال المستخدم |  | الشركة المصنعة |
+| 10 | `MODEL` | نص | `VARCHAR2(100 CHAR)` |  |  |  |  | إدخال المستخدم |  | الطراز |
+| 11 | `SERIAL_NO` | نص | `VARCHAR2(100 CHAR)` |  |  |  |  | إدخال المستخدم |  | الرقم التسلسلي |
+| 12 | `FA_ASSET_ID` | معرف | `NUMBER(19)` |  |  | FK→FA_ASSET |  | إدخال المستخدم |  | الأصل الثابت |
+| 13 | `INSTALLED_ON` | تاريخ | `DATE` |  |  |  |  | إدخال المستخدم |  | التركيب |
+| 14 | `WARRANTY_TO` | تاريخ | `DATE` |  |  |  |  | إدخال المستخدم |  | نهاية الضمان |
+| 15 | `CALIBRATION_DAYS` | عدد صحيح | `NUMBER(10)` |  |  |  |  | إدخال المستخدم |  | دورية المعايرة بالأيام |
+| 16 | `LAST_CALIBRATION` | تاريخ | `DATE` |  |  |  |  | إدخال المستخدم |  | آخر معايرة |
+| 17 | `NEXT_CALIBRATION` | تاريخ | `DATE` |  |  |  |  | إدخال المستخدم |  | المعايرة القادمة |
+| 18 | `STATUS_CODE` | رمز | `VARCHAR2(30 CHAR)` | ✔ | 'IN_SERVICE' |  | IN_SERVICE, OUT_OF_SERVICE, RETIRED | النظام/الحزمة |  | الحالة ضمن دورة الحياة المعتمدة |
+| 19 | `ROW_VERSION` | عدد صحيح | `NUMBER(10)` | ✔ | 1 |  |  | Trigger |  | رقم الإصدار للتحكم في التزامن المتفائل |
+| 20 | `CREATED_BY` | اسم مستخدم | `VARCHAR2(128 CHAR)` | ✔ |  |  |  | Trigger |  | منشئ السجل |
+| 21 | `CREATED_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` | ✔ | SYSTIMESTAMP |  |  | Trigger |  | وقت الإنشاء |
+| 22 | `UPDATED_BY` | اسم مستخدم | `VARCHAR2(128 CHAR)` |  |  |  |  | Trigger |  | آخر من عدل السجل |
+| 23 | `UPDATED_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` |  |  |  |  | Trigger |  | وقت آخر تعديل |
+
+## HIS_DEVICE_LOG
+
+| البند | القيمة |
+|---|---|
+| الاسم العربي | سجل صيانة ومعايرة الأجهزة |
+| English | Device Service Log |
+| الحزمة المالكة | 31 — `NOONA_HIS_PKG` |
+| نطاق الملكية | `C` — مملوك للشركة Company-Owned |
+| الحساسية | INTERNAL |
+| النمط | Append-only (غير قابل للتعديل) |
+
+| # | العمود | النوع المنطقي | Oracle Type | إلزامي | افتراضي | مفاتيح | القيم المقبولة | المصدر | PII | الوصف |
+|---:|---|---|---|:---:|---|---|---|---|:---:|---|
+| 1 | `ID` | معرف | `NUMBER(19)` | ✔ |  | PK |  | النظام/الحزمة |  | المفتاح الداخلي الثابت (Identity) - لا يعاد استخدامه |
+| 2 | `TENANT_ID` | معرف | `NUMBER(19)` | ✔ |  | FK→PLT_TENANT |  | Security Context |  | المؤسسة المالكة؛ يملأ من Security Context الموثوق لا من مدخلات المستخدم |
+| 3 | `COMPANY_ID` | معرف | `NUMBER(19)` | ✔ |  | FK→ORG_COMPANY |  | Security Context |  | الشركة (الكيان القانوني) المالكة للسجل |
+| 4 | `DEVICE_ID` | معرف | `NUMBER(19)` | ✔ |  | FK→HIS_DEVICE |  | إدخال المستخدم |  | الجهاز |
+| 5 | `LOG_TYPE` | رمز | `VARCHAR2(30 CHAR)` | ✔ |  |  | CALIBRATION, PREVENTIVE, REPAIR, BREAKDOWN, RETURN_TO_SERVICE | إدخال المستخدم |  | النوع |
+| 6 | `LOG_DATE` | تاريخ | `DATE` | ✔ |  |  |  | إدخال المستخدم |  | التاريخ |
+| 7 | `VENDOR` | نص | `VARCHAR2(200 CHAR)` |  |  |  |  | إدخال المستخدم |  | الجهة المنفذة |
+| 8 | `COST` | مبلغ | `NUMBER(24,6)` |  |  |  |  | إدخال المستخدم |  | التكلفة |
+| 9 | `NOTES` | نص | `VARCHAR2(1000 CHAR)` |  |  |  |  | إدخال المستخدم |  | الملاحظات |
+| 10 | `CREATED_BY` | اسم مستخدم | `VARCHAR2(128 CHAR)` | ✔ |  |  |  | Trigger |  | منشئ السجل |
+| 11 | `CREATED_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` | ✔ | SYSTIMESTAMP |  |  | Trigger |  | وقت الإنشاء UTC |
+
+## HIS_CLAIM_BATCH
+
+| البند | القيمة |
+|---|---|
+| الاسم العربي | دفعات المطالبات |
+| English | Claim Batches |
+| الحزمة المالكة | 31 — `NOONA_HIS_PKG` |
+| نطاق الملكية | `C` — مملوك للشركة Company-Owned |
+| الحساسية | INTERNAL |
+| النمط | قابل للتعديل وفق دورة الحياة |
+| مفاتيح فريدة | UK2: (TENANT_ID, COMPANY_ID, DOC_NO)<br>UK3: (PUBLIC_ID) |
+
+| # | العمود | النوع المنطقي | Oracle Type | إلزامي | افتراضي | مفاتيح | القيم المقبولة | المصدر | PII | الوصف |
+|---:|---|---|---|:---:|---|---|---|---|:---:|---|
+| 1 | `ID` | معرف | `NUMBER(19)` | ✔ |  | PK |  | النظام/الحزمة |  | المفتاح الداخلي الثابت (Identity) - لا يعاد استخدامه |
+| 2 | `PUBLIC_ID` | GUID | `RAW(16)` | ✔ | SYS_GUID() | UK3 |  | النظام/الحزمة |  | معرف عام عشوائي للروابط الخارجية وواجهات API بدل المفتاح الداخلي |
+| 3 | `TENANT_ID` | معرف | `NUMBER(19)` | ✔ |  | FK→PLT_TENANT UK2 |  | Security Context |  | المؤسسة المالكة؛ يملأ من Security Context الموثوق لا من مدخلات المستخدم |
+| 4 | `COMPANY_ID` | معرف | `NUMBER(19)` | ✔ |  | FK→ORG_COMPANY UK2 |  | Security Context |  | الشركة (الكيان القانوني) المالكة للسجل |
+| 5 | `DOC_NO` | نص | `VARCHAR2(50 CHAR)` | ✔ |  | UK2 |  | النظام/الحزمة |  | رقم المستند من تسلسل REF_DOC_SEQUENCE (فريد ضمن الشركة) |
+| 6 | `DOC_DATE` | تاريخ | `DATE` | ✔ | TRUNC(SYSDATE) |  |  | إدخال المستخدم |  | تاريخ المستند (تاريخ الأعمال) |
+| 7 | `PAYER_ID` | معرف | `NUMBER(19)` | ✔ |  | FK→HIS_PAYER |  | إدخال المستخدم |  | الجهة |
+| 8 | `PERIOD_FROM` | تاريخ | `DATE` | ✔ |  |  |  | إدخال المستخدم |  | من |
+| 9 | `PERIOD_TO` | تاريخ | `DATE` | ✔ |  |  |  | إدخال المستخدم |  | إلى |
+| 10 | `CLAIMED_AMOUNT` | مبلغ | `NUMBER(24,6)` | ✔ | 0 |  |  | إدخال المستخدم |  | المطالب به |
+| 11 | `APPROVED_AMOUNT` | مبلغ | `NUMBER(24,6)` | ✔ | 0 |  |  | إدخال المستخدم |  | المقبول |
+| 12 | `REJECTED_AMOUNT` | مبلغ | `NUMBER(24,6)` | ✔ | 0 |  |  | إدخال المستخدم |  | المرفوض |
+| 13 | `SUBMITTED_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` |  |  |  |  | إدخال المستخدم |  | الإرسال |
+| 14 | `REFERENCE_NO` | نص | `VARCHAR2(100 CHAR)` |  |  |  |  | إدخال المستخدم |  | رقم الإرسال لدى الجهة |
+| 15 | `STATUS_CODE` | رمز | `VARCHAR2(30 CHAR)` | ✔ | 'DRAFT' |  | DRAFT, SUBMITTED, PARTIAL, SETTLED, CANCELLED | النظام/الحزمة |  | الحالة ضمن دورة الحياة المعتمدة |
+| 16 | `ACCOUNTING_EVENT_ID` | معرف | `NUMBER(19)` |  |  | FK→ACE_ACCOUNTING_EVENT |  | النظام/الحزمة |  | الحدث المحاسبي المولد |
+| 17 | `POSTED_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` |  |  |  |  | النظام/الحزمة |  | وقت الترحيل؛ يملؤه محرك الترحيل فقط |
+| 18 | `POSTED_BY` | اسم مستخدم | `VARCHAR2(128 CHAR)` |  |  |  |  | النظام/الحزمة |  | منفذ الترحيل |
+| 19 | `ROW_VERSION` | عدد صحيح | `NUMBER(10)` | ✔ | 1 |  |  | Trigger |  | رقم الإصدار للتحكم في التزامن المتفائل |
+| 20 | `CREATED_BY` | اسم مستخدم | `VARCHAR2(128 CHAR)` | ✔ |  |  |  | Trigger |  | منشئ السجل |
+| 21 | `CREATED_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` | ✔ | SYSTIMESTAMP |  |  | Trigger |  | وقت الإنشاء |
+| 22 | `UPDATED_BY` | اسم مستخدم | `VARCHAR2(128 CHAR)` |  |  |  |  | Trigger |  | آخر من عدل السجل |
+| 23 | `UPDATED_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` |  |  |  |  | Trigger |  | وقت آخر تعديل |
+
+## HIS_CLAIM_LINE
+
+| البند | القيمة |
+|---|---|
+| الاسم العربي | فواتير الدفعة |
+| English | Claim Lines |
+| الحزمة المالكة | 31 — `NOONA_HIS_PKG` |
+| نطاق الملكية | `C` — مملوك للشركة Company-Owned |
+| الحساسية | INTERNAL |
+| النمط | قابل للتعديل وفق دورة الحياة |
+| مفاتيح فريدة | UK1: (BATCH_ID, INVOICE_ID) |
+
+| # | العمود | النوع المنطقي | Oracle Type | إلزامي | افتراضي | مفاتيح | القيم المقبولة | المصدر | PII | الوصف |
+|---:|---|---|---|:---:|---|---|---|---|:---:|---|
+| 1 | `ID` | معرف | `NUMBER(19)` | ✔ |  | PK |  | النظام/الحزمة |  | المفتاح الداخلي الثابت (Identity) - لا يعاد استخدامه |
+| 2 | `TENANT_ID` | معرف | `NUMBER(19)` | ✔ |  | FK→PLT_TENANT |  | Security Context |  | المؤسسة المالكة؛ يملأ من Security Context الموثوق لا من مدخلات المستخدم |
+| 3 | `COMPANY_ID` | معرف | `NUMBER(19)` | ✔ |  | FK→ORG_COMPANY |  | Security Context |  | الشركة (الكيان القانوني) المالكة للسجل |
+| 4 | `BATCH_ID` | معرف | `NUMBER(19)` | ✔ |  | FK→HIS_CLAIM_BATCH UK1 |  | إدخال المستخدم |  | الدفعة |
+| 5 | `INVOICE_ID` | معرف | `NUMBER(19)` | ✔ |  | FK→HIS_INVOICE UK1 |  | إدخال المستخدم |  | الفاتورة |
+| 6 | `CLAIMED_AMOUNT` | مبلغ | `NUMBER(24,6)` | ✔ |  |  |  | إدخال المستخدم |  | المطالب به |
+| 7 | `APPROVED_AMOUNT` | مبلغ | `NUMBER(24,6)` |  |  |  |  | إدخال المستخدم |  | المقبول |
+| 8 | `REJECTED_AMOUNT` | مبلغ | `NUMBER(24,6)` | ✔ | 0 |  |  | إدخال المستخدم |  | المرفوض |
+| 9 | `REJECT_REASON` | نص | `VARCHAR2(500 CHAR)` |  |  |  |  | إدخال المستخدم |  | سبب الرفض |
+| 10 | `ROW_VERSION` | عدد صحيح | `NUMBER(10)` | ✔ | 1 |  |  | Trigger |  | رقم الإصدار للتحكم في التزامن المتفائل |
+| 11 | `CREATED_BY` | اسم مستخدم | `VARCHAR2(128 CHAR)` | ✔ |  |  |  | Trigger |  | منشئ السجل |
+| 12 | `CREATED_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` | ✔ | SYSTIMESTAMP |  |  | Trigger |  | وقت الإنشاء |
+| 13 | `UPDATED_BY` | اسم مستخدم | `VARCHAR2(128 CHAR)` |  |  |  |  | Trigger |  | آخر من عدل السجل |
+| 14 | `UPDATED_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` |  |  |  |  | Trigger |  | وقت آخر تعديل |
 

@@ -1201,3 +1201,19 @@ html[dir="rtl"] .nn-rst-kpi b { text-align: right; }
 .nn-his-appt.ap-arrived { border-inline-start-color: var(--nn-warning); } .nn-his-appt.ap-completed { border-inline-start-color: var(--nn-success); }
 .nn-his-appt.ap-no_show { border-inline-start-color: var(--nn-danger); opacity: .6; }
 .nn-his-free { padding: 8px 12px; font-size: .8em; color: var(--nn-success); direction: ltr; text-align: end; word-break: break-word; }
+/* المستشفى: لوحة الأسرة وجدول مكونات التحاليل */
+.nn-his-beds { display: flex; flex-direction: column; gap: 14px; }
+.nn-his-ward h3 { margin: 0 0 8px; font-size: 1.05rem; color: var(--nn-head-text); }
+.nn-his-ward h3 small { color: var(--nn-muted); font-weight: 400; font-size: .8em; margin-inline-start: 6px; }
+.nn-his-bedgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
+.nn-his-bed { display: flex; flex-direction: column; gap: 2px; min-height: 96px; padding: 10px; border-radius: var(--nn-radius);
+  border: 1px solid var(--nn-border); border-inline-start: 5px solid var(--nn-success); background: var(--nn-success-50); }
+.nn-his-bed b { font-size: 1.1rem; direction: ltr; text-align: start; }
+.nn-his-bed small { color: var(--nn-muted); font-size: .8em; }
+.nn-his-bed span { font-weight: 600; }
+.nn-his-bed.bs-occupied { background: var(--nn-primary-50); border-inline-start-color: var(--nn-primary); cursor: pointer; }
+.nn-his-bed.bs-occupied:hover { box-shadow: 0 2px 8px rgba(0, 103, 192, .18); }
+.nn-his-bed.bs-cleaning { background: var(--nn-warning-50); border-inline-start-color: var(--nn-warning); }
+.nn-his-bed.bs-blocked { background: #f1f5f9; border-inline-start-color: var(--nn-muted); opacity: .75; }
+.nn-his-lab { direction: ltr; } .nn-his-lab th, .nn-his-lab td { text-align: left; }
+.nn-his-lab input.nn-rst-in { max-width: 140px; direction: ltr; }

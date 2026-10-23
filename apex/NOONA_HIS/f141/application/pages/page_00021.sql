@@ -114,7 +114,7 @@ wwv_flow_imp_page.create_page_item(
 ,p_item_plug_id=>wwv_flow_imp.id(91820275000000097)
 ,p_prompt=>'الخدمة (فارغ = كشف الطبيب)'
 ,p_display_as=>'NATIVE_SELECT_LIST'
-,p_lov=>'select s.name_ar || '' ('' || noona_his_pkg.type_label(s.service_type) || '' - '' || to_char(s.price, ''FM999G990D00'') || '')'' d, s.id r from his_service s where s.company_id = noona_his_pkg.company and s.status_code = ''ACTIVE'' order by s.service_type, s.name_ar'
+,p_lov=>'select noona_his_pkg.service_name(s.id) || '' ('' || noona_his_pkg.type_label(s.service_type) || '' - '' || to_char(s.price, ''FM999G990D00'') || '')'' d, s.id r from his_service s where s.company_id = noona_his_pkg.company and s.status_code = ''ACTIVE'' order by s.service_type, s.name_ar'
 ,p_lov_display_null=>'YES'
 ,p_lov_null_text=>'- كشف الطبيب -'
 ,p_cHeight=>1

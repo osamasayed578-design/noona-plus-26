@@ -26,6 +26,10 @@ for t in tables:
     L += [f"  SELECT COUNT(*) INTO l_n FROM user_tables WHERE table_name = '{t}';",
           "  IF l_n = 0 THEN", "    EXECUTE IMMEDIATE q'~" + create.rstrip(';') + "~';", "  END IF;"]
     for l in ddl.splitlines():
+        fk = re.match(rf"ALTER TABLE {t} ADD CONSTRAINT \w+ FOREIGN KEY \(TENANT_ID, \w+\) REFERENCES (\w+) \(TENANT_ID, ID\)", l)
+        if fk and fk.group(1) not in tables:
+            # جدول قائم يصبح مرجعاً لأول مرة: يحتاج مفتاحاً فريداً (TENANT_ID, ID)؛ يتجاهل إن وجد (-2261)
+            L.append(f"  ex(q'~ALTER TABLE {fk.group(1)} ADD CONSTRAINT {fk.group(1)[:23]}_TID_UK UNIQUE (TENANT_ID, ID)~');")
         if l.startswith(f'ALTER TABLE {t} ') or (l.startswith(f'CREATE INDEX {t}_') and f' ON {t} (' in l) or \
            (l.startswith('COMMENT ON') and re.search(rf'\b{t}\b', l)):
             L.append("  ex(q'~" + l.rstrip(';') + "~');")

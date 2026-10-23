@@ -242,7 +242,7 @@ BEGIN
   ok('lab material consumed from the lab store', NOONA_INV_PKG.on_hand(l_reag, l_x) = 19.5, NOONA_INV_PKG.on_hand(l_reag, l_x));
   SELECT material_cost, status_code INTO l_n, l_s FROM his_order WHERE id = l_o1;
   ok('material cost on the order', l_n = 2 AND l_s = 'COMPLETED', l_n || ' ' || l_s);
-  ok('result report', INSTR(NOONA_HIS_PKG.result_html(l_o1), '132 mg/dL') > 0 AND INSTR(NOONA_HIS_PKG.result_html(l_o1), 'غير طبيعية') > 0);
+  ok('result report in English', INSTR(NOONA_HIS_PKG.result_html(l_o1), '132 mg/dL') > 0 AND INSTR(NOONA_HIS_PKG.result_html(l_o1), 'Abnormal') > 0);
   BEGIN NOONA_HIS_PKG.cancel_invoice(l_inv3, 'خطأ'); ok('invoice of a performed service cannot be cancelled', FALSE);
   EXCEPTION WHEN OTHERS THEN expect('invoice of a performed service cannot be cancelled', 'NOONA-HIS-075', SQLERRM); END;
 

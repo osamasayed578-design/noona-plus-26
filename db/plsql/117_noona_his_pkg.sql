@@ -87,6 +87,8 @@ CREATE OR REPLACE PACKAGE NOONA_HIS_PKG AUTHID DEFINER AS
   FUNCTION order_status_label(p_status IN VARCHAR2) RETURN VARCHAR2;
   FUNCTION appt_status_label(p_status IN VARCHAR2) RETURN VARCHAR2;
   FUNCTION modality_label(p_code IN VARCHAR2) RETURN VARCHAR2;
+  -- اسم الخدمة للعرض: الفحوص والأشعة والتشخيص والأدوية والعمليات بالإنجليزية، وغيرها بالعربية
+  FUNCTION service_name(p_service_id IN NUMBER) RETURN VARCHAR2;
   -- حساب الإيراد حسب نوع الخدمة (4120..4127) ومعرف الحساب بالرمز
   FUNCTION revenue_code(p_type IN VARCHAR2) RETURN VARCHAR2;
   FUNCTION acc(p_code IN VARCHAR2) RETURN NUMBER;
@@ -187,6 +189,16 @@ CREATE OR REPLACE PACKAGE BODY NOONA_HIS_PKG AS
       WHEN 'HOLTER' THEN 'هولتر' WHEN 'EEG' THEN 'رسم مخ' WHEN 'EMG' THEN 'رسم عصب وعضلات' WHEN 'ENDOSCOPY' THEN 'مناظير' ELSE p_code END;
   END modality_label;
 
+  FUNCTION service_name(p_service_id IN NUMBER) RETURN VARCHAR2 IS
+    l VARCHAR2(400);
+  BEGIN
+    SELECT CASE WHEN service_type IN ('LAB', 'RADIOLOGY', 'CARDIO_DIAG', 'MEDICATION', 'PROCEDURE', 'MINOR_SURGERY', 'MAJOR_SURGERY')
+                THEN NVL(name_en, name_ar) ELSE name_ar END
+      INTO l FROM his_service WHERE id = p_service_id;
+    RETURN l;
+  EXCEPTION WHEN NO_DATA_FOUND THEN RETURN NULL;
+  END service_name;
+
   -- حساب الإيراد حسب نوع الخدمة
   FUNCTION revenue_code(p_type IN VARCHAR2) RETURN VARCHAR2 IS
   BEGIN
@@ -279,6 +291,7 @@ CREATE OR REPLACE PACKAGE BODY NOONA_HIS_PKG AS
     l_id   NUMBER := l_o.get_number('id');
     l_code VARCHAR2(50) := UPPER(TRIM(l_o.get_string('code')));
     l_name VARCHAR2(200) := TRIM(l_o.get_string('name'));
+    l_en   VARCHAR2(200) := TRIM(l_o.get_string('name_en'));
     l_type VARCHAR2(30) := l_o.get_string('type');
     l_mod  VARCHAR2(30) := l_o.get_string('modality');
     l_dept NUMBER := l_o.get_number('dept');
@@ -300,12 +313,12 @@ CREATE OR REPLACE PACKAGE BODY NOONA_HIS_PKG AS
     SELECT COUNT(*) INTO l_n FROM his_service WHERE company_id = company AND code = l_code AND id <> NVL(l_id, -1);
     NOONA_CORE_PKG.assert(l_n = 0, 'NOONA-HIS-014', 'رمز الخدمة مستخدم: ' || l_code, 'Service code already exists');
     IF l_id IS NULL THEN
-      INSERT INTO his_service (company_id, code, name_ar, service_type, modality, department_id, billing_code, price, duration_min, sample_type,
+      INSERT INTO his_service (company_id, code, name_ar, name_en, service_type, modality, department_id, billing_code, price, duration_min, sample_type,
                                turnaround_hours, normal_range, needs_approval, item_id, status_code)
-      VALUES (company, l_code, l_name, l_type, l_mod, l_dept, l_bc, l_pr, l_dur, l_smp, l_tat, l_rng, l_apr, l_item, l_st)
+      VALUES (company, l_code, l_name, l_en, l_type, l_mod, l_dept, l_bc, l_pr, l_dur, l_smp, l_tat, l_rng, l_apr, l_item, l_st)
       RETURNING id INTO l_id;
     ELSE
-      UPDATE his_service SET code = l_code, name_ar = l_name, service_type = l_type, modality = l_mod, department_id = l_dept, billing_code = l_bc,
+      UPDATE his_service SET code = l_code, name_ar = l_name, name_en = l_en, service_type = l_type, modality = l_mod, department_id = l_dept, billing_code = l_bc,
                              price = l_pr, duration_min = l_dur, sample_type = l_smp, turnaround_hours = l_tat, normal_range = l_rng,
                              needs_approval = l_apr, item_id = l_item, status_code = l_st
        WHERE id = l_id AND company_id = company;
@@ -984,7 +997,9 @@ CREATE OR REPLACE PACKAGE BODY NOONA_HIS_PKG AS
     NOONA_CORE_PKG.assert(l.status_code IN ('ORDERED', 'IN_PROGRESS'), 'NOONA-HIS-068', 'حالة الطلب لا تسمح', 'Invalid order status');
     SELECT * INTO l_dep FROM his_department WHERE id = l.department_id;
     -- صرف مواد الخدمة (كواشف، أنابيب، أفلام، مستلزمات) من مستودع القسم لمركز تكلفته
-    FOR m IN (SELECT item_id, quantity * l.quantity q FROM his_service_material WHERE service_id = l.service_id) LOOP
+    FOR m IN (SELECT item_id, quantity * l.quantity q FROM his_service_material WHERE service_id = l.service_id
+              UNION ALL   -- الدواء نفسه للخدمات الدوائية (الصرف من الصيدلية)
+              SELECT item_id, l.quantity FROM his_service WHERE id = l.service_id AND item_id IS NOT NULL) LOOP
       l_lines := l_lines || CASE WHEN l_lines IS NOT NULL THEN ',' END || '{"i":' || m.item_id || ',"q":'
               || TO_CHAR(m.q, 'FM9999999990D999999', 'NLS_NUMERIC_CHARACTERS=''.,''') || '}';
     END LOOP;
@@ -1187,16 +1202,21 @@ CREATE OR REPLACE PACKAGE BODY NOONA_HIS_PKG AS
       RETURN l;
     END dep;
     PROCEDURE srv(p_code VARCHAR2, p_name VARCHAR2, p_type VARCHAR2, p_dept VARCHAR2, p_price NUMBER, p_mod VARCHAR2 DEFAULT NULL,
-                  p_sample VARCHAR2 DEFAULT NULL, p_tat NUMBER DEFAULT NULL, p_range VARCHAR2 DEFAULT NULL, p_apr VARCHAR2 DEFAULT 'N') IS
+                  p_sample VARCHAR2 DEFAULT NULL, p_tat NUMBER DEFAULT NULL, p_range VARCHAR2 DEFAULT NULL, p_apr VARCHAR2 DEFAULT 'N',
+                  p_en VARCHAR2 DEFAULT NULL) IS
       l NUMBER;
       l_doc CLOB;
     BEGIN
       SELECT COUNT(*) INTO l FROM his_service WHERE company_id = company AND code = p_code;
       IF l = 0 THEN
-        SELECT JSON_OBJECT('code' VALUE p_code, 'name' VALUE p_name, 'type' VALUE p_type, 'dept' VALUE dp(p_dept), 'price' VALUE p_price,
-                           'modality' VALUE p_mod, 'sample' VALUE p_sample, 'tat' VALUE p_tat, 'range' VALUE p_range, 'approval' VALUE p_apr)
+        SELECT JSON_OBJECT('code' VALUE p_code, 'name' VALUE p_name, 'name_en' VALUE p_en, 'type' VALUE p_type, 'dept' VALUE dp(p_dept),
+                           'price' VALUE p_price, 'modality' VALUE p_mod, 'sample' VALUE p_sample, 'tat' VALUE p_tat, 'range' VALUE p_range,
+                           'approval' VALUE p_apr)
           INTO l_doc FROM dual;
         l := save_service(l_doc);
+      ELSE
+        -- تحميل سابق: الاسم الإنجليزي للفحوص والأشعة إن لم يكن معرفاً
+        UPDATE his_service SET name_en = p_en WHERE company_id = company AND code = p_code AND name_en IS NULL;
       END IF;
     END srv;
   BEGIN
@@ -1230,47 +1250,47 @@ CREATE OR REPLACE PACKAGE BODY NOONA_HIS_PKG AS
     dp('WARD') := dep('WARD', 'جناح التنويم', 'INPATIENT_WARD', 'تنويم', 'Y');
     dp('PHAR') := dep('PHAR', 'الصيدلية الداخلية', 'PHARMACY', 'صيدلة', 'Y');
     -- الخدمات
-    srv('CON-GP', 'كشف طبيب عام', 'CONSULTATION', 'IM', 100);
-    srv('CON-SP', 'كشف أخصائي', 'CONSULTATION', 'IM', 200);
-    srv('CON-CS', 'كشف استشاري', 'CONSULTATION', 'IM', 300);
-    srv('FU', 'مراجعة', 'FOLLOW_UP', 'IM', 0);
-    srv('ER-VISIT', 'كشف طوارئ', 'EMERGENCY', 'ER', 250);
-    srv('DENT-EX', 'كشف أسنان', 'DENTAL', 'DENT', 150);
-    srv('DENT-FILL', 'حشو عصب', 'DENTAL', 'DENT', 900, p_apr => 'Y');
-    srv('LAB-CBC', 'صورة دم كاملة CBC', 'LAB', 'LHEM', 60, NULL, 'BLOOD', 4, 'WBC 4-11 ×10⁹/L, Hb 12-16 g/dL');
-    srv('LAB-ESR', 'سرعة الترسيب ESR', 'LAB', 'LHEM', 40, NULL, 'BLOOD', 4, '0-20 mm/hr');
-    srv('LAB-FBS', 'سكر صائم', 'LAB', 'LCHEM', 30, NULL, 'SERUM', 2, '70-100 mg/dL');
-    srv('LAB-HBA1C', 'السكر التراكمي HbA1c', 'LAB', 'LCHEM', 90, NULL, 'BLOOD', 6, '4-5.6 %');
-    srv('LAB-LIPID', 'دهون الدم الكاملة', 'LAB', 'LCHEM', 120, NULL, 'SERUM', 6, 'Cholesterol < 200 mg/dL');
-    srv('LAB-KFT', 'وظائف الكلى', 'LAB', 'LCHEM', 110, NULL, 'SERUM', 6, 'Creatinine 0.6-1.2 mg/dL');
-    srv('LAB-LFT', 'وظائف الكبد', 'LAB', 'LCHEM', 130, NULL, 'SERUM', 6, 'ALT 7-56 U/L');
-    srv('LAB-TSH', 'هرمون الغدة الدرقية TSH', 'LAB', 'LIMM', 100, NULL, 'SERUM', 24, '0.4-4.0 mIU/L');
-    srv('LAB-VITD', 'فيتامين د', 'LAB', 'LIMM', 180, NULL, 'SERUM', 24, '30-100 ng/mL');
-    srv('LAB-UR', 'تحليل بول كامل', 'LAB', 'LMIC', 35, NULL, 'URINE', 2, NULL);
-    srv('LAB-UCS', 'مزرعة بول', 'LAB', 'LMIC', 120, NULL, 'URINE', 72, NULL);
-    srv('LAB-BIOP', 'فحص عينة نسيج', 'LAB', 'LPATH', 450, NULL, 'TISSUE', 120, NULL, 'Y');
-    srv('XR-CHEST', 'أشعة سينية على الصدر', 'RADIOLOGY', 'RXR', 120, 'XRAY');
-    srv('XR-LIMB', 'أشعة سينية على الأطراف', 'RADIOLOGY', 'RXR', 110, 'XRAY');
-    srv('CT-BRAIN', 'أشعة مقطعية على المخ', 'RADIOLOGY', 'RCT', 900, 'CT', p_apr => 'Y');
-    srv('CT-ABD', 'أشعة مقطعية على البطن بالصبغة', 'RADIOLOGY', 'RCT', 1400, 'CT', p_apr => 'Y');
-    srv('MRI-SPINE', 'رنين مغناطيسي على الفقرات', 'RADIOLOGY', 'RMRI', 1800, 'MRI', p_apr => 'Y');
-    srv('MRI-KNEE', 'رنين مغناطيسي على الركبة', 'RADIOLOGY', 'RMRI', 1600, 'MRI', p_apr => 'Y');
-    srv('US-ABD', 'موجات صوتية على البطن', 'RADIOLOGY', 'RUS', 300, 'ULTRASOUND');
-    srv('US-PREG', 'موجات صوتية للحمل', 'RADIOLOGY', 'RUS', 250, 'ULTRASOUND');
-    srv('US-DOP', 'دوبلر الأوعية', 'RADIOLOGY', 'RUS', 550, 'DOPPLER');
-    srv('MAMMO', 'ماموجرام', 'RADIOLOGY', 'RXR', 450, 'MAMMOGRAPHY');
-    srv('ECG', 'رسم قلب', 'CARDIO_DIAG', 'CARD', 80, 'ECG');
-    srv('ECHO', 'إيكو القلب', 'CARDIO_DIAG', 'CARD', 600, 'ECHO');
-    srv('STRESS', 'اختبار الجهد', 'CARDIO_DIAG', 'CARD', 750, 'STRESS_TEST', p_apr => 'Y');
-    srv('PT-SES', 'جلسة علاج طبيعي', 'PHYSIOTHERAPY', 'PT', 180);
-    srv('DIAL-SES', 'جلسة غسيل كلوي', 'THERAPY', 'DIAL', 900, p_apr => 'Y');
-    srv('PROC-DRESS', 'غيار جرح', 'PROCEDURE', 'ER', 80);
-    srv('PROC-SUT', 'خياطة جرح', 'MINOR_SURGERY', 'ER', 350);
-    srv('SURG-MIN', 'عملية صغرى (تخدير موضعي)', 'MINOR_SURGERY', 'OR', 2500, p_apr => 'Y');
-    srv('SURG-APP', 'استئصال الزائدة بالمنظار', 'MAJOR_SURGERY', 'OR', 12000, p_apr => 'Y');
-    srv('SURG-CS', 'ولادة قيصرية', 'MAJOR_SURGERY', 'OR', 15000, p_apr => 'Y');
-    srv('BED-DAY', 'يوم تنويم (غرفة خاصة)', 'BED', 'WARD', 900);
-    srv('NURS-INJ', 'إعطاء حقنة', 'NURSING', 'ER', 30);
+    srv('CON-GP', 'كشف طبيب عام', 'CONSULTATION', 'IM', 100, p_en => 'General Practitioner Consultation');
+    srv('CON-SP', 'كشف أخصائي', 'CONSULTATION', 'IM', 200, p_en => 'Specialist Consultation');
+    srv('CON-CS', 'كشف استشاري', 'CONSULTATION', 'IM', 300, p_en => 'Consultant Consultation');
+    srv('FU', 'مراجعة', 'FOLLOW_UP', 'IM', 0, p_en => 'Follow-up Visit');
+    srv('ER-VISIT', 'كشف طوارئ', 'EMERGENCY', 'ER', 250, p_en => 'Emergency Consultation');
+    srv('DENT-EX', 'كشف أسنان', 'DENTAL', 'DENT', 150, p_en => 'Dental Examination');
+    srv('DENT-FILL', 'حشو عصب', 'DENTAL', 'DENT', 900, p_apr => 'Y', p_en => 'Root Canal Filling');
+    srv('LAB-CBC', 'صورة دم كاملة CBC', 'LAB', 'LHEM', 60, NULL, 'BLOOD', 4, 'WBC 4-11 ×10⁹/L, Hb 12-16 g/dL', p_en => 'Complete Blood Count (CBC)');
+    srv('LAB-ESR', 'سرعة الترسيب ESR', 'LAB', 'LHEM', 40, NULL, 'BLOOD', 4, '0-20 mm/hr', p_en => 'Erythrocyte Sedimentation Rate (ESR)');
+    srv('LAB-FBS', 'سكر صائم', 'LAB', 'LCHEM', 30, NULL, 'SERUM', 2, '70-100 mg/dL', p_en => 'Fasting Blood Sugar (FBS)');
+    srv('LAB-HBA1C', 'السكر التراكمي HbA1c', 'LAB', 'LCHEM', 90, NULL, 'BLOOD', 6, '4-5.6 %', p_en => 'Glycated Hemoglobin (HbA1c)');
+    srv('LAB-LIPID', 'دهون الدم الكاملة', 'LAB', 'LCHEM', 120, NULL, 'SERUM', 6, 'Cholesterol < 200 mg/dL', p_en => 'Lipid Profile');
+    srv('LAB-KFT', 'وظائف الكلى', 'LAB', 'LCHEM', 110, NULL, 'SERUM', 6, 'Creatinine 0.6-1.2 mg/dL', p_en => 'Kidney Function Test (KFT)');
+    srv('LAB-LFT', 'وظائف الكبد', 'LAB', 'LCHEM', 130, NULL, 'SERUM', 6, 'ALT 7-56 U/L', p_en => 'Liver Function Test (LFT)');
+    srv('LAB-TSH', 'هرمون الغدة الدرقية TSH', 'LAB', 'LIMM', 100, NULL, 'SERUM', 24, '0.4-4.0 mIU/L', p_en => 'Thyroid Stimulating Hormone (TSH)');
+    srv('LAB-VITD', 'فيتامين د', 'LAB', 'LIMM', 180, NULL, 'SERUM', 24, '30-100 ng/mL', p_en => 'Vitamin D (25-OH)');
+    srv('LAB-UR', 'تحليل بول كامل', 'LAB', 'LMIC', 35, NULL, 'URINE', 2, NULL, p_en => 'Urinalysis (Complete)');
+    srv('LAB-UCS', 'مزرعة بول', 'LAB', 'LMIC', 120, NULL, 'URINE', 72, NULL, p_en => 'Urine Culture & Sensitivity');
+    srv('LAB-BIOP', 'فحص عينة نسيج', 'LAB', 'LPATH', 450, NULL, 'TISSUE', 120, NULL, 'Y', p_en => 'Tissue Biopsy Histopathology');
+    srv('XR-CHEST', 'أشعة سينية على الصدر', 'RADIOLOGY', 'RXR', 120, 'XRAY', p_en => 'X-Ray Chest PA');
+    srv('XR-LIMB', 'أشعة سينية على الأطراف', 'RADIOLOGY', 'RXR', 110, 'XRAY', p_en => 'X-Ray Extremity');
+    srv('CT-BRAIN', 'أشعة مقطعية على المخ', 'RADIOLOGY', 'RCT', 900, 'CT', p_apr => 'Y', p_en => 'CT Brain without Contrast');
+    srv('CT-ABD', 'أشعة مقطعية على البطن بالصبغة', 'RADIOLOGY', 'RCT', 1400, 'CT', p_apr => 'Y', p_en => 'CT Abdomen with Contrast');
+    srv('MRI-SPINE', 'رنين مغناطيسي على الفقرات', 'RADIOLOGY', 'RMRI', 1800, 'MRI', p_apr => 'Y', p_en => 'MRI Lumbar Spine');
+    srv('MRI-KNEE', 'رنين مغناطيسي على الركبة', 'RADIOLOGY', 'RMRI', 1600, 'MRI', p_apr => 'Y', p_en => 'MRI Knee');
+    srv('US-ABD', 'موجات صوتية على البطن', 'RADIOLOGY', 'RUS', 300, 'ULTRASOUND', p_en => 'Ultrasound Abdomen');
+    srv('US-PREG', 'موجات صوتية للحمل', 'RADIOLOGY', 'RUS', 250, 'ULTRASOUND', p_en => 'Obstetric Ultrasound');
+    srv('US-DOP', 'دوبلر الأوعية', 'RADIOLOGY', 'RUS', 550, 'DOPPLER', p_en => 'Doppler Ultrasound (Vascular)');
+    srv('MAMMO', 'ماموجرام', 'RADIOLOGY', 'RXR', 450, 'MAMMOGRAPHY', p_en => 'Mammography Bilateral');
+    srv('ECG', 'رسم قلب', 'CARDIO_DIAG', 'CARD', 80, 'ECG', p_en => 'Electrocardiogram (ECG)');
+    srv('ECHO', 'إيكو القلب', 'CARDIO_DIAG', 'CARD', 600, 'ECHO', p_en => 'Echocardiography');
+    srv('STRESS', 'اختبار الجهد', 'CARDIO_DIAG', 'CARD', 750, 'STRESS_TEST', p_apr => 'Y', p_en => 'Exercise Stress Test');
+    srv('PT-SES', 'جلسة علاج طبيعي', 'PHYSIOTHERAPY', 'PT', 180, p_en => 'Physiotherapy Session');
+    srv('DIAL-SES', 'جلسة غسيل كلوي', 'THERAPY', 'DIAL', 900, p_apr => 'Y', p_en => 'Hemodialysis Session');
+    srv('PROC-DRESS', 'غيار جرح', 'PROCEDURE', 'ER', 80, p_en => 'Wound Dressing');
+    srv('PROC-SUT', 'خياطة جرح', 'MINOR_SURGERY', 'ER', 350, p_en => 'Wound Suturing');
+    srv('SURG-MIN', 'عملية صغرى (تخدير موضعي)', 'MINOR_SURGERY', 'OR', 2500, p_apr => 'Y', p_en => 'Minor Surgery (Local Anesthesia)');
+    srv('SURG-APP', 'استئصال الزائدة بالمنظار', 'MAJOR_SURGERY', 'OR', 12000, p_apr => 'Y', p_en => 'Laparoscopic Appendectomy');
+    srv('SURG-CS', 'ولادة قيصرية', 'MAJOR_SURGERY', 'OR', 15000, p_apr => 'Y', p_en => 'Cesarean Section');
+    srv('BED-DAY', 'يوم تنويم (غرفة خاصة)', 'BED', 'WARD', 900, p_en => 'Private Room - Bed Day');
+    srv('NURS-INJ', 'إعطاء حقنة', 'NURSING', 'ER', 30, p_en => 'Injection Administration');
     RETURN l_n;
   END seed_catalog;
 
@@ -1329,7 +1349,7 @@ CREATE OR REPLACE PACKAGE BODY NOONA_HIS_PKG AS
         || fmt0(l_v.payer_total) || '</b></span><span>المدفوع <b>' || fmt0(l_v.paid_amount) || '</b></span></div></div>'
         || '<table class="nn-rst-cred"><thead><tr><th>#</th><th>الخدمة</th><th>القسم</th><th>الحالة</th><th class="n">السعر</th><th class="n">على المريض</th>'
         || '<th class="n">على الجهة</th><th>الفاتورة</th><th>النتيجة</th></tr></thead><tbody>';
-    FOR r IN (SELECT o.*, s.name_ar sname, s.service_type, d.name_ar dname, i.doc_no inv_no
+    FOR r IN (SELECT o.*, service_name(s.id) sname, s.service_type, d.name_ar dname, i.doc_no inv_no
                 FROM his_order o JOIN his_service s ON s.id = o.service_id JOIN his_department d ON d.id = o.department_id
                 LEFT JOIN his_invoice i ON i.id = o.invoice_id
                WHERE o.visit_id = p_visit_id ORDER BY o.line_no) LOOP
@@ -1346,8 +1366,10 @@ CREATE OR REPLACE PACKAGE BODY NOONA_HIS_PKG AS
     END LOOP;
     l_h := l_h || '</tbody></table>';
     IF l_v.diagnosis IS NOT NULL OR l_v.chief_complaint IS NOT NULL THEN
-      l_h := l_h || '<div class="nn-his-notes"><b>الشكوى:</b> ' || esc(l_v.chief_complaint) || '<br><b>التشخيص:</b> ' || esc(l_v.diagnosis)
-          || CASE WHEN l_v.icd10 IS NOT NULL THEN ' (' || esc(l_v.icd10) || ')' END || CASE WHEN l_v.vitals IS NOT NULL THEN '<br><b>العلامات الحيوية:</b> ' || esc(l_v.vitals) END
+      l_h := l_h || '<div class="nn-his-notes nn-ltr" dir="ltr"><b>Chief complaint:</b> ' || esc(l_v.chief_complaint)
+          || CASE WHEN l_v.vitals IS NOT NULL THEN '<br><b>Vital signs:</b> ' || esc(l_v.vitals) END || '<br><b>Diagnosis:</b> ' || esc(l_v.diagnosis)
+          || CASE WHEN l_v.icd10 IS NOT NULL THEN ' (ICD-10: ' || esc(l_v.icd10) || ')' END
+          || CASE WHEN l_v.doctor_notes IS NOT NULL THEN '<br><b>Clinical notes / Plan:</b> ' || REPLACE(esc(DBMS_LOB.SUBSTR(l_v.doctor_notes, 3000, 1)), CHR(10), '<br>') END
           || '</div>';
     END IF;
     RETURN l_h || '</div>';
@@ -1375,7 +1397,7 @@ CREATE OR REPLACE PACKAGE BODY NOONA_HIS_PKG AS
         || CASE WHEN l_p.member_no IS NOT NULL AND l_pay IS NOT NULL THEN ' · عضوية ' || esc(l_p.member_no) END || '</td></tr></table>'
         || '<table class="nn-rst-cred"><thead><tr><th>الخدمة</th><th class="n">الكمية</th><th class="n">السعر</th><th class="n">الإجمالي</th>'
         || '<th class="n">على المريض</th><th class="n">على الجهة</th><th class="n">الضريبة</th></tr></thead><tbody>';
-    FOR r IN (SELECT o.*, s.name_ar sname, s.billing_code FROM his_order o JOIN his_service s ON s.id = o.service_id
+    FOR r IN (SELECT o.*, service_name(s.id) sname, s.billing_code FROM his_order o JOIN his_service s ON s.id = o.service_id
                WHERE o.invoice_id = p_invoice_id OR (l_i.status_code = 'CANCELLED' AND 1 = 0) ORDER BY o.line_no) LOOP
       l_h := l_h || '<tr><td>' || esc(r.sname) || CASE WHEN r.billing_code IS NOT NULL THEN ' <small>' || esc(r.billing_code) || '</small>' END
           || CASE WHEN r.approval_no IS NOT NULL THEN '<br><small>موافقة ' || esc(r.approval_no) || '</small>' END || '</td><td class="n">' || r.quantity
@@ -1393,27 +1415,52 @@ CREATE OR REPLACE PACKAGE BODY NOONA_HIS_PKG AS
     RETURN l_h;
   END invoice_html;
 
+  -- جدول مكونات التحليل (المرحلة الثانية)
+  FUNCTION lab_table(p_order_id NUMBER) RETURN VARCHAR2 IS
+    l VARCHAR2(32767);
+  BEGIN
+    FOR r IN (SELECT NVL(p.name_en, p.name_ar) name_ar, p.code, p.unit, r.value_num, r.value_text, r.flag,
+                     NVL(p.ref_text, CASE WHEN p.ref_low IS NOT NULL OR p.ref_high IS NOT NULL
+                                          THEN NVL(TO_CHAR(p.ref_low), '') || ' - ' || NVL(TO_CHAR(p.ref_high), '') END) rng
+                FROM his_lab_result r JOIN his_lab_param p ON p.id = r.param_id WHERE r.order_id = p_order_id ORDER BY p.sort_order, p.id) LOOP
+      l := l || '<tr class="lf-' || LOWER(NVL(r.flag, 'N')) || '"><td>' || esc(r.name_ar) || ' <small>' || esc(r.code) || '</small></td><td class="n"><b>'
+         || NVL(esc(r.value_text), RTRIM(RTRIM(TO_CHAR(r.value_num, 'FM9999990D999', 'NLS_NUMERIC_CHARACTERS=''.,'''), '0'), '.')) || '</b> '
+         || CASE r.flag WHEN 'H' THEN 'H' WHEN 'L' THEN 'L' WHEN 'HH' THEN 'HH (critical)' WHEN 'LL' THEN 'LL (critical)' END || '</td><td>' || esc(r.unit) || '</td><td>'
+         || esc(r.rng) || '</td></tr>';
+    END LOOP;
+    RETURN CASE WHEN l IS NOT NULL THEN '<table class="nn-rst-cred nn-his-lab"><thead><tr><th>Test</th><th class="n">Result</th><th>Unit</th>'
+                || '<th>Reference range</th></tr></thead><tbody>' || l || '</tbody></table>' END;
+  END lab_table;
+
   FUNCTION result_html(p_order_id IN NUMBER) RETURN CLOB IS
     l_h CLOB;
   BEGIN
     guard('HIS_ORDER.VIEW');
-    FOR r IN (SELECT o.*, s.name_ar sname, s.normal_range, s.sample_type, s.modality, d.name_ar dname, v.visit_no, p.name_ar pname, p.mrn, p.gender,
-                     p.birth_date, (SELECT name_ar FROM his_doctor WHERE id = o.ordered_by_id) dr, (SELECT name_ar FROM his_doctor WHERE id = o.performed_by_id) pr
+    -- التقرير الطبي بالإنجليزية (من اليسار لليمين)
+    FOR r IN (SELECT o.*, service_name(s.id) sname, s.normal_range, s.sample_type, s.modality, s.service_type, NVL(d.name_en, d.name_ar) dname, v.visit_no,
+                     NVL(p.name_en, p.name_ar) pname, p.mrn, p.gender, p.birth_date,
+                     (SELECT NVL(name_en, name_ar) FROM his_doctor WHERE id = o.ordered_by_id) dr,
+                     (SELECT NVL(name_en, name_ar) FROM his_doctor WHERE id = o.performed_by_id) pr
                 FROM his_order o JOIN his_service s ON s.id = o.service_id JOIN his_department d ON d.id = o.department_id
                 JOIN his_visit v ON v.id = o.visit_id JOIN his_patient p ON p.id = v.patient_id
                WHERE o.id = p_order_id AND o.company_id = company) LOOP
-      l_h := '<div class="nn-his-inv"><div class="nn-his-inv-h"><div><b>' || esc(NOONA_SAL_PKG.seller_name) || '</b><br>' || esc(r.dname) || '</div><div><h2>'
-          || CASE WHEN r.modality IS NOT NULL THEN 'تقرير ' || esc(modality_label(r.modality)) ELSE 'تقرير نتيجة' END || '</h2>' || esc(r.visit_no)
-          || CASE WHEN r.sample_no IS NOT NULL THEN ' · عينة ' || esc(r.sample_no) END || '</div></div>'
-          || '<table class="nn-his-meta"><tr><td>المريض</td><td><b>' || esc(r.pname) || '</b> (' || esc(r.mrn) || ')</td><td>الجنس/العمر</td><td>'
-          || CASE r.gender WHEN 'M' THEN 'ذكر' ELSE 'أنثى' END || CASE WHEN r.birth_date IS NOT NULL THEN ' / ' || TRUNC(MONTHS_BETWEEN(SYSDATE, r.birth_date) / 12) END
-          || '</td></tr><tr><td>الفحص</td><td><b>' || esc(r.sname) || '</b></td><td>الطبيب الطالب</td><td>' || esc(r.dr) || '</td></tr>'
-          || '<tr><td>المعدل الطبيعي</td><td>' || esc(r.normal_range) || '</td><td>الإنجاز</td><td>' || TO_CHAR(r.completed_at, 'YYYY-MM-DD HH24:MI') || '</td></tr></table>'
+      l_h := '<div class="nn-his-inv nn-ltr" dir="ltr"><div class="nn-his-inv-h"><div><b>' || esc(NOONA_SAL_PKG.seller_name) || '</b><br>' || esc(r.dname)
+          || '</div><div><h2>' || CASE WHEN r.service_type = 'LAB' THEN 'Laboratory Report' WHEN r.modality IN ('ECG', 'ECHO', 'STRESS_TEST', 'HOLTER') THEN 'Cardiology Report'
+                                       WHEN r.modality IS NOT NULL THEN 'Radiology Report' ELSE 'Medical Report' END || '</h2>' || esc(r.visit_no)
+          || CASE WHEN r.sample_no IS NOT NULL THEN ' · Sample ' || esc(r.sample_no) END || '</div></div>'
+          || '<table class="nn-his-meta"><tr><td>Patient</td><td><b>' || esc(r.pname) || '</b> (' || esc(r.mrn) || ')</td><td>Sex / Age</td><td>'
+          || CASE r.gender WHEN 'M' THEN 'Male' ELSE 'Female' END || CASE WHEN r.birth_date IS NOT NULL THEN ' / ' || TRUNC(MONTHS_BETWEEN(SYSDATE, r.birth_date) / 12) || ' Y' END
+          || '</td></tr><tr><td>Examination</td><td><b>' || esc(r.sname) || '</b></td><td>Requested by</td><td>' || esc(r.dr) || '</td></tr>'
+          || '<tr><td>' || CASE WHEN r.sample_type IS NOT NULL THEN 'Specimen' ELSE 'Reference' END || '</td><td>'
+          || esc(CASE WHEN r.sample_type IS NOT NULL THEN INITCAP(r.sample_type) || CASE WHEN r.sample_at IS NOT NULL THEN ' · collected ' || TO_CHAR(r.sample_at, 'YYYY-MM-DD HH24:MI') END
+                      ELSE r.normal_range END)
+          || '</td><td>Reported</td><td>' || TO_CHAR(r.completed_at, 'YYYY-MM-DD HH24:MI') || '</td></tr></table>'
           || '<div class="nn-his-result fl-' || LOWER(NVL(r.result_flag, 'NORMAL')) || '">'
-          || REPLACE(esc(DBMS_LOB.SUBSTR(r.result_text, 30000, 1)), CHR(10), '<br>') || '</div><p class="nn-hint">معتمد من: ' || esc(NVL(r.pr, r.result_by))
-          || ' · التقييم: ' || CASE r.result_flag WHEN 'CRITICAL' THEN 'قيمة حرجة' WHEN 'ABNORMAL' THEN 'غير طبيعية' ELSE 'طبيعية' END || '</p></div>';
+          || lab_table(r.id) || REPLACE(esc(DBMS_LOB.SUBSTR(r.result_text, 30000, 1)), CHR(10), '<br>') || '</div><p class="nn-hint">Verified by: '
+          || esc(NVL(r.pr, r.result_by)) || ' · Interpretation: ' || CASE r.result_flag WHEN 'CRITICAL' THEN 'CRITICAL value' WHEN 'ABNORMAL' THEN 'Abnormal'
+                                                                       ELSE 'Normal' END || '</p></div>';
     END LOOP;
-    RETURN NVL(l_h, '<p class="nn-hint">لا توجد نتيجة</p>');
+    RETURN NVL(l_h, '<p class="nn-hint">No result</p>');
   END result_html;
 
   FUNCTION day_board_html(p_date IN DATE, p_dept_id IN NUMBER DEFAULT NULL) RETURN CLOB IS
@@ -1511,7 +1558,7 @@ CREATE OR REPLACE PACKAGE BODY NOONA_HIS_PKG AS
     FOR r IN (SELECT i.id, i.doc_no, i.doc_date, p.name_ar, p.member_no, i.payer_total,
                      (SELECT NVL(SUM(open_amount), 0) FROM ar_open_item a WHERE a.source_entity_type = c_inv AND a.source_entity_id = i.id
                          AND a.customer_account_id = l_pay.customer_account_id) open_amt,
-                     (SELECT LISTAGG(s.name_ar, '، ') WITHIN GROUP (ORDER BY o.line_no) FROM his_order o JOIN his_service s ON s.id = o.service_id
+                     (SELECT LISTAGG(service_name(s.id), '، ') WITHIN GROUP (ORDER BY o.line_no) FROM his_order o JOIN his_service s ON s.id = o.service_id
                        WHERE o.invoice_id = i.id AND o.payer_net > 0) srv,
                      (SELECT LISTAGG(o.approval_no, '، ') WITHIN GROUP (ORDER BY o.line_no) FROM his_order o WHERE o.invoice_id = i.id AND o.approval_no IS NOT NULL) apr
                 FROM his_invoice i JOIN his_patient p ON p.id = i.patient_id

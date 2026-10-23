@@ -51,7 +51,7 @@
 | 28 | الإطلاق التجريبي | Pilot Launch | `NOONA_PILOT_PKG` | 4 | [p28_pil](p28_pil.md) |
 | 29 | النشر الإنتاجي والإصدارات | Deployment & Release Management | `NOONA_DEPLOYMENT_PKG` | 6 | [p29_dep](p29_dep.md) |
 | 30 | التشغيل والدعم والتطوير المستمر | Operations, Support & Continuous Improvement | `NOONA_OPERATIONS_PKG` | 12 | [p30_ops](p30_ops.md) |
-| 31 | المستشفيات والمراكز الطبية | Hospital & Clinics | `NOONA_HIS_PKG` | 13 | [p31_his](p31_his.md) |
+| 31 | المستشفيات والمراكز الطبية | Hospital & Clinics | `NOONA_HIS_PKG` | 28 | [p31_his](p31_his.md) |
 
-**الإجمالي:** 591 جدول · 10321 عمود.
+**الإجمالي:** 606 جدول · 10566 عمود.
 

@@ -45,7 +45,7 @@ DOCTOR_LOV = (f"select d.name_ar || ' - ' || p.name_ar d, d.id r from his_doctor
 DEPT_LOV = f"select name_ar d, id r from his_department where company_id = {CO} and status_code = 'ACTIVE' order by sort_order, name_ar"
 WORK_DEPT_LOV = (f"select name_ar d, id r from his_department where company_id = {CO} and status_code = 'ACTIVE' "
                  "and dept_type not in ('CLINIC', 'EMERGENCY') order by dept_type, name_ar")
-SERVICE_LOV = (f"select s.name_ar || ' (' || noona_his_pkg.type_label(s.service_type) || ' - ' || to_char(s.price, 'FM999G990D00') || ')' d, s.id r "
+SERVICE_LOV = (f"select noona_his_pkg.service_name(s.id) || ' (' || noona_his_pkg.type_label(s.service_type) || ' - ' || to_char(s.price, 'FM999G990D00') || ')' d, s.id r "
                f"from his_service s where s.company_id = {CO} and s.status_code = 'ACTIVE' order by s.service_type, s.name_ar")
 PLAN_LOV = (f"select y.name_ar || ' - ' || p.name_ar || ' (المريض ' || p.patient_share_pct || '%)' d, p.id r from his_payer_plan p "
             f"join his_payer y on y.id = p.payer_id where p.company_id = {CO} and p.is_active = 'Y' and y.status_code = 'ACTIVE' order by y.name_ar, p.code")
@@ -273,7 +273,7 @@ p.process(10, 'AFTER_SUBMIT', 'Add Order', ['declare l number;', 'begin',
     '    :P31_SERVICE := null; :P31_QTY := null; :P31_ONOTES := null;', 'end;'], when_button=b_add, success='أضيف الطلب')
 fa = p.static('موافقة التأمين أو إلغاء طلب', 15, condition=OPEN)
 p.select('P31_ORDER', fa, 10, 'الطلب', null_text='- اختر -', lov_sql=(
-    "select o.line_no || ' - ' || s.name_ar || ' (' || noona_his_pkg.order_status_label(o.status_code) || ')' d, o.id r from his_order o "
+    "select o.line_no || ' - ' || noona_his_pkg.service_name(s.id) || ' (' || noona_his_pkg.order_status_label(o.status_code) || ')' d, o.id r from his_order o "
     "join his_service s on s.id = o.service_id where o.visit_id = :P31_ID and o.status_code in ('ORDERED', 'APPROVAL_PENDING') "
     "and o.invoice_id is null order by o.line_no"))
 p.text('P31_APPROVAL', fa, 20, 'رقم الموافقة / سبب الرفض أو الإلغاء')
@@ -284,13 +284,14 @@ p.process(20, 'AFTER_SUBMIT', 'Approve', "noona_his_pkg.set_approval(:P31_ORDER,
 p.process(21, 'AFTER_SUBMIT', 'Reject', "noona_his_pkg.set_approval(:P31_ORDER, :P31_APPROVAL, 'N');", when_button=b_rej,
           success='سجل الرفض وتحولت الخدمة على المريض')
 p.process(22, 'AFTER_SUBMIT', 'Cancel Order', 'noona_his_pkg.cancel_order(:P31_ORDER, :P31_APPROVAL);', when_button=b_cno, success='ألغي الطلب')
-fd = p.static('ملاحظات الطبيب والتشخيص', 20, condition=OPEN)
-p.text('P31_VITALS', fd, 10, 'العلامات الحيوية (الضغط، الحرارة، النبض، الوزن)', maxlen=1000)
-p.textarea('P31_COMPLAINT', fd, 20, 'الشكوى')
-p.textarea('P31_DIAG', fd, 30, 'التشخيص')
-p.text('P31_ICD', fd, 40, 'رمز ICD-10', maxlen=100, width=15)
-p.textarea('P31_DNOTES', fd, 50, 'ملاحظات وخطة العلاج', rows=4)
-b_notes = p.button(fd, 10, 'SAVE_NOTES', 'حفظ الملاحظات')
+fd = p.static('Initial examination - الكشف المبدئي', 20, condition=OPEN)
+p.text('P31_VITALS', fd, 10, 'Vital signs (BP, Temp, Pulse, RR, SpO2, Weight)', maxlen=1000)
+p.textarea('P31_COMPLAINT', fd, 20, 'Chief complaint & history')
+p.textarea('P31_DIAG', fd, 30, 'Diagnosis')
+p.text('P31_ICD', fd, 40, 'ICD-10 code', maxlen=100, width=15)
+p.textarea('P31_DNOTES', fd, 50, 'Examination findings / Plan', rows=4)
+b_notes = p.button(fd, 10, 'SAVE_NOTES', 'Save examination')
+p.onload("$('#P31_VITALS,#P31_COMPLAINT,#P31_DIAG,#P31_ICD,#P31_DNOTES').attr('dir', 'ltr');")
 p.process(4, 'BEFORE_HEADER', 'Load', ['begin', '    select vitals, chief_complaint, diagnosis, icd10, doctor_notes',
     '      into :P31_VITALS, :P31_COMPLAINT, :P31_DIAG, :P31_ICD, :P31_DNOTES', f'      from his_visit where id = :P31_ID and company_id = {CO};',
     'exception when no_data_found then null;', 'end;'])
@@ -307,6 +308,10 @@ p.select('P31_PLACE', fb, 20, 'الصندوق/البنك', lov_sql=PLACE_LOV, nu
 p.text('P31_REF', fb, 30, 'مرجع الدفع (رقم العملية)', maxlen=100, width=20)
 b_inv = p.button(fb, 10, 'INVOICE', 'إصدار الفاتورة والتحصيل', hot=True)
 b_close = p.button(fb, 20, 'CLOSE', 'إقفال الزيارة')
+p.button(fo, 20, 'RX', 'Prescription - وصفة', redirect=url(33, 'P33_VISIT', '&P31_ID.', 'RP,33'))
+p.button(fo, 30, 'ADMIT', 'التنويم', redirect=url(56))
+p.button(fo, 40, 'SURGERY', 'جدولة عملية', redirect=url(57))
+p.button(fo, 50, 'THERAPY', 'خطة علاج طبيعي', redirect=url(58))
 p.process(40, 'AFTER_SUBMIT', 'Invoice', ['declare l_doc clob;', 'begin', '    select ' + build_json([
     ('visit', 'P31_ID', 'n'), ('method', 'P31_METHOD', 's'), ('place', 'P31_PLACE', 's'), ('ref', 'P31_REF', 's')]) + ' into l_doc from dual;',
     '    :P31_INVOICE := noona_his_pkg.create_invoice(l_doc);', 'end;'], when_button=b_inv, success='صدرت الفاتورة')
@@ -321,8 +326,8 @@ p.ir('فواتير الزيارة', 40, [
      ('PAYMENT_METHOD', 'الطريقة', {}), ('STATUS', 'الحالة', {}),
      ('PRN', 'طباعة', {'html': True, 'link': ('f?p=&APP_ID.:41:&SESSION.::&DEBUG.:RP,41:P41_ID:#ID#', '#PRN#')})], titled=True, rows=10)
 p.ir('نتائج الزيارة', 45, [
-    "select o.id, s.name_ar as service, d.name_ar as dept, case o.result_flag when 'CRITICAL' then 'حرجة' when 'ABNORMAL' then 'غير طبيعية'",
-    "       else 'طبيعية' end as flag, to_char(o.completed_at, 'YYYY-MM-DD HH24:MI') as done_at,",
+    "select o.id, noona_his_pkg.service_name(s.id) as service, d.name_ar as dept, case o.result_flag when 'CRITICAL' then 'Critical' when 'ABNORMAL' then 'Abnormal'",
+    "       else 'Normal' end as flag, to_char(o.completed_at, 'YYYY-MM-DD HH24:MI') as done_at,",
     "       '<span class=\"fa fa-file-text-o\" aria-hidden=\"true\"></span> التقرير' as rpt",
     "  from his_order o join his_service s on s.id = o.service_id join his_department d on d.id = o.department_id",
     " where o.visit_id = :P31_ID and o.status_code = 'COMPLETED' order by o.line_no"],
@@ -392,7 +397,7 @@ p.select('P50_DEPT', f, 10, 'القسم (كل معمل ووحدة مستقلة)'
 p.select('P50_SHOW', f, 20, 'العرض', lov_sql='STATIC2:المطلوب والجاري;OPEN,المنجز اليوم;DONE', null_text=None, submit=True)
 p.ir('الطلبات', 10, [
     "select o.id, v.visit_no, p.name_ar as patient, p.mrn, case p.gender when 'M' then 'ذكر' else 'أنثى' end as gender,",
-    "       trunc(months_between(sysdate, p.birth_date) / 12) as age, s.name_ar as service, d.name_ar as dept,",
+    "       trunc(months_between(sysdate, p.birth_date) / 12) as age, noona_his_pkg.service_name(s.id) as service, d.name_ar as dept,",
     "       noona_his_pkg.modality_label(s.modality) as modality, o.sample_no, noona_his_pkg.order_status_label(o.status_code) as status,",
     "       case when o.invoice_id is not null or v.visit_type in ('EMERGENCY', 'INPATIENT', 'DAY_CASE') then 'نعم' else 'لا' end as paid,",
     "       to_char(v.visit_at, 'YYYY-MM-DD HH24:MI') as ordered_at, (select name_ar from his_doctor where id = o.ordered_by_id) as doctor",
@@ -403,7 +408,7 @@ p.ir('الطلبات', 10, [
     "        or (:P50_SHOW = 'DONE' and o.status_code = 'COMPLETED' and o.completed_at >= trunc(sysdate)))",
     " order by v.visit_at"],
     [('ID', '#', {'hidden': True, 'type': 'NUMBER'}), ('VISIT_NO', 'الزيارة', {}), ('PATIENT', 'المريض', {}), ('MRN', 'الرقم الطبي', {}),
-     ('GENDER', 'الجنس', {}), ('AGE', 'العمر', {'type': 'NUMBER'}), ('SERVICE', 'الفحص', {}), ('DEPT', 'القسم', {}), ('MODALITY', 'الجهاز', {}),
+     ('GENDER', 'الجنس', {}), ('AGE', 'العمر', {'type': 'NUMBER'}), ('SERVICE', 'Test / Exam', {}), ('DEPT', 'القسم', {}), ('MODALITY', 'الجهاز', {}),
      ('SAMPLE_NO', 'العينة', {}), ('STATUS', 'الحالة', {}), ('PAID', 'مسدد', {}), ('ORDERED_AT', 'الطلب', {}), ('DOCTOR', 'الطبيب', {})],
     link=link(51, 'P51_ID'))
 p.branch(10, url(50, 'P50_DEPT,P50_SHOW', '&P50_DEPT.,&P50_SHOW.'))
@@ -414,24 +419,44 @@ f = p.static('النتيجة', 10)
 p.hidden('P51_ID', f, 1, protected=False)
 p.dynamic('الطلب', 5, [
     'declare l varchar2(4000);', 'begin',
-    "    select '<div class=\"nn-his-card\"><div class=\"nn-his-head\"><div><b>' || apex_escape.html(s.name_ar) || '</b> <span class=\"nn-rst-chip\">'",
+    "    select '<div class=\"nn-his-card\"><div class=\"nn-his-head\"><div><b>' || apex_escape.html(noona_his_pkg.service_name(s.id)) || '</b> <span class=\"nn-rst-chip\">'",
     "           || noona_his_pkg.order_status_label(o.status_code) || '</span><br><small>' || apex_escape.html(p.name_ar) || ' · ' || p.mrn || ' · '",
     "           || case p.gender when 'M' then 'ذكر' else 'أنثى' end || ' · زيارة ' || v.visit_no || nvl2(o.sample_no, ' · عينة ' || o.sample_no, '')",
-    "           || '</small>' || nvl2(s.normal_range, '<br><small>المعدل الطبيعي: ' || apex_escape.html(s.normal_range) || '</small>', '')",
+    "           || '</small>' || nvl2(s.normal_range, '<br><small>Normal range: ' || apex_escape.html(s.normal_range) || '</small>', '')",
     "           || nvl2(p.allergies, '<br><span class=\"nn-rst-chip is-cancelled\">حساسية: ' || apex_escape.html(p.allergies) || '</span>', '')",
-    "           || nvl2(o.notes, '<br><small>ملاحظات الطبيب: ' || apex_escape.html(o.notes) || '</small>', '') || '</div></div></div>'",
+    "           || nvl2(o.notes, '<br><small>Doctor notes: ' || apex_escape.html(o.notes) || '</small>', '') || '</div></div></div>'",
     "      into l from his_order o join his_service s on s.id = o.service_id join his_visit v on v.id = o.visit_id join his_patient p on p.id = v.patient_id",
     f"     where o.id = :P51_ID and o.company_id = {CO};",
     '    return l;', 'exception when no_data_found then return null;', 'end;'], hide_header=True)
-p.textarea('P51_RESULT', f, 10, 'النتيجة / التقرير', rows=8)
-p.select('P51_FLAG', f, 20, 'التقييم', lov_sql=FLAG_LOV, null_text=None)
+p.textarea('P51_RESULT', f, 10, 'Result / Report (English)', rows=10)
+p.onload("$('#P51_RESULT, input[name=f01]').attr('dir', 'ltr');")
+p.select('P51_FLAG', f, 20, 'Assessment', lov_sql='STATIC2:Normal;NORMAL,Abnormal;ABNORMAL,Critical;CRITICAL', null_text=None)
 p.select('P51_BY', f, 30, 'المنفذ/المعتمد', lov_sql=DOCTOR_LOV, null_text='- المستخدم الحالي -')
 b_smp = p.button(f, 10, 'SAMPLE', 'سحب العينة')
 b_st = p.button(f, 20, 'START', 'بدء التنفيذ')
 b_done = p.button(f, 30, 'COMPLETE', 'حفظ النتيجة وإنجاز الطلب (يصرف مواد القسم)', hot=True)
 p.button(f, 40, 'REPORT', 'طباعة التقرير', redirect=url(52, 'P52_ID', '&P51_ID.', 'RP,52'))
 p.process(5, 'BEFORE_HEADER', 'Load', ['begin', '    select result_text, nvl(result_flag, \'NORMAL\'), performed_by_id into :P51_RESULT, :P51_FLAG, :P51_BY',
-                                        f'      from his_order where id = :P51_ID and company_id = {CO};', 'exception when no_data_found then null;', 'end;'])
+                                        f'      from his_order where id = :P51_ID and company_id = {CO};',
+                                        '    if :P51_RESULT is null then :P51_RESULT := noona_his_care_pkg.template_for(:P51_ID); end if;',
+                                        'exception when no_data_found then null;', 'end;'])
+# التحاليل ذات المكونات: جدول القيم بالمعدلات والتقييم الآلي
+LAB = "noona_his_care_pkg.has_params(:P51_ID) = 'Y'"
+fl = p.static('Laboratory results', 8, condition=LAB)
+p.dynamic('Parameters', 7, 'return noona_his_care_pkg.lab_grid_html(:P51_ID);', hide_header=True, condition=LAB)
+b_lsave = p.button(fl, 10, 'LAB_SAVE', 'Save values')
+b_ldone = p.button(fl, 20, 'LAB_DONE', 'Validate & release results', hot=True)
+LAB_JSON = ['declare l clob;', 'begin', "    l := '[';",
+            '    for i in 1 .. apex_application.g_f02.count loop',
+            "        l := l || case when i > 1 then ',' end || json_object('p' value to_number(apex_application.g_f02(i)),",
+            "             'v' value case when regexp_like(trim(apex_application.g_f01(i)), '^-?[0-9]+([.][0-9]+)?$') then to_number(trim(apex_application.g_f01(i)),",
+            "                  '9999999999D9999', 'NLS_NUMERIC_CHARACTERS=''.,''') end,",
+            "             't' value case when not regexp_like(trim(apex_application.g_f01(i)), '^-?[0-9]+([.][0-9]+)?$') then trim(apex_application.g_f01(i)) end);",
+            '    end loop;', "    l := l || ']';"]
+p.process(25, 'AFTER_SUBMIT', 'Lab Save', LAB_JSON + ["    noona_his_care_pkg.save_lab_results(:P51_ID, l, 'N');", 'end;'], when_button=b_lsave,
+          success='Values saved')
+p.process(26, 'AFTER_SUBMIT', 'Lab Release', LAB_JSON + ["    noona_his_care_pkg.save_lab_results(:P51_ID, l, 'Y', to_number(:P51_BY), :P51_RESULT);", 'end;'],
+          when_button=b_ldone, success='Results released')
 p.process(10, 'AFTER_SUBMIT', 'Sample', ['declare l varchar2(30);', 'begin', '    l := noona_his_pkg.collect_sample(:P51_ID);', "    apex_application.g_print_success_message := 'رقم العينة ' || l;", 'end;'],
           when_button=b_smp)
 p.process(20, 'AFTER_SUBMIT', 'Start', 'noona_his_pkg.start_order(:P51_ID);', when_button=b_st, success='بدأ التنفيذ')
@@ -482,6 +507,7 @@ f = p.static('خدمة جديدة / تعديل', 10)
 p.select('P61_ID', f, 5, 'تعديل خدمة', lov_sql=SERVICE_LOV.replace(" and s.status_code = 'ACTIVE'", ''), null_text='- خدمة جديدة -', submit=True)
 p.text('P61_CODE', f, 10, 'الرمز', maxlen=30, width=12)
 p.text('P61_NAME', f, 20, 'الاسم')
+p.text('P61_NAME_EN', f, 25, 'Name (English) - للتحاليل والأشعة والأدوية')
 p.select('P61_TYPE', f, 30, 'النوع', lov_sql=SRV_TYPE_LOV, null_text=None)
 p.select('P61_DEPT', f, 40, 'القسم المنفذ', lov_sql=DEPT_LOV)
 p.select('P61_MOD', f, 50, 'جهاز الأشعة/التشخيص', lov_sql=MODALITY_LOV)
@@ -494,11 +520,11 @@ p.yesno('P61_APR', f, 110, 'يحتاج موافقة التأمين')
 p.select('P61_STATUS', f, 120, 'الحالة', lov_sql=STATUS_LOV, null_text=None)
 b = p.button(f, 10, 'SAVE', 'حفظ', hot=True)
 p.process(5, 'BEFORE_HEADER', 'Load', ['begin',
-    '    select code, name_ar, service_type, department_id, modality, price, billing_code, sample_type, turnaround_hours, normal_range, needs_approval, status_code',
-    '      into :P61_CODE, :P61_NAME, :P61_TYPE, :P61_DEPT, :P61_MOD, :P61_PRICE, :P61_BCODE, :P61_SAMPLE, :P61_TAT, :P61_RANGE, :P61_APR, :P61_STATUS',
+    '    select code, name_ar, name_en, service_type, department_id, modality, price, billing_code, sample_type, turnaround_hours, normal_range, needs_approval, status_code',
+    '      into :P61_CODE, :P61_NAME, :P61_NAME_EN, :P61_TYPE, :P61_DEPT, :P61_MOD, :P61_PRICE, :P61_BCODE, :P61_SAMPLE, :P61_TAT, :P61_RANGE, :P61_APR, :P61_STATUS',
     f'      from his_service where id = :P61_ID and company_id = {CO};', 'exception when no_data_found then null;', 'end;'])
 p.process(10, 'AFTER_SUBMIT', 'Save', ['declare l_doc clob; l number;', 'begin', '    select ' + build_json([
-    ('id', 'P61_ID', 'n'), ('code', 'P61_CODE', 's'), ('name', 'P61_NAME', 's'), ('type', 'P61_TYPE', 's'), ('dept', 'P61_DEPT', 'n'),
+    ('id', 'P61_ID', 'n'), ('code', 'P61_CODE', 's'), ('name', 'P61_NAME', 's'), ('name_en', 'P61_NAME_EN', 's'), ('type', 'P61_TYPE', 's'), ('dept', 'P61_DEPT', 'n'),
     ('modality', 'P61_MOD', 's'), ('price', 'P61_PRICE', 'n'), ('billing_code', 'P61_BCODE', 's'), ('sample', 'P61_SAMPLE', 's'),
     ('tat', 'P61_TAT', 'n'), ('range', 'P61_RANGE', 's'), ('approval', 'P61_APR', 's'), ('status', 'P61_STATUS', 's')]) + ' into l_doc from dual;',
     '    l := noona_his_pkg.save_service(l_doc);', 'end;'], when_button=b, success='تم حفظ الخدمة')
@@ -515,12 +541,12 @@ p.ir('مواد الخدمة المختارة', 17, [
     [('ID', '#', {'hidden': True, 'type': 'NUMBER'}), ('ITEM', 'المادة', {}), ('QUANTITY', 'الكمية', {'type': 'NUMBER'}), ('UOM', 'الوحدة', {}),
      ('COST', 'متوسط التكلفة', {'type': 'NUMBER'})], titled=True, rows=20)
 p.ir('الخدمات', 20, [
-    "select s.id, s.code, s.name_ar, noona_his_pkg.type_label(s.service_type) as stype, noona_his_pkg.modality_label(s.modality) as modality,",
+    "select s.id, s.code, s.name_ar, s.name_en, noona_his_pkg.type_label(s.service_type) as stype, noona_his_pkg.modality_label(s.modality) as modality,",
     "       d.name_ar as dept, s.price, s.billing_code, s.turnaround_hours, case s.needs_approval when 'Y' then 'نعم' end as approval,",
     "       (select count(*) from his_service_material m where m.service_id = s.id) as materials,",
     "       case s.status_code when 'ACTIVE' then 'نشط' else 'موقوف' end as status",
     f"  from his_service s left join his_department d on d.id = s.department_id where s.company_id = {CO} order by s.service_type, s.name_ar"],
-    [('ID', '#', {'hidden': True, 'type': 'NUMBER'}), ('CODE', 'الرمز', {}), ('NAME_AR', 'الخدمة', {}), ('STYPE', 'النوع', {}), ('MODALITY', 'الجهاز', {}),
+    [('ID', '#', {'hidden': True, 'type': 'NUMBER'}), ('CODE', 'الرمز', {}), ('NAME_AR', 'الخدمة', {}), ('NAME_EN', 'English', {}), ('STYPE', 'النوع', {}), ('MODALITY', 'الجهاز', {}),
      ('DEPT', 'القسم', {}), ('PRICE', 'السعر', {'type': 'NUMBER'}), ('BILLING_CODE', 'رمز الفوترة', {}), ('TURNAROUND_HOURS', 'زمن النتيجة', {'type': 'NUMBER'}),
      ('APPROVAL', 'موافقة', {}), ('MATERIALS', 'المواد', {'type': 'NUMBER'}), ('STATUS', 'الحالة', {})], titled=True)
 p.branch(10, url(61, 'P61_MSRV', '&P61_MSRV.') + '&success_msg=#SUCCESS_MSG#')
@@ -678,7 +704,13 @@ app.nav_item('الأقسام والعيادات والمعامل', 60, 'fa-sitem
 app.nav_item('دليل الخدمات ومواردها', 61, 'fa-book', 52, parent=st)
 app.nav_item('الأطباء وساعات العمل', 62, 'fa-user-md', 53, parent=st)
 app.nav_item('التأمين والجهات المتعاقدة', 63, 'fa-shield', 54, parent=st)
+app.nav_item('مكونات التحاليل وقوالب التقارير', 64, 'fa-flask', 55, parent=st)
+app.nav_item('الأجهزة الطبية والمعايرة', 66, 'fa-wrench', 56, parent=st)
 app.nav_item('التقارير والمطالبات', 70, 'fa-bar-chart', 60)
+
+import his2_pages
+his2_pages.build(app, url, link, HIS, dict(PATIENT_LOV=PATIENT_LOV, DOCTOR_LOV=DOCTOR_LOV, DEPT_LOV=DEPT_LOV, PAYER_LOV=PAYER_LOV,
+                                          MODALITY_LOV=MODALITY_LOV))
 
 app.finalize()
 print('NOONA_HIS built:', len(app.pages), 'pages')
