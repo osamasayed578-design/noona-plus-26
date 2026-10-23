@@ -7,10 +7,12 @@
 BEGIN
   NOONA_CORE_PKG.begin_system;
   MERGE INTO ace_event_class e
-  USING (SELECT 'HIS_INVOICE_POSTED' code, 'فاتورة زيارة طبية' name_ar, 'Medical visit invoice' name_en, 'HIS_INVOICE' ent FROM dual
+  USING (SELECT x0.* FROM (SELECT 'HIS_INVOICE_POSTED' code, 'فاتورة زيارة طبية' name_ar, 'Medical visit invoice' name_en, 'HIS_INVOICE' ent FROM dual
          UNION ALL SELECT 'HIS_INVOICE_CANCELLED', 'إلغاء فاتورة زيارة طبية', 'Medical invoice cancelled', 'HIS_INVOICE' FROM dual
          UNION ALL SELECT 'HIS_CLAIM_REJECTION', 'رفض مطالبات التأمين', 'Insurance claim rejection', 'HIS_CLAIM_BATCH' FROM dual
-         UNION ALL SELECT 'HIS_COMMISSION_ACCRUED', 'استحقاق عمولات الأطباء', 'Doctor commission accrual', 'HIS_COMMISSION' FROM dual) x
+         UNION ALL SELECT 'HIS_COMMISSION_ACCRUED', 'استحقاق عمولات الأطباء', 'Doctor commission accrual', 'HIS_COMMISSION' FROM dual) x0
+          -- الملف يشغل من عدة تحديثات بالتتابع: يضاف الحدث بعد أن ينشئ تحديثه جدول المستند ويسجله
+          JOIN ref_entity_type r ON r.entity_type_code = x0.ent) x
      ON (e.code = x.code)
    WHEN MATCHED THEN UPDATE SET e.name_ar = x.name_ar, e.name_en = x.name_en
    WHEN NOT MATCHED THEN INSERT (code, name_ar, name_en, event_family, source_entity_type, posting_mode, is_active, created_by)
