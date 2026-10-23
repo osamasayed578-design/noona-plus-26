@@ -1217,3 +1217,44 @@ html[dir="rtl"] .nn-rst-kpi b { text-align: right; }
 .nn-his-bed.bs-blocked { background: #f1f5f9; border-inline-start-color: var(--nn-muted); opacity: .75; }
 .nn-his-lab { direction: ltr; } .nn-his-lab th, .nn-his-lab td { text-align: left; }
 .nn-his-lab input.nn-rst-in { max-width: 140px; direction: ltr; }
+/* المستشفى - المرحلة الثالثة: الطوارئ، الملف الطبي، التقارير الطبية والوصفة، الملاحظات، رسائل الربط */
+.nn-his-er { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 12px; }
+.nn-his-ercard { display: flex; flex-direction: column; gap: 4px; padding: 10px 12px; border-radius: var(--nn-radius); background: var(--nn-surface);
+  border: 1px solid var(--nn-border); border-inline-start: 6px solid var(--nn-muted); cursor: pointer; }
+.nn-his-ercard:hover { box-shadow: 0 2px 8px rgba(16, 24, 40, .12); }
+.nn-his-ercard header, .nn-his-ercard footer { display: flex; justify-content: space-between; gap: 8px; }
+.nn-his-ercard header span { direction: ltr; font-weight: 700; }
+.nn-his-ercard small { color: var(--nn-muted); }
+.nn-his-ercard.tl-0 { border-inline-start-color: #9ca3af; }
+.nn-his-ercard.tl-1, .nn-his-tl.tl-1 { border-inline-start-color: #1d4ed8; background: #eff6ff; }
+.nn-his-ercard.tl-2, .nn-his-tl.tl-2 { border-inline-start-color: var(--nn-danger); background: var(--nn-danger-50); }
+.nn-his-ercard.tl-3, .nn-his-tl.tl-3 { border-inline-start-color: #ca8a04; background: #fefce8; }
+.nn-his-ercard.tl-4, .nn-his-tl.tl-4 { border-inline-start-color: var(--nn-success); background: var(--nn-success-50); }
+.nn-his-ercard.tl-5, .nn-his-tl.tl-5 { border-inline-start-color: #0891b2; background: #ecfeff; }
+.nn-his-json { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 10px; }
+.nn-his-json pre { margin: 0; padding: 10px; background: #0f172a; color: #e2e8f0; border-radius: 8px; max-height: 480px; overflow: auto; font-size: .8rem;
+  text-align: left; white-space: pre-wrap; word-break: break-word; }
+.nn-his-json h4 { margin: 0 0 6px; }
+.nn-his-cert { position: relative; max-width: 820px; margin: 0 auto; padding: 24px 28px; background: #fff; border: 1px solid var(--nn-border);
+  border-radius: var(--nn-radius); text-align: left; font-family: system-ui, "Segoe UI", Arial, sans-serif; }
+.nn-his-cert header, .nn-his-cert footer { display: flex; justify-content: space-between; gap: 16px; }
+.nn-his-cert header { border-bottom: 2px solid var(--nn-primary); padding-bottom: 10px; margin-bottom: 14px; }
+.nn-his-cert footer { margin-top: 28px; padding-top: 10px; border-top: 1px solid var(--nn-border); }
+.nn-his-cert .r { text-align: right; }
+.nn-his-cert small { color: var(--nn-muted); }
+.nn-his-certp { width: 100%; border-collapse: collapse; margin-bottom: 14px; }
+.nn-his-certp th, .nn-his-certp td { padding: 6px 8px; border: 1px solid #e5e7eb; text-align: left; }
+.nn-his-certp th { background: #f8fafc; width: 16%; font-weight: 600; }
+.nn-his-certb { line-height: 1.9; font-size: 1.02rem; min-height: 80px; }
+.nn-his-void { position: absolute; inset: 40% 0 auto; text-align: center; font-size: 3rem; font-weight: 800; color: rgba(196, 43, 28, .25);
+  transform: rotate(-18deg); pointer-events: none; }
+.nn-his-notes-list article { padding: 8px 10px; border-bottom: 1px solid #eef2f7; text-align: left; }
+.nn-his-notes-list article p { margin: 4px 0 0; }
+.nn-his-emr { text-align: left; }
+.nn-his-emrv { margin-top: 12px; padding: 10px 12px; border: 1px solid var(--nn-border); border-inline-start: 4px solid var(--nn-primary);
+  border-radius: var(--nn-radius); background: var(--nn-surface); }
+.nn-his-emrv header { margin-bottom: 6px; }
+.nn-his-emrv div small:first-child, .nn-his-emro small:first-child { display: inline-block; min-width: 74px; color: var(--nn-muted); }
+.nn-his-emro { padding: 2px 0; }
+@media (max-width: 760px) { .nn-his-json { grid-template-columns: 1fr; } }
+@media print { .nn-his-cert { border: 0; padding: 0; } }

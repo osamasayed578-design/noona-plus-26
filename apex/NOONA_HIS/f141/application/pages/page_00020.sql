@@ -27,7 +27,7 @@ wwv_flow_imp_page.create_page(
 ,p_protection_level=>'N'
 );
 wwv_flow_imp_page.create_page_plug(
- p_id=>wwv_flow_imp.id(91820275000000089)
+ p_id=>wwv_flow_imp.id(91820275000000090)
 ,p_plug_name=>'اليوم والعيادة'
 ,p_region_template_options=>'#DEFAULT#:nn-rpt-filters:t-Region--removeHeader js-removeLandmark'
 ,p_plug_template=>4072358936313175081
@@ -38,10 +38,10 @@ wwv_flow_imp_page.create_page_plug(
   'show_line_breaks', 'Y')).to_clob
 );
 wwv_flow_imp_page.create_page_item(
- p_id=>wwv_flow_imp.id(91820275000000090)
+ p_id=>wwv_flow_imp.id(91820275000000091)
 ,p_name=>'P20_DATE'
 ,p_item_sequence=>10
-,p_item_plug_id=>wwv_flow_imp.id(91820275000000089)
+,p_item_plug_id=>wwv_flow_imp.id(91820275000000090)
 ,p_prompt=>'التاريخ'
 ,p_display_as=>'NATIVE_DATE_PICKER_APEX'
 ,p_cSize=>20
@@ -57,10 +57,10 @@ wwv_flow_imp_page.create_page_item(
   'use_defaults', 'Y')).to_clob
 );
 wwv_flow_imp_page.create_page_item(
- p_id=>wwv_flow_imp.id(91820275000000091)
+ p_id=>wwv_flow_imp.id(91820275000000092)
 ,p_name=>'P20_DEPT'
 ,p_item_sequence=>20
-,p_item_plug_id=>wwv_flow_imp.id(91820275000000089)
+,p_item_plug_id=>wwv_flow_imp.id(91820275000000090)
 ,p_prompt=>'العيادة/القسم'
 ,p_display_as=>'NATIVE_SELECT_LIST'
 ,p_lov=>'select name_ar d, id r from his_department where company_id = noona_his_pkg.company and status_code = ''ACTIVE'' order by sort_order, name_ar'
@@ -75,9 +75,9 @@ wwv_flow_imp_page.create_page_item(
   'page_action_on_selection', 'SUBMIT')).to_clob
 );
 wwv_flow_imp_page.create_page_button(
- p_id=>wwv_flow_imp.id(91820275000000092)
+ p_id=>wwv_flow_imp.id(91820275000000093)
 ,p_button_sequence=>10
-,p_button_plug_id=>wwv_flow_imp.id(91820275000000089)
+,p_button_plug_id=>wwv_flow_imp.id(91820275000000090)
 ,p_button_name=>'SHOW'
 ,p_button_action=>'SUBMIT'
 ,p_button_template_options=>'#DEFAULT#'
@@ -87,9 +87,9 @@ wwv_flow_imp_page.create_page_button(
 ,p_button_position=>'NEXT'
 );
 wwv_flow_imp_page.create_page_button(
- p_id=>wwv_flow_imp.id(91820275000000093)
+ p_id=>wwv_flow_imp.id(91820275000000094)
 ,p_button_sequence=>20
-,p_button_plug_id=>wwv_flow_imp.id(91820275000000089)
+,p_button_plug_id=>wwv_flow_imp.id(91820275000000090)
 ,p_button_name=>'BOOK'
 ,p_button_action=>'REDIRECT_URL'
 ,p_button_template_options=>'#DEFAULT#'
@@ -99,7 +99,7 @@ wwv_flow_imp_page.create_page_button(
 ,p_button_redirect_url=>'f?p=&APP_ID.:21:&SESSION.::&DEBUG.:RP,21::'
 );
 wwv_flow_imp_page.create_page_process(
- p_id=>wwv_flow_imp.id(91820275000000094)
+ p_id=>wwv_flow_imp.id(91820275000000095)
 ,p_process_sequence=>5
 ,p_process_point=>'BEFORE_HEADER'
 ,p_process_type=>'NATIVE_PLSQL'
@@ -108,10 +108,10 @@ wwv_flow_imp_page.create_page_process(
 ':P20_DATE := nvl(:P20_DATE, to_char(sysdate, ''YYYY-MM-DD''));'))
 ,p_process_clob_language=>'PLSQL'
 ,p_error_display_location=>'INLINE_IN_NOTIFICATION'
-,p_internal_uid=>91820275000000094
+,p_internal_uid=>91820275000000095
 );
 wwv_flow_imp_page.create_page_plug(
- p_id=>wwv_flow_imp.id(91820275000000095)
+ p_id=>wwv_flow_imp.id(91820275000000096)
 ,p_plug_name=>'الأطباء والمواعيد'
 ,p_region_template_options=>'#DEFAULT#:t-Region--scrollBody:t-Region--removeHeader js-removeLandmark:t-Region--noUI'
 ,p_plug_template=>4072358936313175081
@@ -125,7 +125,7 @@ wwv_flow_imp_page.create_page_plug(
 ,p_plug_source_type=>'NATIVE_DYNAMIC_CONTENT'
 );
 wwv_flow_imp_page.create_page_branch(
- p_id=>wwv_flow_imp.id(91820275000000096)
+ p_id=>wwv_flow_imp.id(91820275000000097)
 ,p_branch_action=>'f?p=&APP_ID.:20:&SESSION.::&DEBUG.::P20_DATE,P20_DEPT:&P20_DATE.,&P20_DEPT.'
 ,p_branch_point=>'AFTER_PROCESSING'
 ,p_branch_type=>'REDIRECT_URL'

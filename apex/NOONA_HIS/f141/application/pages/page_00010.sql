@@ -57,7 +57,8 @@ wwv_flow_imp_page.create_page_plug(
 'select p.id, p.mrn, p.name_ar, case p.gender when ''M'' then ''ذكر'' else ''أنثى'' end as gender,',
 '       trunc(months_between(sysdate, p.birth_date) / 12) as age, p.id_no, p.mobile, p.nationality,',
 '       (select y.name_ar || '' - '' || pl.name_ar from his_payer_plan pl join his_payer y on y.id = pl.payer_id where pl.id = p.payer_plan_id) as payer,',
-'       p.insurance_expiry, (select max(v.visit_at) from his_visit v where v.patient_id = p.id) as last_visit',
+'       p.insurance_expiry, (select max(v.visit_at) from his_visit v where v.patient_id = p.id) as last_visit,',
+'       ''<span class="fa fa-folder-open-o" aria-hidden="true"></span> السجل'' as emr',
 '  from his_patient p where p.company_id = noona_his_pkg.company and p.status_code = ''ACTIVE'' order by p.id desc'))
 ,p_plug_source_type=>'NATIVE_IR'
 ,p_prn_page_header=>'المرضى'
@@ -165,7 +166,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_db_column_name=>'PAYER'
 ,p_display_order=>90
 ,p_column_identifier=>'I'
-,p_column_label=>'التأمين/الجهة'
+,p_column_label=>'التأمين/الجهة (اختياري)'
 ,p_column_type=>'STRING'
 ,p_heading_alignment=>'CENTER'
 ,p_use_as_row_header=>'N'
@@ -190,6 +191,19 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_heading_alignment=>'CENTER'
 ,p_use_as_row_header=>'N'
 );
+wwv_flow_imp_page.create_worksheet_column(
+ p_id=>wwv_flow_imp.id(91820275000000049)
+,p_db_column_name=>'EMR'
+,p_display_order=>120
+,p_column_identifier=>'L'
+,p_column_label=>'الملف الطبي'
+,p_column_type=>'STRING'
+,p_display_text_as=>'WITHOUT_MODIFICATION'
+,p_column_link=>'f?p=&APP_ID.:12:&SESSION.::&DEBUG.:RP,12:P12_ID:#ID#'
+,p_column_linktext=>'#EMR#'
+,p_heading_alignment=>'CENTER'
+,p_use_as_row_header=>'N'
+);
 wwv_flow_imp_page.create_worksheet_rpt(
  p_id=>wwv_flow_imp.id(91820275000000037)
 ,p_application_user=>'APXWS_DEFAULT'
@@ -197,7 +211,7 @@ wwv_flow_imp_page.create_worksheet_rpt(
 ,p_report_alias=>'37'
 ,p_status=>'PUBLIC'
 ,p_is_default=>'Y'
-,p_report_columns=>'MRN:NAME_AR:GENDER:AGE:ID_NO:MOBILE:NATIONALITY:PAYER:INSURANCE_EXPIRY:LAST_VISIT'
+,p_report_columns=>'MRN:NAME_AR:GENDER:AGE:ID_NO:MOBILE:NATIONALITY:PAYER:INSURANCE_EXPIRY:LAST_VISIT:EMR'
 );
 
 wwv_flow_imp.component_end;

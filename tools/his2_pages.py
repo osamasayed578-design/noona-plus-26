@@ -34,7 +34,7 @@ def build(app, url, link, scheme, L):
     DEVICE_LOV = f"select code || ' - ' || name_ar d, id r from his_device where company_id = {CO} order by code"
     RX_LOV = (f"select x.rx_no || ' - ' || p.name_ar || ' (' || case x.status_code when 'ACTIVE' then 'جديدة' else 'جزئية' end || ')' d, x.id r "
               f"from his_prescription x join his_visit v on v.id = x.visit_id join his_patient p on p.id = v.patient_id where x.company_id = {CO} "
-              "and x.status_code in ('ACTIVE', 'PARTIAL') order by x.rx_at desc")
+              "and x.status_code in ('ACTIVE', 'PARTIAL') and nvl(x.expires_on, trunc(cast(x.rx_at as date)) + 30) >= trunc(sysdate) order by x.rx_at desc")
     MODALITY_LOV = L['MODALITY_LOV']
 
     # =========================================================== 33) الوصفة الطبية
@@ -48,6 +48,7 @@ def build(app, url, link, scheme, L):
         p.text(f'P33_FREQ{k}', f, 10 * k + 3, f'Frequency {k} (e.g. TID)', maxlen=100, width=15)
         p.number(f'P33_DAYS{k}', f, 10 * k + 4, f'Days {k}')
     p.text('P33_INSTR', f, 50, 'Instructions (e.g. after meals)', maxlen=500)
+    p.number('P33_VALID', f, 55, 'Valid for (days, default 30)')
     p.hidden('P33_RX', f, 90, protected=False)
     b = p.button(f, 10, 'PRESCRIBE', 'Prescribe', hot=True)
     lines = []
@@ -57,17 +58,20 @@ def build(app, url, link, scheme, L):
     p.process(10, 'AFTER_SUBMIT', 'Prescribe', ['declare l_doc clob; l_lines clob;', 'begin',
         "    select json_arrayagg(x.l format json returning clob) into l_lines from (select " + lines[0] + " l from dual union all select "
         + lines[1] + " from dual union all select " + lines[2] + " from dual) x where x.l is not null;",
-        "    select json_object('visit' value to_number(:P33_VISIT), 'lines' value nvl(l_lines, to_clob('[]')) format json returning clob) into l_doc from dual;",
-        '    :P33_RX := noona_his_care_pkg.prescribe(l_doc);', 'end;'], when_button=b, success='Prescription created - أرسلت الوصفة للصيدلية')
+        "    select json_object('visit' value to_number(:P33_VISIT), 'valid_days' value to_number(:P33_VALID),",
+        "           'lines' value nvl(l_lines, to_clob('[]')) format json returning clob) into l_doc from dual;",
+        '    :P33_RX := noona_his_care_pkg.prescribe(l_doc);', 'end;'], when_button=b, success='Prescription sent - أرسلت الوصفة (الصرف من صيدلية المستشفى اختياري)')
     p.ir('Prescriptions of the visit', 20, [
         "select x.id, x.rx_no, to_char(x.rx_at, 'YYYY-MM-DD HH24:MI') as rx_at, nvl(i.name_en, i.name_ar) as medicine, l.dose, l.frequency, l.duration_days,",
-        "       l.quantity, l.dispensed_qty, case x.status_code when 'ACTIVE' then 'New' when 'PARTIAL' then 'Partial' when 'DISPENSED' then 'Dispensed'",
-        "       else 'Cancelled' end as status",
+        "       l.quantity, l.dispensed_qty, case x.status_code when 'ACTIVE' then 'Sent' when 'PARTIAL' then 'Partial' when 'DISPENSED' then 'Dispensed'",
+        "       when 'EXTERNAL' then 'Outside pharmacy' when 'EXPIRED' then 'Expired' else 'Cancelled' end as status, x.erx_no,",
+        "       '<span class=\"fa fa-print\" aria-hidden=\"true\"></span> Print' as prn",
         "  from his_prescription x join his_prescription_line l on l.prescription_id = x.id join inv_item i on i.id = l.item_id",
         " where x.visit_id = :P33_VISIT order by x.id desc, l.line_no"],
         [('ID', '#', {'hidden': True, 'type': 'NUMBER'}), ('RX_NO', 'Rx', {}), ('RX_AT', 'Date', {}), ('MEDICINE', 'Medicine', {}), ('DOSE', 'Dose', {}),
          ('FREQUENCY', 'Frequency', {}), ('DURATION_DAYS', 'Days', {'type': 'NUMBER'}), ('QUANTITY', 'Qty', {'type': 'NUMBER'}),
-         ('DISPENSED_QTY', 'Dispensed', {'type': 'NUMBER'}), ('STATUS', 'Status', {})], titled=True, rows=20)
+         ('DISPENSED_QTY', 'Dispensed', {'type': 'NUMBER'}), ('STATUS', 'Status', {}), ('ERX_NO', 'e-Rx', {}),
+         ('PRN', 'Print', {'html': True, 'link': ('f?p=&APP_ID.:38:&SESSION.::&DEBUG.:RP,38:P38_ID:#ID#', '#PRN#')})], titled=True, rows=20)
     p.button(f, 20, 'BACK', 'الزيارة', redirect="f?p=&APP_ID.:31:&SESSION.::&DEBUG.:RP,31:P31_ID:&P33_VISIT.")
     p.onload("$('#P33_INSTR,[id^=P33_DOSE],[id^=P33_FREQ]').attr('dir', 'ltr');")
     p.branch(10, url(33, 'P33_VISIT', '&P33_VISIT.') + '&success_msg=#SUCCESS_MSG#')
@@ -79,22 +83,34 @@ def build(app, url, link, scheme, L):
     b_bill = p.button(f, 10, 'BILL', 'إرسال للمحاسبة (فوترة الأدوية)', hot=True)
     b_del = p.button(f, 20, 'DELIVER', 'تسليم الأدوية (يصرف من مستودع الصيدلية)')
     b_can = p.button(f, 30, 'CANCEL', 'إلغاء الوصفة')
+    p.text('P55_REASON', f, 20, 'سبب الإقفال دون صرف (صرف من صيدلية خارجية، لم يستلم...)', maxlen=500)
+    b_ext = p.button(f, 40, 'CLOSE_EXT', 'إقفال دون صرف')
+    b_exp = p.button(f, 50, 'EXPIRE', 'إقفال الوصفات المنتهية')
+    p.button(f, 60, 'PRINT_RX', 'طباعة الوصفة', redirect="javascript:if($v('P55_RX'))location.href='f?p='+apex.env.APP_ID+':38:'+apex.env.APP_SESSION+'::NO:RP,38:P38_ID:'+$v('P55_RX');")
+    p.process(40, 'AFTER_SUBMIT', 'Close External', 'noona_his_care_pkg.close_prescription(:P55_RX, :P55_REASON);', when_button=b_ext,
+              success='أقفلت الوصفة دون صرف من الصيدلية')
+    p.process(50, 'AFTER_SUBMIT', 'Expire', ['declare l number;', 'begin', '    l := noona_his_care_pkg.expire_prescriptions;',
+        "    apex_application.g_print_success_message := 'أقفلت ' || l || ' وصفة منتهية';", 'end;'], when_button=b_exp)
     p.process(10, 'AFTER_SUBMIT', 'Bill', 'noona_his_care_pkg.bill_prescription(:P55_RX);', when_button=b_bill, success='أرسلت الأدوية للمحاسبة')
     p.process(20, 'AFTER_SUBMIT', 'Deliver', 'noona_his_care_pkg.deliver_prescription(:P55_RX);', when_button=b_del, success='سلمت الأدوية')
     p.process(30, 'AFTER_SUBMIT', 'Cancel', 'noona_his_care_pkg.cancel_prescription(:P55_RX);', when_button=b_can, success='ألغيت الوصفة')
     p.ir('الوصفات', 20, [
         "select x.id, x.rx_no, to_char(x.rx_at, 'YYYY-MM-DD HH24:MI') as rx_at, p.name_ar as patient, p.mrn, nvl(i.name_en, i.name_ar) as medicine,",
         "       l.dose || ' ' || l.frequency || nvl2(l.duration_days, ' x ' || l.duration_days || 'd', '') as sig, l.quantity, l.dispensed_qty,",
-        "       case when l.order_id is null then 'لم تفوتر' when o.invoice_id is null and v.visit_type not in ('INPATIENT', 'EMERGENCY', 'DAY_CASE') then 'بانتظار السداد'",
+        "       case when l.order_id is null then 'لم تفوتر' when o.invoice_id is null and (select ov.visit_type from his_visit ov where ov.id = o.visit_id)",
+        "            not in ('INPATIENT', 'EMERGENCY', 'DAY_CASE') then 'بانتظار السداد'",
         "            when o.status_code = 'COMPLETED' then 'مسلمة' else 'جاهزة للتسليم' end as state,",
         "       (select nvl(sum(h.on_hand_qty), 0) from inv_onhand h join his_department d on d.id = x.pharmacy_id where h.item_id = l.item_id",
-        "         and h.warehouse_id = d.warehouse_id) as stock",
+        "         and h.warehouse_id = d.warehouse_id) as stock, nvl(x.expires_on, trunc(cast(x.rx_at as date)) + 30) as expires_on, x.erx_no,",
+        "       case v.status_code when 'OPEN' then 'مفتوحة' else 'مقفلة' end as visit_state",
         "  from his_prescription x join his_prescription_line l on l.prescription_id = x.id join inv_item i on i.id = l.item_id",
         "  join his_visit v on v.id = x.visit_id join his_patient p on p.id = v.patient_id left join his_order o on o.id = l.order_id",
-        f" where x.company_id = {CO} and x.status_code in ('ACTIVE', 'PARTIAL') order by x.rx_at desc, l.line_no"],
+        f" where x.company_id = {CO} and x.status_code in ('ACTIVE', 'PARTIAL') and nvl(x.expires_on, trunc(cast(x.rx_at as date)) + 30) >= trunc(sysdate)",
+        " order by x.rx_at desc, l.line_no"],
         [('ID', '#', {'hidden': True, 'type': 'NUMBER'}), ('RX_NO', 'الوصفة', {}), ('RX_AT', 'الوقت', {}), ('PATIENT', 'المريض', {}), ('MRN', 'الرقم الطبي', {}),
          ('MEDICINE', 'Medicine', {}), ('SIG', 'Sig', {}), ('QUANTITY', 'الكمية', {'type': 'NUMBER'}), ('DISPENSED_QTY', 'المصروف', {'type': 'NUMBER'}),
-         ('STATE', 'الحالة', {}), ('STOCK', 'رصيد الصيدلية', {'type': 'NUMBER'})], titled=True)
+         ('STATE', 'الحالة', {}), ('STOCK', 'رصيد الصيدلية', {'type': 'NUMBER'}), ('EXPIRES_ON', 'صالحة حتى', {'type': 'DATE'}),
+         ('ERX_NO', 'الوصفة الإلكترونية', {}), ('VISIT_STATE', 'الزيارة', {})], titled=True)
     p.branch(10, url(55) + '&success_msg=#SUCCESS_MSG#')
 
     # =========================================================== 56) التنويم ولوحة الأسرة
@@ -338,6 +354,13 @@ def build(app, url, link, scheme, L):
     b_sub = p.button(f, 10, 'SUBMIT_BATCH', 'إرسال الدفعة', hot=True)
     b_cn = p.button(f, 20, 'CANCEL_BATCH', 'إلغاء الدفعة')
     b_rf = p.button(f, 30, 'REFRESH', 'تحديث حالة السداد')
+    b_es = p.button(f, 60, 'SEND_ELECTRONIC', 'إرسال إلكتروني عبر قناة الجهة')
+    b_ep = p.button(f, 70, 'POLL', 'متابعة قرار الجهة إلكترونياً')
+    p.process(35, 'AFTER_SUBMIT', 'Send Electronic', ['declare l varchar2(30);', 'begin', '    l := noona_his_link_pkg.send_claim(:P72_ID);',
+        "    apex_application.g_print_success_message := 'نتيجة الإرسال: ' || noona_his_link_pkg.status_label(l);", 'end;'], when_button=b_es)
+    p.process(36, 'AFTER_SUBMIT', 'Poll', ['declare l varchar2(30);', 'begin', '    l := noona_his_link_pkg.poll_claim(:P72_ID);',
+        "    apex_application.g_print_success_message := case l when 'ADJUDICATED' then 'سجل قرار الجهة وقيد المرفوض' else 'الحالة: ' || noona_his_link_pkg.status_label(l) end;",
+        'end;'], when_button=b_ep)
     p.button(f, 40, 'PRINT', 'طباعة', redirect='javascript:window.print();')
     p.button(f, 50, 'EXPORT', 'تنزيل ملف المطالبة الإلكتروني (JSON)', redirect="javascript:nnClaimExport();")
     p.process(10, 'AFTER_SUBMIT', 'Submit', 'noona_his_claim_pkg.submit_batch(:P72_ID, :P72_REF);', when_button=b_sub, success='أرسلت الدفعة')

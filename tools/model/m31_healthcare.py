@@ -72,6 +72,8 @@ CONTRACT_FROM   DATE             | بداية العقد
 CONTRACT_TO     DATE             | نهاية العقد
 PHONE           V30              | الهاتف
 EMAIL           V320             | البريد
+INTEGRATION_ID  ID   >HIS_INTEGRATION | قناة الربط الإلكتروني (الأهلية والموافقات والمطالبات)
+LINK_CODE       V100             | رمز الجهة لدى قناة الربط (Payer ID)
 ''', area='payer')
 
 table('HIS_PAYER_PLAN', 'فئات التغطية', 'Coverage Plans / Classes', scope='C', mix='code names active', codeuk=False, cols='''
@@ -151,6 +153,12 @@ GROSS_AMOUNT    AMT  NN D=0      | الإجمالي قبل الخصم
 PATIENT_TOTAL   AMT  NN D=0      | المستحق على المريض (شامل الضريبة)
 PAYER_TOTAL     AMT  NN D=0      | المستحق على الجهة (شامل الضريبة)
 PAID_AMOUNT     AMT  NN D=0      | المدفوع من المريض
+ELIGIBILITY_STATUS CODE IN:ELIGIBLE,NOT_ELIGIBLE,PENDING,ERROR | نتيجة التحقق من الأهلية
+ELIGIBILITY_REF V100             | مرجع التحقق لدى الجهة
+ELIGIBILITY_AT  TS               | وقت التحقق
+TRIAGE_LEVEL    CODE IN:1,2,3,4,5 | مستوى الفرز في الطوارئ (CTAS: 1 إنعاش ... 5 غير عاجل)
+TRIAGE_AT       TS               | وقت الفرز
+TRIAGE_BY       USR              | منفذ الفرز
 ''', uk=[('TENANT_ID', 'COMPANY_ID', 'VISIT_NO')], ix=[('TENANT_ID', 'PATIENT_ID'), ('TENANT_ID', 'DEPARTMENT_ID', 'STATUS_CODE')], area='visit',
       sens='CONFIDENTIAL')
 
@@ -203,6 +211,9 @@ RESULT_BY       USR              | معتمد النتيجة
 MATERIAL_TXN_ID ID   >INV_TRANSACTION | حركة صرف المواد
 MATERIAL_COST   AMT              | تكلفة المواد
 NOTES           V500             | ملاحظات الطلب
+PREAUTH_STATUS  CODE IN:REQUESTED,PENDING,APPROVED,REJECTED,ERROR | حالة طلب الموافقة الإلكتروني
+PREAUTH_REF     V100             | مرجع طلب الموافقة لدى الجهة
+COMMISSION_ID   ID   >HIS_COMMISSION | تسوية عمولة الطبيب
 ''', uk=[('VISIT_ID', 'LINE_NO')], chk=['QUANTITY > 0'], ix=[('TENANT_ID', 'DEPARTMENT_ID', 'STATUS_CODE')], area='visit', sens='CONFIDENTIAL')
 
 # =============================================================== المرحلة الثانية: المعامل التفصيلية وقوالب التقارير
@@ -237,13 +248,17 @@ BODY            TXT  NN          | نص القالب
 ''', area='lab')
 
 # =============================================================== الصيدلية الداخلية
-table('HIS_PRESCRIPTION', 'الوصفات الطبية', 'Prescriptions', scope='C', mix='status', status='ACTIVE PARTIAL DISPENSED CANCELLED', cols='''
+table('HIS_PRESCRIPTION', 'الوصفات الطبية', 'Prescriptions', scope='C', mix='status', status='ACTIVE PARTIAL DISPENSED EXTERNAL EXPIRED CANCELLED', cols='''
 RX_NO           V30  NN          | رقم الوصفة
 VISIT_ID        ID   NN >HIS_VISIT | الزيارة
 DOCTOR_ID       ID   >HIS_DOCTOR | الطبيب
 PHARMACY_ID     ID   >HIS_DEPARTMENT | الصيدلية
 RX_AT           TS   NN D=SYSTIMESTAMP | الوقت
 NOTES           V500             | ملاحظات
+EXPIRES_ON      DATE             | صلاحية الوصفة للصرف
+ERX_NO          V50              | رقم الوصفة في منصة الوصفات الإلكترونية
+ERX_STATUS      CODE IN:SENT,ACCEPTED,REJECTED,ERROR,CANCELLED | حالة الإرسال للمنصة
+CLOSE_REASON    V500             | سبب الإقفال دون صرف (صرف خارجي، لم يستلم)
 ''', uk=[('TENANT_ID', 'COMPANY_ID', 'RX_NO')], ix=[('TENANT_ID', 'VISIT_ID')], area='pharmacy', sens='CONFIDENTIAL')
 
 table('HIS_PRESCRIPTION_LINE', 'أصناف الوصفة', 'Prescription Lines', scope='C', cols='''
@@ -368,3 +383,98 @@ APPROVED_AMOUNT AMT              | المقبول
 REJECTED_AMOUNT AMT  NN D=0      | المرفوض
 REJECT_REASON   V500             | سبب الرفض
 ''', uk=[('BATCH_ID', 'INVOICE_ID')], area='claims')
+
+# =============================================================== المرحلة الثالثة: الربط الإلكتروني
+table('HIS_INTEGRATION', 'قنوات الربط الإلكتروني', 'Integration Channels', scope='C', mix='code names status', status='ACTIVE INACTIVE', cols='''
+KIND            CODE NN IN:INSURANCE,ERX | النوع (تأمين: أهلية وموافقات ومطالبات، أو منصة وصفات إلكترونية)
+LINK_MODE       CODE NN D='SIMULATOR' IN:SIMULATOR,REST,EMAIL | طريقة الربط (محاكاة للتجربة، REST، بريد)
+BASE_URL        V1000            | عنوان الخدمة (REST)
+AUTH_TYPE       CODE NN D='NONE' IN:NONE,BASIC,BEARER,API_KEY | المصادقة
+USERNAME        V200             | المستخدم أو معرف العميل
+SECRET_ENC      V2000            | كلمة المرور أو المفتاح (مشفرة)
+KEY_HEADER      V100             | اسم ترويسة المفتاح (API_KEY)
+PROVIDER_CODE   V100             | رمز المنشأة لدى القناة (Provider ID / ترخيص)
+EMAIL           V320             | البريد (طريقة البريد)
+TIMEOUT_SEC     INT  NN D=30     | مهلة الاتصال بالثواني
+WALLET_PATH     V500             | مسار محفظة الشهادات (HTTPS) إن لم تكن محفظة APEX
+LAST_OK_AT      TS               | آخر اتصال ناجح
+LAST_ERROR      V1000            | آخر خطأ
+''', area='link')
+
+table('HIS_LINK_MESSAGE', 'رسائل الربط الإلكتروني', 'Integration Messages', scope='C', mix='status',
+      status='QUEUED SENT ACCEPTED PENDING REJECTED ERROR', cols='''
+MSG_NO          V30  NN          | رقم الرسالة
+MSG_TYPE        CODE NN IN:ELIGIBILITY,PREAUTH,PREAUTH_STATUS,CLAIM,CLAIM_STATUS,PRESCRIPTION,PRESCRIPTION_CANCEL,PING | النوع
+INTEGRATION_ID  ID   NN >HIS_INTEGRATION | القناة
+PAYER_ID        ID   >HIS_PAYER  | الجهة
+ENTITY_TYPE     V30              | الكيان (زيارة، طلب، دفعة، وصفة)
+ENTITY_ID       ID               | معرف الكيان
+SENT_AT         TS               | وقت الإرسال
+HTTP_STATUS     INT              | رمز الاستجابة
+ATTEMPTS        INT  NN D=0      | المحاولات
+EXTERNAL_REF    V100             | المرجع لدى الجهة
+OUTCOME         V1000            | الخلاصة
+REQUEST_BODY    CLOB             | الطلب
+RESPONSE_BODY   CLOB             | الاستجابة
+''', uk=[('TENANT_ID', 'COMPANY_ID', 'MSG_NO')], ix=[('TENANT_ID', 'ENTITY_TYPE', 'ENTITY_ID'), ('TENANT_ID', 'INTEGRATION_ID', 'STATUS_CODE')],
+      area='link', sens='CONFIDENTIAL')
+
+# =============================================================== التمريض والسجل السريري
+table('HIS_VITAL_SIGN', 'العلامات الحيوية', 'Vital Signs', scope='C', append=True, cols='''
+VISIT_ID        ID   NN >HIS_VISIT | الزيارة
+TAKEN_AT        TS   NN D=SYSTIMESTAMP | الوقت
+BP_SYS          INT              | الضغط الانقباضي
+BP_DIA          INT              | الضغط الانبساطي
+PULSE           INT              | النبض
+TEMPERATURE     NUM              | الحرارة
+RESP_RATE       INT              | التنفس
+SPO2            INT              | تشبع الأكسجين
+WEIGHT          NUM              | الوزن (كجم)
+HEIGHT          NUM              | الطول (سم)
+PAIN_SCORE      INT              | الألم (0-10)
+GLUCOSE         NUM              | سكر الدم
+NOTES           V500             | ملاحظات
+''', ix=[('TENANT_ID', 'VISIT_ID')], area='nursing', sens='CONFIDENTIAL')
+
+table('HIS_CLINICAL_NOTE', 'الملاحظات السريرية', 'Clinical Notes', scope='C', append=True, cols='''
+VISIT_ID        ID   NN >HIS_VISIT | الزيارة
+NOTE_TYPE       CODE NN IN:NURSING,PROGRESS,CONSULTATION,PROCEDURE,DISCHARGE | النوع
+NOTE_AT         TS   NN D=SYSTIMESTAMP | الوقت
+AUTHOR_ID       ID   >HIS_DOCTOR | الكاتب (طبيب أو ممرض)
+NOTE_TEXT       TXT  NN          | الملاحظة (English)
+''', ix=[('TENANT_ID', 'VISIT_ID')], area='nursing', sens='CONFIDENTIAL')
+
+table('HIS_MED_ADMIN', 'سجل إعطاء الأدوية', 'Medication Administration Record', scope='C', append=True, cols='''
+VISIT_ID        ID   NN >HIS_VISIT | الزيارة
+LINE_ID         ID   NN >HIS_PRESCRIPTION_LINE | الدواء الموصوف
+GIVEN_AT        TS   NN D=SYSTIMESTAMP | الوقت
+DOSE            V100             | الجرعة المعطاة
+ROUTE           CODE NN D='ORAL' IN:ORAL,IV,IM,SC,INHALED,TOPICAL,RECTAL,OTHER | طريقة الإعطاء
+OUTCOME         CODE NN D='GIVEN' IN:GIVEN,HELD,REFUSED,MISSED | النتيجة
+NURSE_ID        ID   >HIS_DOCTOR | الممرض
+NOTES           V500             | ملاحظات
+''', ix=[('TENANT_ID', 'VISIT_ID')], area='nursing', sens='CONFIDENTIAL')
+
+table('HIS_CERTIFICATE', 'التقارير الطبية والإجازات', 'Medical Certificates & Reports', scope='C', mix='pub status', status='ISSUED CANCELLED', cols='''
+CERT_NO         V30  NN          | الرقم
+VISIT_ID        ID   NN >HIS_VISIT | الزيارة
+CERT_TYPE       CODE NN IN:SICK_LEAVE,MEDICAL_REPORT,REFERRAL,FITNESS,COMPANION | النوع
+ISSUED_ON       DATE NN D=TRUNC(SYSDATE) | تاريخ الإصدار
+FROM_DATE       DATE             | من
+TO_DATE         DATE             | إلى
+DAYS            INT              | الأيام
+REFERRAL_TO     V200             | جهة التحويل
+BODY            TXT              | النص (English)
+DOCTOR_ID       ID   >HIS_DOCTOR | الطبيب
+VERIFY_CODE     V30  NN          | رمز التحقق
+''', uk=[('TENANT_ID', 'COMPANY_ID', 'CERT_NO')], ix=[('TENANT_ID', 'VISIT_ID')], area='nursing', sens='CONFIDENTIAL')
+
+# =============================================================== عمولات الأطباء
+table('HIS_COMMISSION', 'تسويات عمولات الأطباء', 'Doctor Commission Settlements', scope='C', mix='pub doc posted status', status='POSTED CANCELLED', cols='''
+DOCTOR_ID       ID   NN >HIS_DOCTOR | الطبيب
+PERIOD_FROM     DATE NN          | من
+PERIOD_TO       DATE NN          | إلى
+BASE_AMOUNT     AMT  NN          | الإيراد الأساس (صافي الخدمات المفوترة)
+COMMISSION_PCT  PCT  NN          | النسبة
+AMOUNT          AMT  NN          | العمولة
+''', area='billing')

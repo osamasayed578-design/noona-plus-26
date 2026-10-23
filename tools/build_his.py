@@ -119,11 +119,13 @@ p.ir('المرضى', 10, [
     "select p.id, p.mrn, p.name_ar, case p.gender when 'M' then 'ذكر' else 'أنثى' end as gender,",
     "       trunc(months_between(sysdate, p.birth_date) / 12) as age, p.id_no, p.mobile, p.nationality,",
     "       (select y.name_ar || ' - ' || pl.name_ar from his_payer_plan pl join his_payer y on y.id = pl.payer_id where pl.id = p.payer_plan_id) as payer,",
-    "       p.insurance_expiry, (select max(v.visit_at) from his_visit v where v.patient_id = p.id) as last_visit",
+    "       p.insurance_expiry, (select max(v.visit_at) from his_visit v where v.patient_id = p.id) as last_visit,",
+    "       '<span class=\"fa fa-folder-open-o\" aria-hidden=\"true\"></span> السجل' as emr",
     f"  from his_patient p where p.company_id = {CO} and p.status_code = 'ACTIVE' order by p.id desc"],
     [('ID', '#', {'hidden': True, 'type': 'NUMBER'}), ('MRN', 'الرقم الطبي', {}), ('NAME_AR', 'الاسم', {}), ('GENDER', 'الجنس', {}),
      ('AGE', 'العمر', {'type': 'NUMBER'}), ('ID_NO', 'الهوية', {}), ('MOBILE', 'الجوال', {}), ('NATIONALITY', 'الجنسية', {}),
-     ('PAYER', 'التأمين/الجهة', {}), ('INSURANCE_EXPIRY', 'انتهاء التأمين', {'type': 'DATE'}), ('LAST_VISIT', 'آخر زيارة', {'type': 'DATE'})],
+     ('PAYER', 'التأمين/الجهة (اختياري)', {}), ('INSURANCE_EXPIRY', 'انتهاء التأمين', {'type': 'DATE'}), ('LAST_VISIT', 'آخر زيارة', {'type': 'DATE'}),
+     ('EMR', 'الملف الطبي', {'html': True, 'link': ('f?p=&APP_ID.:12:&SESSION.::&DEBUG.:RP,12:P12_ID:#ID#', '#EMR#')})],
     link=link(11, 'P11_ID'))
 
 # =============================================================== 11) بيانات المريض
@@ -261,6 +263,7 @@ p = app.page(31, 'Visit', 'VISIT', 'الزيارة', scheme=HIS, protection='N')
 hd = p.static('الزيارة', 1, hide_header=True, opts='#DEFAULT#:t-Region--noUI')
 p.hidden('P31_ID', hd, 1, protected=False)
 p.hidden('P31_INVOICE', hd, 2, protected=False)
+p.hidden('P31_PATIENT', hd, 3, protected=False)
 OPEN = "noona_his_pkg.is_open(:P31_ID) = 'Y'"
 p.dynamic('ملف الزيارة', 5, 'return noona_his_pkg.visit_html(:P31_ID);', hide_header=True, condition=':P31_ID is not null')
 fo = p.static('طلب خدمة (كشف، تحليل، أشعة، رسم قلب، إجراء، عملية، جلسة)', 10, condition=OPEN)
@@ -271,6 +274,14 @@ b_add = p.button(fo, 10, 'ADD', 'إضافة الطلب', hot=True)
 p.process(10, 'AFTER_SUBMIT', 'Add Order', ['declare l number;', 'begin',
     '    l := noona_his_pkg.add_order(:P31_ID, to_number(:P31_SERVICE), nvl(to_number(:P31_QTY), 1), null, :P31_ONOTES);',
     '    :P31_SERVICE := null; :P31_QTY := null; :P31_ONOTES := null;', 'end;'], when_button=b_add, success='أضيف الطلب')
+fpay = p.static('طريقة الدفع والتأمين (اختياري)', 12, condition=OPEN)
+p.select('P31_BILLTO', fpay, 10, 'الدفع', lov_sql='STATIC2:نقدي بدون تأمين;CASH,على التأمين/الجهة;PAYER', null_text=None)
+b_bt = p.button(fpay, 10, 'SET_BILLING', 'تغيير طريقة الدفع (يعاد تسعير غير المفوتر)')
+b_el = p.button(fpay, 20, 'ELIGIBILITY', 'التحقق من أهلية التأمين إلكترونياً')
+p.process(8, 'AFTER_SUBMIT', 'Billing', 'noona_his_pkg.set_billing(:P31_ID, :P31_BILLTO);', when_button=b_bt, success='تغيرت طريقة الدفع')
+p.process(9, 'AFTER_SUBMIT', 'Eligibility', ['declare l varchar2(30);', 'begin', '    l := noona_his_link_pkg.check_eligibility(:P31_ID);',
+    "    apex_application.g_print_success_message := 'الأهلية: ' || noona_his_link_pkg.status_label(l)",
+    "        || case when l = 'NOT_ELIGIBLE' then ' - يمكن تحويل الزيارة إلى نقدي' end;", 'end;'], when_button=b_el)
 fa = p.static('موافقة التأمين أو إلغاء طلب', 15, condition=OPEN)
 p.select('P31_ORDER', fa, 10, 'الطلب', null_text='- اختر -', lov_sql=(
     "select o.line_no || ' - ' || noona_his_pkg.service_name(s.id) || ' (' || noona_his_pkg.order_status_label(o.status_code) || ')' d, o.id r from his_order o "
@@ -280,6 +291,12 @@ p.text('P31_APPROVAL', fa, 20, 'رقم الموافقة / سبب الرفض أو
 b_apr = p.button(fa, 10, 'APPROVE', 'تسجيل الموافقة')
 b_rej = p.button(fa, 20, 'REJECT', 'رفض التأمين (يحول نقدي)')
 b_cno = p.button(fa, 30, 'CANCEL_ORDER', 'إلغاء الطلب')
+b_pa = p.button(fa, 40, 'PREAUTH', 'طلب الموافقة إلكترونياً')
+b_pp = p.button(fa, 50, 'PREAUTH_POLL', 'متابعة الموافقة')
+p.process(23, 'AFTER_SUBMIT', 'Preauth', "apex_application.g_print_success_message := 'طلب الموافقة: ' || noona_his_link_pkg.status_label(noona_his_link_pkg.request_preauth(:P31_ORDER));",
+          when_button=b_pa)
+p.process(24, 'AFTER_SUBMIT', 'Preauth Poll', "apex_application.g_print_success_message := 'الموافقة: ' || noona_his_link_pkg.status_label(noona_his_link_pkg.poll_preauth(:P31_ORDER));",
+          when_button=b_pp)
 p.process(20, 'AFTER_SUBMIT', 'Approve', "noona_his_pkg.set_approval(:P31_ORDER, :P31_APPROVAL, 'Y');", when_button=b_apr, success='سجلت الموافقة')
 p.process(21, 'AFTER_SUBMIT', 'Reject', "noona_his_pkg.set_approval(:P31_ORDER, :P31_APPROVAL, 'N');", when_button=b_rej,
           success='سجل الرفض وتحولت الخدمة على المريض')
@@ -292,8 +309,9 @@ p.text('P31_ICD', fd, 40, 'ICD-10 code', maxlen=100, width=15)
 p.textarea('P31_DNOTES', fd, 50, 'Examination findings / Plan', rows=4)
 b_notes = p.button(fd, 10, 'SAVE_NOTES', 'Save examination')
 p.onload("$('#P31_VITALS,#P31_COMPLAINT,#P31_DIAG,#P31_ICD,#P31_DNOTES').attr('dir', 'ltr');")
-p.process(4, 'BEFORE_HEADER', 'Load', ['begin', '    select vitals, chief_complaint, diagnosis, icd10, doctor_notes',
-    '      into :P31_VITALS, :P31_COMPLAINT, :P31_DIAG, :P31_ICD, :P31_DNOTES', f'      from his_visit where id = :P31_ID and company_id = {CO};',
+p.process(4, 'BEFORE_HEADER', 'Load', ['begin', '    select vitals, chief_complaint, diagnosis, icd10, doctor_notes, bill_to',
+    '      into :P31_VITALS, :P31_COMPLAINT, :P31_DIAG, :P31_ICD, :P31_DNOTES, :P31_BILLTO', f'      from his_visit where id = :P31_ID and company_id = {CO};',
+    f'    select patient_id into :P31_PATIENT from his_visit where id = :P31_ID and company_id = {CO};',
     'exception when no_data_found then null;', 'end;'])
 p.process(30, 'AFTER_SUBMIT', 'Notes', ['declare l_doc clob;', 'begin', '    select ' + build_json([
     ('id', 'P31_ID', 'n'), ('vitals', 'P31_VITALS', 's'), ('complaint', 'P31_COMPLAINT', 's'), ('diagnosis', 'P31_DIAG', 's'),
@@ -309,6 +327,9 @@ p.text('P31_REF', fb, 30, 'مرجع الدفع (رقم العملية)', maxlen=
 b_inv = p.button(fb, 10, 'INVOICE', 'إصدار الفاتورة والتحصيل', hot=True)
 b_close = p.button(fb, 20, 'CLOSE', 'إقفال الزيارة')
 p.button(fo, 20, 'RX', 'Prescription - وصفة', redirect=url(33, 'P33_VISIT', '&P31_ID.', 'RP,33'))
+p.button(fo, 60, 'NURSING', 'التمريض والعلامات الحيوية', redirect=url(35, 'P35_VISIT', '&P31_ID.', 'RP,35'))
+p.button(fo, 70, 'CERT', 'تقرير طبي / إجازة', redirect=url(36, 'P36_VISIT', '&P31_ID.', 'RP,36'))
+p.button(fo, 80, 'EMR', 'الملف الطبي', redirect="javascript:location.href='f?p='+apex.env.APP_ID+':12:'+apex.env.APP_SESSION+'::NO:RP,12:P12_ID:'+$('#P31_PATIENT').val();")
 p.button(fo, 30, 'ADMIT', 'التنويم', redirect=url(56))
 p.button(fo, 40, 'SURGERY', 'جدولة عملية', redirect=url(57))
 p.button(fo, 50, 'THERAPY', 'خطة علاج طبيعي', redirect=url(58))
@@ -344,7 +365,7 @@ p.select('P32_PATIENT', f, 10, 'المريض', lov_sql=PATIENT_LOV, required=Tru
 p.select('P32_DOCTOR', f, 20, 'الطبيب (يضاف كشفه تلقائياً)', lov_sql=DOCTOR_LOV, null_text='- بدون طبيب -')
 p.select('P32_DEPT', f, 30, 'القسم (للمعامل والأشعة المباشرة)', lov_sql=DEPT_LOV, null_text='- قسم الطبيب -')
 p.select('P32_TYPE', f, 40, 'نوع الزيارة', lov_sql=VISIT_TYPE_LOV, null_text=None)
-p.select('P32_BILL', f, 50, 'الدفع', lov_sql='STATIC2:حسب ملف المريض;,نقدي;CASH,على التأمين/الجهة;PAYER', null_text=None)
+p.select('P32_BILL', f, 50, 'الدفع (التأمين اختياري)', lov_sql='STATIC2:حسب ملف المريض (التأمين إن وجد);,نقدي بدون تأمين;CASH,على التأمين/الجهة;PAYER', null_text=None)
 p.text('P32_APPROVAL', f, 60, 'رقم الموافقة (إن وجد)', maxlen=50, width=20)
 p.textarea('P32_COMPLAINT', f, 70, 'الشكوى')
 p.hidden('P32_ID', f, 90, protected=False)
@@ -708,9 +729,17 @@ app.nav_item('مكونات التحاليل وقوالب التقارير', 64, 
 app.nav_item('الأجهزة الطبية والمعايرة', 66, 'fa-wrench', 56, parent=st)
 app.nav_item('التقارير والمطالبات', 70, 'fa-bar-chart', 60)
 
-import his2_pages
+import his2_pages, his3_pages
 his2_pages.build(app, url, link, HIS, dict(PATIENT_LOV=PATIENT_LOV, DOCTOR_LOV=DOCTOR_LOV, DEPT_LOV=DEPT_LOV, PAYER_LOV=PAYER_LOV,
                                           MODALITY_LOV=MODALITY_LOV))
+his3_pages.build(app, url, link, HIS, dict(PATIENT_LOV=PATIENT_LOV, DOCTOR_LOV=DOCTOR_LOV, PAYER_LOV=PAYER_LOV, STATUS_LOV=STATUS_LOV))
+app.nav_item('لوحة الطوارئ', 59, 'fa-ambulance', 25, parent=rc)
+app.nav_item('الملف الطبي للمريض', 12, 'fa-folder-open-o', 26, parent=rc)
+app.nav_item('التمريض والعلامات الحيوية', 35, 'fa-heart', 33, parent=cl)
+app.nav_item('التقارير الطبية والإجازات', 36, 'fa-file-text-o', 34, parent=cl)
+app.nav_item('عمولات الأطباء', 73, 'fa-percent', 61)
+app.nav_item('الربط الإلكتروني', 67, 'fa-plug', 57, parent=st)
+app.nav_item('سجل رسائل الربط', 68, 'fa-exchange', 58, parent=st)
 
 app.finalize()
 print('NOONA_HIS built:', len(app.pages), 'pages')

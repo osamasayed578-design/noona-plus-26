@@ -41,6 +41,11 @@ CREATE OR REPLACE PACKAGE NOONA_HIS_CARE_PKG AUTHID DEFINER AS
   -- تسليم الأدوية المفوترة (أو للمنوم): يصرف من مستودع الصيدلية
   PROCEDURE deliver_prescription(p_rx_id IN NUMBER);
   PROCEDURE cancel_prescription(p_rx_id IN NUMBER);
+  -- الصرف من الصيدلية الداخلية اختياري: تقفل الوصفة دون صرف (صرفت خارجياً أو لم يستلمها المريض)
+  PROCEDURE close_prescription(p_rx_id IN NUMBER, p_reason IN VARCHAR2);
+  -- الوصفات التي انتهت صلاحيتها دون صرف؛ يعيد عددها
+  FUNCTION expire_prescriptions RETURN NUMBER;
+  FUNCTION rx_html(p_rx_id IN NUMBER) RETURN CLOB;
 
   -- ---------------------------------------------------------- التنويم
   FUNCTION save_bed(p_id IN NUMBER, p_ward_id IN NUMBER, p_bed_no IN VARCHAR2, p_room IN VARCHAR2, p_class IN VARCHAR2 DEFAULT 'WARD',
@@ -301,6 +306,8 @@ CREATE OR REPLACE PACKAGE BODY NOONA_HIS_CARE_PKG AS
 
   FUNCTION prescribe(p_doc IN CLOB) RETURN NUMBER IS
     l_o    JSON_OBJECT_T := JSON_OBJECT_T.parse(p_doc);
+    l_days NUMBER := NVL(l_o.get_number('valid_days'), 30);
+    l_erx  VARCHAR2(30);
     l_vis  NUMBER := l_o.get_number('visit');
     l_doc  NUMBER := l_o.get_number('doctor');
     l_ph   NUMBER := l_o.get_number('pharmacy');
@@ -317,8 +324,9 @@ CREATE OR REPLACE PACKAGE BODY NOONA_HIS_CARE_PKG AS
     l_ph := NVL(l_ph, default_pharmacy);
     NOONA_CORE_PKG.assert(l_ph IS NOT NULL, 'NOONA-HIS-112', 'لا توجد صيدلية داخلية معرفة', 'No pharmacy department');
     l_rxno := next_no('HIS_PRESCRIPTION', 'RX-');
-    INSERT INTO his_prescription (company_id, rx_no, visit_id, doctor_id, pharmacy_id, rx_at, notes, status_code)
-    VALUES (company, l_rxno, l_vis, l_doc, l_ph, SYSTIMESTAMP, l_nt, 'ACTIVE')
+    NOONA_CORE_PKG.assert(l_days BETWEEN 1 AND 365, 'NOONA-HIS-120', 'صلاحية الوصفة من يوم إلى سنة', 'Validity must be 1-365 days');
+    INSERT INTO his_prescription (company_id, rx_no, visit_id, doctor_id, pharmacy_id, rx_at, notes, status_code, expires_on)
+    VALUES (company, l_rxno, l_vis, l_doc, l_ph, SYSTIMESTAMP, l_nt, 'ACTIVE', TRUNC(SYSDATE) + l_days)
     RETURNING id INTO l_id;
     FOR r IN (SELECT * FROM JSON_TABLE(p_doc, '$.lines[*]' COLUMNS (i NUMBER PATH '$.i', q NUMBER PATH '$.q', dose VARCHAR2(100) PATH '$.dose',
                 freq VARCHAR2(100) PATH '$.freq', days NUMBER PATH '$.days', instr VARCHAR2(500) PATH '$.instr'))) LOOP
@@ -330,6 +338,12 @@ CREATE OR REPLACE PACKAGE BODY NOONA_HIS_CARE_PKG AS
       VALUES (company, l_id, l_no, r.i, r.dose, r.freq, r.days, r.q, 0, r.instr);
     END LOOP;
     NOONA_CORE_PKG.assert(l_no > 0, 'NOONA-HIS-114', 'أضف دواءً واحداً على الأقل', 'Add at least one medicine');
+    -- الوصفة ترسل لمنصة الوصفات الإلكترونية إن وجدت (يصرفها المريض من أي صيدلية)؛ تعثر الإرسال لا يمنع الحفظ
+    BEGIN
+      l_erx := NOONA_HIS_LINK_PKG.send_prescription(l_id);
+    EXCEPTION WHEN OTHERS THEN
+      UPDATE his_prescription SET erx_status = 'ERROR' WHERE id = l_id;
+    END;
     RETURN l_id;
   EXCEPTION WHEN NO_DATA_FOUND THEN
     NOONA_CORE_PKG.raise_error('NOONA-HIS-050', 'الزيارة غير موجودة', 'Visit not found');
@@ -337,6 +351,9 @@ CREATE OR REPLACE PACKAGE BODY NOONA_HIS_CARE_PKG AS
 
   PROCEDURE bill_prescription(p_rx_id IN NUMBER, p_lines IN CLOB DEFAULT NULL) IS
     l_rx his_prescription%ROWTYPE;
+    l_vis NUMBER;
+    l_vst VARCHAR2(30);
+    l_pat NUMBER;
     l_o  NUMBER;
     l_q  NUMBER;
     l_n  PLS_INTEGER := 0;
@@ -344,6 +361,18 @@ CREATE OR REPLACE PACKAGE BODY NOONA_HIS_CARE_PKG AS
     guard('HIS_ORDER.CREATE');
     SELECT * INTO l_rx FROM his_prescription WHERE id = p_rx_id AND company_id = company FOR UPDATE;
     NOONA_CORE_PKG.assert(l_rx.status_code IN ('ACTIVE', 'PARTIAL'), 'NOONA-HIS-115', 'الوصفة مصروفة أو ملغاة', 'Prescription is closed');
+    NOONA_CORE_PKG.assert(NVL(l_rx.expires_on, TRUNC(CAST(l_rx.rx_at AS DATE)) + 30) >= TRUNC(SYSDATE), 'NOONA-HIS-121', 'انتهت صلاحية الوصفة',
+                          'Prescription has expired');
+    l_vis := l_rx.visit_id;
+    SELECT status_code, patient_id INTO l_vst, l_pat FROM his_visit WHERE id = l_vis;
+    IF l_vst <> 'OPEN' THEN
+      -- زيارة العيادة أقفلت: تصرف الوصفة على زيارة صيدلية للمريض (المفتوحة اليوم أو جديدة)
+      SELECT MIN(id) INTO l_vis FROM his_visit WHERE company_id = company AND patient_id = l_pat AND department_id = l_rx.pharmacy_id
+         AND status_code = 'OPEN' AND visit_at >= TRUNC(SYSTIMESTAMP);
+      IF l_vis IS NULL THEN
+        l_vis := NOONA_HIS_PKG.open_visit('{"patient":' || l_pat || ',"dept":' || l_rx.pharmacy_id || ',"complaint":"Prescription ' || l_rx.rx_no || '"}');
+      END IF;
+    END IF;
     FOR ln IN (SELECT * FROM his_prescription_line WHERE prescription_id = p_rx_id AND order_id IS NULL ORDER BY line_no) LOOP
       l_q := ln.quantity;
       IF p_lines IS NOT NULL THEN
@@ -351,7 +380,7 @@ CREATE OR REPLACE PACKAGE BODY NOONA_HIS_CARE_PKG AS
       END IF;
       CONTINUE WHEN NVL(l_q, 0) <= 0;
       NOONA_CORE_PKG.assert(l_q <= ln.quantity, 'NOONA-HIS-116', 'الكمية أكبر من المطلوب في الوصفة', 'Quantity exceeds the prescription');
-      l_o := NOONA_HIS_PKG.add_order(l_rx.visit_id, med_service(ln.item_id), l_q, l_rx.doctor_id, 'وصفة ' || l_rx.rx_no);
+      l_o := NOONA_HIS_PKG.add_order(l_vis, med_service(ln.item_id), l_q, l_rx.doctor_id, 'وصفة ' || l_rx.rx_no);
       UPDATE his_order SET department_id = l_rx.pharmacy_id WHERE id = l_o;
       UPDATE his_prescription_line SET order_id = l_o, quantity = l_q WHERE id = ln.id;
       l_n := l_n + 1;
@@ -386,8 +415,86 @@ CREATE OR REPLACE PACKAGE BODY NOONA_HIS_CARE_PKG AS
     FOR ln IN (SELECT order_id FROM his_prescription_line WHERE prescription_id = p_rx_id AND order_id IS NOT NULL) LOOP
       NOONA_HIS_PKG.cancel_order(ln.order_id, 'إلغاء الوصفة');
     END LOOP;
+    NOONA_HIS_LINK_PKG.cancel_prescription(p_rx_id);
     UPDATE his_prescription SET status_code = 'CANCELLED' WHERE id = p_rx_id AND company_id = company;
   END cancel_prescription;
+
+  -- يلغي طلبات الأصناف غير المصروفة وغير المسددة ويعيدها قابلة للفوترة لاحقاً؛ يرفض المسدد غير المسلم
+  PROCEDURE release_lines(p_rx_id NUMBER) IS
+    l_n NUMBER;
+  BEGIN
+    SELECT COUNT(*) INTO l_n FROM his_prescription_line l JOIN his_order o ON o.id = l.order_id
+     WHERE l.prescription_id = p_rx_id AND l.dispensed_qty < l.quantity AND o.invoice_id IS NOT NULL AND o.status_code IN ('ORDERED', 'IN_PROGRESS');
+    NOONA_CORE_PKG.assert(l_n = 0, 'NOONA-HIS-122', 'أدوية مسددة لم تسلم؛ سلمها أو ألغ فاتورتها أولاً', 'Paid medicines were not delivered yet');
+    FOR ln IN (SELECT l.id, l.order_id FROM his_prescription_line l JOIN his_order o ON o.id = l.order_id
+                WHERE l.prescription_id = p_rx_id AND l.dispensed_qty < l.quantity AND o.invoice_id IS NULL AND o.status_code IN ('ORDERED', 'APPROVAL_PENDING')) LOOP
+      UPDATE his_prescription_line SET order_id = NULL WHERE id = ln.id;
+      NOONA_HIS_PKG.cancel_order(ln.order_id, 'Not dispensed');
+    END LOOP;
+  END release_lines;
+
+  PROCEDURE close_prescription(p_rx_id IN NUMBER, p_reason IN VARCHAR2) IS
+    l_st VARCHAR2(30);
+  BEGIN
+    guard('HIS_ORDER.UPDATE');
+    NOONA_CORE_PKG.assert(TRIM(p_reason) IS NOT NULL, 'NOONA-HIS-123', 'اذكر سبب الإقفال (صرف خارجي، لم يستلم...)', 'Reason is required');
+    SELECT status_code INTO l_st FROM his_prescription WHERE id = p_rx_id AND company_id = company FOR UPDATE;
+    NOONA_CORE_PKG.assert(l_st IN ('ACTIVE', 'PARTIAL'), 'NOONA-HIS-115', 'الوصفة مصروفة أو مقفلة', 'Prescription is closed');
+    release_lines(p_rx_id);
+    -- الوصفة الإلكترونية تبقى سارية ليصرفها المريض من صيدلية خارجية
+    UPDATE his_prescription SET status_code = 'EXTERNAL', close_reason = SUBSTR(TRIM(p_reason), 1, 500) WHERE id = p_rx_id;
+  EXCEPTION WHEN NO_DATA_FOUND THEN
+    NOONA_CORE_PKG.raise_error('NOONA-HIS-124', 'الوصفة غير موجودة', 'Prescription not found');
+  END close_prescription;
+
+  FUNCTION expire_prescriptions RETURN NUMBER IS
+    l_n PLS_INTEGER := 0;
+  BEGIN
+    guard('HIS_ORDER.UPDATE');
+    FOR x IN (SELECT id FROM his_prescription WHERE company_id = company AND status_code IN ('ACTIVE', 'PARTIAL')
+                 AND NVL(expires_on, TRUNC(CAST(rx_at AS DATE)) + 30) < TRUNC(SYSDATE)) LOOP
+      BEGIN
+        release_lines(x.id);
+        UPDATE his_prescription SET status_code = 'EXPIRED', close_reason = 'Expired' WHERE id = x.id;
+        l_n := l_n + 1;
+      EXCEPTION WHEN OTHERS THEN NULL;   -- المسدد غير المسلم يبقى حتى يعالج
+      END;
+    END LOOP;
+    RETURN l_n;
+  END expire_prescriptions;
+
+  FUNCTION rx_html(p_rx_id IN NUMBER) RETURN CLOB IS
+    l_h CLOB;
+  BEGIN
+    guard('HIS_ORDER.VIEW');
+    FOR x IN (SELECT x.*, v.visit_no, v.diagnosis, v.icd10, p.name_ar, p.name_en pen, p.mrn, p.gender, p.birth_date, p.allergies, p.id_no,
+                     d.name_ar dn, d.name_en den, d.license_no, d.specialty, NVL(co.trade_name_en, co.legal_name_en) co_en, NVL(co.trade_name_ar, co.legal_name_ar) co_ar
+                FROM his_prescription x JOIN his_visit v ON v.id = x.visit_id JOIN his_patient p ON p.id = v.patient_id
+                LEFT JOIN his_doctor d ON d.id = x.doctor_id JOIN org_company co ON co.id = x.company_id
+               WHERE x.id = p_rx_id AND x.company_id = company) LOOP
+      l_h := '<div class="nn-his-cert" dir="ltr"><header><div><b>' || esc(NVL(x.co_en, x.co_ar)) || '</b><br><small>' || esc(x.co_ar) || '</small></div>'
+          || '<div class="r"><b>Prescription &#8478;</b><br><small>' || esc(x.rx_no) || ' · ' || TO_CHAR(x.rx_at, 'DD Mon YYYY HH24:MI', 'NLS_DATE_LANGUAGE=ENGLISH') || '</small>'
+          || NVL2(x.erx_no, '<br><small>e-Prescription ' || esc(x.erx_no) || '</small>', '') || '</div></header>'
+          || '<table class="nn-his-certp"><tr><th>Patient</th><td>' || esc(NVL(x.pen, x.name_ar)) || '</td><th>MRN</th><td>' || esc(x.mrn) || '</td></tr>'
+          || '<tr><th>Sex / Age</th><td>' || CASE x.gender WHEN 'M' THEN 'Male' ELSE 'Female' END || ' / '
+          || TRUNC(MONTHS_BETWEEN(SYSDATE, x.birth_date) / 12) || ' y</td><th>ID No.</th><td>' || esc(x.id_no) || '</td></tr>'
+          || '<tr><th>Diagnosis</th><td colspan="3">' || esc(x.diagnosis) || NVL2(x.icd10, ' (' || esc(x.icd10) || ')', '') || '</td></tr>'
+          || NVL2(x.allergies, '<tr><th>Allergies</th><td colspan="3"><b>' || esc(x.allergies) || '</b></td></tr>', '') || '</table>'
+          || '<table class="nn-rst-cred nn-his-lab"><thead><tr><th>#</th><th>Medicine</th><th>Dose</th><th>Frequency</th><th>Duration</th><th>Qty</th><th>Instructions</th>'
+          || '</tr></thead><tbody>';
+      FOR l IN (SELECT l.*, NVL(i.name_en, i.name_ar) med FROM his_prescription_line l JOIN inv_item i ON i.id = l.item_id
+                 WHERE l.prescription_id = p_rx_id ORDER BY l.line_no) LOOP
+        l_h := l_h || '<tr><td>' || l.line_no || '</td><td><b>' || esc(l.med) || '</b></td><td>' || esc(l.dose) || '</td><td>' || esc(l.frequency) || '</td><td>'
+            || NVL2(l.duration_days, l.duration_days || ' days', '') || '</td><td>' || RTRIM(RTRIM(TO_CHAR(l.quantity, 'FM9999990D99', 'NLS_NUMERIC_CHARACTERS=''.,'''), '0'), '.')
+            || '</td><td>' || esc(l.instructions) || '</td></tr>';
+      END LOOP;
+      l_h := l_h || '</tbody></table><p><small>Valid until ' || TO_CHAR(NVL(x.expires_on, TRUNC(CAST(x.rx_at AS DATE)) + 30), 'DD Mon YYYY', 'NLS_DATE_LANGUAGE=ENGLISH')
+          || '. May be dispensed at the hospital pharmacy or any licensed pharmacy.</small></p>'
+          || '<footer><div><b>' || esc(NVL(x.den, x.dn)) || '</b><br><small>' || esc(x.specialty) || NVL2(x.license_no, ' · License ' || esc(x.license_no), '')
+          || '</small></div><div class="r"><small>Signature</small><br><br>__________________</div></footer></div>';
+    END LOOP;
+    RETURN l_h;
+  END rx_html;
 
   -- ================================================================ التنويم
   FUNCTION save_bed(p_id IN NUMBER, p_ward_id IN NUMBER, p_bed_no IN VARCHAR2, p_room IN VARCHAR2, p_class IN VARCHAR2 DEFAULT 'WARD',

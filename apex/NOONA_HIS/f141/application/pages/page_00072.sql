@@ -29,7 +29,7 @@ wwv_flow_imp_page.create_page(
 ,p_protection_level=>'N'
 );
 wwv_flow_imp_page.create_page_plug(
- p_id=>wwv_flow_imp.id(91820275000000777)
+ p_id=>wwv_flow_imp.id(91820275000000804)
 ,p_plug_name=>'الإجراءات'
 ,p_region_template_options=>'#DEFAULT#'
 ,p_plug_template=>4072358936313175081
@@ -40,17 +40,17 @@ wwv_flow_imp_page.create_page_plug(
   'show_line_breaks', 'Y')).to_clob
 );
 wwv_flow_imp_page.create_page_item(
- p_id=>wwv_flow_imp.id(91820275000000778)
+ p_id=>wwv_flow_imp.id(91820275000000805)
 ,p_name=>'P72_ID'
 ,p_item_sequence=>1
-,p_item_plug_id=>wwv_flow_imp.id(91820275000000777)
+,p_item_plug_id=>wwv_flow_imp.id(91820275000000804)
 ,p_display_as=>'NATIVE_HIDDEN'
 ,p_protection_level=>'N'
 ,p_attributes=>wwv_flow_t_plugin_attributes(wwv_flow_t_varchar2(
   'value_protected', 'N')).to_clob
 );
 wwv_flow_imp_page.create_page_plug(
- p_id=>wwv_flow_imp.id(91820275000000779)
+ p_id=>wwv_flow_imp.id(91820275000000806)
 ,p_plug_name=>'الدفعة'
 ,p_region_template_options=>'#DEFAULT#:t-Region--scrollBody:nn-print-area:t-Region--removeHeader js-removeLandmark:t-Region--noUI'
 ,p_plug_template=>4072358936313175081
@@ -61,10 +61,10 @@ wwv_flow_imp_page.create_page_plug(
 ,p_plug_source_type=>'NATIVE_DYNAMIC_CONTENT'
 );
 wwv_flow_imp_page.create_page_item(
- p_id=>wwv_flow_imp.id(91820275000000780)
+ p_id=>wwv_flow_imp.id(91820275000000807)
 ,p_name=>'P72_REF'
 ,p_item_sequence=>10
-,p_item_plug_id=>wwv_flow_imp.id(91820275000000777)
+,p_item_plug_id=>wwv_flow_imp.id(91820275000000804)
 ,p_prompt=>'مرجع الإرسال لدى الجهة'
 ,p_display_as=>'NATIVE_TEXT_FIELD'
 ,p_cSize=>20
@@ -78,9 +78,9 @@ wwv_flow_imp_page.create_page_item(
   'trim_spaces', 'BOTH')).to_clob
 );
 wwv_flow_imp_page.create_page_button(
- p_id=>wwv_flow_imp.id(91820275000000781)
+ p_id=>wwv_flow_imp.id(91820275000000808)
 ,p_button_sequence=>10
-,p_button_plug_id=>wwv_flow_imp.id(91820275000000777)
+,p_button_plug_id=>wwv_flow_imp.id(91820275000000804)
 ,p_button_name=>'SUBMIT_BATCH'
 ,p_button_action=>'SUBMIT'
 ,p_button_template_options=>'#DEFAULT#'
@@ -90,9 +90,9 @@ wwv_flow_imp_page.create_page_button(
 ,p_button_position=>'NEXT'
 );
 wwv_flow_imp_page.create_page_button(
- p_id=>wwv_flow_imp.id(91820275000000782)
+ p_id=>wwv_flow_imp.id(91820275000000809)
 ,p_button_sequence=>20
-,p_button_plug_id=>wwv_flow_imp.id(91820275000000777)
+,p_button_plug_id=>wwv_flow_imp.id(91820275000000804)
 ,p_button_name=>'CANCEL_BATCH'
 ,p_button_action=>'SUBMIT'
 ,p_button_template_options=>'#DEFAULT#'
@@ -101,9 +101,9 @@ wwv_flow_imp_page.create_page_button(
 ,p_button_position=>'NEXT'
 );
 wwv_flow_imp_page.create_page_button(
- p_id=>wwv_flow_imp.id(91820275000000783)
+ p_id=>wwv_flow_imp.id(91820275000000810)
 ,p_button_sequence=>30
-,p_button_plug_id=>wwv_flow_imp.id(91820275000000777)
+,p_button_plug_id=>wwv_flow_imp.id(91820275000000804)
 ,p_button_name=>'REFRESH'
 ,p_button_action=>'SUBMIT'
 ,p_button_template_options=>'#DEFAULT#'
@@ -112,9 +112,65 @@ wwv_flow_imp_page.create_page_button(
 ,p_button_position=>'NEXT'
 );
 wwv_flow_imp_page.create_page_button(
- p_id=>wwv_flow_imp.id(91820275000000784)
+ p_id=>wwv_flow_imp.id(91820275000000811)
+,p_button_sequence=>60
+,p_button_plug_id=>wwv_flow_imp.id(91820275000000804)
+,p_button_name=>'SEND_ELECTRONIC'
+,p_button_action=>'SUBMIT'
+,p_button_template_options=>'#DEFAULT#'
+,p_button_template_id=>4072362960822175091
+,p_button_image_alt=>'إرسال إلكتروني عبر قناة الجهة'
+,p_button_position=>'NEXT'
+);
+wwv_flow_imp_page.create_page_button(
+ p_id=>wwv_flow_imp.id(91820275000000812)
+,p_button_sequence=>70
+,p_button_plug_id=>wwv_flow_imp.id(91820275000000804)
+,p_button_name=>'POLL'
+,p_button_action=>'SUBMIT'
+,p_button_template_options=>'#DEFAULT#'
+,p_button_template_id=>4072362960822175091
+,p_button_image_alt=>'متابعة قرار الجهة إلكترونياً'
+,p_button_position=>'NEXT'
+);
+wwv_flow_imp_page.create_page_process(
+ p_id=>wwv_flow_imp.id(91820275000000813)
+,p_process_sequence=>35
+,p_process_point=>'AFTER_SUBMIT'
+,p_process_type=>'NATIVE_PLSQL'
+,p_process_name=>'Send Electronic'
+,p_process_sql_clob=>wwv_flow_string.join(wwv_flow_t_varchar2(
+'declare l varchar2(30);',
+'begin',
+'    l := noona_his_link_pkg.send_claim(:P72_ID);',
+'    apex_application.g_print_success_message := ''نتيجة الإرسال: '' || noona_his_link_pkg.status_label(l);',
+'end;'))
+,p_process_clob_language=>'PLSQL'
+,p_error_display_location=>'INLINE_IN_NOTIFICATION'
+,p_process_when_button_id=>wwv_flow_imp.id(91820275000000811)
+,p_internal_uid=>91820275000000813
+);
+wwv_flow_imp_page.create_page_process(
+ p_id=>wwv_flow_imp.id(91820275000000814)
+,p_process_sequence=>36
+,p_process_point=>'AFTER_SUBMIT'
+,p_process_type=>'NATIVE_PLSQL'
+,p_process_name=>'Poll'
+,p_process_sql_clob=>wwv_flow_string.join(wwv_flow_t_varchar2(
+'declare l varchar2(30);',
+'begin',
+'    l := noona_his_link_pkg.poll_claim(:P72_ID);',
+'    apex_application.g_print_success_message := case l when ''ADJUDICATED'' then ''سجل قرار الجهة وقيد المرفوض'' else ''الحالة: '' || noona_his_link_pkg.status_label(l) end;',
+'end;'))
+,p_process_clob_language=>'PLSQL'
+,p_error_display_location=>'INLINE_IN_NOTIFICATION'
+,p_process_when_button_id=>wwv_flow_imp.id(91820275000000812)
+,p_internal_uid=>91820275000000814
+);
+wwv_flow_imp_page.create_page_button(
+ p_id=>wwv_flow_imp.id(91820275000000815)
 ,p_button_sequence=>40
-,p_button_plug_id=>wwv_flow_imp.id(91820275000000777)
+,p_button_plug_id=>wwv_flow_imp.id(91820275000000804)
 ,p_button_name=>'PRINT'
 ,p_button_action=>'REDIRECT_URL'
 ,p_button_template_options=>'#DEFAULT#'
@@ -124,9 +180,9 @@ wwv_flow_imp_page.create_page_button(
 ,p_button_redirect_url=>'javascript:window.print();'
 );
 wwv_flow_imp_page.create_page_button(
- p_id=>wwv_flow_imp.id(91820275000000785)
+ p_id=>wwv_flow_imp.id(91820275000000816)
 ,p_button_sequence=>50
-,p_button_plug_id=>wwv_flow_imp.id(91820275000000777)
+,p_button_plug_id=>wwv_flow_imp.id(91820275000000804)
 ,p_button_name=>'EXPORT'
 ,p_button_action=>'REDIRECT_URL'
 ,p_button_template_options=>'#DEFAULT#'
@@ -136,7 +192,7 @@ wwv_flow_imp_page.create_page_button(
 ,p_button_redirect_url=>'javascript:nnClaimExport();'
 );
 wwv_flow_imp_page.create_page_process(
- p_id=>wwv_flow_imp.id(91820275000000786)
+ p_id=>wwv_flow_imp.id(91820275000000817)
 ,p_process_sequence=>10
 ,p_process_point=>'AFTER_SUBMIT'
 ,p_process_type=>'NATIVE_PLSQL'
@@ -145,12 +201,12 @@ wwv_flow_imp_page.create_page_process(
 'noona_his_claim_pkg.submit_batch(:P72_ID, :P72_REF);'))
 ,p_process_clob_language=>'PLSQL'
 ,p_error_display_location=>'INLINE_IN_NOTIFICATION'
-,p_process_when_button_id=>wwv_flow_imp.id(91820275000000781)
+,p_process_when_button_id=>wwv_flow_imp.id(91820275000000808)
 ,p_process_success_message=>'أرسلت الدفعة'
-,p_internal_uid=>91820275000000786
+,p_internal_uid=>91820275000000817
 );
 wwv_flow_imp_page.create_page_process(
- p_id=>wwv_flow_imp.id(91820275000000787)
+ p_id=>wwv_flow_imp.id(91820275000000818)
 ,p_process_sequence=>20
 ,p_process_point=>'AFTER_SUBMIT'
 ,p_process_type=>'NATIVE_PLSQL'
@@ -159,12 +215,12 @@ wwv_flow_imp_page.create_page_process(
 'noona_his_claim_pkg.cancel_batch(:P72_ID);'))
 ,p_process_clob_language=>'PLSQL'
 ,p_error_display_location=>'INLINE_IN_NOTIFICATION'
-,p_process_when_button_id=>wwv_flow_imp.id(91820275000000782)
+,p_process_when_button_id=>wwv_flow_imp.id(91820275000000809)
 ,p_process_success_message=>'ألغيت الدفعة'
-,p_internal_uid=>91820275000000787
+,p_internal_uid=>91820275000000818
 );
 wwv_flow_imp_page.create_page_process(
- p_id=>wwv_flow_imp.id(91820275000000788)
+ p_id=>wwv_flow_imp.id(91820275000000819)
 ,p_process_sequence=>30
 ,p_process_point=>'AFTER_SUBMIT'
 ,p_process_type=>'NATIVE_PLSQL'
@@ -173,12 +229,12 @@ wwv_flow_imp_page.create_page_process(
 'noona_his_claim_pkg.refresh_batch(:P72_ID);'))
 ,p_process_clob_language=>'PLSQL'
 ,p_error_display_location=>'INLINE_IN_NOTIFICATION'
-,p_process_when_button_id=>wwv_flow_imp.id(91820275000000783)
+,p_process_when_button_id=>wwv_flow_imp.id(91820275000000810)
 ,p_process_success_message=>'حدثت الحالة'
-,p_internal_uid=>91820275000000788
+,p_internal_uid=>91820275000000819
 );
 wwv_flow_imp_page.create_page_plug(
- p_id=>wwv_flow_imp.id(91820275000000789)
+ p_id=>wwv_flow_imp.id(91820275000000820)
 ,p_plug_name=>'رد الجهة (خصم أو رفض على فاتورة)'
 ,p_region_template_options=>'#DEFAULT#'
 ,p_plug_template=>4072358936313175081
@@ -189,10 +245,10 @@ wwv_flow_imp_page.create_page_plug(
   'show_line_breaks', 'Y')).to_clob
 );
 wwv_flow_imp_page.create_page_item(
- p_id=>wwv_flow_imp.id(91820275000000790)
+ p_id=>wwv_flow_imp.id(91820275000000821)
 ,p_name=>'P72_INV'
 ,p_item_sequence=>10
-,p_item_plug_id=>wwv_flow_imp.id(91820275000000789)
+,p_item_plug_id=>wwv_flow_imp.id(91820275000000820)
 ,p_prompt=>'الفاتورة'
 ,p_display_as=>'NATIVE_SELECT_LIST'
 ,p_lov=>'select i.doc_no || '' - '' || p.name_ar || '' ('' || to_char(l.claimed_amount, ''FM999G990D00'') || '')'' d, i.id r from his_claim_line l join his_invoice i on i.id = l.invoice_id join his_patient p on p.id = i.patient_id where l.batch_id = :P72_ID order by i.doc_no'
@@ -206,10 +262,10 @@ wwv_flow_imp_page.create_page_item(
   'page_action_on_selection', 'NONE')).to_clob
 );
 wwv_flow_imp_page.create_page_item(
- p_id=>wwv_flow_imp.id(91820275000000791)
+ p_id=>wwv_flow_imp.id(91820275000000822)
 ,p_name=>'P72_APPROVED'
 ,p_item_sequence=>20
-,p_item_plug_id=>wwv_flow_imp.id(91820275000000789)
+,p_item_plug_id=>wwv_flow_imp.id(91820275000000820)
 ,p_prompt=>'المبلغ المقبول'
 ,p_display_as=>'NATIVE_NUMBER_FIELD'
 ,p_cSize=>20
@@ -221,10 +277,10 @@ wwv_flow_imp_page.create_page_item(
   'virtual_keyboard', 'decimal')).to_clob
 );
 wwv_flow_imp_page.create_page_item(
- p_id=>wwv_flow_imp.id(91820275000000792)
+ p_id=>wwv_flow_imp.id(91820275000000823)
 ,p_name=>'P72_REASON'
 ,p_item_sequence=>30
-,p_item_plug_id=>wwv_flow_imp.id(91820275000000789)
+,p_item_plug_id=>wwv_flow_imp.id(91820275000000820)
 ,p_prompt=>'Rejection reason'
 ,p_display_as=>'NATIVE_TEXT_FIELD'
 ,p_cSize=>40
@@ -238,9 +294,9 @@ wwv_flow_imp_page.create_page_item(
   'trim_spaces', 'BOTH')).to_clob
 );
 wwv_flow_imp_page.create_page_button(
- p_id=>wwv_flow_imp.id(91820275000000793)
+ p_id=>wwv_flow_imp.id(91820275000000824)
 ,p_button_sequence=>10
-,p_button_plug_id=>wwv_flow_imp.id(91820275000000789)
+,p_button_plug_id=>wwv_flow_imp.id(91820275000000820)
 ,p_button_name=>'ADD_DECISION'
 ,p_button_action=>'SUBMIT'
 ,p_button_template_options=>'#DEFAULT#'
@@ -249,9 +305,9 @@ wwv_flow_imp_page.create_page_button(
 ,p_button_position=>'NEXT'
 );
 wwv_flow_imp_page.create_page_button(
- p_id=>wwv_flow_imp.id(91820275000000794)
+ p_id=>wwv_flow_imp.id(91820275000000825)
 ,p_button_sequence=>20
-,p_button_plug_id=>wwv_flow_imp.id(91820275000000789)
+,p_button_plug_id=>wwv_flow_imp.id(91820275000000820)
 ,p_button_name=>'RECORD'
 ,p_button_action=>'SUBMIT'
 ,p_button_template_options=>'#DEFAULT#'
@@ -261,7 +317,7 @@ wwv_flow_imp_page.create_page_button(
 ,p_button_position=>'NEXT'
 );
 wwv_flow_imp_page.create_page_process(
- p_id=>wwv_flow_imp.id(91820275000000795)
+ p_id=>wwv_flow_imp.id(91820275000000826)
 ,p_process_sequence=>40
 ,p_process_point=>'AFTER_SUBMIT'
 ,p_process_type=>'NATIVE_PLSQL'
@@ -274,12 +330,12 @@ wwv_flow_imp_page.create_page_process(
 'end;'))
 ,p_process_clob_language=>'PLSQL'
 ,p_error_display_location=>'INLINE_IN_NOTIFICATION'
-,p_process_when_button_id=>wwv_flow_imp.id(91820275000000793)
+,p_process_when_button_id=>wwv_flow_imp.id(91820275000000824)
 ,p_process_success_message=>'أضيف للرد'
-,p_internal_uid=>91820275000000795
+,p_internal_uid=>91820275000000826
 );
 wwv_flow_imp_page.create_page_process(
- p_id=>wwv_flow_imp.id(91820275000000796)
+ p_id=>wwv_flow_imp.id(91820275000000827)
 ,p_process_sequence=>50
 ,p_process_point=>'AFTER_SUBMIT'
 ,p_process_type=>'NATIVE_PLSQL'
@@ -296,12 +352,12 @@ wwv_flow_imp_page.create_page_process(
 'end;'))
 ,p_process_clob_language=>'PLSQL'
 ,p_error_display_location=>'INLINE_IN_NOTIFICATION'
-,p_process_when_button_id=>wwv_flow_imp.id(91820275000000794)
+,p_process_when_button_id=>wwv_flow_imp.id(91820275000000825)
 ,p_process_success_message=>'سجل رد الجهة وقيد المرفوض'
-,p_internal_uid=>91820275000000796
+,p_internal_uid=>91820275000000827
 );
 wwv_flow_imp_page.create_page_plug(
- p_id=>wwv_flow_imp.id(91820275000000797)
+ p_id=>wwv_flow_imp.id(91820275000000828)
 ,p_plug_name=>'قرارات الرد المضافة'
 ,p_region_template_options=>'#DEFAULT#:t-Region--scrollBody'
 ,p_component_template_options=>'#DEFAULT#'
@@ -315,7 +371,7 @@ wwv_flow_imp_page.create_page_plug(
 ,p_prn_page_header=>'قرارات الرد المضافة'
 );
 wwv_flow_imp_page.create_worksheet(
- p_id=>wwv_flow_imp.id(91820275000000798)
+ p_id=>wwv_flow_imp.id(91820275000000829)
 ,p_max_row_count=>'1000000'
 ,p_no_data_found_message=>'لا توجد بيانات'
 ,p_pagination_type=>'ROWS_X_TO_Y'
@@ -327,10 +383,10 @@ wwv_flow_imp_page.create_worksheet(
 ,p_download_formats=>'CSV:HTML:XLSX:PDF'
 ,p_enable_mail_download=>'N'
 ,p_owner=>'NOONA'
-,p_internal_uid=>91820275000000798
+,p_internal_uid=>91820275000000829
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820275000000800)
+ p_id=>wwv_flow_imp.id(91820275000000831)
 ,p_db_column_name=>'ID'
 ,p_display_order=>10
 ,p_column_identifier=>'A'
@@ -341,7 +397,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820275000000801)
+ p_id=>wwv_flow_imp.id(91820275000000832)
 ,p_db_column_name=>'DOC_NO'
 ,p_display_order=>20
 ,p_column_identifier=>'B'
@@ -351,7 +407,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820275000000802)
+ p_id=>wwv_flow_imp.id(91820275000000833)
 ,p_db_column_name=>'APPROVED'
 ,p_display_order=>30
 ,p_column_identifier=>'C'
@@ -361,7 +417,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820275000000803)
+ p_id=>wwv_flow_imp.id(91820275000000834)
 ,p_db_column_name=>'REASON'
 ,p_display_order=>40
 ,p_column_identifier=>'D'
@@ -371,16 +427,16 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_rpt(
- p_id=>wwv_flow_imp.id(91820275000000799)
+ p_id=>wwv_flow_imp.id(91820275000000830)
 ,p_application_user=>'APXWS_DEFAULT'
 ,p_report_seq=>10
-,p_report_alias=>'799'
+,p_report_alias=>'830'
 ,p_status=>'PUBLIC'
 ,p_is_default=>'Y'
 ,p_report_columns=>'DOC_NO:APPROVED:REASON'
 );
 wwv_flow_imp_page.create_page_plug(
- p_id=>wwv_flow_imp.id(91820275000000804)
+ p_id=>wwv_flow_imp.id(91820275000000835)
 ,p_plug_name=>'ملف المطالبة'
 ,p_region_template_options=>'#DEFAULT#:t-Region--noUI:t-Region--removeHeader js-removeLandmark:t-Region--noUI'
 ,p_plug_template=>4072358936313175081
@@ -395,7 +451,7 @@ wwv_flow_imp_page.create_page_plug(
 ,p_plug_source_type=>'NATIVE_DYNAMIC_CONTENT'
 );
 wwv_flow_imp_page.create_page_branch(
- p_id=>wwv_flow_imp.id(91820275000000805)
+ p_id=>wwv_flow_imp.id(91820275000000836)
 ,p_branch_action=>'f?p=&APP_ID.:72:&SESSION.::&DEBUG.::P72_ID:&P72_ID.&success_msg=#SUCCESS_MSG#'
 ,p_branch_point=>'AFTER_PROCESSING'
 ,p_branch_type=>'REDIRECT_URL'

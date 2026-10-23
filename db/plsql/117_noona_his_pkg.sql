@@ -65,6 +65,8 @@ CREATE OR REPLACE PACKAGE NOONA_HIS_PKG AUTHID DEFINER AS
   PROCEDURE set_approval(p_order_id IN NUMBER, p_approval_no IN VARCHAR2, p_approved IN VARCHAR2 DEFAULT 'Y');
   -- توزيع حصص الطلبات غير المفوترة (السعر، التغطية، نسبة المريض وحده الأعلى، الضريبة)
   PROCEDURE recalc_visit(p_visit_id IN NUMBER);
+  -- العلاج بالتأمين اختياري: تحويل زيارة مفتوحة بين التأمين (فئة المريض) والدفع النقدي؛ يعاد تسعير الخدمات غير المفوترة
+  PROCEDURE set_billing(p_visit_id IN NUMBER, p_bill_to IN VARCHAR2);
   PROCEDURE close_visit(p_visit_id IN NUMBER);
   FUNCTION is_open(p_visit_id IN NUMBER) RETURN VARCHAR2;
 
@@ -828,7 +830,8 @@ CREATE OR REPLACE PACKAGE BODY NOONA_HIS_PKG AS
     NOONA_CORE_PKG.assert(l_dept IS NOT NULL, 'NOONA-HIS-055', 'اختر القسم أو الطبيب', 'Choose a department or doctor');
     -- زيارة مفتوحة للمريض في نفس القسم اليوم تعاد بدل فتح أخرى
     SELECT MIN(id) INTO l_x FROM his_visit
-     WHERE patient_id = l_pat AND department_id = l_dept AND status_code = 'OPEN' AND visit_at >= CAST(TRUNC(SYSDATE) AS TIMESTAMP);
+     WHERE patient_id = l_pat AND department_id = l_dept AND status_code = 'OPEN' AND visit_at >= CAST(TRUNC(SYSDATE) AS TIMESTAMP)
+       AND (l_bill IS NULL OR bill_to = l_bill);   -- طلب طريقة دفع أخرى (نقدي بدل التأمين) يفتح زيارة مستقلة
     IF l_x IS NOT NULL AND l_apt IS NULL THEN
       RETURN l_x;
     END IF;
@@ -930,6 +933,24 @@ CREATE OR REPLACE PACKAGE BODY NOONA_HIS_PKG AS
     END IF;
   END set_approval;
 
+  PROCEDURE set_billing(p_visit_id IN NUMBER, p_bill_to IN VARCHAR2) IS
+    l_v his_visit%ROWTYPE := get_visit(p_visit_id);
+    l_p his_patient%ROWTYPE;
+  BEGIN
+    guard('HIS_VISIT.UPDATE');
+    NOONA_CORE_PKG.assert(l_v.status_code = 'OPEN', 'NOONA-HIS-051', 'الزيارة مقفلة', 'Visit is closed');
+    NOONA_CORE_PKG.assert(p_bill_to IN ('CASH', 'PAYER'), 'NOONA-HIS-057', 'طريقة الدفع نقدي أو تأمين', 'Billing must be CASH or PAYER');
+    SELECT * INTO l_p FROM his_patient WHERE id = l_v.patient_id;
+    NOONA_CORE_PKG.assert(p_bill_to = 'CASH' OR l_p.payer_plan_id IS NOT NULL, 'NOONA-HIS-056', 'المريض غير مسجل على تأمين أو جهة متعاقدة',
+                          'Patient has no coverage');
+    UPDATE his_visit SET bill_to = p_bill_to, payer_plan_id = CASE WHEN p_bill_to = 'PAYER' THEN l_p.payer_plan_id END,
+                         eligibility_status = CASE WHEN p_bill_to = 'CASH' THEN NULL ELSE eligibility_status END
+     WHERE id = p_visit_id;
+    -- النقدي لا يحتاج موافقات: تلغى حالة انتظار الموافقة؛ التأمين يعيدها حسب العقد
+    UPDATE his_order SET status_code = 'ORDERED' WHERE visit_id = p_visit_id AND status_code = 'APPROVAL_PENDING' AND invoice_id IS NULL;
+    recalc_visit(p_visit_id);
+  END set_billing;
+
   FUNCTION is_open(p_visit_id IN NUMBER) RETURN VARCHAR2 IS
     l NUMBER;
   BEGIN
@@ -943,6 +964,12 @@ CREATE OR REPLACE PACKAGE BODY NOONA_HIS_PKG AS
   BEGIN
     guard('HIS_VISIT.UPDATE');
     NOONA_CORE_PKG.assert(l_v.status_code = 'OPEN', 'NOONA-HIS-051', 'الزيارة مقفلة', 'Visit is closed');
+    -- الصرف من الصيدلية الداخلية اختياري: أدوية الوصفات غير المسددة تلغى عند الإقفال وتبقى الوصفة سارية للصرف لاحقاً أو خارجياً
+    FOR r IN (SELECT o.id, l.id lid FROM his_order o JOIN his_prescription_line l ON l.order_id = o.id
+               WHERE o.visit_id = p_visit_id AND o.invoice_id IS NULL AND o.status_code IN ('ORDERED', 'APPROVAL_PENDING')) LOOP
+      UPDATE his_prescription_line SET order_id = NULL WHERE id = r.lid;
+      cancel_order(r.id, 'Not dispensed at visit closure');
+    END LOOP;
     SELECT COUNT(*) INTO l_n FROM his_order WHERE visit_id = p_visit_id AND status_code <> 'CANCELLED' AND invoice_id IS NULL;
     NOONA_CORE_PKG.assert(l_n = 0, 'NOONA-HIS-065', 'توجد خدمات غير مفوترة؛ فوترها أو ألغها قبل إقفال الزيارة', 'Unbilled services remain');
     UPDATE his_visit SET status_code = 'CLOSED', closed_at = SYSTIMESTAMP WHERE id = p_visit_id;
@@ -1173,6 +1200,8 @@ CREATE OR REPLACE PACKAGE BODY NOONA_HIS_PKG AS
     NOONA_CORE_PKG.assert(TRIM(p_reason) IS NOT NULL, 'NOONA-HIS-074', 'اذكر سبب الإلغاء', 'Reason is required');
     SELECT COUNT(*) INTO l_n FROM his_order WHERE invoice_id = p_invoice_id AND status_code IN ('IN_PROGRESS', 'COMPLETED');
     NOONA_CORE_PKG.assert(l_n = 0, 'NOONA-HIS-075', 'بدأ تنفيذ بعض خدمات الفاتورة؛ لا تلغى', 'Some services were already performed');
+    SELECT COUNT(*) INTO l_n FROM his_order WHERE invoice_id = p_invoice_id AND commission_id IS NOT NULL;
+    NOONA_CORE_PKG.assert(l_n = 0, 'NOONA-HIS-077', 'سويت عمولة الطبيب عن خدمات الفاتورة؛ ألغ التسوية أولاً', 'Doctor commission already settled');
     SELECT COUNT(*) INTO l_n FROM ar_open_item WHERE source_entity_type = c_inv AND source_entity_id = p_invoice_id AND open_amount <> original_amount;
     NOONA_CORE_PKG.assert(l_n = 0, 'NOONA-HIS-076', 'حصل جزء من مطالبة الفاتورة؛ اعكس التحصيل أولاً', 'Part of the invoice was collected');
     IF l_i.accounting_event_id IS NOT NULL THEN
@@ -1345,6 +1374,10 @@ CREATE OR REPLACE PACKAGE BODY NOONA_HIS_PKG AS
         || CASE WHEN l_p.allergies IS NOT NULL THEN ' <span class="nn-rst-chip is-cancelled">حساسية: ' || esc(l_p.allergies) || '</span>' END
         || '<br><small>زيارة ' || esc(l_v.visit_no) || ' · ' || TO_CHAR(l_v.visit_at, 'YYYY-MM-DD HH24:MI') || ' · '
         || CASE l_v.bill_to WHEN 'PAYER' THEN esc(l_plan) ELSE 'نقدي' END || CASE WHEN l_p.nationality = 'SA' THEN ' · معفى من الضريبة' END
+        || CASE l_v.eligibility_status WHEN 'ELIGIBLE' THEN ' <span class="nn-rst-chip is-paid">مؤهل · ' || esc(l_v.eligibility_ref) || '</span>'
+                WHEN 'NOT_ELIGIBLE' THEN ' <span class="nn-rst-chip is-cancelled">غير مؤهل · ' || esc(l_v.eligibility_ref) || '</span>'
+                WHEN 'ERROR' THEN ' <span class="nn-rst-chip">تعذر التحقق من الأهلية</span>' END
+        || CASE WHEN l_v.triage_level IS NOT NULL THEN ' <span class="nn-rst-chip nn-his-tl tl-' || l_v.triage_level || '">CTAS ' || l_v.triage_level || '</span>' END
         || '</small></div><div class="nn-his-tot"><span>على المريض <b>' || fmt0(l_v.patient_total) || '</b></span><span>على الجهة <b>'
         || fmt0(l_v.payer_total) || '</b></span><span>المدفوع <b>' || fmt0(l_v.paid_amount) || '</b></span></div></div>'
         || '<table class="nn-rst-cred"><thead><tr><th>#</th><th>الخدمة</th><th>القسم</th><th>الحالة</th><th class="n">السعر</th><th class="n">على المريض</th>'
@@ -1356,6 +1389,8 @@ CREATE OR REPLACE PACKAGE BODY NOONA_HIS_PKG AS
       l_h := l_h || '<tr class="' || CASE WHEN r.status_code = 'CANCELLED' THEN 'is-void' END || '"><td>' || r.line_no || '</td><td>' || esc(r.sname)
           || CASE WHEN r.quantity <> 1 THEN ' × ' || r.quantity END || '<br><small>' || esc(type_label(r.service_type))
           || CASE WHEN r.covered = 'N' AND l_v.bill_to = 'PAYER' THEN ' · غير مغطاة' END || CASE WHEN r.approval_no IS NOT NULL THEN ' · موافقة ' || esc(r.approval_no) END
+          || CASE WHEN r.status_code = 'APPROVAL_PENDING' AND r.preauth_status IN ('PENDING', 'REQUESTED') THEN ' · طلب إلكتروني قيد المراجعة '
+                  || esc(r.preauth_ref) WHEN r.status_code = 'APPROVAL_PENDING' AND r.preauth_status = 'ERROR' THEN ' · تعذر إرسال طلب الموافقة' END
           || '</small></td><td>' || esc(r.dname) || '</td><td><span class="nn-his-st st-' || LOWER(r.status_code) || '">' || order_status_label(r.status_code)
           || '</span>' || CASE WHEN r.sample_no IS NOT NULL THEN '<br><small>عينة ' || esc(r.sample_no) || '</small>' END || '</td><td class="n">'
           || fmt0(r.gross_amount) || '</td><td class="n">' || fmt0(r.patient_net + r.patient_vat) || '</td><td class="n">' || fmt0(r.payer_net + r.payer_vat)

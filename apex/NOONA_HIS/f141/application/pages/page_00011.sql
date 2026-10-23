@@ -22,7 +22,7 @@ wwv_flow_imp_page.create_page(
 ,p_protection_level=>'N'
 );
 wwv_flow_imp_page.create_page_plug(
- p_id=>wwv_flow_imp.id(91820275000000049)
+ p_id=>wwv_flow_imp.id(91820275000000050)
 ,p_plug_name=>'بيانات المريض'
 ,p_region_template_options=>'#DEFAULT#'
 ,p_plug_template=>4072358936313175081
@@ -33,20 +33,20 @@ wwv_flow_imp_page.create_page_plug(
   'show_line_breaks', 'Y')).to_clob
 );
 wwv_flow_imp_page.create_page_item(
- p_id=>wwv_flow_imp.id(91820275000000050)
+ p_id=>wwv_flow_imp.id(91820275000000051)
 ,p_name=>'P11_ID'
 ,p_item_sequence=>1
-,p_item_plug_id=>wwv_flow_imp.id(91820275000000049)
+,p_item_plug_id=>wwv_flow_imp.id(91820275000000050)
 ,p_display_as=>'NATIVE_HIDDEN'
 ,p_protection_level=>'N'
 ,p_attributes=>wwv_flow_t_plugin_attributes(wwv_flow_t_varchar2(
   'value_protected', 'N')).to_clob
 );
 wwv_flow_imp_page.create_page_item(
- p_id=>wwv_flow_imp.id(91820275000000051)
+ p_id=>wwv_flow_imp.id(91820275000000052)
 ,p_name=>'P11_MRN'
 ,p_item_sequence=>5
-,p_item_plug_id=>wwv_flow_imp.id(91820275000000049)
+,p_item_plug_id=>wwv_flow_imp.id(91820275000000050)
 ,p_prompt=>'الرقم الطبي (تلقائي)'
 ,p_display_as=>'NATIVE_TEXT_FIELD'
 ,p_cSize=>15
@@ -60,10 +60,10 @@ wwv_flow_imp_page.create_page_item(
   'trim_spaces', 'BOTH')).to_clob
 );
 wwv_flow_imp_page.create_page_item(
- p_id=>wwv_flow_imp.id(91820275000000052)
+ p_id=>wwv_flow_imp.id(91820275000000053)
 ,p_name=>'P11_NAME'
 ,p_item_sequence=>10
-,p_item_plug_id=>wwv_flow_imp.id(91820275000000049)
+,p_item_plug_id=>wwv_flow_imp.id(91820275000000050)
 ,p_prompt=>'الاسم'
 ,p_display_as=>'NATIVE_TEXT_FIELD'
 ,p_cSize=>40
@@ -78,10 +78,10 @@ wwv_flow_imp_page.create_page_item(
   'trim_spaces', 'BOTH')).to_clob
 );
 wwv_flow_imp_page.create_page_item(
- p_id=>wwv_flow_imp.id(91820275000000053)
+ p_id=>wwv_flow_imp.id(91820275000000054)
 ,p_name=>'P11_NAME_EN'
 ,p_item_sequence=>15
-,p_item_plug_id=>wwv_flow_imp.id(91820275000000049)
+,p_item_plug_id=>wwv_flow_imp.id(91820275000000050)
 ,p_prompt=>'الاسم بالإنجليزية'
 ,p_display_as=>'NATIVE_TEXT_FIELD'
 ,p_cSize=>40
@@ -95,10 +95,10 @@ wwv_flow_imp_page.create_page_item(
   'trim_spaces', 'BOTH')).to_clob
 );
 wwv_flow_imp_page.create_page_item(
- p_id=>wwv_flow_imp.id(91820275000000054)
+ p_id=>wwv_flow_imp.id(91820275000000055)
 ,p_name=>'P11_GENDER'
 ,p_item_sequence=>20
-,p_item_plug_id=>wwv_flow_imp.id(91820275000000049)
+,p_item_plug_id=>wwv_flow_imp.id(91820275000000050)
 ,p_prompt=>'الجنس'
 ,p_display_as=>'NATIVE_SELECT_LIST'
 ,p_lov=>'STATIC2:ذكر;M,أنثى;F'
@@ -111,10 +111,10 @@ wwv_flow_imp_page.create_page_item(
   'page_action_on_selection', 'NONE')).to_clob
 );
 wwv_flow_imp_page.create_page_item(
- p_id=>wwv_flow_imp.id(91820275000000055)
+ p_id=>wwv_flow_imp.id(91820275000000056)
 ,p_name=>'P11_BIRTH'
 ,p_item_sequence=>25
-,p_item_plug_id=>wwv_flow_imp.id(91820275000000049)
+,p_item_plug_id=>wwv_flow_imp.id(91820275000000050)
 ,p_prompt=>'تاريخ الميلاد'
 ,p_display_as=>'NATIVE_DATE_PICKER_APEX'
 ,p_cSize=>20
@@ -130,10 +130,10 @@ wwv_flow_imp_page.create_page_item(
   'use_defaults', 'Y')).to_clob
 );
 wwv_flow_imp_page.create_page_item(
- p_id=>wwv_flow_imp.id(91820275000000056)
+ p_id=>wwv_flow_imp.id(91820275000000057)
 ,p_name=>'P11_ID_TYPE'
 ,p_item_sequence=>30
-,p_item_plug_id=>wwv_flow_imp.id(91820275000000049)
+,p_item_plug_id=>wwv_flow_imp.id(91820275000000050)
 ,p_prompt=>'نوع الهوية'
 ,p_display_as=>'NATIVE_SELECT_LIST'
 ,p_lov=>'STATIC2:هوية وطنية;NATIONAL_ID,إقامة;IQAMA,جواز سفر;PASSPORT,رقم حدود;BORDER_NO,شهادة ميلاد;BIRTH_CERT'
@@ -148,10 +148,10 @@ wwv_flow_imp_page.create_page_item(
   'page_action_on_selection', 'NONE')).to_clob
 );
 wwv_flow_imp_page.create_page_item(
- p_id=>wwv_flow_imp.id(91820275000000057)
+ p_id=>wwv_flow_imp.id(91820275000000058)
 ,p_name=>'P11_ID_NO'
 ,p_item_sequence=>35
-,p_item_plug_id=>wwv_flow_imp.id(91820275000000049)
+,p_item_plug_id=>wwv_flow_imp.id(91820275000000050)
 ,p_prompt=>'رقم الهوية'
 ,p_display_as=>'NATIVE_TEXT_FIELD'
 ,p_cSize=>20
@@ -165,10 +165,10 @@ wwv_flow_imp_page.create_page_item(
   'trim_spaces', 'BOTH')).to_clob
 );
 wwv_flow_imp_page.create_page_item(
- p_id=>wwv_flow_imp.id(91820275000000058)
+ p_id=>wwv_flow_imp.id(91820275000000059)
 ,p_name=>'P11_NAT'
 ,p_item_sequence=>40
-,p_item_plug_id=>wwv_flow_imp.id(91820275000000049)
+,p_item_plug_id=>wwv_flow_imp.id(91820275000000050)
 ,p_prompt=>'الجنسية (السعودي معفى من الضريبة)'
 ,p_display_as=>'NATIVE_SELECT_LIST'
 ,p_lov=>'select name_ar d, country_code r from ref_country order by case country_code when ''SA'' then 0 else 1 end, name_ar'
@@ -183,10 +183,10 @@ wwv_flow_imp_page.create_page_item(
   'page_action_on_selection', 'NONE')).to_clob
 );
 wwv_flow_imp_page.create_page_item(
- p_id=>wwv_flow_imp.id(91820275000000059)
+ p_id=>wwv_flow_imp.id(91820275000000060)
 ,p_name=>'P11_MOBILE'
 ,p_item_sequence=>45
-,p_item_plug_id=>wwv_flow_imp.id(91820275000000049)
+,p_item_plug_id=>wwv_flow_imp.id(91820275000000050)
 ,p_prompt=>'الجوال'
 ,p_display_as=>'NATIVE_TEXT_FIELD'
 ,p_cSize=>20
@@ -200,10 +200,10 @@ wwv_flow_imp_page.create_page_item(
   'trim_spaces', 'BOTH')).to_clob
 );
 wwv_flow_imp_page.create_page_item(
- p_id=>wwv_flow_imp.id(91820275000000060)
+ p_id=>wwv_flow_imp.id(91820275000000061)
 ,p_name=>'P11_BLOOD'
 ,p_item_sequence=>50
-,p_item_plug_id=>wwv_flow_imp.id(91820275000000049)
+,p_item_plug_id=>wwv_flow_imp.id(91820275000000050)
 ,p_prompt=>'فصيلة الدم'
 ,p_display_as=>'NATIVE_SELECT_LIST'
 ,p_lov=>'STATIC2:A+;A+,A-;A-,B+;B+,B-;B-,AB+;AB+,AB-;AB-,O+;O+,O-;O-'
@@ -218,10 +218,10 @@ wwv_flow_imp_page.create_page_item(
   'page_action_on_selection', 'NONE')).to_clob
 );
 wwv_flow_imp_page.create_page_item(
- p_id=>wwv_flow_imp.id(91820275000000061)
+ p_id=>wwv_flow_imp.id(91820275000000062)
 ,p_name=>'P11_EMERG'
 ,p_item_sequence=>55
-,p_item_plug_id=>wwv_flow_imp.id(91820275000000049)
+,p_item_plug_id=>wwv_flow_imp.id(91820275000000050)
 ,p_prompt=>'جهة الاتصال للطوارئ'
 ,p_display_as=>'NATIVE_TEXT_FIELD'
 ,p_cSize=>40
@@ -235,10 +235,10 @@ wwv_flow_imp_page.create_page_item(
   'trim_spaces', 'BOTH')).to_clob
 );
 wwv_flow_imp_page.create_page_item(
- p_id=>wwv_flow_imp.id(91820275000000062)
+ p_id=>wwv_flow_imp.id(91820275000000063)
 ,p_name=>'P11_ALLERGY'
 ,p_item_sequence=>60
-,p_item_plug_id=>wwv_flow_imp.id(91820275000000049)
+,p_item_plug_id=>wwv_flow_imp.id(91820275000000050)
 ,p_prompt=>'الحساسية'
 ,p_display_as=>'NATIVE_TEXTAREA'
 ,p_cSize=>60
@@ -253,10 +253,10 @@ wwv_flow_imp_page.create_page_item(
   'trim_spaces', 'BOTH')).to_clob
 );
 wwv_flow_imp_page.create_page_item(
- p_id=>wwv_flow_imp.id(91820275000000063)
+ p_id=>wwv_flow_imp.id(91820275000000064)
 ,p_name=>'P11_CHRONIC'
 ,p_item_sequence=>65
-,p_item_plug_id=>wwv_flow_imp.id(91820275000000049)
+,p_item_plug_id=>wwv_flow_imp.id(91820275000000050)
 ,p_prompt=>'الأمراض المزمنة'
 ,p_display_as=>'NATIVE_TEXTAREA'
 ,p_cSize=>60
@@ -271,10 +271,10 @@ wwv_flow_imp_page.create_page_item(
   'trim_spaces', 'BOTH')).to_clob
 );
 wwv_flow_imp_page.create_page_item(
- p_id=>wwv_flow_imp.id(91820275000000064)
+ p_id=>wwv_flow_imp.id(91820275000000065)
 ,p_name=>'P11_ADDRESS'
 ,p_item_sequence=>70
-,p_item_plug_id=>wwv_flow_imp.id(91820275000000049)
+,p_item_plug_id=>wwv_flow_imp.id(91820275000000050)
 ,p_prompt=>'العنوان'
 ,p_display_as=>'NATIVE_TEXT_FIELD'
 ,p_cSize=>40
@@ -288,7 +288,7 @@ wwv_flow_imp_page.create_page_item(
   'trim_spaces', 'BOTH')).to_clob
 );
 wwv_flow_imp_page.create_page_plug(
- p_id=>wwv_flow_imp.id(91820275000000065)
+ p_id=>wwv_flow_imp.id(91820275000000066)
 ,p_plug_name=>'التأمين أو الجهة المتعاقدة'
 ,p_region_template_options=>'#DEFAULT#'
 ,p_plug_template=>4072358936313175081
@@ -299,10 +299,10 @@ wwv_flow_imp_page.create_page_plug(
   'show_line_breaks', 'Y')).to_clob
 );
 wwv_flow_imp_page.create_page_item(
- p_id=>wwv_flow_imp.id(91820275000000066)
+ p_id=>wwv_flow_imp.id(91820275000000067)
 ,p_name=>'P11_PLAN'
 ,p_item_sequence=>10
-,p_item_plug_id=>wwv_flow_imp.id(91820275000000065)
+,p_item_plug_id=>wwv_flow_imp.id(91820275000000066)
 ,p_prompt=>'الجهة وفئة التغطية (فارغ = نقدي)'
 ,p_display_as=>'NATIVE_SELECT_LIST'
 ,p_lov=>'select y.name_ar || '' - '' || p.name_ar || '' (المريض '' || p.patient_share_pct || ''%)'' d, p.id r from his_payer_plan p join his_payer y on y.id = p.payer_id where p.company_id = noona_his_pkg.company and p.is_active = ''Y'' and y.status_code = ''ACTIVE'' order by y.name_ar, p.code'
@@ -316,10 +316,10 @@ wwv_flow_imp_page.create_page_item(
   'page_action_on_selection', 'NONE')).to_clob
 );
 wwv_flow_imp_page.create_page_item(
- p_id=>wwv_flow_imp.id(91820275000000067)
+ p_id=>wwv_flow_imp.id(91820275000000068)
 ,p_name=>'P11_MEMBER'
 ,p_item_sequence=>20
-,p_item_plug_id=>wwv_flow_imp.id(91820275000000065)
+,p_item_plug_id=>wwv_flow_imp.id(91820275000000066)
 ,p_prompt=>'رقم العضوية'
 ,p_display_as=>'NATIVE_TEXT_FIELD'
 ,p_cSize=>20
@@ -334,10 +334,10 @@ wwv_flow_imp_page.create_page_item(
   'trim_spaces', 'BOTH')).to_clob
 );
 wwv_flow_imp_page.create_page_item(
- p_id=>wwv_flow_imp.id(91820275000000068)
+ p_id=>wwv_flow_imp.id(91820275000000069)
 ,p_name=>'P11_POLICY'
 ,p_item_sequence=>30
-,p_item_plug_id=>wwv_flow_imp.id(91820275000000065)
+,p_item_plug_id=>wwv_flow_imp.id(91820275000000066)
 ,p_prompt=>'رقم الوثيقة'
 ,p_display_as=>'NATIVE_TEXT_FIELD'
 ,p_cSize=>20
@@ -351,10 +351,10 @@ wwv_flow_imp_page.create_page_item(
   'trim_spaces', 'BOTH')).to_clob
 );
 wwv_flow_imp_page.create_page_item(
- p_id=>wwv_flow_imp.id(91820275000000069)
+ p_id=>wwv_flow_imp.id(91820275000000070)
 ,p_name=>'P11_INS_EXP'
 ,p_item_sequence=>40
-,p_item_plug_id=>wwv_flow_imp.id(91820275000000065)
+,p_item_plug_id=>wwv_flow_imp.id(91820275000000066)
 ,p_prompt=>'انتهاء التأمين'
 ,p_display_as=>'NATIVE_DATE_PICKER_APEX'
 ,p_cSize=>20
@@ -371,20 +371,20 @@ wwv_flow_imp_page.create_page_item(
   'use_defaults', 'Y')).to_clob
 );
 wwv_flow_imp_page.create_page_validation(
- p_id=>wwv_flow_imp.id(91820275000000071)
+ p_id=>wwv_flow_imp.id(91820275000000072)
 ,p_validation_name=>'P11_NAME required (SAVE)'
 ,p_validation_sequence=>21
 ,p_validation=>'P11_NAME'
 ,p_validation_type=>'ITEM_NOT_NULL'
 ,p_error_message=>'#LABEL#: قيمة مطلوبة'
-,p_when_button_pressed=>wwv_flow_imp.id(91820275000000070)
-,p_associated_item=>wwv_flow_imp.id(91820275000000052)
+,p_when_button_pressed=>wwv_flow_imp.id(91820275000000071)
+,p_associated_item=>wwv_flow_imp.id(91820275000000053)
 ,p_error_display_location=>'INLINE_WITH_FIELD_AND_NOTIFICATION'
 );
 wwv_flow_imp_page.create_page_button(
- p_id=>wwv_flow_imp.id(91820275000000070)
+ p_id=>wwv_flow_imp.id(91820275000000071)
 ,p_button_sequence=>10
-,p_button_plug_id=>wwv_flow_imp.id(91820275000000049)
+,p_button_plug_id=>wwv_flow_imp.id(91820275000000050)
 ,p_button_name=>'SAVE'
 ,p_button_action=>'SUBMIT'
 ,p_button_template_options=>'#DEFAULT#'
@@ -394,9 +394,9 @@ wwv_flow_imp_page.create_page_button(
 ,p_button_position=>'NEXT'
 );
 wwv_flow_imp_page.create_page_button(
- p_id=>wwv_flow_imp.id(91820275000000072)
+ p_id=>wwv_flow_imp.id(91820275000000073)
 ,p_button_sequence=>20
-,p_button_plug_id=>wwv_flow_imp.id(91820275000000049)
+,p_button_plug_id=>wwv_flow_imp.id(91820275000000050)
 ,p_button_name=>'BOOK'
 ,p_button_action=>'REDIRECT_URL'
 ,p_button_template_options=>'#DEFAULT#'
@@ -409,9 +409,9 @@ wwv_flow_imp_page.create_page_button(
 ,p_button_condition_type=>'EXPRESSION'
 );
 wwv_flow_imp_page.create_page_button(
- p_id=>wwv_flow_imp.id(91820275000000073)
+ p_id=>wwv_flow_imp.id(91820275000000074)
 ,p_button_sequence=>30
-,p_button_plug_id=>wwv_flow_imp.id(91820275000000049)
+,p_button_plug_id=>wwv_flow_imp.id(91820275000000050)
 ,p_button_name=>'VISIT'
 ,p_button_action=>'REDIRECT_URL'
 ,p_button_template_options=>'#DEFAULT#'
@@ -424,7 +424,7 @@ wwv_flow_imp_page.create_page_button(
 ,p_button_condition_type=>'EXPRESSION'
 );
 wwv_flow_imp_page.create_page_process(
- p_id=>wwv_flow_imp.id(91820275000000074)
+ p_id=>wwv_flow_imp.id(91820275000000075)
 ,p_process_sequence=>5
 ,p_process_point=>'BEFORE_HEADER'
 ,p_process_type=>'NATIVE_PLSQL'
@@ -440,10 +440,10 @@ wwv_flow_imp_page.create_page_process(
 'end;'))
 ,p_process_clob_language=>'PLSQL'
 ,p_error_display_location=>'INLINE_IN_NOTIFICATION'
-,p_internal_uid=>91820275000000074
+,p_internal_uid=>91820275000000075
 );
 wwv_flow_imp_page.create_page_process(
- p_id=>wwv_flow_imp.id(91820275000000075)
+ p_id=>wwv_flow_imp.id(91820275000000076)
 ,p_process_sequence=>10
 ,p_process_point=>'AFTER_SUBMIT'
 ,p_process_type=>'NATIVE_PLSQL'
@@ -456,12 +456,12 @@ wwv_flow_imp_page.create_page_process(
 'end;'))
 ,p_process_clob_language=>'PLSQL'
 ,p_error_display_location=>'INLINE_IN_NOTIFICATION'
-,p_process_when_button_id=>wwv_flow_imp.id(91820275000000070)
+,p_process_when_button_id=>wwv_flow_imp.id(91820275000000071)
 ,p_process_success_message=>'تم حفظ بيانات المريض'
-,p_internal_uid=>91820275000000075
+,p_internal_uid=>91820275000000076
 );
 wwv_flow_imp_page.create_page_plug(
- p_id=>wwv_flow_imp.id(91820275000000076)
+ p_id=>wwv_flow_imp.id(91820275000000077)
 ,p_plug_name=>'زيارات المريض'
 ,p_region_template_options=>'#DEFAULT#:t-Region--scrollBody'
 ,p_component_template_options=>'#DEFAULT#'
@@ -477,7 +477,7 @@ wwv_flow_imp_page.create_page_plug(
 ,p_prn_page_header=>'زيارات المريض'
 );
 wwv_flow_imp_page.create_worksheet(
- p_id=>wwv_flow_imp.id(91820275000000077)
+ p_id=>wwv_flow_imp.id(91820275000000078)
 ,p_max_row_count=>'1000000'
 ,p_no_data_found_message=>'لا توجد بيانات'
 ,p_pagination_type=>'ROWS_X_TO_Y'
@@ -491,10 +491,10 @@ wwv_flow_imp_page.create_worksheet(
 ,p_detail_link=>'f?p=&APP_ID.:31:&SESSION.::&DEBUG.:RP,31:P31_ID:#ID#'
 ,p_detail_link_text=>'<span role="img" aria-label="تعديل" class="fa fa-edit" title="فتح"></span>'
 ,p_owner=>'NOONA'
-,p_internal_uid=>91820275000000077
+,p_internal_uid=>91820275000000078
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820275000000079)
+ p_id=>wwv_flow_imp.id(91820275000000080)
 ,p_db_column_name=>'ID'
 ,p_display_order=>10
 ,p_column_identifier=>'A'
@@ -505,7 +505,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820275000000080)
+ p_id=>wwv_flow_imp.id(91820275000000081)
 ,p_db_column_name=>'VISIT_NO'
 ,p_display_order=>20
 ,p_column_identifier=>'B'
@@ -515,7 +515,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820275000000081)
+ p_id=>wwv_flow_imp.id(91820275000000082)
 ,p_db_column_name=>'VISIT_AT'
 ,p_display_order=>30
 ,p_column_identifier=>'C'
@@ -525,7 +525,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820275000000082)
+ p_id=>wwv_flow_imp.id(91820275000000083)
 ,p_db_column_name=>'DEPT'
 ,p_display_order=>40
 ,p_column_identifier=>'D'
@@ -535,7 +535,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820275000000083)
+ p_id=>wwv_flow_imp.id(91820275000000084)
 ,p_db_column_name=>'DOCTOR'
 ,p_display_order=>50
 ,p_column_identifier=>'E'
@@ -545,7 +545,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820275000000084)
+ p_id=>wwv_flow_imp.id(91820275000000085)
 ,p_db_column_name=>'DIAGNOSIS'
 ,p_display_order=>60
 ,p_column_identifier=>'F'
@@ -555,7 +555,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820275000000085)
+ p_id=>wwv_flow_imp.id(91820275000000086)
 ,p_db_column_name=>'PATIENT_TOTAL'
 ,p_display_order=>70
 ,p_column_identifier=>'G'
@@ -565,7 +565,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820275000000086)
+ p_id=>wwv_flow_imp.id(91820275000000087)
 ,p_db_column_name=>'PAYER_TOTAL'
 ,p_display_order=>80
 ,p_column_identifier=>'H'
@@ -575,7 +575,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820275000000087)
+ p_id=>wwv_flow_imp.id(91820275000000088)
 ,p_db_column_name=>'STATUS'
 ,p_display_order=>90
 ,p_column_identifier=>'I'
@@ -585,16 +585,16 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_rpt(
- p_id=>wwv_flow_imp.id(91820275000000078)
+ p_id=>wwv_flow_imp.id(91820275000000079)
 ,p_application_user=>'APXWS_DEFAULT'
 ,p_report_seq=>10
-,p_report_alias=>'78'
+,p_report_alias=>'79'
 ,p_status=>'PUBLIC'
 ,p_is_default=>'Y'
 ,p_report_columns=>'VISIT_NO:VISIT_AT:DEPT:DOCTOR:DIAGNOSIS:PATIENT_TOTAL:PAYER_TOTAL:STATUS'
 );
 wwv_flow_imp_page.create_page_branch(
- p_id=>wwv_flow_imp.id(91820275000000088)
+ p_id=>wwv_flow_imp.id(91820275000000089)
 ,p_branch_action=>'f?p=&APP_ID.:11:&SESSION.::&DEBUG.::P11_ID:&P11_ID.&success_msg=#SUCCESS_MSG#'
 ,p_branch_point=>'AFTER_PROCESSING'
 ,p_branch_type=>'REDIRECT_URL'

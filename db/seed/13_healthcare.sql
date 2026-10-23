@@ -9,7 +9,8 @@ BEGIN
   MERGE INTO ace_event_class e
   USING (SELECT 'HIS_INVOICE_POSTED' code, 'فاتورة زيارة طبية' name_ar, 'Medical visit invoice' name_en, 'HIS_INVOICE' ent FROM dual
          UNION ALL SELECT 'HIS_INVOICE_CANCELLED', 'إلغاء فاتورة زيارة طبية', 'Medical invoice cancelled', 'HIS_INVOICE' FROM dual
-         UNION ALL SELECT 'HIS_CLAIM_REJECTION', 'رفض مطالبات التأمين', 'Insurance claim rejection', 'HIS_CLAIM_BATCH' FROM dual) x
+         UNION ALL SELECT 'HIS_CLAIM_REJECTION', 'رفض مطالبات التأمين', 'Insurance claim rejection', 'HIS_CLAIM_BATCH' FROM dual
+         UNION ALL SELECT 'HIS_COMMISSION_ACCRUED', 'استحقاق عمولات الأطباء', 'Doctor commission accrual', 'HIS_COMMISSION' FROM dual) x
      ON (e.code = x.code)
    WHEN MATCHED THEN UPDATE SET e.name_ar = x.name_ar, e.name_en = x.name_en
    WHEN NOT MATCHED THEN INSERT (code, name_ar, name_en, event_family, source_entity_type, posting_mode, is_active, created_by)

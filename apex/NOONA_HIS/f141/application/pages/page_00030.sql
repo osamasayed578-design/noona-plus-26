@@ -22,7 +22,7 @@ wwv_flow_imp_page.create_page(
 ,p_protection_level=>'C'
 );
 wwv_flow_imp_page.create_page_plug(
- p_id=>wwv_flow_imp.id(91820275000000127)
+ p_id=>wwv_flow_imp.id(91820275000000128)
 ,p_plug_name=>'إجراءات'
 ,p_region_template_options=>'#DEFAULT#:t-Region--removeHeader js-removeLandmark'
 ,p_plug_template=>4072358936313175081
@@ -33,9 +33,9 @@ wwv_flow_imp_page.create_page_plug(
   'show_line_breaks', 'Y')).to_clob
 );
 wwv_flow_imp_page.create_page_button(
- p_id=>wwv_flow_imp.id(91820275000000128)
+ p_id=>wwv_flow_imp.id(91820275000000129)
 ,p_button_sequence=>10
-,p_button_plug_id=>wwv_flow_imp.id(91820275000000127)
+,p_button_plug_id=>wwv_flow_imp.id(91820275000000128)
 ,p_button_name=>'NEW'
 ,p_button_action=>'REDIRECT_URL'
 ,p_button_template_options=>'#DEFAULT#'
@@ -46,7 +46,7 @@ wwv_flow_imp_page.create_page_button(
 ,p_button_redirect_url=>'f?p=&APP_ID.:32:&SESSION.::&DEBUG.:RP,32::'
 );
 wwv_flow_imp_page.create_page_plug(
- p_id=>wwv_flow_imp.id(91820275000000129)
+ p_id=>wwv_flow_imp.id(91820275000000130)
 ,p_plug_name=>'الزيارات'
 ,p_region_template_options=>'#DEFAULT#'
 ,p_component_template_options=>'#DEFAULT#'
@@ -64,7 +64,7 @@ wwv_flow_imp_page.create_page_plug(
 ,p_prn_page_header=>'الزيارات'
 );
 wwv_flow_imp_page.create_worksheet(
- p_id=>wwv_flow_imp.id(91820275000000130)
+ p_id=>wwv_flow_imp.id(91820275000000131)
 ,p_max_row_count=>'1000000'
 ,p_no_data_found_message=>'لا توجد بيانات'
 ,p_pagination_type=>'ROWS_X_TO_Y'
@@ -78,10 +78,10 @@ wwv_flow_imp_page.create_worksheet(
 ,p_detail_link=>'f?p=&APP_ID.:31:&SESSION.::&DEBUG.:RP,31:P31_ID:#ID#'
 ,p_detail_link_text=>'<span role="img" aria-label="تعديل" class="fa fa-edit" title="فتح"></span>'
 ,p_owner=>'NOONA'
-,p_internal_uid=>91820275000000130
+,p_internal_uid=>91820275000000131
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820275000000132)
+ p_id=>wwv_flow_imp.id(91820275000000133)
 ,p_db_column_name=>'ID'
 ,p_display_order=>10
 ,p_column_identifier=>'A'
@@ -92,7 +92,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820275000000133)
+ p_id=>wwv_flow_imp.id(91820275000000134)
 ,p_db_column_name=>'VISIT_NO'
 ,p_display_order=>20
 ,p_column_identifier=>'B'
@@ -102,7 +102,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820275000000134)
+ p_id=>wwv_flow_imp.id(91820275000000135)
 ,p_db_column_name=>'VISIT_AT'
 ,p_display_order=>30
 ,p_column_identifier=>'C'
@@ -112,7 +112,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820275000000135)
+ p_id=>wwv_flow_imp.id(91820275000000136)
 ,p_db_column_name=>'PATIENT'
 ,p_display_order=>40
 ,p_column_identifier=>'D'
@@ -122,7 +122,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820275000000136)
+ p_id=>wwv_flow_imp.id(91820275000000137)
 ,p_db_column_name=>'MRN'
 ,p_display_order=>50
 ,p_column_identifier=>'E'
@@ -132,7 +132,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820275000000137)
+ p_id=>wwv_flow_imp.id(91820275000000138)
 ,p_db_column_name=>'DEPT'
 ,p_display_order=>60
 ,p_column_identifier=>'F'
@@ -142,7 +142,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820275000000138)
+ p_id=>wwv_flow_imp.id(91820275000000139)
 ,p_db_column_name=>'DOCTOR'
 ,p_display_order=>70
 ,p_column_identifier=>'G'
@@ -152,7 +152,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820275000000139)
+ p_id=>wwv_flow_imp.id(91820275000000140)
 ,p_db_column_name=>'BILL_TO'
 ,p_display_order=>80
 ,p_column_identifier=>'H'
@@ -162,7 +162,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820275000000140)
+ p_id=>wwv_flow_imp.id(91820275000000141)
 ,p_db_column_name=>'PATIENT_TOTAL'
 ,p_display_order=>90
 ,p_column_identifier=>'I'
@@ -172,7 +172,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820275000000141)
+ p_id=>wwv_flow_imp.id(91820275000000142)
 ,p_db_column_name=>'PAYER_TOTAL'
 ,p_display_order=>100
 ,p_column_identifier=>'J'
@@ -182,7 +182,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820275000000142)
+ p_id=>wwv_flow_imp.id(91820275000000143)
 ,p_db_column_name=>'PAID_AMOUNT'
 ,p_display_order=>110
 ,p_column_identifier=>'K'
@@ -192,7 +192,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820275000000143)
+ p_id=>wwv_flow_imp.id(91820275000000144)
 ,p_db_column_name=>'UNBILLED'
 ,p_display_order=>120
 ,p_column_identifier=>'L'
@@ -202,7 +202,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820275000000144)
+ p_id=>wwv_flow_imp.id(91820275000000145)
 ,p_db_column_name=>'STATUS'
 ,p_display_order=>130
 ,p_column_identifier=>'M'
@@ -212,10 +212,10 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_rpt(
- p_id=>wwv_flow_imp.id(91820275000000131)
+ p_id=>wwv_flow_imp.id(91820275000000132)
 ,p_application_user=>'APXWS_DEFAULT'
 ,p_report_seq=>10
-,p_report_alias=>'131'
+,p_report_alias=>'132'
 ,p_status=>'PUBLIC'
 ,p_is_default=>'Y'
 ,p_report_columns=>'VISIT_NO:VISIT_AT:PATIENT:MRN:DEPT:DOCTOR:BILL_TO:PATIENT_TOTAL:PAYER_TOTAL:PAID_AMOUNT:UNBILLED:STATUS'
