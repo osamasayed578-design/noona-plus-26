@@ -27,6 +27,7 @@ DECLARE
   l_mem  NUMBER;
   l_role NUMBER;
   l_n    NUMBER;
+  l_bal0 NUMBER;
   l_s    VARCHAR2(4000);
   l_c    CLOB;
   l_per  NUMBER;
@@ -87,13 +88,15 @@ BEGIN
   BEGIN NOONA_GL_PKG.approve_journal(l_j); ok('maker cannot approve', FALSE);
   EXCEPTION WHEN OTHERS THEN expect('maker cannot approve', 'NOONA-GL-071', SQLERRM); END;
 
+  SELECT NVL(SUM(period_dr_func - period_cr_func), 0) INTO l_bal0 FROM gl_balance b JOIN gl_account a ON a.id = b.account_id
+   WHERE b.ledger_id = l_led AND a.account_code = '1102';
   login('GLA' || l_sfx);
   NOONA_GL_PKG.approve_journal(l_j, 'مطابق');
   SELECT status_code, doc_no INTO l_s, l_c FROM gl_journal WHERE id = l_j;
   ok('approved journal posted with official number', l_s = 'POSTED' AND l_c LIKE 'JV-%', l_s || ' ' || l_c);
   SELECT NVL(SUM(period_dr_func - period_cr_func), 0) INTO l_n FROM gl_balance b JOIN gl_account a ON a.id = b.account_id
    WHERE b.ledger_id = l_led AND a.account_code = '1102';
-  ok('balances updated on posting', l_n >= 100000, l_n);
+  ok('balances updated on posting', l_n - l_bal0 = 100000, l_n - l_bal0);
   l_c := NOONA_GL_PKG.trial_balance(TRUNC(l_date, 'YYYY'), l_date);
   ok('trial balance balanced', INSTR(l_c, 'الميزان متوازن') > 0);
   SELECT id INTO l_n FROM gl_account a WHERE a.account_code = '3101' AND a.coa_id = (SELECT coa_id FROM gl_ledger WHERE id = l_led);
