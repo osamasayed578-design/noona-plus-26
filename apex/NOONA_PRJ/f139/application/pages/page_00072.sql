@@ -1,0 +1,238 @@
+prompt --application/pages/page_00072
+begin
+--   Manifest
+--     PAGE: 00072
+--   Manifest End
+wwv_flow_imp.component_begin (
+ p_version_yyyy_mm_dd=>'2024.11.30'
+,p_release=>'24.2.0'
+,p_default_workspace_id=>17663301221950901
+,p_default_application_id=>139
+,p_default_id_offset=>0
+,p_default_owner=>'NOONA_APP'
+);
+wwv_flow_imp_page.create_page(
+ p_id=>72
+,p_name=>'Maintenance Requests'
+,p_alias=>'MAINT-REQUESTS'
+,p_step_title=>'سجل البلاغات'
+,p_autocomplete_on_off=>'OFF'
+,p_page_template_options=>'#DEFAULT#'
+,p_required_role=>wwv_flow_imp.id(91820273000000011)
+,p_protection_level=>'C'
+);
+wwv_flow_imp_page.create_page_plug(
+ p_id=>wwv_flow_imp.id(91820273000000458)
+,p_plug_name=>'إجراءات'
+,p_region_template_options=>'#DEFAULT#:t-Region--removeHeader js-removeLandmark'
+,p_plug_template=>4072358936313175081
+,p_plug_display_sequence=>5
+,p_attributes=>wwv_flow_t_plugin_attributes(wwv_flow_t_varchar2(
+  'expand_shortcuts', 'N',
+  'output_as', 'HTML',
+  'show_line_breaks', 'Y')).to_clob
+);
+wwv_flow_imp_page.create_page_button(
+ p_id=>wwv_flow_imp.id(91820273000000459)
+,p_button_sequence=>10
+,p_button_plug_id=>wwv_flow_imp.id(91820273000000458)
+,p_button_name=>'NEW'
+,p_button_action=>'REDIRECT_URL'
+,p_button_template_options=>'#DEFAULT#'
+,p_button_template_id=>4072362960822175091
+,p_button_is_hot=>'Y'
+,p_button_image_alt=>'بلاغ جديد'
+,p_button_position=>'NEXT'
+,p_button_redirect_url=>'f?p=&APP_ID.:71:&SESSION.::&DEBUG.:RP,71::'
+);
+wwv_flow_imp_page.create_page_plug(
+ p_id=>wwv_flow_imp.id(91820273000000460)
+,p_plug_name=>'البلاغات'
+,p_region_template_options=>'#DEFAULT#'
+,p_component_template_options=>'#DEFAULT#'
+,p_plug_template=>2100526641005906379
+,p_plug_display_sequence=>10
+,p_query_type=>'SQL'
+,p_plug_source=>wwv_flow_string.join(wwv_flow_t_varchar2(
+'select r.id, r.doc_no, to_char(r.created_at, ''YYYY-MM-DD HH24:MI'') as created, c.name_ar as category, r.title,',
+'       noona_mnt_pkg.location_label(r.id) as location, noona_mnt_pkg.priority_label(r.priority_code) as priority,',
+'       noona_mnt_pkg.channel_label(r.channel_code) as channel, t.name_ar as team, noona_mnt_pkg.technician_name(r.technician_id) as tech,',
+'       noona_mnt_pkg.status_label(r.status_code) as status, noona_mnt_pkg.sla_badge(r.due_at, r.resolved_at, r.status_code) as sla_html,',
+'       round((cast(nvl(r.resolved_at, systimestamp) as date) - cast(r.created_at as date)) * 24, 1) as hours, r.satisfaction_score',
+'  from mnt_request r join mnt_service_category c on c.id = r.category_id left join mnt_team t on t.id = r.team_id',
+' where r.company_id = noona_mnt_pkg.company order by r.created_at desc'))
+,p_plug_source_type=>'NATIVE_IR'
+,p_prn_page_header=>'البلاغات'
+);
+wwv_flow_imp_page.create_worksheet(
+ p_id=>wwv_flow_imp.id(91820273000000461)
+,p_max_row_count=>'1000000'
+,p_no_data_found_message=>'لا توجد بيانات'
+,p_pagination_type=>'ROWS_X_TO_Y'
+,p_pagination_display_pos=>'BOTTOM_RIGHT'
+,p_report_list_mode=>'TABS'
+,p_lazy_loading=>false
+,p_show_detail_link=>'C'
+,p_show_notify=>'N'
+,p_download_formats=>'CSV:HTML:XLSX:PDF'
+,p_enable_mail_download=>'N'
+,p_detail_link=>'f?p=&APP_ID.:71:&SESSION.::&DEBUG.:RP,71:P71_ID:#ID#'
+,p_detail_link_text=>'<span role="img" aria-label="تعديل" class="fa fa-edit" title="فتح"></span>'
+,p_owner=>'NOONA'
+,p_internal_uid=>91820273000000461
+);
+wwv_flow_imp_page.create_worksheet_column(
+ p_id=>wwv_flow_imp.id(91820273000000463)
+,p_db_column_name=>'ID'
+,p_display_order=>10
+,p_column_identifier=>'A'
+,p_column_label=>'#'
+,p_column_type=>'NUMBER'
+,p_display_text_as=>'HIDDEN'
+,p_heading_alignment=>'CENTER'
+,p_use_as_row_header=>'N'
+);
+wwv_flow_imp_page.create_worksheet_column(
+ p_id=>wwv_flow_imp.id(91820273000000464)
+,p_db_column_name=>'DOC_NO'
+,p_display_order=>20
+,p_column_identifier=>'B'
+,p_column_label=>'البلاغ'
+,p_column_type=>'STRING'
+,p_heading_alignment=>'CENTER'
+,p_use_as_row_header=>'N'
+);
+wwv_flow_imp_page.create_worksheet_column(
+ p_id=>wwv_flow_imp.id(91820273000000465)
+,p_db_column_name=>'CREATED'
+,p_display_order=>30
+,p_column_identifier=>'C'
+,p_column_label=>'الوقت'
+,p_column_type=>'STRING'
+,p_heading_alignment=>'CENTER'
+,p_use_as_row_header=>'N'
+);
+wwv_flow_imp_page.create_worksheet_column(
+ p_id=>wwv_flow_imp.id(91820273000000466)
+,p_db_column_name=>'CATEGORY'
+,p_display_order=>40
+,p_column_identifier=>'D'
+,p_column_label=>'النوع'
+,p_column_type=>'STRING'
+,p_heading_alignment=>'CENTER'
+,p_use_as_row_header=>'N'
+);
+wwv_flow_imp_page.create_worksheet_column(
+ p_id=>wwv_flow_imp.id(91820273000000467)
+,p_db_column_name=>'TITLE'
+,p_display_order=>50
+,p_column_identifier=>'E'
+,p_column_label=>'العنوان'
+,p_column_type=>'STRING'
+,p_heading_alignment=>'CENTER'
+,p_use_as_row_header=>'N'
+);
+wwv_flow_imp_page.create_worksheet_column(
+ p_id=>wwv_flow_imp.id(91820273000000468)
+,p_db_column_name=>'LOCATION'
+,p_display_order=>60
+,p_column_identifier=>'F'
+,p_column_label=>'الموقع'
+,p_column_type=>'STRING'
+,p_heading_alignment=>'CENTER'
+,p_use_as_row_header=>'N'
+);
+wwv_flow_imp_page.create_worksheet_column(
+ p_id=>wwv_flow_imp.id(91820273000000469)
+,p_db_column_name=>'PRIORITY'
+,p_display_order=>70
+,p_column_identifier=>'G'
+,p_column_label=>'الأولوية'
+,p_column_type=>'STRING'
+,p_heading_alignment=>'CENTER'
+,p_use_as_row_header=>'N'
+);
+wwv_flow_imp_page.create_worksheet_column(
+ p_id=>wwv_flow_imp.id(91820273000000470)
+,p_db_column_name=>'CHANNEL'
+,p_display_order=>80
+,p_column_identifier=>'H'
+,p_column_label=>'القناة'
+,p_column_type=>'STRING'
+,p_heading_alignment=>'CENTER'
+,p_use_as_row_header=>'N'
+);
+wwv_flow_imp_page.create_worksheet_column(
+ p_id=>wwv_flow_imp.id(91820273000000471)
+,p_db_column_name=>'TEAM'
+,p_display_order=>90
+,p_column_identifier=>'I'
+,p_column_label=>'الفريق'
+,p_column_type=>'STRING'
+,p_heading_alignment=>'CENTER'
+,p_use_as_row_header=>'N'
+);
+wwv_flow_imp_page.create_worksheet_column(
+ p_id=>wwv_flow_imp.id(91820273000000472)
+,p_db_column_name=>'TECH'
+,p_display_order=>100
+,p_column_identifier=>'J'
+,p_column_label=>'الفني'
+,p_column_type=>'STRING'
+,p_heading_alignment=>'CENTER'
+,p_use_as_row_header=>'N'
+);
+wwv_flow_imp_page.create_worksheet_column(
+ p_id=>wwv_flow_imp.id(91820273000000473)
+,p_db_column_name=>'STATUS'
+,p_display_order=>110
+,p_column_identifier=>'K'
+,p_column_label=>'الحالة'
+,p_column_type=>'STRING'
+,p_heading_alignment=>'CENTER'
+,p_use_as_row_header=>'N'
+);
+wwv_flow_imp_page.create_worksheet_column(
+ p_id=>wwv_flow_imp.id(91820273000000474)
+,p_db_column_name=>'SLA_HTML'
+,p_display_order=>120
+,p_column_identifier=>'L'
+,p_column_label=>'الموعد'
+,p_column_type=>'STRING'
+,p_display_text_as=>'WITHOUT_MODIFICATION'
+,p_heading_alignment=>'CENTER'
+,p_use_as_row_header=>'N'
+);
+wwv_flow_imp_page.create_worksheet_column(
+ p_id=>wwv_flow_imp.id(91820273000000475)
+,p_db_column_name=>'HOURS'
+,p_display_order=>130
+,p_column_identifier=>'M'
+,p_column_label=>'الساعات'
+,p_column_type=>'NUMBER'
+,p_heading_alignment=>'CENTER'
+,p_use_as_row_header=>'N'
+);
+wwv_flow_imp_page.create_worksheet_column(
+ p_id=>wwv_flow_imp.id(91820273000000476)
+,p_db_column_name=>'SATISFACTION_SCORE'
+,p_display_order=>140
+,p_column_identifier=>'N'
+,p_column_label=>'التقييم'
+,p_column_type=>'NUMBER'
+,p_heading_alignment=>'CENTER'
+,p_use_as_row_header=>'N'
+);
+wwv_flow_imp_page.create_worksheet_rpt(
+ p_id=>wwv_flow_imp.id(91820273000000462)
+,p_application_user=>'APXWS_DEFAULT'
+,p_report_seq=>10
+,p_report_alias=>'462'
+,p_status=>'PUBLIC'
+,p_is_default=>'Y'
+,p_report_columns=>'DOC_NO:CREATED:CATEGORY:TITLE:LOCATION:PRIORITY:CHANNEL:TEAM:TECH:STATUS:SLA_HTML:HOURS:SATISFACTION_SCORE'
+);
+
+wwv_flow_imp.component_end;
+end;
+/

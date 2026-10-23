@@ -84,6 +84,7 @@ CREATE OR REPLACE PACKAGE NOONA_HSP_PKG AUTHID DEFINER AS
   FUNCTION res_status_label(p_code IN VARCHAR2) RETURN VARCHAR2;
   FUNCTION channel_label(p_code IN VARCHAR2) RETURN VARCHAR2;
   FUNCTION guest_name(p_party_id IN NUMBER) RETURN VARCHAR2;
+  FUNCTION res_status(p_reservation_id IN NUMBER) RETURN VARCHAR2;
   FUNCTION guest_phone(p_party_id IN NUMBER) RETURN VARCHAR2;
   FUNCTION rack_json(p_property_id IN NUMBER) RETURN CLOB;
   FUNCTION chart_json(p_property_id IN NUMBER, p_from IN DATE, p_days IN NUMBER DEFAULT 14) RETURN CLOB;
@@ -192,6 +193,13 @@ CREATE OR REPLACE PACKAGE BODY NOONA_HSP_PKG AS
     SELECT MAX(display_name_ar) INTO l FROM pty_party WHERE id = p_party_id;
     RETURN l;
   END guest_name;
+
+  FUNCTION res_status(p_reservation_id IN NUMBER) RETURN VARCHAR2 IS
+    l VARCHAR2(30);
+  BEGIN
+    SELECT MAX(status_code) INTO l FROM hsp_reservation WHERE id = p_reservation_id AND company_id = company;
+    RETURN l;
+  END res_status;
 
   FUNCTION guest_phone(p_party_id IN NUMBER) RETURN VARCHAR2 IS
     l VARCHAR2(50);
@@ -1153,9 +1161,18 @@ CREATE OR REPLACE PACKAGE BODY NOONA_HSP_PKG AS
     l_sep VARCHAR2(1);
     l_no  VARCHAR2(20);
     l_fno VARCHAR2(50);
+    l_pend NUMBER;
+    l_n   NUMBER;
+    l_incl VARCHAR2(1);
   BEGIN
     SELECT * INTO l_s FROM hsp_stay WHERE id = p_stay_id AND company_id = company;
     SELECT * INTO l_r FROM hsp_reservation WHERE id = l_s.reservation_id;
+    -- رسوم الليالي غير المرحلة حتى المغادرة اليوم (تقديرية شاملة الضريبة)
+    l_n := GREATEST(business_date(l_r.property_id) - 1, TRUNC(CAST(l_s.check_in_at AS DATE)))
+           - NVL(l_s.last_charged_date, TRUNC(CAST(l_s.check_in_at AS DATE)) - 1);
+    SELECT NVL(MAX(p.includes_tax), 'N') INTO l_incl FROM hsp_rate_plan p WHERE p.id = l_r.rate_plan_id;
+    l_pend := CASE WHEN l_s.status_code = 'IN_HOUSE' AND l_n > 0 THEN
+                ROUND(l_n * l_s.nightly_rate * CASE WHEN l_incl = 'Y' THEN 1 ELSE 1 + c_vat / 100 END, 2) END;
     SELECT room_no INTO l_no FROM hsp_room WHERE id = l_s.room_id;
     l_fol := folio_of_stay(p_stay_id);
     SELECT MAX(folio_no) INTO l_fno FROM hsp_folio WHERE id = l_fol;
@@ -1164,7 +1181,7 @@ CREATE OR REPLACE PACKAGE BODY NOONA_HSP_PKG AS
           || jd(TRUNC(CAST(l_s.check_in_at AS DATE))) || ',"dep":' || jd(l_s.expected_check_out) || ',"rate":' || jn(l_s.nightly_rate)
           || ',"adults":' || l_r.adults || ',"channel":' || jt(channel_label(l_r.channel_code)) || ',"requests":' || jt(l_r.special_requests)
           || ',"status":"' || l_s.status_code || '","folio":' || jn(l_fol) || ',"folio_no":' || jt(l_fno) || ',"balance":'
-          || jn(folio_balance(l_fol)) || ',"lines":[';
+          || jn(folio_balance(l_fol)) || ',"pending":' || jn(l_pend) || ',"lines":[';
     FOR l IN (SELECT business_date, line_type, description, amount FROM hsp_folio_line WHERE folio_id = l_fol ORDER BY business_date, id) LOOP
       l_out := l_out || l_sep || '{"d":' || jd(l.business_date) || ',"t":"' || l.line_type || '","x":' || jt(l.description) || ',"a":' || jn(l.amount) || '}';
       l_sep := ',';
@@ -1243,6 +1260,8 @@ CREATE OR REPLACE PACKAGE BODY NOONA_HSP_PKG AS
         || '</td></tr><tr class="nn-rpt-total"><td class="nn-rpt-text">الإجمالي شامل الضريبة</td><td>' || fnum(l_chg + l_tax)
         || '</td></tr><tr><td class="nn-rpt-text">المدفوع والمحول</td><td>' || fnum(l_pay) || '</td></tr><tr class="nn-rpt-total"><td class="nn-rpt-text">الرصيد</td><td>'
         || fnum(l_chg + l_tax - l_pay) || '</td></tr></tbody></table></div>';
+  EXCEPTION WHEN NO_DATA_FOUND THEN
+    RETURN '<div class="nn-empty">حساب النزيل غير موجود</div>';
   END folio_html;
 
   FUNCTION occupancy_html(p_property_id IN NUMBER, p_from IN DATE, p_to IN DATE) RETURN CLOB IS

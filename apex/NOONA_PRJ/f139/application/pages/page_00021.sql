@@ -1,0 +1,421 @@
+prompt --application/pages/page_00021
+begin
+--   Manifest
+--     PAGE: 00021
+--   Manifest End
+wwv_flow_imp.component_begin (
+ p_version_yyyy_mm_dd=>'2024.11.30'
+,p_release=>'24.2.0'
+,p_default_workspace_id=>17663301221950901
+,p_default_application_id=>139
+,p_default_id_offset=>0
+,p_default_owner=>'NOONA_APP'
+);
+wwv_flow_imp_page.create_page(
+ p_id=>21
+,p_name=>'Reservations'
+,p_alias=>'RESERVATIONS'
+,p_step_title=>'الحجوزات'
+,p_autocomplete_on_off=>'OFF'
+,p_page_template_options=>'#DEFAULT#'
+,p_required_role=>wwv_flow_imp.id(91820273000000010)
+,p_protection_level=>'C'
+);
+wwv_flow_imp_page.create_page_plug(
+ p_id=>wwv_flow_imp.id(91820273000000174)
+,p_plug_name=>'إجراءات'
+,p_region_template_options=>'#DEFAULT#:t-Region--removeHeader js-removeLandmark'
+,p_plug_template=>4072358936313175081
+,p_plug_display_sequence=>5
+,p_attributes=>wwv_flow_t_plugin_attributes(wwv_flow_t_varchar2(
+  'expand_shortcuts', 'N',
+  'output_as', 'HTML',
+  'show_line_breaks', 'Y')).to_clob
+);
+wwv_flow_imp_page.create_page_button(
+ p_id=>wwv_flow_imp.id(91820273000000175)
+,p_button_sequence=>10
+,p_button_plug_id=>wwv_flow_imp.id(91820273000000174)
+,p_button_name=>'NEW'
+,p_button_action=>'REDIRECT_URL'
+,p_button_template_options=>'#DEFAULT#'
+,p_button_template_id=>4072362960822175091
+,p_button_is_hot=>'Y'
+,p_button_image_alt=>'حجز جديد'
+,p_button_position=>'NEXT'
+,p_button_redirect_url=>'f?p=&APP_ID.:22:&SESSION.::&DEBUG.:RP,22::'
+);
+wwv_flow_imp_page.create_page_button(
+ p_id=>wwv_flow_imp.id(91820273000000176)
+,p_button_sequence=>20
+,p_button_plug_id=>wwv_flow_imp.id(91820273000000174)
+,p_button_name=>'FD'
+,p_button_action=>'REDIRECT_URL'
+,p_button_template_options=>'#DEFAULT#'
+,p_button_template_id=>4072362960822175091
+,p_button_image_alt=>'لوحة الاستقبال'
+,p_button_position=>'NEXT'
+,p_button_redirect_url=>'f?p=&APP_ID.:20:&SESSION.::&DEBUG.:::'
+);
+wwv_flow_imp_page.create_page_plug(
+ p_id=>wwv_flow_imp.id(91820273000000177)
+,p_plug_name=>'الوصول المتوقع اليوم'
+,p_region_template_options=>'#DEFAULT#:t-Region--scrollBody'
+,p_component_template_options=>'#DEFAULT#'
+,p_plug_template=>4072358936313175081
+,p_plug_display_sequence=>10
+,p_query_type=>'SQL'
+,p_plug_source=>wwv_flow_string.join(wwv_flow_t_varchar2(
+'select x.id, x.doc_no, pr.name_ar as hotel, noona_hsp_pkg.guest_name(x.guest_party_id) as guest, noona_hsp_pkg.guest_phone(x.guest_party_id) as phone,',
+'       (select listagg(r.room_no, ''، '') within group (order by r.room_no) from hsp_reservation_room rr join hsp_room r on r.id = rr.room_id',
+'         where rr.reservation_id = x.id) as rooms, to_char(x.arrival_date, ''YYYY-MM-DD'') as arr, to_char(x.departure_date, ''YYYY-MM-DD'') as dep,',
+'       x.departure_date - x.arrival_date as nights, x.total_estimate, x.deposit_amount, noona_hsp_pkg.channel_label(x.channel_code) as channel,',
+'       ''<span class="nn-badge '' || case when x.status_code in (''CHECKED_IN'') then ''is-success'' when x.status_code in (''CANCELLED'', ''NO_SHOW'')',
+'       then ''is-danger'' when x.status_code = ''CHECKED_OUT'' then ''is-info'' else ''is-warning'' end || ''">'' || noona_hsp_pkg.res_status_label(x.status_code)',
+'       || ''</span>'' as status_html',
+'  from hsp_reservation x join re_property pr on pr.id = x.property_id where x.company_id = noona_hsp_pkg.company',
+' and x.status_code in (''TENTATIVE'', ''CONFIRMED'', ''GUARANTEED'') and x.arrival_date <= noona_hsp_pkg.business_date(x.property_id) order by x.arrival_date'))
+,p_plug_source_type=>'NATIVE_IR'
+,p_prn_page_header=>'الوصول المتوقع اليوم'
+);
+wwv_flow_imp_page.create_worksheet(
+ p_id=>wwv_flow_imp.id(91820273000000178)
+,p_max_row_count=>'1000000'
+,p_no_data_found_message=>'لا توجد بيانات'
+,p_pagination_type=>'ROWS_X_TO_Y'
+,p_pagination_display_pos=>'BOTTOM_RIGHT'
+,p_report_list_mode=>'TABS'
+,p_lazy_loading=>false
+,p_show_detail_link=>'C'
+,p_show_notify=>'N'
+,p_download_formats=>'CSV:HTML:XLSX:PDF'
+,p_enable_mail_download=>'N'
+,p_detail_link=>'f?p=&APP_ID.:23:&SESSION.::&DEBUG.:RP,23:P23_ID:#ID#'
+,p_detail_link_text=>'<span role="img" aria-label="تعديل" class="fa fa-edit" title="فتح"></span>'
+,p_owner=>'NOONA'
+,p_internal_uid=>91820273000000178
+);
+wwv_flow_imp_page.create_worksheet_column(
+ p_id=>wwv_flow_imp.id(91820273000000180)
+,p_db_column_name=>'ID'
+,p_display_order=>10
+,p_column_identifier=>'A'
+,p_column_label=>'#'
+,p_column_type=>'NUMBER'
+,p_display_text_as=>'HIDDEN'
+,p_heading_alignment=>'CENTER'
+,p_use_as_row_header=>'N'
+);
+wwv_flow_imp_page.create_worksheet_column(
+ p_id=>wwv_flow_imp.id(91820273000000181)
+,p_db_column_name=>'DOC_NO'
+,p_display_order=>20
+,p_column_identifier=>'B'
+,p_column_label=>'الحجز'
+,p_column_type=>'STRING'
+,p_heading_alignment=>'CENTER'
+,p_use_as_row_header=>'N'
+);
+wwv_flow_imp_page.create_worksheet_column(
+ p_id=>wwv_flow_imp.id(91820273000000182)
+,p_db_column_name=>'HOTEL'
+,p_display_order=>30
+,p_column_identifier=>'C'
+,p_column_label=>'الفندق'
+,p_column_type=>'STRING'
+,p_heading_alignment=>'CENTER'
+,p_use_as_row_header=>'N'
+);
+wwv_flow_imp_page.create_worksheet_column(
+ p_id=>wwv_flow_imp.id(91820273000000183)
+,p_db_column_name=>'GUEST'
+,p_display_order=>40
+,p_column_identifier=>'D'
+,p_column_label=>'النزيل'
+,p_column_type=>'STRING'
+,p_heading_alignment=>'CENTER'
+,p_use_as_row_header=>'N'
+);
+wwv_flow_imp_page.create_worksheet_column(
+ p_id=>wwv_flow_imp.id(91820273000000184)
+,p_db_column_name=>'PHONE'
+,p_display_order=>50
+,p_column_identifier=>'E'
+,p_column_label=>'الجوال'
+,p_column_type=>'STRING'
+,p_heading_alignment=>'CENTER'
+,p_use_as_row_header=>'N'
+);
+wwv_flow_imp_page.create_worksheet_column(
+ p_id=>wwv_flow_imp.id(91820273000000185)
+,p_db_column_name=>'ROOMS'
+,p_display_order=>60
+,p_column_identifier=>'F'
+,p_column_label=>'الغرفة'
+,p_column_type=>'STRING'
+,p_heading_alignment=>'CENTER'
+,p_use_as_row_header=>'N'
+);
+wwv_flow_imp_page.create_worksheet_column(
+ p_id=>wwv_flow_imp.id(91820273000000186)
+,p_db_column_name=>'ARR'
+,p_display_order=>70
+,p_column_identifier=>'G'
+,p_column_label=>'الوصول'
+,p_column_type=>'STRING'
+,p_heading_alignment=>'CENTER'
+,p_use_as_row_header=>'N'
+);
+wwv_flow_imp_page.create_worksheet_column(
+ p_id=>wwv_flow_imp.id(91820273000000187)
+,p_db_column_name=>'DEP'
+,p_display_order=>80
+,p_column_identifier=>'H'
+,p_column_label=>'المغادرة'
+,p_column_type=>'STRING'
+,p_heading_alignment=>'CENTER'
+,p_use_as_row_header=>'N'
+);
+wwv_flow_imp_page.create_worksheet_column(
+ p_id=>wwv_flow_imp.id(91820273000000188)
+,p_db_column_name=>'NIGHTS'
+,p_display_order=>90
+,p_column_identifier=>'I'
+,p_column_label=>'الليالي'
+,p_column_type=>'NUMBER'
+,p_heading_alignment=>'CENTER'
+,p_use_as_row_header=>'N'
+);
+wwv_flow_imp_page.create_worksheet_column(
+ p_id=>wwv_flow_imp.id(91820273000000189)
+,p_db_column_name=>'TOTAL_ESTIMATE'
+,p_display_order=>100
+,p_column_identifier=>'J'
+,p_column_label=>'الإجمالي التقديري'
+,p_column_type=>'NUMBER'
+,p_heading_alignment=>'CENTER'
+,p_use_as_row_header=>'N'
+);
+wwv_flow_imp_page.create_worksheet_column(
+ p_id=>wwv_flow_imp.id(91820273000000190)
+,p_db_column_name=>'DEPOSIT_AMOUNT'
+,p_display_order=>110
+,p_column_identifier=>'K'
+,p_column_label=>'العربون'
+,p_column_type=>'NUMBER'
+,p_heading_alignment=>'CENTER'
+,p_use_as_row_header=>'N'
+);
+wwv_flow_imp_page.create_worksheet_column(
+ p_id=>wwv_flow_imp.id(91820273000000191)
+,p_db_column_name=>'CHANNEL'
+,p_display_order=>120
+,p_column_identifier=>'L'
+,p_column_label=>'القناة'
+,p_column_type=>'STRING'
+,p_heading_alignment=>'CENTER'
+,p_use_as_row_header=>'N'
+);
+wwv_flow_imp_page.create_worksheet_column(
+ p_id=>wwv_flow_imp.id(91820273000000192)
+,p_db_column_name=>'STATUS_HTML'
+,p_display_order=>130
+,p_column_identifier=>'M'
+,p_column_label=>'الحالة'
+,p_column_type=>'STRING'
+,p_display_text_as=>'WITHOUT_MODIFICATION'
+,p_heading_alignment=>'CENTER'
+,p_use_as_row_header=>'N'
+);
+wwv_flow_imp_page.create_worksheet_rpt(
+ p_id=>wwv_flow_imp.id(91820273000000179)
+,p_application_user=>'APXWS_DEFAULT'
+,p_report_seq=>10
+,p_report_alias=>'179'
+,p_status=>'PUBLIC'
+,p_is_default=>'Y'
+,p_report_columns=>'DOC_NO:HOTEL:GUEST:PHONE:ROOMS:ARR:DEP:NIGHTS:TOTAL_ESTIMATE:DEPOSIT_AMOUNT:CHANNEL:STATUS_HTML'
+);
+wwv_flow_imp_page.create_page_plug(
+ p_id=>wwv_flow_imp.id(91820273000000193)
+,p_plug_name=>'كل الحجوزات'
+,p_region_template_options=>'#DEFAULT#:t-Region--scrollBody'
+,p_component_template_options=>'#DEFAULT#'
+,p_plug_template=>4072358936313175081
+,p_plug_display_sequence=>20
+,p_query_type=>'SQL'
+,p_plug_source=>wwv_flow_string.join(wwv_flow_t_varchar2(
+'select x.id, x.doc_no, pr.name_ar as hotel, noona_hsp_pkg.guest_name(x.guest_party_id) as guest, noona_hsp_pkg.guest_phone(x.guest_party_id) as phone,',
+'       (select listagg(r.room_no, ''، '') within group (order by r.room_no) from hsp_reservation_room rr join hsp_room r on r.id = rr.room_id',
+'         where rr.reservation_id = x.id) as rooms, to_char(x.arrival_date, ''YYYY-MM-DD'') as arr, to_char(x.departure_date, ''YYYY-MM-DD'') as dep,',
+'       x.departure_date - x.arrival_date as nights, x.total_estimate, x.deposit_amount, noona_hsp_pkg.channel_label(x.channel_code) as channel,',
+'       ''<span class="nn-badge '' || case when x.status_code in (''CHECKED_IN'') then ''is-success'' when x.status_code in (''CANCELLED'', ''NO_SHOW'')',
+'       then ''is-danger'' when x.status_code = ''CHECKED_OUT'' then ''is-info'' else ''is-warning'' end || ''">'' || noona_hsp_pkg.res_status_label(x.status_code)',
+'       || ''</span>'' as status_html',
+'  from hsp_reservation x join re_property pr on pr.id = x.property_id where x.company_id = noona_hsp_pkg.company',
+' order by x.arrival_date desc, x.id desc'))
+,p_plug_source_type=>'NATIVE_IR'
+,p_prn_page_header=>'كل الحجوزات'
+);
+wwv_flow_imp_page.create_worksheet(
+ p_id=>wwv_flow_imp.id(91820273000000194)
+,p_max_row_count=>'1000000'
+,p_no_data_found_message=>'لا توجد بيانات'
+,p_pagination_type=>'ROWS_X_TO_Y'
+,p_pagination_display_pos=>'BOTTOM_RIGHT'
+,p_report_list_mode=>'TABS'
+,p_lazy_loading=>false
+,p_show_detail_link=>'C'
+,p_show_notify=>'N'
+,p_download_formats=>'CSV:HTML:XLSX:PDF'
+,p_enable_mail_download=>'N'
+,p_detail_link=>'f?p=&APP_ID.:23:&SESSION.::&DEBUG.:RP,23:P23_ID:#ID#'
+,p_detail_link_text=>'<span role="img" aria-label="تعديل" class="fa fa-edit" title="فتح"></span>'
+,p_owner=>'NOONA'
+,p_internal_uid=>91820273000000194
+);
+wwv_flow_imp_page.create_worksheet_column(
+ p_id=>wwv_flow_imp.id(91820273000000196)
+,p_db_column_name=>'ID'
+,p_display_order=>10
+,p_column_identifier=>'A'
+,p_column_label=>'#'
+,p_column_type=>'NUMBER'
+,p_display_text_as=>'HIDDEN'
+,p_heading_alignment=>'CENTER'
+,p_use_as_row_header=>'N'
+);
+wwv_flow_imp_page.create_worksheet_column(
+ p_id=>wwv_flow_imp.id(91820273000000197)
+,p_db_column_name=>'DOC_NO'
+,p_display_order=>20
+,p_column_identifier=>'B'
+,p_column_label=>'الحجز'
+,p_column_type=>'STRING'
+,p_heading_alignment=>'CENTER'
+,p_use_as_row_header=>'N'
+);
+wwv_flow_imp_page.create_worksheet_column(
+ p_id=>wwv_flow_imp.id(91820273000000198)
+,p_db_column_name=>'HOTEL'
+,p_display_order=>30
+,p_column_identifier=>'C'
+,p_column_label=>'الفندق'
+,p_column_type=>'STRING'
+,p_heading_alignment=>'CENTER'
+,p_use_as_row_header=>'N'
+);
+wwv_flow_imp_page.create_worksheet_column(
+ p_id=>wwv_flow_imp.id(91820273000000199)
+,p_db_column_name=>'GUEST'
+,p_display_order=>40
+,p_column_identifier=>'D'
+,p_column_label=>'النزيل'
+,p_column_type=>'STRING'
+,p_heading_alignment=>'CENTER'
+,p_use_as_row_header=>'N'
+);
+wwv_flow_imp_page.create_worksheet_column(
+ p_id=>wwv_flow_imp.id(91820273000000200)
+,p_db_column_name=>'PHONE'
+,p_display_order=>50
+,p_column_identifier=>'E'
+,p_column_label=>'الجوال'
+,p_column_type=>'STRING'
+,p_heading_alignment=>'CENTER'
+,p_use_as_row_header=>'N'
+);
+wwv_flow_imp_page.create_worksheet_column(
+ p_id=>wwv_flow_imp.id(91820273000000201)
+,p_db_column_name=>'ROOMS'
+,p_display_order=>60
+,p_column_identifier=>'F'
+,p_column_label=>'الغرفة'
+,p_column_type=>'STRING'
+,p_heading_alignment=>'CENTER'
+,p_use_as_row_header=>'N'
+);
+wwv_flow_imp_page.create_worksheet_column(
+ p_id=>wwv_flow_imp.id(91820273000000202)
+,p_db_column_name=>'ARR'
+,p_display_order=>70
+,p_column_identifier=>'G'
+,p_column_label=>'الوصول'
+,p_column_type=>'STRING'
+,p_heading_alignment=>'CENTER'
+,p_use_as_row_header=>'N'
+);
+wwv_flow_imp_page.create_worksheet_column(
+ p_id=>wwv_flow_imp.id(91820273000000203)
+,p_db_column_name=>'DEP'
+,p_display_order=>80
+,p_column_identifier=>'H'
+,p_column_label=>'المغادرة'
+,p_column_type=>'STRING'
+,p_heading_alignment=>'CENTER'
+,p_use_as_row_header=>'N'
+);
+wwv_flow_imp_page.create_worksheet_column(
+ p_id=>wwv_flow_imp.id(91820273000000204)
+,p_db_column_name=>'NIGHTS'
+,p_display_order=>90
+,p_column_identifier=>'I'
+,p_column_label=>'الليالي'
+,p_column_type=>'NUMBER'
+,p_heading_alignment=>'CENTER'
+,p_use_as_row_header=>'N'
+);
+wwv_flow_imp_page.create_worksheet_column(
+ p_id=>wwv_flow_imp.id(91820273000000205)
+,p_db_column_name=>'TOTAL_ESTIMATE'
+,p_display_order=>100
+,p_column_identifier=>'J'
+,p_column_label=>'الإجمالي التقديري'
+,p_column_type=>'NUMBER'
+,p_heading_alignment=>'CENTER'
+,p_use_as_row_header=>'N'
+);
+wwv_flow_imp_page.create_worksheet_column(
+ p_id=>wwv_flow_imp.id(91820273000000206)
+,p_db_column_name=>'DEPOSIT_AMOUNT'
+,p_display_order=>110
+,p_column_identifier=>'K'
+,p_column_label=>'العربون'
+,p_column_type=>'NUMBER'
+,p_heading_alignment=>'CENTER'
+,p_use_as_row_header=>'N'
+);
+wwv_flow_imp_page.create_worksheet_column(
+ p_id=>wwv_flow_imp.id(91820273000000207)
+,p_db_column_name=>'CHANNEL'
+,p_display_order=>120
+,p_column_identifier=>'L'
+,p_column_label=>'القناة'
+,p_column_type=>'STRING'
+,p_heading_alignment=>'CENTER'
+,p_use_as_row_header=>'N'
+);
+wwv_flow_imp_page.create_worksheet_column(
+ p_id=>wwv_flow_imp.id(91820273000000208)
+,p_db_column_name=>'STATUS_HTML'
+,p_display_order=>130
+,p_column_identifier=>'M'
+,p_column_label=>'الحالة'
+,p_column_type=>'STRING'
+,p_display_text_as=>'WITHOUT_MODIFICATION'
+,p_heading_alignment=>'CENTER'
+,p_use_as_row_header=>'N'
+);
+wwv_flow_imp_page.create_worksheet_rpt(
+ p_id=>wwv_flow_imp.id(91820273000000195)
+,p_application_user=>'APXWS_DEFAULT'
+,p_report_seq=>10
+,p_report_alias=>'195'
+,p_status=>'PUBLIC'
+,p_is_default=>'Y'
+,p_report_columns=>'DOC_NO:HOTEL:GUEST:PHONE:ROOMS:ARR:DEP:NIGHTS:TOTAL_ESTIMATE:DEPOSIT_AMOUNT:CHANNEL:STATUS_HTML'
+);
+
+wwv_flow_imp.component_end;
+end;
+/
