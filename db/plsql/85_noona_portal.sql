@@ -269,6 +269,8 @@ SELECT app_alias, sort_order, app_name_ar, app_name_en, icon_class,
                'الموظفون والحضور والرواتب' FROM dual UNION ALL
         SELECT 'NOONA_PRJ', 60, 'العقارات والضيافة والمشروعات', 'Real Estate, Hospitality & Projects', 'fa-building', 'PRP,RE,MNT,PRJ',
                'السجل العقاري والفنادق والشقق الفندقية والصيانة والمشروعات' FROM dual UNION ALL
+        SELECT 'NOONA_HIS', 65, 'المستشفيات والمراكز الطبية', 'Hospital & Clinics', 'fa-hospital-o', 'HIS',
+               'المواعيد والزيارات والمعامل والأشعة والتأمين' FROM dual UNION ALL
         SELECT 'NOONA_MFG', 70, 'التصنيع', 'Manufacturing', 'fa-industry', 'MFG,QA',
                'أوامر الإنتاج والجودة' FROM dual UNION ALL
         SELECT 'NOONA_DOC', 80, 'المستندات والمراسلات', 'Documents & Correspondence', 'fa-folder-open', 'DMS,COR',

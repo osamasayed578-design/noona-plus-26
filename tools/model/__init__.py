@@ -7,13 +7,13 @@ MODEL_FILES = [
     'm25_localization', 'm07_gl', 'm08_ar', 'm09_ap', 'm10_cash', 'm11_inventory', 'm12_procurement',
     'm13_sales', 'm14_assets', 'm15_projects', 'm16_real_estate', 'm17_property', 'm18_maintenance',
     'm19_hr', 'm20_payroll', 'm21_manufacturing', 'm22_bi', 'm23_api', 'm24_ai', 'm26_qa',
-    'm27_migration', 'm28_pilot', 'm29_deployment', 'm30_operations',
+    'm27_migration', 'm28_pilot', 'm29_deployment', 'm30_operations', 'm31_healthcare',
 ]
 
 # ترتيب التثبيت (يعتمد على الاعتماديات لا على رقم الحزمة)
 INSTALL_ORDER = [
     'REF', 'PLT', 'SEC', 'WF', 'DMS', 'COR', 'LOC', 'GL', 'AR', 'AP', 'CSH', 'INV', 'PUR', 'SAL', 'FA',
-    'PRJ', 'RE', 'PRP', 'MNT', 'HR', 'PAY', 'MFG', 'BI', 'API', 'AI', 'QA', 'MIG', 'PIL', 'DEP', 'OPS',
+    'PRJ', 'RE', 'PRP', 'MNT', 'HR', 'PAY', 'MFG', 'HIS', 'BI', 'API', 'AI', 'QA', 'MIG', 'PIL', 'DEP', 'OPS',
 ]
 
 

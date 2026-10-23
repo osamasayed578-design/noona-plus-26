@@ -36,8 +36,9 @@
 | 28 | الإطلاق التجريبي | Pilot Launch | 4 | [p28_pil](p28_pil.md) |
 | 29 | النشر الإنتاجي والإصدارات | Deployment & Release Management | 6 | [p29_dep](p29_dep.md) |
 | 30 | التشغيل والدعم والتطوير المستمر | Operations, Support & Continuous Improvement | 12 | [p30_ops](p30_ops.md) |
+| 31 | المستشفيات والمراكز الطبية | Hospital & Clinics | 13 | [p31_his](p31_his.md) |
 
-**الإجمالي: 578 جدول.**
+**الإجمالي: 591 جدول.**
 
 ## خريطة اعتماديات الحزم
 
@@ -75,6 +76,7 @@ flowchart LR
   PIL["28 PIL<br/>Pilot Launch"]
   DEP["29 DEP<br/>Deployment & Release Management"]
   OPS["30 OPS<br/>Operations, Support & Continuous Improvement"]
+  HIS["31 HIS<br/>Hospital & Clinics"]
   AI --> DMS
   AI --> SEC
   AP --> CSH
@@ -110,6 +112,8 @@ flowchart LR
   GL --> REF
   GL --> SEC
   GL --> WF
+  HIS --> GL
+  HIS --> INV
   HR --> DMS
   HR --> REF
   HR --> SEC

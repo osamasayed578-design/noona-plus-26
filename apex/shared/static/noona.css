@@ -1160,3 +1160,44 @@ html[dir="rtl"] .nn-rst-kpi b { text-align: right; }
 @media (max-width: 1000px) { .nn-rst-order { grid-template-columns: 1fr; } .nn-rst-ticket { position: static; max-height: none; } }
 @media (max-width: 560px) { .nn-rst-floor { grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); } .nn-rst-table { min-height: 90px; }
   .nn-rst-grid { grid-template-columns: 1fr; } .nn-rst-prow { grid-template-columns: 1fr 1fr 28px; } .nn-rst-prow > span:first-child { grid-column: 1 / -1; } }
+
+/* ===== المستشفيات والمراكز الطبية (التطبيق 141) ===== */
+.nn-his-card { background: var(--nn-surface); border: 1px solid var(--nn-border); border-radius: var(--nn-radius); padding: 12px 14px; }
+.nn-his-head { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 10px; align-items: flex-start; margin-bottom: 10px; }
+.nn-his-head b { font-size: 1.15rem; } .nn-his-head small { color: var(--nn-muted); }
+.nn-his-tot { display: flex; gap: 14px; flex-wrap: wrap; } .nn-his-tot span { background: #f8fafc; border-radius: 8px; padding: 6px 12px; }
+.nn-his-tot b { direction: ltr; display: inline-block; margin-inline-start: 4px; }
+.nn-his-st { display: inline-block; padding: 1px 8px; border-radius: 999px; font-size: .85em; background: #eef2f7; }
+.nn-his-st.st-approval_pending { background: var(--nn-warning-50); color: var(--nn-warning); }
+.nn-his-st.st-in_progress { background: var(--nn-info-50); color: var(--nn-info); }
+.nn-his-st.st-completed { background: var(--nn-success-50); color: var(--nn-success); }
+.nn-his-st.st-cancelled { background: var(--nn-danger-50); color: var(--nn-danger); }
+.nn-his-flag { font-weight: 700; font-size: .85em; } .nn-his-flag.fl-normal { color: var(--nn-success); }
+.nn-his-flag.fl-abnormal { color: var(--nn-warning); } .nn-his-flag.fl-critical { color: var(--nn-danger); }
+.nn-rst-cred tr.is-void td { opacity: .5; text-decoration: line-through; }
+.nn-his-notes { margin-top: 10px; padding: 10px; background: #f8fafc; border-radius: 8px; line-height: 1.8; }
+.nn-his-due { display: flex; gap: 18px; flex-wrap: wrap; font-size: 1.05rem; }
+.nn-his-due b { font-size: 1.4rem; direction: ltr; display: inline-block; margin-inline-start: 6px; color: var(--nn-primary); }
+.nn-his-inv { background: #fff; padding: 16px; max-width: 900px; margin: 0 auto; }
+.nn-his-inv-h { display: flex; justify-content: space-between; gap: 12px; border-bottom: 2px solid var(--nn-head-border); padding-bottom: 10px; margin-bottom: 10px; }
+.nn-his-inv-h h2 { margin: 0 0 4px; font-size: 1.3rem; }
+.nn-his-meta { width: 100%; border-collapse: collapse; margin-bottom: 10px; } .nn-his-meta td { padding: 4px 6px; border: 1px solid #eef2f7; }
+.nn-his-meta td:nth-child(odd) { color: var(--nn-muted); width: 16%; background: #f8fafc; }
+.nn-his-totals { margin-inline-start: auto; margin-top: 10px; border-collapse: collapse; min-width: 320px; }
+.nn-his-totals td { padding: 4px 8px; } .nn-his-totals td:last-child { text-align: end; direction: ltr; }
+.nn-his-totals .g td { font-weight: 800; font-size: 1.15rem; border-top: 2px solid var(--nn-text); }
+.nn-his-result { padding: 14px; border: 1px solid var(--nn-border); border-inline-start: 5px solid var(--nn-success); border-radius: 8px; line-height: 1.9;
+  white-space: normal; margin: 10px 0; }
+.nn-his-result.fl-abnormal { border-inline-start-color: var(--nn-warning); } .nn-his-result.fl-critical { border-inline-start-color: var(--nn-danger); }
+.nn-his-board { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 12px; }
+.nn-his-col { background: var(--nn-surface); border: 1px solid var(--nn-border); border-radius: var(--nn-radius); }
+.nn-his-col header { padding: 10px 12px; border-bottom: 1px solid #eef2f7; display: flex; flex-direction: column; }
+.nn-his-col header small { color: var(--nn-muted); }
+.nn-his-appt { display: grid; grid-template-columns: auto 1fr auto; gap: 2px 8px; padding: 8px 12px; border-bottom: 1px solid #f1f5f9; cursor: pointer;
+  border-inline-start: 4px solid var(--nn-primary); }
+.nn-his-appt:hover { background: var(--nn-primary-50); }
+.nn-his-appt small { grid-column: 2 / 4; color: var(--nn-muted); font-size: .82em; }
+.nn-his-appt span { font-size: .8em; color: var(--nn-muted); }
+.nn-his-appt.ap-arrived { border-inline-start-color: var(--nn-warning); } .nn-his-appt.ap-completed { border-inline-start-color: var(--nn-success); }
+.nn-his-appt.ap-no_show { border-inline-start-color: var(--nn-danger); opacity: .6; }
+.nn-his-free { padding: 8px 12px; font-size: .8em; color: var(--nn-success); direction: ltr; text-align: end; word-break: break-word; }
