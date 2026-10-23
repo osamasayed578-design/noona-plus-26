@@ -209,7 +209,7 @@ wwv_flow_imp_page.create_page_item(
 ,p_item_plug_id=>wwv_flow_imp.id(91820273000000655)
 ,p_prompt=>'الصنف'
 ,p_display_as=>'NATIVE_SELECT_LIST'
-,p_lov=>'select i.name_ar || '' ('' || i.code || '')'' d, i.id r from inv_item i where i.status_code = ''ACTIVE'' and i.item_type not in (''SERVICE'', ''NON_STOCK'') order by i.name_ar'
+,p_lov=>'select i.name_ar || '' ('' || i.item_no || '')'' d, i.id r from inv_item i where i.status_code = ''ACTIVE'' and i.item_type not in (''SERVICE'', ''NON_STOCK'') order by i.name_ar'
 ,p_lov_display_null=>'YES'
 ,p_lov_null_text=>'- اختر -'
 ,p_cHeight=>1

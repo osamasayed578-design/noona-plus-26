@@ -180,7 +180,7 @@
     box.addEventListener('click', function (e) {
       if (!e.target.classList.contains('nn-c-save')) return;
       var doc = { id: c.id, from: $('.c-from', box).value, to: $('.c-to', box).value,
-                  lines: $$('tbody tr', box).map(function (tr) { return { b: num(tr.dataset.b), q: num($('.c-q', tr).value) }; }) };
+                  lines: $$('.nn-prj-edit tbody tr', box).map(function (tr) { return { b: num(tr.dataset.b), q: num($('.c-q', tr).value) }; }) };
       if ($('.c-other', box)) doc.other = num($('.c-other', box).value) || 0;
       if ($('.c-amount', box)) doc.amount = num($('.c-amount', box).value);
       call('CLAIM', {}, doc).then(function (d) { c = d; render(c); apex.message.showPageSuccess('تم حساب المستخلص وحفظه'); });

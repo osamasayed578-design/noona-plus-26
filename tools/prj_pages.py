@@ -51,7 +51,7 @@ PROP_LOV = (f"select name_ar || ' (' || code || ')' d, id r from re_property whe
 PLACE_LOV = (f"select 'صندوق: ' || name_ar d, 'BOX:' || id r from csh_cash_box where company_id = {CO} and status_code = 'ACTIVE' "
              f"union all select 'بنك: ' || name_ar, 'BANK:' || id from csh_bank_account where company_id = {CO} and status_code = 'ACTIVE'")
 WH_LOV = f"select name_ar d, id r from inv_warehouse where company_id = {CO} and status_code = 'ACTIVE' order by name_ar"
-ITEM_LOV = ("select i.name_ar || ' (' || i.code || ')' d, i.id r from inv_item i where i.status_code = 'ACTIVE' "
+ITEM_LOV = ("select i.name_ar || ' (' || i.item_no || ')' d, i.id r from inv_item i where i.status_code = 'ACTIVE' "
             "and i.item_type not in ('SERVICE', 'NON_STOCK') order by i.name_ar")
 COST_LOV = ('STATIC2:مواد;MATERIAL,عمالة;LABOR,معدات;EQUIPMENT,مقاولو باطن;SUBCONTRACT,مصروفات غير مباشرة;OVERHEAD,أخرى;OTHER')
 CTYPE_LOV = 'STATIC2:العقد الرئيسي مع العميل (المالك);MAIN_CONTRACT,عقد مقاول باطن;SUBCONTRACT'
@@ -338,6 +338,7 @@ def build(app, url, link, scheme):
     p.process(50, 'AFTER_SUBMIT', 'New Claim', [
         'declare l number;', 'begin',
         "    l := noona_prj_pkg.new_claim(:P87_ID, case :REQUEST when 'NEW_ADVANCE' then 'ADVANCE' when 'NEW_RELEASE' then 'RETENTION_RELEASE' else 'PROGRESS' end);",
+        '    commit;   -- التحويل يوقف محرك APEX قبل الحفظ التلقائي',
         "    apex_util.redirect_url(apex_page.get_url(p_page => 88, p_clear_cache => '88', p_items => 'P88_ID', p_values => l));", 'end;'],
               when=":REQUEST in ('NEW_CLAIM', 'NEW_ADVANCE', 'NEW_RELEASE')")
     p.branch(10, url(87, 'P87_ID', '&P87_ID.') + '&success_msg=#SUCCESS_MSG#')
@@ -346,7 +347,8 @@ def build(app, url, link, scheme):
     p = app.page(88, 'Progress Claim', 'CLAIM', 'المستخلص', scheme=scheme, protection='N')
     r = p.dynamic('المستخلص', 10, [
         'declare l clob := noona_prj_pkg.claim_json(:P88_ID); l_k varchar2(30); l_d varchar2(30);', 'begin',
-        "    select claim_kind, claim_direction into l_k, l_d from prj_progress_claim where id = :P88_ID;",
+        "    select max(claim_kind), max(claim_direction) into l_k, l_d from prj_progress_claim where id = :P88_ID;",
+        "    if l_k is null then return '<div class=\"nn-empty\">المستخلص غير موجود</div>'; end if;",
         "    return '<div class=\"nn-prj-chips\"><span>' || apex_escape.html(noona_prj_pkg.kind_label(l_k)) || case when l_d = 'PAYABLE' then ' - مقاول باطن' else ' - للعميل' end",
         "        || '</span><span>' || apex_escape.html(json_value(l, '$.no')) || '</span><span>' || apex_escape.html(noona_prj_pkg.status_label(json_value(l, '$.status'))) || '</span></div>'",
         "        || '<script type=\"application/json\" id=\"nnPrjClaimData\">' || replace(l, '</', '<\\/') || '</script><div id=\"nnPrjClaim\"></div>';",
@@ -362,7 +364,7 @@ def build(app, url, link, scheme):
     p.hidden('P88_CONTRACT', a, 5, protected=False)
     p.process(1, 'ON_DEMAND', 'PRJ', AJAX)
     p.onload(LOADER)
-    p.process(5, 'BEFORE_HEADER', 'Contract', 'select contract_id into :P88_CONTRACT from prj_progress_claim where id = :P88_ID;')
+    p.process(5, 'BEFORE_HEADER', 'Contract', 'select max(contract_id) into :P88_CONTRACT from prj_progress_claim where id = :P88_ID;')
     p.process(10, 'AFTER_SUBMIT', 'Approve', 'noona_prj_pkg.approve_claim(:P88_ID);', when_button=bap, success='تم اعتماد المستخلص وترحيل قيده وتسجيل الذمة')
     p.process(20, 'AFTER_SUBMIT', 'Cancel', 'noona_prj_pkg.cancel_claim(:P88_ID, :P88_REASON);', when_button=bca, success='تم إلغاء المستخلص')
     p.branch(10, url(88, 'P88_ID', '&P88_ID.') + '&success_msg=#SUCCESS_MSG#')

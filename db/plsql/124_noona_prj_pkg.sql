@@ -1028,13 +1028,14 @@ CREATE OR REPLACE PACKAGE BODY NOONA_PRJ_PKG AS
       NOONA_CORE_PKG.assert(l_amt > 0, 'NOONA-PRJ-085', 'لا يوجد محتجز قائم على العقد', 'No retention held');
     END IF;
     -- الرقم التسلسلي لا يعاد استخدامه بعد الإلغاء؛ بداية الفترة بعد آخر مستخلص قائم
-    SELECT NVL(MAX(claim_no), 0) + 1, MAX(CASE WHEN status_code <> 'CANCELLED' THEN period_to END) + 1 INTO l_no, l_from
-      FROM prj_progress_claim WHERE contract_id = p_contract_id;
+    SELECT NVL(MAX(claim_no), 0) + 1, MAX(CASE WHEN status_code <> 'CANCELLED' AND claim_kind = 'PROGRESS' THEN period_to END) + 1
+      INTO l_no, l_from FROM prj_progress_claim WHERE contract_id = p_contract_id;
+    l_from := LEAST(NVL(p_from, NVL(l_from, NVL(l_c.start_date, TRUNC(SYSDATE, 'MM')))), NVL(p_to, TRUNC(SYSDATE)));
     INSERT INTO prj_progress_claim (company_id, doc_no, doc_date, currency_code, exchange_rate, contract_id, claim_no, claim_direction, claim_kind,
                                     period_from, period_to, current_gross, status_code)
     VALUES (company, 'DRAFT-' || RAWTOHEX(SYS_GUID()), TRUNC(SYSDATE), l_c.currency_code, 1, p_contract_id, l_no,
             CASE WHEN l_c.contract_type = 'MAIN_CONTRACT' THEN 'RECEIVABLE' ELSE 'PAYABLE' END, p_kind,
-            NVL(p_from, NVL(l_from, NVL(l_c.start_date, TRUNC(SYSDATE, 'MM')))), NVL(p_to, TRUNC(SYSDATE)), l_amt, 'DRAFT')
+            l_from, NVL(p_to, TRUNC(SYSDATE)), l_amt, 'DRAFT')
     RETURNING id INTO l_id;
     UPDATE prj_progress_claim SET doc_no = 'مسودة-' || l_id WHERE id = l_id;
     IF p_kind = 'PROGRESS' THEN

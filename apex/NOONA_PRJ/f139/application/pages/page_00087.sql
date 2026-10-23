@@ -634,6 +634,7 @@ wwv_flow_imp_page.create_page_process(
 'declare l number;',
 'begin',
 '    l := noona_prj_pkg.new_claim(:P87_ID, case :REQUEST when ''NEW_ADVANCE'' then ''ADVANCE'' when ''NEW_RELEASE'' then ''RETENTION_RELEASE'' else ''PROGRESS'' end);',
+'    commit;   -- التحويل يوقف محرك APEX قبل الحفظ التلقائي',
 '    apex_util.redirect_url(apex_page.get_url(p_page => 88, p_clear_cache => ''88'', p_items => ''P88_ID'', p_values => l));',
 'end;'))
 ,p_process_clob_language=>'PLSQL'
