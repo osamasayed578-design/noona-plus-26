@@ -120,7 +120,7 @@ CREATE OR REPLACE PACKAGE BODY NOONA_BI_PKG AS
       WHEN 'INV' THEN 'المخزون' WHEN 'PUR' THEN 'المشتريات والموردون' WHEN 'SAL' THEN 'المبيعات ونقاط البيع والمطاعم'
       WHEN 'HR' THEN 'الموارد البشرية' WHEN 'PAY' THEN 'الرواتب' WHEN 'PRP' THEN 'الفنادق والضيافة'
       WHEN 'MNT' THEN 'الصيانة' WHEN 'MFG' THEN 'التصنيع' WHEN 'HIS' THEN 'المستشفى والمراكز الطبية'
-      WHEN 'DMS' THEN 'المستندات والأرشيف' WHEN 'RE' THEN 'العقارات' WHEN 'PRJ' THEN 'المشروعات'
+      WHEN 'DMS' THEN 'المستندات والأرشيف' WHEN 'RE' THEN 'العقارات' WHEN 'PRJ' THEN 'المشروعات والمقاولات'
       ELSE p_module_code END;
   END module_label;
 
@@ -130,7 +130,7 @@ CREATE OR REPLACE PACKAGE BODY NOONA_BI_PKG AS
       WHEN 'GL' THEN 'fa-calculator' WHEN 'CSH' THEN 'fa-money' WHEN 'FA' THEN 'fa-cubes' WHEN 'INV' THEN 'fa-archive'
       WHEN 'PUR' THEN 'fa-truck' WHEN 'SAL' THEN 'fa-shopping-cart' WHEN 'HR' THEN 'fa-users' WHEN 'PAY' THEN 'fa-credit-card'
       WHEN 'PRP' THEN 'fa-bed' WHEN 'MNT' THEN 'fa-wrench' WHEN 'MFG' THEN 'fa-industry' WHEN 'HIS' THEN 'fa-hospital-o'
-      WHEN 'DMS' THEN 'fa-folder-open' WHEN 'RE' THEN 'fa-building' ELSE 'fa-bar-chart' END;
+      WHEN 'DMS' THEN 'fa-folder-open' WHEN 'RE' THEN 'fa-building' WHEN 'PRJ' THEN 'fa-briefcase' ELSE 'fa-bar-chart' END;
   END module_icon;
 
   FUNCTION type_label(p_report_type IN VARCHAR2) RETURN VARCHAR2 IS

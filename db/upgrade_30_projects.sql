@@ -31,6 +31,7 @@ PROMPT ========== الحزم (المحرك المحاسبي يسمح لحزمة 
 @@plsql/101_noona_ace_pkg.sql
 @@plsql/102_noona_csh_pkg.sql
 @@plsql/124_noona_prj_pkg.sql
+@@plsql/123_noona_bi_pkg.sql
 GRANT EXECUTE ON NOONA_PRJ_PKG TO NOONA_APP;
 EXEC DBMS_UTILITY.COMPILE_SCHEMA(USER, FALSE)
 SELECT object_type, object_name FROM user_objects WHERE status <> 'VALID';

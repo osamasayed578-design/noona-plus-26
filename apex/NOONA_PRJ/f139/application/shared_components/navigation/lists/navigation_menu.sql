@@ -196,6 +196,43 @@ wwv_flow_imp_shared.create_list_item(
 ,p_security_scheme=>wwv_flow_imp.id(91820273000000011)
 ,p_list_item_current_type=>'TARGET_PAGE'
 );
+wwv_flow_imp_shared.create_list_item(
+ p_id=>wwv_flow_imp.id(91820273000000749)
+,p_list_item_display_sequence=>35
+,p_list_item_link_text=>'المشروعات والمقاولات'
+,p_list_item_link_target=>''
+,p_list_item_icon=>'fa-briefcase'
+,p_security_scheme=>wwv_flow_imp.id(91820273000000563)
+);
+wwv_flow_imp_shared.create_list_item(
+ p_id=>wwv_flow_imp.id(91820273000000750)
+,p_list_item_display_sequence=>1
+,p_list_item_link_text=>'لوحة المشروعات'
+,p_list_item_link_target=>'f?p=&APP_ID.:80:&APP_SESSION.::&DEBUG.:::'
+,p_list_item_icon=>'fa-th-large'
+,p_parent_list_item_id=>wwv_flow_imp.id(91820273000000749)
+,p_security_scheme=>wwv_flow_imp.id(91820273000000563)
+,p_list_item_current_type=>'TARGET_PAGE'
+);
+wwv_flow_imp_shared.create_list_item(
+ p_id=>wwv_flow_imp.id(91820273000000751)
+,p_list_item_display_sequence=>2
+,p_list_item_link_text=>'مشروع جديد'
+,p_list_item_link_target=>'f?p=&APP_ID.:82:&SESSION.::&DEBUG.:RP,82::'
+,p_list_item_icon=>'fa-plus'
+,p_parent_list_item_id=>wwv_flow_imp.id(91820273000000749)
+,p_security_scheme=>wwv_flow_imp.id(91820273000000563)
+);
+wwv_flow_imp_shared.create_list_item(
+ p_id=>wwv_flow_imp.id(91820273000000752)
+,p_list_item_display_sequence=>3
+,p_list_item_link_text=>'تقارير المشروعات'
+,p_list_item_link_target=>'f?p=&APP_ID.:90:&APP_SESSION.::&DEBUG.:::'
+,p_list_item_icon=>'fa-bar-chart'
+,p_parent_list_item_id=>wwv_flow_imp.id(91820273000000749)
+,p_security_scheme=>wwv_flow_imp.id(91820273000000563)
+,p_list_item_current_type=>'TARGET_PAGE'
+);
 wwv_flow_imp.component_end;
 end;
 /

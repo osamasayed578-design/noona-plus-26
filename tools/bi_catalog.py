@@ -115,6 +115,17 @@ CATALOG = [
      'الحجوزات الواصلة والنزلاء المغادرون في الأيام القادمة'),
     ('HSP_CITY', 'PRP', F, 'NOONA_PRJ', 'HOTEL-REPORTS', 28, 'P28_REPORT', 'CITY', 'HSP_RESERVATION.VIEW', 'fa-building-o', 'حسابات الشركات المحولة', 'City ledger',
      'المبالغ المحولة على حسابات الشركات من كشوف النزلاء'),
+    # ---------------------------------------------------------------- المشروعات والمقاولات (NOONA_PRJ)
+    ('PRJ_PORTFOLIO', 'PRJ', M, 'NOONA_PRJ', 'PROJECT-REPORTS', 90, 'P90_REPORT', 'PORTFOLIO', 'PRJ_PROJECT.VIEW', 'fa-briefcase', 'محفظة المشروعات والربحية', 'Project portfolio & profitability',
+     'قيمة العقود والموازنة والتكلفة الفعلية والمفوتر والمحصل والربح والهامش لكل مشروع'),
+    ('PRJ_CLAIMS', 'PRJ', F, 'NOONA_PRJ', 'PROJECT-REPORTS', 90, 'P90_REPORT', 'CLAIMS', 'PRJ_PROGRESS_CLAIM.VIEW', 'fa-file-text-o', 'سجل المستخلصات', 'Progress claims register',
+     'مستخلصات العملاء ومقاولي الباطن المعتمدة بالمحتجز واسترداد المقدم والضريبة والصافي'),
+    ('PRJ_RETENTION', 'PRJ', F, 'NOONA_PRJ', 'PROJECT-REPORTS', 90, 'P90_REPORT', 'RETENTION', 'PRJ_PROGRESS_CLAIM.VIEW', 'fa-lock', 'المحتجزات والدفعات المقدمة', 'Retentions & advances',
+     'المحتجز لدى العملاء ولمقاولي الباطن والدفعات المقدمة غير المستردة وموعد الإفراج'),
+    ('PRJ_COSTS', 'PRJ', M, 'NOONA_PRJ', 'PROJECT-REPORTS', 90, 'P90_REPORT', 'COSTS', 'PRJ_COST_LINE.VIEW', 'fa-money', 'تكاليف المشروعات حسب النوع', 'Project costs by type',
+     'المواد والعمالة والمعدات ومقاولو الباطن والمصروفات لكل مشروع في فترة'),
+    ('PRJ_UNITS', 'PRJ', A, 'NOONA_PRJ', 'PROJECT-REPORTS', 90, 'P90_REPORT', 'UNITS', 'PRJ_PROJECT.VIEW', 'fa-building', 'توزيع تكلفة التطوير على الوحدات', 'Development cost per unit',
+     'نصيب كل وحدة من تكلفة مشروع التطوير العقاري بالمساحة أو السعر والهامش المتوقع'),
     # ---------------------------------------------------------------- الصيانة
     ('MNT_PERF', 'MNT', M, 'NOONA_PRJ', 'MAINT-REPORTS', 75, None, None, 'MNT_REQUEST.VIEW', 'fa-wrench', 'أداء الصيانة', 'Maintenance performance',
      'البلاغات وزمن الإنجاز والالتزام بالمهلة والتكلفة والتقييم حسب نوع العطل'),

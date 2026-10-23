@@ -962,5 +962,10 @@ app.nav_item('سجل البلاغات', 72, 'fa-list', 3, parent=mn, scheme=MNT)
 app.nav_item('الفرق والفنيون', 73, 'fa-users', 4, parent=mn, scheme=MNT)
 app.nav_item('أنواع الأعطال', 74, 'fa-tags', 5, parent=mn, scheme=MNT)
 app.nav_item('أداء الصيانة', 75, 'fa-line-chart', 6, parent=mn, scheme=MNT)
+PRJ = app.add_scheme('noona_prj_view', app.id(), 'NOONA - Projects',
+                     "return noona_security_pkg.has_permission('PRJ_PROJECT.VIEW', noona_prj_pkg.company) = 'Y';",
+                     'صفحات المشروعات تتطلب صلاحية عرض المشروعات / Projects access required')
+import prj_pages
+prj_pages.build(app, url, link, PRJ)
 app.finalize()
 print('NOONA_PRJ built:', len(app.pages), 'pages')

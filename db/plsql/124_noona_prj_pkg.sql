@@ -73,6 +73,13 @@ CREATE OR REPLACE PACKAGE NOONA_PRJ_PKG AUTHID DEFINER AS
   FUNCTION retention_held(p_contract_id IN NUMBER) RETURN NUMBER;
   FUNCTION advance_open(p_contract_id IN NUMBER) RETURN NUMBER;
 
+  -- شروط الشاشات (تعبيرات PL/SQL بلا استعلام)
+  FUNCTION contract_status(p_contract_id IN NUMBER) RETURN VARCHAR2;
+  FUNCTION claim_status(p_claim_id IN NUMBER) RETURN VARCHAR2;
+  FUNCTION has_property(p_project_id IN NUMBER) RETURN VARCHAR2;
+  FUNCTION draft_variations(p_contract_id IN NUMBER) RETURN NUMBER;
+  FUNCTION can_advance(p_contract_id IN NUMBER) RETURN VARCHAR2;
+
   -- ---------------------------------------------------------- التطوير العقاري
   PROCEDURE link_property(p_project_id IN NUMBER, p_property_id IN NUMBER);
 
@@ -1242,6 +1249,44 @@ CREATE OR REPLACE PACKAGE BODY NOONA_PRJ_PKG AS
   EXCEPTION WHEN NO_DATA_FOUND THEN
     NOONA_CORE_PKG.raise_error('NOONA-PRJ-091', 'المستخلص غير موجود', 'Claim not found');
   END cancel_claim;
+
+  -- ================================================================ شروط الشاشات
+  FUNCTION contract_status(p_contract_id IN NUMBER) RETURN VARCHAR2 IS
+    l VARCHAR2(30);
+  BEGIN
+    SELECT MAX(status_code) INTO l FROM prj_contract WHERE id = p_contract_id AND company_id = company;
+    RETURN l;
+  END contract_status;
+
+  FUNCTION claim_status(p_claim_id IN NUMBER) RETURN VARCHAR2 IS
+    l VARCHAR2(30);
+  BEGIN
+    SELECT MAX(status_code) INTO l FROM prj_progress_claim WHERE id = p_claim_id AND company_id = company;
+    RETURN l;
+  END claim_status;
+
+  FUNCTION has_property(p_project_id IN NUMBER) RETURN VARCHAR2 IS
+    l NUMBER;
+  BEGIN
+    SELECT COUNT(*) INTO l FROM re_property WHERE project_id = p_project_id AND ROWNUM = 1;
+    RETURN CASE WHEN l > 0 THEN 'Y' ELSE 'N' END;
+  END has_property;
+
+  FUNCTION draft_variations(p_contract_id IN NUMBER) RETURN NUMBER IS
+    l NUMBER;
+  BEGIN
+    SELECT COUNT(*) INTO l FROM prj_variation_order WHERE contract_id = p_contract_id AND status_code = 'DRAFT';
+    RETURN l;
+  END draft_variations;
+
+  FUNCTION can_advance(p_contract_id IN NUMBER) RETURN VARCHAR2 IS
+    l_pct NUMBER;
+    l_n   NUMBER;
+  BEGIN
+    SELECT MAX(advance_pct) INTO l_pct FROM prj_contract WHERE id = p_contract_id AND status_code = 'ACTIVE';
+    SELECT COUNT(*) INTO l_n FROM prj_progress_claim WHERE contract_id = p_contract_id AND claim_kind = 'ADVANCE' AND status_code IN ('APPROVED', 'PAID');
+    RETURN CASE WHEN NVL(l_pct, 0) > 0 AND l_n = 0 THEN 'Y' ELSE 'N' END;
+  END can_advance;
 
   -- ================================================================ التطوير العقاري
   PROCEDURE link_property(p_project_id IN NUMBER, p_property_id IN NUMBER) IS
