@@ -36,7 +36,7 @@ echo.
 sqlplus -S -L NOONA_APP/"%APP_PWD%"@%CONN% @demo/demo_property_hospitality.sql %ADMIN_USER% < nul
 if errorlevel 1 goto fail
 echo.
-echo ===== Demo data loaded. Open Finance, Supply Chain, Sales/POS, Manufacturing, Documents (correspondence), HR, Finance > Fixed Assets and Real Estate & Hospitality to review it.
+echo ===== Demo data loaded. Open Finance (incl. Fixed Assets), Supply Chain, Sales/POS, Manufacturing, Documents, HR and Real Estate and Hospitality to review it.
 pause
 exit /b 0
 
