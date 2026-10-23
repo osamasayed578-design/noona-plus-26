@@ -92,7 +92,10 @@ BEGIN
   l_s := NOONA_APEX_PKG.check_password('U' || l_sfx, 'Noona#Pass2027');
   ok('admin reset unlocks account', l_s = 'OK', l_s);
   ok('old password revoked', NOONA_APEX_PKG.check_password('U' || l_sfx, 'Noona#Pass2026') = 'INVALID');
-  ok('user without local password falls back', NOONA_APEX_PKG.check_password('ADMIN', 'x') = 'NO_LOCAL');
+  -- مستخدم جديد بلا كلمة مرور محلية (لا يعتمد على حالة ADMIN في البيئة)
+  l_n := NOONA_SEC_ADMIN_PKG.create_user('V' || l_sfx, 'مستخدم بلا كلمة محلية', 'v' || l_sfx || '@demo.local', l_co);
+  COMMIT;
+  ok('user without local password falls back', NOONA_APEX_PKG.check_password('V' || l_sfx, 'x') = 'NO_LOCAL');
   ok('unknown user rejected', NOONA_APEX_PKG.check_password('NO_SUCH_USER_' || l_sfx, 'x') = 'INVALID');
   BEGIN EXECUTE IMMEDIATE 'SELECT COUNT(*) FROM NOONA_OWNER.SEC_CREDENTIAL' INTO l_n; ok('app schema cannot read credentials', FALSE);
   EXCEPTION WHEN OTHERS THEN ok('app schema cannot read credentials', SQLCODE IN (-942, -1031), SQLERRM); END;

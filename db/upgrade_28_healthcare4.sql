@@ -25,12 +25,12 @@ PROMPT ========== أنواع إشعارات التمريض
 @@seed/13_healthcare.sql
 PROMPT ========== صلاحيات مسؤول المؤسسة
 @@upgrade_parts/sync_admin_roles.sql
-PROMPT ========== الحزم
+PROMPT ========== الحزم (حزمة التمريض أولاً: تستدعيها الحزم التالية)
+@@plsql/122_noona_his_nurse_pkg.sql
 @@plsql/117_noona_his_pkg.sql
 @@plsql/118_noona_his_care_pkg.sql
 @@plsql/120_noona_his_link_pkg.sql
 @@plsql/121_noona_his_clin_pkg.sql
-@@plsql/122_noona_his_nurse_pkg.sql
 GRANT EXECUTE ON NOONA_HIS_NURSE_PKG TO NOONA_APP;
 EXEC DBMS_UTILITY.COMPILE_SCHEMA(USER, FALSE)
 @@upgrade_parts/28_his_alert_job.sql
