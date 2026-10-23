@@ -272,6 +272,8 @@ QUANTITY        QTY  NN          | الكمية المطلوبة
 DISPENSED_QTY   QTY  NN D=0      | الكمية المصروفة
 INSTRUCTIONS    V500             | تعليمات الاستعمال
 ORDER_ID        ID   >HIS_ORDER  | طلب الفوترة
+ROUTE           CODE IN:ORAL,IV,IM,SC,INHALED,TOPICAL,RECTAL,OTHER | طريقة الإعطاء
+DOSE_TIMES      V100             | أوقات الجرعات المحددة (08:00,20:00) بدل أوقات التكرار القياسية
 ''', uk=[('PRESCRIPTION_ID', 'LINE_NO')], chk=['QUANTITY > 0'], area='pharmacy')
 
 # =============================================================== التنويم
@@ -478,3 +480,53 @@ BASE_AMOUNT     AMT  NN          | الإيراد الأساس (صافي الخ�
 COMMISSION_PCT  PCT  NN          | النسبة
 AMOUNT          AMT  NN          | العمولة
 ''', area='billing')
+
+# =============================================================== المرحلة الرابعة: متابعة المنومين
+table('HIS_NURSE_SHIFT', 'ورديات التمريض', 'Nursing Shifts', scope='C', mix='code names active sort', cols='''
+START_TIME      V5   NN          | البداية (HH24:MI)
+END_TIME        V5   NN          | النهاية (تتجاوز منتصف الليل إن كانت أصغر)
+''', area='nursing')
+
+table('HIS_NURSE_ROSTER', 'جدول مناوبات التمريض', 'Nursing Duty Roster', scope='C', cols='''
+DUTY_DATE       DATE NN          | تاريخ الوردية (تاريخ بدايتها)
+SHIFT_ID        ID   NN >HIS_NURSE_SHIFT | الوردية
+WARD_ID         ID   NN >HIS_DEPARTMENT | الجناح أو القسم
+NURSE_ID        ID   NN >HIS_DOCTOR | الممرض
+DUTY_ROLE       CODE NN D='STAFF' IN:CHARGE,STAFF,ASSISTANT | الدور (مسؤول الوردية، ممرض، مساعد)
+ROOMS           V200             | الغرف المسندة (فارغ = كل الجناح)
+NOTES           V500             | ملاحظات
+''', uk=[('TENANT_ID', 'DUTY_DATE', 'SHIFT_ID', 'NURSE_ID')], ix=[('TENANT_ID', 'WARD_ID', 'DUTY_DATE')], area='nursing')
+
+table('HIS_MED_SCHEDULE', 'جدول جرعات المنومين', 'Inpatient Dose Schedule', scope='C', mix='status',
+      status='DUE GIVEN HELD REFUSED MISSED CANCELLED', cols='''
+VISIT_ID        ID   NN >HIS_VISIT | الزيارة
+LINE_ID         ID   NN >HIS_PRESCRIPTION_LINE | الدواء الموصوف
+DUE_AT          TS   NN          | موعد الجرعة
+DOSE            V100             | الجرعة
+ROUTE           CODE             | طريقة الإعطاء
+ADMIN_ID        ID   >HIS_MED_ADMIN | سجل الإعطاء
+DONE_AT         TS               | وقت التنفيذ
+NURSE_ID        ID   >HIS_DOCTOR | الممرض المنفذ
+ALERT_LEVEL     INT  NN D=0      | التنبيه المرسل (0 لا، 1 حان الموعد، 2 متأخرة)
+NOTES           V500             | ملاحظات
+''', uk=[('LINE_ID', 'DUE_AT')], ix=[('TENANT_ID', 'STATUS_CODE', 'DUE_AT'), ('TENANT_ID', 'VISIT_ID')], area='nursing', sens='CONFIDENTIAL')
+
+table('HIS_CARE_TASK', 'مهام المتابعة التمريضية', 'Nursing Care Tasks', scope='C', mix='status', status='ACTIVE STOPPED', cols='''
+VISIT_ID        ID   NN >HIS_VISIT | الزيارة
+TASK_TYPE       CODE NN IN:VITALS,BLOOD_SUGAR,TURNING,WOUND_CARE,INTAKE_OUTPUT,DOCTOR_ROUND,OBSERVATION,OTHER | النوع
+DESCRIPTION     V500             | الوصف (English)
+EVERY_HOURS     NUM  NN          | التكرار بالساعات
+NEXT_DUE_AT     TS   NN          | الموعد القادم
+END_AT          TS               | حتى
+LAST_DONE_AT    TS               | آخر تنفيذ
+ALERT_LEVEL     INT  NN D=0      | التنبيه المرسل للموعد القادم
+''', chk=['EVERY_HOURS > 0'], ix=[('TENANT_ID', 'VISIT_ID'), ('TENANT_ID', 'STATUS_CODE', 'NEXT_DUE_AT')], area='nursing', sens='CONFIDENTIAL')
+
+table('HIS_CARE_LOG', 'سجل تنفيذ مهام المتابعة', 'Care Task Log', scope='C', append=True, cols='''
+TASK_ID         ID   NN >HIS_CARE_TASK | المهمة
+VISIT_ID        ID   NN >HIS_VISIT | الزيارة
+DONE_AT         TS   NN D=SYSTIMESTAMP | الوقت
+NURSE_ID        ID   >HIS_DOCTOR | المنفذ
+RESULT_VALUE    V200             | القيمة (مثل: سكر 140، المدخلات 500 مل)
+NOTES           V500             | ملاحظات
+''', ix=[('TENANT_ID', 'VISIT_ID')], area='nursing', sens='CONFIDENTIAL')

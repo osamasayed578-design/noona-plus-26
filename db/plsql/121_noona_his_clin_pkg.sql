@@ -171,6 +171,11 @@ CREATE OR REPLACE PACKAGE BODY NOONA_HIS_CLIN_PKG AS
              || CASE WHEN l_ht IS NOT NULL THEN 'Ht ' || num(l_ht) || ' cm, ' END || CASE WHEN l_pain IS NOT NULL THEN 'Pain ' || l_pain || '/10, ' END
              || CASE WHEN l_glu IS NOT NULL THEN 'RBS ' || num(l_glu) || ' mg/dL, ' END, ', ');
     UPDATE his_visit SET vitals = SUBSTR(l_sum, 1, 1000) WHERE id = l_vis;
+    -- القراءة تحقق مهمة متابعة العلامات الحيوية (والسكر إن قيس)
+    NOONA_HIS_NURSE_PKG.touch_task(l_vis, 'VITALS');
+    IF l_glu IS NOT NULL THEN
+      NOONA_HIS_NURSE_PKG.touch_task(l_vis, 'BLOOD_SUGAR');
+    END IF;
     RETURN l_id;
   END record_vitals;
 
@@ -394,7 +399,9 @@ CREATE OR REPLACE PACKAGE BODY NOONA_HIS_CLIN_PKG AS
                WHERE v.patient_id = p_patient_id AND v.company_id = company AND v.status_code <> 'CANCELLED' ORDER BY v.visit_at DESC) LOOP
       l_n := l_n + 1;
       l_h := l_h || '<section class="nn-his-emrv"><header><b>' || TO_CHAR(v.visit_at, 'YYYY-MM-DD') || '</b> · ' || INITCAP(REPLACE(v.visit_type, '_', ' '))
-          || ' · ' || esc(v.dept) || NVL2(v.doctor, ' · ' || esc(v.doctor), '') || ' <small>' || esc(v.visit_no) || '</small></header>'
+          || ' · ' || esc(v.dept) || NVL2(v.doctor, ' · ' || esc(v.doctor), '') || ' <small>' || esc(v.visit_no) || '</small>'
+          || CASE WHEN v.visit_type IN ('INPATIENT', 'EMERGENCY', 'DAY_CASE') THEN ' <a href="f?p=' || SYS_CONTEXT('APEX$SESSION', 'APP_ID') || ':76:'
+                  || SYS_CONTEXT('APEX$SESSION', 'APP_SESSION') || '::NO:RP,76:P76_VISIT:' || v.id || '">Inpatient chart</a>' END || '</header>'
           || NVL2(v.chief_complaint, '<div><small>Complaint</small> ' || esc(v.chief_complaint) || '</div>', '')
           || NVL2(v.vitals, '<div><small>Vitals</small> ' || esc(v.vitals) || '</div>', '')
           || NVL2(v.diagnosis, '<div><small>Diagnosis</small> <b>' || esc(v.diagnosis) || '</b>' || NVL2(v.icd10, ' (' || esc(v.icd10) || ')', '') || '</div>', '')

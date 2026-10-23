@@ -22,7 +22,7 @@ wwv_flow_imp_page.create_page(
 ,p_protection_level=>'N'
 );
 wwv_flow_imp_page.create_page_plug(
- p_id=>wwv_flow_imp.id(91820275000001001)
+ p_id=>wwv_flow_imp.id(91820275000001008)
 ,p_plug_name=>'الإجراءات'
 ,p_region_template_options=>'#DEFAULT#:t-Region--removeHeader js-removeLandmark'
 ,p_plug_template=>4072358936313175081
@@ -33,17 +33,17 @@ wwv_flow_imp_page.create_page_plug(
   'show_line_breaks', 'Y')).to_clob
 );
 wwv_flow_imp_page.create_page_item(
- p_id=>wwv_flow_imp.id(91820275000001002)
+ p_id=>wwv_flow_imp.id(91820275000001009)
 ,p_name=>'P69_ID'
 ,p_item_sequence=>1
-,p_item_plug_id=>wwv_flow_imp.id(91820275000001001)
+,p_item_plug_id=>wwv_flow_imp.id(91820275000001008)
 ,p_display_as=>'NATIVE_HIDDEN'
 ,p_protection_level=>'N'
 ,p_attributes=>wwv_flow_t_plugin_attributes(wwv_flow_t_varchar2(
   'value_protected', 'N')).to_clob
 );
 wwv_flow_imp_page.create_page_plug(
- p_id=>wwv_flow_imp.id(91820275000001003)
+ p_id=>wwv_flow_imp.id(91820275000001010)
 ,p_plug_name=>'الرسالة'
 ,p_region_template_options=>'#DEFAULT#:t-Region--scrollBody:t-Region--removeHeader js-removeLandmark:t-Region--noUI'
 ,p_plug_template=>4072358936313175081
@@ -54,9 +54,9 @@ wwv_flow_imp_page.create_page_plug(
 ,p_plug_source_type=>'NATIVE_DYNAMIC_CONTENT'
 );
 wwv_flow_imp_page.create_page_button(
- p_id=>wwv_flow_imp.id(91820275000001004)
+ p_id=>wwv_flow_imp.id(91820275000001011)
 ,p_button_sequence=>10
-,p_button_plug_id=>wwv_flow_imp.id(91820275000001001)
+,p_button_plug_id=>wwv_flow_imp.id(91820275000001008)
 ,p_button_name=>'RETRY'
 ,p_button_action=>'SUBMIT'
 ,p_button_template_options=>'#DEFAULT#'
@@ -69,7 +69,7 @@ wwv_flow_imp_page.create_page_button(
 ,p_button_condition_type=>'EXPRESSION'
 );
 wwv_flow_imp_page.create_page_process(
- p_id=>wwv_flow_imp.id(91820275000001005)
+ p_id=>wwv_flow_imp.id(91820275000001012)
 ,p_process_sequence=>10
 ,p_process_point=>'AFTER_SUBMIT'
 ,p_process_type=>'NATIVE_PLSQL'
@@ -78,13 +78,13 @@ wwv_flow_imp_page.create_page_process(
 'apex_application.g_print_success_message := ''النتيجة: '' || noona_his_link_pkg.status_label(noona_his_link_pkg.retry(:P69_ID));'))
 ,p_process_clob_language=>'PLSQL'
 ,p_error_display_location=>'INLINE_IN_NOTIFICATION'
-,p_process_when_button_id=>wwv_flow_imp.id(91820275000001004)
-,p_internal_uid=>91820275000001005
+,p_process_when_button_id=>wwv_flow_imp.id(91820275000001011)
+,p_internal_uid=>91820275000001012
 );
 wwv_flow_imp_page.create_page_button(
- p_id=>wwv_flow_imp.id(91820275000001006)
+ p_id=>wwv_flow_imp.id(91820275000001013)
 ,p_button_sequence=>20
-,p_button_plug_id=>wwv_flow_imp.id(91820275000001001)
+,p_button_plug_id=>wwv_flow_imp.id(91820275000001008)
 ,p_button_name=>'BACK'
 ,p_button_action=>'REDIRECT_URL'
 ,p_button_template_options=>'#DEFAULT#'
@@ -94,7 +94,7 @@ wwv_flow_imp_page.create_page_button(
 ,p_button_redirect_url=>'f?p=&APP_ID.:68:&SESSION.::&DEBUG.:::'
 );
 wwv_flow_imp_page.create_page_branch(
- p_id=>wwv_flow_imp.id(91820275000001007)
+ p_id=>wwv_flow_imp.id(91820275000001014)
 ,p_branch_action=>'f?p=&APP_ID.:69:&SESSION.::&DEBUG.::P69_ID:&P69_ID.&success_msg=#SUCCESS_MSG#'
 ,p_branch_point=>'AFTER_PROCESSING'
 ,p_branch_type=>'REDIRECT_URL'

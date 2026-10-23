@@ -28,7 +28,7 @@ wwv_flow_imp_page.create_page(
 ,p_protection_level=>'N'
 );
 wwv_flow_imp_page.create_page_plug(
- p_id=>wwv_flow_imp.id(91820275000000933)
+ p_id=>wwv_flow_imp.id(91820275000000940)
 ,p_plug_name=>'إجراءات'
 ,p_region_template_options=>'#DEFAULT#:t-Region--removeHeader js-removeLandmark'
 ,p_plug_template=>4072358936313175081
@@ -39,9 +39,9 @@ wwv_flow_imp_page.create_page_plug(
   'show_line_breaks', 'Y')).to_clob
 );
 wwv_flow_imp_page.create_page_button(
- p_id=>wwv_flow_imp.id(91820275000000934)
+ p_id=>wwv_flow_imp.id(91820275000000941)
 ,p_button_sequence=>10
-,p_button_plug_id=>wwv_flow_imp.id(91820275000000933)
+,p_button_plug_id=>wwv_flow_imp.id(91820275000000940)
 ,p_button_name=>'NEW'
 ,p_button_action=>'REDIRECT_URL'
 ,p_button_template_options=>'#DEFAULT#'
@@ -52,9 +52,9 @@ wwv_flow_imp_page.create_page_button(
 ,p_button_redirect_url=>'f?p=&APP_ID.:32:&SESSION.::&DEBUG.:RP,32::'
 );
 wwv_flow_imp_page.create_page_button(
- p_id=>wwv_flow_imp.id(91820275000000935)
+ p_id=>wwv_flow_imp.id(91820275000000942)
 ,p_button_sequence=>20
-,p_button_plug_id=>wwv_flow_imp.id(91820275000000933)
+,p_button_plug_id=>wwv_flow_imp.id(91820275000000940)
 ,p_button_name=>'REFRESH'
 ,p_button_action=>'REDIRECT_URL'
 ,p_button_template_options=>'#DEFAULT#'
@@ -64,7 +64,7 @@ wwv_flow_imp_page.create_page_button(
 ,p_button_redirect_url=>'f?p=&APP_ID.:59:&SESSION.::&DEBUG.:::'
 );
 wwv_flow_imp_page.create_page_plug(
- p_id=>wwv_flow_imp.id(91820275000000936)
+ p_id=>wwv_flow_imp.id(91820275000000943)
 ,p_plug_name=>'الطوارئ'
 ,p_region_template_options=>'#DEFAULT#:t-Region--scrollBody:t-Region--removeHeader js-removeLandmark:t-Region--noUI'
 ,p_plug_template=>4072358936313175081

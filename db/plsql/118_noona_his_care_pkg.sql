@@ -329,16 +329,22 @@ CREATE OR REPLACE PACKAGE BODY NOONA_HIS_CARE_PKG AS
     VALUES (company, l_rxno, l_vis, l_doc, l_ph, SYSTIMESTAMP, l_nt, 'ACTIVE', TRUNC(SYSDATE) + l_days)
     RETURNING id INTO l_id;
     FOR r IN (SELECT * FROM JSON_TABLE(p_doc, '$.lines[*]' COLUMNS (i NUMBER PATH '$.i', q NUMBER PATH '$.q', dose VARCHAR2(100) PATH '$.dose',
-                freq VARCHAR2(100) PATH '$.freq', days NUMBER PATH '$.days', instr VARCHAR2(500) PATH '$.instr'))) LOOP
+                freq VARCHAR2(100) PATH '$.freq', days NUMBER PATH '$.days', instr VARCHAR2(500) PATH '$.instr', route VARCHAR2(30) PATH '$.route',
+                times VARCHAR2(100) PATH '$.times'))) LOOP
       CONTINUE WHEN r.i IS NULL;
       NOONA_CORE_PKG.assert(NVL(r.q, 0) > 0, 'NOONA-HIS-113', 'كمية الدواء يجب أن تكون موجبة', 'Quantity must be positive');
       l_x := med_service(r.i);
       l_no := l_no + 1;
-      INSERT INTO his_prescription_line (company_id, prescription_id, line_no, item_id, dose, frequency, duration_days, quantity, dispensed_qty, instructions)
-      VALUES (company, l_id, l_no, r.i, r.dose, r.freq, r.days, r.q, 0, r.instr);
+      NOONA_CORE_PKG.assert(r.times IS NULL OR REGEXP_LIKE(REPLACE(r.times, ' '), '^([01][0-9]|2[0-3]):[0-5][0-9](,([01][0-9]|2[0-3]):[0-5][0-9])*$'),
+                            'NOONA-HIS-125', 'أوقات الجرعات بصيغة 08:00,20:00', 'Dose times as 08:00,20:00');
+      INSERT INTO his_prescription_line (company_id, prescription_id, line_no, item_id, dose, frequency, duration_days, quantity, dispensed_qty, instructions,
+                                         route, dose_times)
+      VALUES (company, l_id, l_no, r.i, r.dose, r.freq, r.days, r.q, 0, r.instr, NVL(r.route, 'ORAL'), REPLACE(r.times, ' '));
     END LOOP;
     NOONA_CORE_PKG.assert(l_no > 0, 'NOONA-HIS-114', 'أضف دواءً واحداً على الأقل', 'Add at least one medicine');
     -- الوصفة ترسل لمنصة الوصفات الإلكترونية إن وجدت (يصرفها المريض من أي صيدلية)؛ تعثر الإرسال لا يمنع الحفظ
+    -- المنوم والطوارئ: جدول الجرعات للتمريض
+    l_x := NOONA_HIS_NURSE_PKG.schedule_rx(l_id);
     BEGIN
       l_erx := NOONA_HIS_LINK_PKG.send_prescription(l_id);
     EXCEPTION WHEN OTHERS THEN
@@ -416,6 +422,7 @@ CREATE OR REPLACE PACKAGE BODY NOONA_HIS_CARE_PKG AS
       NOONA_HIS_PKG.cancel_order(ln.order_id, 'إلغاء الوصفة');
     END LOOP;
     NOONA_HIS_LINK_PKG.cancel_prescription(p_rx_id);
+    NOONA_HIS_NURSE_PKG.cancel_rx_doses(p_rx_id);
     UPDATE his_prescription SET status_code = 'CANCELLED' WHERE id = p_rx_id AND company_id = company;
   END cancel_prescription;
 
@@ -443,6 +450,7 @@ CREATE OR REPLACE PACKAGE BODY NOONA_HIS_CARE_PKG AS
     release_lines(p_rx_id);
     -- الوصفة الإلكترونية تبقى سارية ليصرفها المريض من صيدلية خارجية
     UPDATE his_prescription SET status_code = 'EXTERNAL', close_reason = SUBSTR(TRIM(p_reason), 1, 500) WHERE id = p_rx_id;
+    NOONA_HIS_NURSE_PKG.cancel_rx_doses(p_rx_id);
   EXCEPTION WHEN NO_DATA_FOUND THEN
     NOONA_CORE_PKG.raise_error('NOONA-HIS-124', 'الوصفة غير موجودة', 'Prescription not found');
   END close_prescription;
@@ -456,6 +464,7 @@ CREATE OR REPLACE PACKAGE BODY NOONA_HIS_CARE_PKG AS
       BEGIN
         release_lines(x.id);
         UPDATE his_prescription SET status_code = 'EXPIRED', close_reason = 'Expired' WHERE id = x.id;
+        NOONA_HIS_NURSE_PKG.cancel_rx_doses(x.id);
         l_n := l_n + 1;
       EXCEPTION WHEN OTHERS THEN NULL;   -- المسدد غير المسلم يبقى حتى يعالج
       END;
@@ -572,6 +581,8 @@ CREATE OR REPLACE PACKAGE BODY NOONA_HIS_CARE_PKG AS
     VALUES (company, l_ano, l_vis, l_bed, l_doc, SYSTIMESTAMP, TRUNC(SYSDATE) - 1, l_rs, 'ADMITTED')
     RETURNING id INTO l_id;
     INSERT INTO his_bed_move (company_id, admission_id, from_bed_id, to_bed_id, moved_at, reason) VALUES (company, l_id, NULL, l_bed, SYSTIMESTAMP, 'دخول');
+    -- خطة المتابعة الافتراضية: العلامات الحيوية كل 4 ساعات ومرور الطبيب يومياً
+    NOONA_HIS_NURSE_PKG.default_tasks(l_vis);
     RETURN l_id;
   END admit;
 
@@ -632,6 +643,7 @@ CREATE OR REPLACE PACKAGE BODY NOONA_HIS_CARE_PKG AS
     UPDATE his_admission SET status_code = 'DISCHARGED', discharge_at = SYSTIMESTAMP, discharge_type = p_type, discharge_summary = p_summary
      WHERE id = p_admission_id;
     UPDATE his_bed SET status_code = 'CLEANING' WHERE id = l_a.bed_id;
+    NOONA_HIS_NURSE_PKG.close_visit_care(l_a.visit_id);
   END discharge;
 
   FUNCTION bed_board_html RETURN CLOB IS

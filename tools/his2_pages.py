@@ -47,6 +47,9 @@ def build(app, url, link, scheme, L):
         p.text(f'P33_DOSE{k}', f, 10 * k + 2, f'Dose {k} (e.g. 500 mg)', maxlen=100, width=15)
         p.text(f'P33_FREQ{k}', f, 10 * k + 3, f'Frequency {k} (e.g. TID)', maxlen=100, width=15)
         p.number(f'P33_DAYS{k}', f, 10 * k + 4, f'Days {k}')
+        p.select(f'P33_ROUTE{k}', f, 10 * k + 5, f'Route {k}', lov_sql='STATIC2:Oral;ORAL,IV;IV,IM;IM,SC;SC,Inhaled;INHALED,Topical;TOPICAL,Rectal;RECTAL,Other;OTHER',
+                 null_text=None)
+        p.text(f'P33_TIMES{k}', f, 10 * k + 6, f'Dose times {k} (inpatient, e.g. 08:00,20:00)', maxlen=100, width=15)
     p.text('P33_INSTR', f, 50, 'Instructions (e.g. after meals)', maxlen=500)
     p.number('P33_VALID', f, 55, 'Valid for (days, default 30)')
     p.hidden('P33_RX', f, 90, protected=False)
@@ -54,7 +57,8 @@ def build(app, url, link, scheme, L):
     lines = []
     for k in (1, 2, 3):
         lines.append(f"case when :P33_D{k} is not null then json_object('i' value to_number(:P33_D{k}), 'q' value to_number(:P33_Q{k}), "
-                     f"'dose' value :P33_DOSE{k}, 'freq' value :P33_FREQ{k}, 'days' value to_number(:P33_DAYS{k}), 'instr' value :P33_INSTR) end")
+                     f"'dose' value :P33_DOSE{k}, 'freq' value :P33_FREQ{k}, 'days' value to_number(:P33_DAYS{k}), 'instr' value :P33_INSTR, "
+                     f"'route' value :P33_ROUTE{k}, 'times' value :P33_TIMES{k}) end")
     p.process(10, 'AFTER_SUBMIT', 'Prescribe', ['declare l_doc clob; l_lines clob;', 'begin',
         "    select json_arrayagg(x.l format json returning clob) into l_lines from (select " + lines[0] + " l from dual union all select "
         + lines[1] + " from dual union all select " + lines[2] + " from dual) x where x.l is not null;",
@@ -73,7 +77,7 @@ def build(app, url, link, scheme, L):
          ('DISPENSED_QTY', 'Dispensed', {'type': 'NUMBER'}), ('STATUS', 'Status', {}), ('ERX_NO', 'e-Rx', {}),
          ('PRN', 'Print', {'html': True, 'link': ('f?p=&APP_ID.:38:&SESSION.::&DEBUG.:RP,38:P38_ID:#ID#', '#PRN#')})], titled=True, rows=20)
     p.button(f, 20, 'BACK', 'الزيارة', redirect="f?p=&APP_ID.:31:&SESSION.::&DEBUG.:RP,31:P31_ID:&P33_VISIT.")
-    p.onload("$('#P33_INSTR,[id^=P33_DOSE],[id^=P33_FREQ]').attr('dir', 'ltr');")
+    p.onload("$('#P33_INSTR,[id^=P33_DOSE],[id^=P33_FREQ],[id^=P33_TIMES]').attr('dir', 'ltr');")
     p.branch(10, url(33, 'P33_VISIT', '&P33_VISIT.') + '&success_msg=#SUCCESS_MSG#')
 
     # =========================================================== 55) الصيدلية الداخلية
@@ -158,7 +162,7 @@ def build(app, url, link, scheme, L):
         success='أضيف السرير')
     p.onload(["$('#P56_REASON,#P56_SUMMARY').attr('dir', 'ltr');", "document.addEventListener('click', function (e) {",
               "  var b = e.target.closest('[data-visit]'); if (!b || !b.dataset.visit) return;",
-              "  location.href = 'f?p=' + apex.env.APP_ID + ':31:' + apex.env.APP_SESSION + '::NO:RP,31:P31_ID:' + b.dataset.visit;",
+              "  location.href = 'f?p=' + apex.env.APP_ID + ':76:' + apex.env.APP_SESSION + '::NO:RP,76:P76_VISIT:' + b.dataset.visit;",
               "});"])
     p.branch(10, url(56) + '&success_msg=#SUCCESS_MSG#')
 

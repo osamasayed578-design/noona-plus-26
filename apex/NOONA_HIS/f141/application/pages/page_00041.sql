@@ -22,7 +22,7 @@ wwv_flow_imp_page.create_page(
 ,p_protection_level=>'N'
 );
 wwv_flow_imp_page.create_page_plug(
- p_id=>wwv_flow_imp.id(91820275000000260)
+ p_id=>wwv_flow_imp.id(91820275000000261)
 ,p_plug_name=>'الفاتورة'
 ,p_region_template_options=>'#DEFAULT#:t-Region--removeHeader js-removeLandmark'
 ,p_plug_template=>4072358936313175081
@@ -33,17 +33,17 @@ wwv_flow_imp_page.create_page_plug(
   'show_line_breaks', 'Y')).to_clob
 );
 wwv_flow_imp_page.create_page_item(
- p_id=>wwv_flow_imp.id(91820275000000261)
+ p_id=>wwv_flow_imp.id(91820275000000262)
 ,p_name=>'P41_ID'
 ,p_item_sequence=>1
-,p_item_plug_id=>wwv_flow_imp.id(91820275000000260)
+,p_item_plug_id=>wwv_flow_imp.id(91820275000000261)
 ,p_display_as=>'NATIVE_HIDDEN'
 ,p_protection_level=>'N'
 ,p_attributes=>wwv_flow_t_plugin_attributes(wwv_flow_t_varchar2(
   'value_protected', 'N')).to_clob
 );
 wwv_flow_imp_page.create_page_plug(
- p_id=>wwv_flow_imp.id(91820275000000262)
+ p_id=>wwv_flow_imp.id(91820275000000263)
 ,p_plug_name=>'الفاتورة'
 ,p_region_template_options=>'#DEFAULT#:t-Region--scrollBody:nn-print-area:t-Region--removeHeader js-removeLandmark:t-Region--noUI'
 ,p_plug_template=>4072358936313175081
@@ -57,10 +57,10 @@ wwv_flow_imp_page.create_page_plug(
 ,p_plug_source_type=>'NATIVE_DYNAMIC_CONTENT'
 );
 wwv_flow_imp_page.create_page_item(
- p_id=>wwv_flow_imp.id(91820275000000263)
+ p_id=>wwv_flow_imp.id(91820275000000264)
 ,p_name=>'P41_REASON'
 ,p_item_sequence=>10
-,p_item_plug_id=>wwv_flow_imp.id(91820275000000260)
+,p_item_plug_id=>wwv_flow_imp.id(91820275000000261)
 ,p_prompt=>'سبب الإلغاء'
 ,p_display_as=>'NATIVE_TEXT_FIELD'
 ,p_cSize=>40
@@ -74,9 +74,9 @@ wwv_flow_imp_page.create_page_item(
   'trim_spaces', 'BOTH')).to_clob
 );
 wwv_flow_imp_page.create_page_button(
- p_id=>wwv_flow_imp.id(91820275000000264)
+ p_id=>wwv_flow_imp.id(91820275000000265)
 ,p_button_sequence=>10
-,p_button_plug_id=>wwv_flow_imp.id(91820275000000260)
+,p_button_plug_id=>wwv_flow_imp.id(91820275000000261)
 ,p_button_name=>'PRINT'
 ,p_button_action=>'REDIRECT_URL'
 ,p_button_template_options=>'#DEFAULT#'
@@ -87,9 +87,9 @@ wwv_flow_imp_page.create_page_button(
 ,p_button_redirect_url=>'javascript:window.print();'
 );
 wwv_flow_imp_page.create_page_button(
- p_id=>wwv_flow_imp.id(91820275000000265)
+ p_id=>wwv_flow_imp.id(91820275000000266)
 ,p_button_sequence=>20
-,p_button_plug_id=>wwv_flow_imp.id(91820275000000260)
+,p_button_plug_id=>wwv_flow_imp.id(91820275000000261)
 ,p_button_name=>'CANCEL_INV'
 ,p_button_action=>'SUBMIT'
 ,p_button_template_options=>'#DEFAULT#'
@@ -98,9 +98,9 @@ wwv_flow_imp_page.create_page_button(
 ,p_button_position=>'NEXT'
 );
 wwv_flow_imp_page.create_page_button(
- p_id=>wwv_flow_imp.id(91820275000000266)
+ p_id=>wwv_flow_imp.id(91820275000000267)
 ,p_button_sequence=>30
-,p_button_plug_id=>wwv_flow_imp.id(91820275000000260)
+,p_button_plug_id=>wwv_flow_imp.id(91820275000000261)
 ,p_button_name=>'BACK'
 ,p_button_action=>'REDIRECT_URL'
 ,p_button_template_options=>'#DEFAULT#'
@@ -110,17 +110,17 @@ wwv_flow_imp_page.create_page_button(
 ,p_button_redirect_url=>'f?p=&APP_ID.:31:&SESSION.::&DEBUG.:RP,31:P31_ID:&P41_VISIT.'
 );
 wwv_flow_imp_page.create_page_item(
- p_id=>wwv_flow_imp.id(91820275000000267)
+ p_id=>wwv_flow_imp.id(91820275000000268)
 ,p_name=>'P41_VISIT'
 ,p_item_sequence=>2
-,p_item_plug_id=>wwv_flow_imp.id(91820275000000260)
+,p_item_plug_id=>wwv_flow_imp.id(91820275000000261)
 ,p_display_as=>'NATIVE_HIDDEN'
 ,p_protection_level=>'N'
 ,p_attributes=>wwv_flow_t_plugin_attributes(wwv_flow_t_varchar2(
   'value_protected', 'N')).to_clob
 );
 wwv_flow_imp_page.create_page_process(
- p_id=>wwv_flow_imp.id(91820275000000268)
+ p_id=>wwv_flow_imp.id(91820275000000269)
 ,p_process_sequence=>5
 ,p_process_point=>'BEFORE_HEADER'
 ,p_process_type=>'NATIVE_PLSQL'
@@ -129,10 +129,10 @@ wwv_flow_imp_page.create_page_process(
 'begin select visit_id into :P41_VISIT from his_invoice where id = :P41_ID; exception when no_data_found then null; end;'))
 ,p_process_clob_language=>'PLSQL'
 ,p_error_display_location=>'INLINE_IN_NOTIFICATION'
-,p_internal_uid=>91820275000000268
+,p_internal_uid=>91820275000000269
 );
 wwv_flow_imp_page.create_page_process(
- p_id=>wwv_flow_imp.id(91820275000000269)
+ p_id=>wwv_flow_imp.id(91820275000000270)
 ,p_process_sequence=>10
 ,p_process_point=>'AFTER_SUBMIT'
 ,p_process_type=>'NATIVE_PLSQL'
@@ -141,12 +141,12 @@ wwv_flow_imp_page.create_page_process(
 'noona_his_pkg.cancel_invoice(:P41_ID, :P41_REASON);'))
 ,p_process_clob_language=>'PLSQL'
 ,p_error_display_location=>'INLINE_IN_NOTIFICATION'
-,p_process_when_button_id=>wwv_flow_imp.id(91820275000000265)
+,p_process_when_button_id=>wwv_flow_imp.id(91820275000000266)
 ,p_process_success_message=>'ألغيت الفاتورة وعكس قيدها'
-,p_internal_uid=>91820275000000269
+,p_internal_uid=>91820275000000270
 );
 wwv_flow_imp_page.create_page_branch(
- p_id=>wwv_flow_imp.id(91820275000000270)
+ p_id=>wwv_flow_imp.id(91820275000000271)
 ,p_branch_action=>'f?p=&APP_ID.:41:&SESSION.::&DEBUG.::P41_ID:&P41_ID.&success_msg=#SUCCESS_MSG#'
 ,p_branch_point=>'AFTER_PROCESSING'
 ,p_branch_type=>'REDIRECT_URL'

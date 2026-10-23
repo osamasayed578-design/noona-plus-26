@@ -43,6 +43,11 @@
 | [`HIS_MED_ADMIN`](#his_med_admin) | سجل إعطاء الأدوية | Medication Administration Record | C | CONFIDENTIAL |
 | [`HIS_CERTIFICATE`](#his_certificate) | التقارير الطبية والإجازات | Medical Certificates & Reports | C | CONFIDENTIAL |
 | [`HIS_COMMISSION`](#his_commission) | تسويات عمولات الأطباء | Doctor Commission Settlements | C | INTERNAL |
+| [`HIS_NURSE_SHIFT`](#his_nurse_shift) | ورديات التمريض | Nursing Shifts | C | INTERNAL |
+| [`HIS_NURSE_ROSTER`](#his_nurse_roster) | جدول مناوبات التمريض | Nursing Duty Roster | C | INTERNAL |
+| [`HIS_MED_SCHEDULE`](#his_med_schedule) | جدول جرعات المنومين | Inpatient Dose Schedule | C | CONFIDENTIAL |
+| [`HIS_CARE_TASK`](#his_care_task) | مهام المتابعة التمريضية | Nursing Care Tasks | C | CONFIDENTIAL |
+| [`HIS_CARE_LOG`](#his_care_log) | سجل تنفيذ مهام المتابعة | Care Task Log | C | CONFIDENTIAL |
 
 ## HIS_DEPARTMENT
 
@@ -705,11 +710,13 @@
 | 11 | `DISPENSED_QTY` | كمية | `NUMBER(24,6)` | ✔ | 0 |  |  | إدخال المستخدم |  | الكمية المصروفة |
 | 12 | `INSTRUCTIONS` | نص | `VARCHAR2(500 CHAR)` |  |  |  |  | إدخال المستخدم |  | تعليمات الاستعمال |
 | 13 | `ORDER_ID` | معرف | `NUMBER(19)` |  |  | FK→HIS_ORDER |  | إدخال المستخدم |  | طلب الفوترة |
-| 14 | `ROW_VERSION` | عدد صحيح | `NUMBER(10)` | ✔ | 1 |  |  | Trigger |  | رقم الإصدار للتحكم في التزامن المتفائل |
-| 15 | `CREATED_BY` | اسم مستخدم | `VARCHAR2(128 CHAR)` | ✔ |  |  |  | Trigger |  | منشئ السجل |
-| 16 | `CREATED_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` | ✔ | SYSTIMESTAMP |  |  | Trigger |  | وقت الإنشاء |
-| 17 | `UPDATED_BY` | اسم مستخدم | `VARCHAR2(128 CHAR)` |  |  |  |  | Trigger |  | آخر من عدل السجل |
-| 18 | `UPDATED_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` |  |  |  |  | Trigger |  | وقت آخر تعديل |
+| 14 | `ROUTE` | رمز | `VARCHAR2(30 CHAR)` |  |  |  | ORAL, IV, IM, SC, INHALED, TOPICAL, RECTAL, OTHER | إدخال المستخدم |  | طريقة الإعطاء |
+| 15 | `DOSE_TIMES` | نص | `VARCHAR2(100 CHAR)` |  |  |  |  | إدخال المستخدم |  | أوقات الجرعات المحددة (08:00,20:00) بدل أوقات التكرار القياسية |
+| 16 | `ROW_VERSION` | عدد صحيح | `NUMBER(10)` | ✔ | 1 |  |  | Trigger |  | رقم الإصدار للتحكم في التزامن المتفائل |
+| 17 | `CREATED_BY` | اسم مستخدم | `VARCHAR2(128 CHAR)` | ✔ |  |  |  | Trigger |  | منشئ السجل |
+| 18 | `CREATED_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` | ✔ | SYSTIMESTAMP |  |  | Trigger |  | وقت الإنشاء |
+| 19 | `UPDATED_BY` | اسم مستخدم | `VARCHAR2(128 CHAR)` |  |  |  |  | Trigger |  | آخر من عدل السجل |
+| 20 | `UPDATED_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` |  |  |  |  | Trigger |  | وقت آخر تعديل |
 
 ## HIS_BED
 
@@ -1251,4 +1258,155 @@
 | 19 | `CREATED_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` | ✔ | SYSTIMESTAMP |  |  | Trigger |  | وقت الإنشاء |
 | 20 | `UPDATED_BY` | اسم مستخدم | `VARCHAR2(128 CHAR)` |  |  |  |  | Trigger |  | آخر من عدل السجل |
 | 21 | `UPDATED_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` |  |  |  |  | Trigger |  | وقت آخر تعديل |
+
+## HIS_NURSE_SHIFT
+
+| البند | القيمة |
+|---|---|
+| الاسم العربي | ورديات التمريض |
+| English | Nursing Shifts |
+| الحزمة المالكة | 31 — `NOONA_HIS_PKG` |
+| نطاق الملكية | `C` — مملوك للشركة Company-Owned |
+| الحساسية | INTERNAL |
+| النمط | قابل للتعديل وفق دورة الحياة |
+| مفاتيح فريدة | UK2: (TENANT_ID, COMPANY_ID, CODE) |
+
+| # | العمود | النوع المنطقي | Oracle Type | إلزامي | افتراضي | مفاتيح | القيم المقبولة | المصدر | PII | الوصف |
+|---:|---|---|---|:---:|---|---|---|---|:---:|---|
+| 1 | `ID` | معرف | `NUMBER(19)` | ✔ |  | PK |  | النظام/الحزمة |  | المفتاح الداخلي الثابت (Identity) - لا يعاد استخدامه |
+| 2 | `TENANT_ID` | معرف | `NUMBER(19)` | ✔ |  | FK→PLT_TENANT UK2 |  | Security Context |  | المؤسسة المالكة؛ يملأ من Security Context الموثوق لا من مدخلات المستخدم |
+| 3 | `COMPANY_ID` | معرف | `NUMBER(19)` | ✔ |  | FK→ORG_COMPANY UK2 |  | Security Context |  | الشركة (الكيان القانوني) المالكة للسجل |
+| 4 | `CODE` | نص | `VARCHAR2(50 CHAR)` | ✔ |  | UK2 |  | إدخال المستخدم |  | الرمز الفريد ضمن النطاق |
+| 5 | `NAME_AR` | اسم | `VARCHAR2(200 CHAR)` | ✔ |  |  |  | إدخال المستخدم |  | الاسم بالعربية |
+| 6 | `NAME_EN` | اسم | `VARCHAR2(200 CHAR)` |  |  |  |  | إدخال المستخدم |  | الاسم بالإنجليزية |
+| 7 | `START_TIME` | نص | `VARCHAR2(5 CHAR)` | ✔ |  |  |  | إدخال المستخدم |  | البداية (HH24:MI) |
+| 8 | `END_TIME` | نص | `VARCHAR2(5 CHAR)` | ✔ |  |  |  | إدخال المستخدم |  | النهاية (تتجاوز منتصف الليل إن كانت أصغر) |
+| 9 | `IS_ACTIVE` | منطقي Y/N | `CHAR(1 CHAR)` | ✔ | 'Y' |  | Y, N | إدخال المستخدم |  | نشط؟ |
+| 10 | `SORT_ORDER` | عدد صحيح | `NUMBER(10)` |  |  |  |  | إدخال المستخدم |  | ترتيب العرض |
+| 11 | `ROW_VERSION` | عدد صحيح | `NUMBER(10)` | ✔ | 1 |  |  | Trigger |  | رقم الإصدار للتحكم في التزامن المتفائل |
+| 12 | `CREATED_BY` | اسم مستخدم | `VARCHAR2(128 CHAR)` | ✔ |  |  |  | Trigger |  | منشئ السجل |
+| 13 | `CREATED_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` | ✔ | SYSTIMESTAMP |  |  | Trigger |  | وقت الإنشاء |
+| 14 | `UPDATED_BY` | اسم مستخدم | `VARCHAR2(128 CHAR)` |  |  |  |  | Trigger |  | آخر من عدل السجل |
+| 15 | `UPDATED_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` |  |  |  |  | Trigger |  | وقت آخر تعديل |
+
+## HIS_NURSE_ROSTER
+
+| البند | القيمة |
+|---|---|
+| الاسم العربي | جدول مناوبات التمريض |
+| English | Nursing Duty Roster |
+| الحزمة المالكة | 31 — `NOONA_HIS_PKG` |
+| نطاق الملكية | `C` — مملوك للشركة Company-Owned |
+| الحساسية | INTERNAL |
+| النمط | قابل للتعديل وفق دورة الحياة |
+| مفاتيح فريدة | UK1: (TENANT_ID, DUTY_DATE, SHIFT_ID, NURSE_ID) |
+
+| # | العمود | النوع المنطقي | Oracle Type | إلزامي | افتراضي | مفاتيح | القيم المقبولة | المصدر | PII | الوصف |
+|---:|---|---|---|:---:|---|---|---|---|:---:|---|
+| 1 | `ID` | معرف | `NUMBER(19)` | ✔ |  | PK |  | النظام/الحزمة |  | المفتاح الداخلي الثابت (Identity) - لا يعاد استخدامه |
+| 2 | `TENANT_ID` | معرف | `NUMBER(19)` | ✔ |  | FK→PLT_TENANT UK1 |  | Security Context |  | المؤسسة المالكة؛ يملأ من Security Context الموثوق لا من مدخلات المستخدم |
+| 3 | `COMPANY_ID` | معرف | `NUMBER(19)` | ✔ |  | FK→ORG_COMPANY |  | Security Context |  | الشركة (الكيان القانوني) المالكة للسجل |
+| 4 | `DUTY_DATE` | تاريخ | `DATE` | ✔ |  | UK1 |  | إدخال المستخدم |  | تاريخ الوردية (تاريخ بدايتها) |
+| 5 | `SHIFT_ID` | معرف | `NUMBER(19)` | ✔ |  | FK→HIS_NURSE_SHIFT UK1 |  | إدخال المستخدم |  | الوردية |
+| 6 | `WARD_ID` | معرف | `NUMBER(19)` | ✔ |  | FK→HIS_DEPARTMENT |  | إدخال المستخدم |  | الجناح أو القسم |
+| 7 | `NURSE_ID` | معرف | `NUMBER(19)` | ✔ |  | FK→HIS_DOCTOR UK1 |  | إدخال المستخدم |  | الممرض |
+| 8 | `DUTY_ROLE` | رمز | `VARCHAR2(30 CHAR)` | ✔ | 'STAFF' |  | CHARGE, STAFF, ASSISTANT | إدخال المستخدم |  | الدور (مسؤول الوردية، ممرض، مساعد) |
+| 9 | `ROOMS` | نص | `VARCHAR2(200 CHAR)` |  |  |  |  | إدخال المستخدم |  | الغرف المسندة (فارغ = كل الجناح) |
+| 10 | `NOTES` | نص | `VARCHAR2(500 CHAR)` |  |  |  |  | إدخال المستخدم |  | ملاحظات |
+| 11 | `ROW_VERSION` | عدد صحيح | `NUMBER(10)` | ✔ | 1 |  |  | Trigger |  | رقم الإصدار للتحكم في التزامن المتفائل |
+| 12 | `CREATED_BY` | اسم مستخدم | `VARCHAR2(128 CHAR)` | ✔ |  |  |  | Trigger |  | منشئ السجل |
+| 13 | `CREATED_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` | ✔ | SYSTIMESTAMP |  |  | Trigger |  | وقت الإنشاء |
+| 14 | `UPDATED_BY` | اسم مستخدم | `VARCHAR2(128 CHAR)` |  |  |  |  | Trigger |  | آخر من عدل السجل |
+| 15 | `UPDATED_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` |  |  |  |  | Trigger |  | وقت آخر تعديل |
+
+## HIS_MED_SCHEDULE
+
+| البند | القيمة |
+|---|---|
+| الاسم العربي | جدول جرعات المنومين |
+| English | Inpatient Dose Schedule |
+| الحزمة المالكة | 31 — `NOONA_HIS_PKG` |
+| نطاق الملكية | `C` — مملوك للشركة Company-Owned |
+| الحساسية | CONFIDENTIAL |
+| النمط | قابل للتعديل وفق دورة الحياة |
+| مفاتيح فريدة | UK1: (LINE_ID, DUE_AT) |
+
+| # | العمود | النوع المنطقي | Oracle Type | إلزامي | افتراضي | مفاتيح | القيم المقبولة | المصدر | PII | الوصف |
+|---:|---|---|---|:---:|---|---|---|---|:---:|---|
+| 1 | `ID` | معرف | `NUMBER(19)` | ✔ |  | PK |  | النظام/الحزمة |  | المفتاح الداخلي الثابت (Identity) - لا يعاد استخدامه |
+| 2 | `TENANT_ID` | معرف | `NUMBER(19)` | ✔ |  | FK→PLT_TENANT |  | Security Context |  | المؤسسة المالكة؛ يملأ من Security Context الموثوق لا من مدخلات المستخدم |
+| 3 | `COMPANY_ID` | معرف | `NUMBER(19)` | ✔ |  | FK→ORG_COMPANY |  | Security Context |  | الشركة (الكيان القانوني) المالكة للسجل |
+| 4 | `VISIT_ID` | معرف | `NUMBER(19)` | ✔ |  | FK→HIS_VISIT |  | إدخال المستخدم |  | الزيارة |
+| 5 | `LINE_ID` | معرف | `NUMBER(19)` | ✔ |  | FK→HIS_PRESCRIPTION_LINE UK1 |  | إدخال المستخدم |  | الدواء الموصوف |
+| 6 | `DUE_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` | ✔ |  | UK1 |  | إدخال المستخدم |  | موعد الجرعة |
+| 7 | `DOSE` | نص | `VARCHAR2(100 CHAR)` |  |  |  |  | إدخال المستخدم |  | الجرعة |
+| 8 | `ROUTE` | رمز | `VARCHAR2(30 CHAR)` |  |  |  |  | إدخال المستخدم |  | طريقة الإعطاء |
+| 9 | `ADMIN_ID` | معرف | `NUMBER(19)` |  |  | FK→HIS_MED_ADMIN |  | إدخال المستخدم |  | سجل الإعطاء |
+| 10 | `DONE_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` |  |  |  |  | إدخال المستخدم |  | وقت التنفيذ |
+| 11 | `NURSE_ID` | معرف | `NUMBER(19)` |  |  | FK→HIS_DOCTOR |  | إدخال المستخدم |  | الممرض المنفذ |
+| 12 | `ALERT_LEVEL` | عدد صحيح | `NUMBER(10)` | ✔ | 0 |  |  | إدخال المستخدم |  | التنبيه المرسل (0 لا، 1 حان الموعد، 2 متأخرة) |
+| 13 | `NOTES` | نص | `VARCHAR2(500 CHAR)` |  |  |  |  | إدخال المستخدم |  | ملاحظات |
+| 14 | `STATUS_CODE` | رمز | `VARCHAR2(30 CHAR)` | ✔ | 'DUE' |  | DUE, GIVEN, HELD, REFUSED, MISSED, CANCELLED | النظام/الحزمة |  | الحالة ضمن دورة الحياة المعتمدة |
+| 15 | `ROW_VERSION` | عدد صحيح | `NUMBER(10)` | ✔ | 1 |  |  | Trigger |  | رقم الإصدار للتحكم في التزامن المتفائل |
+| 16 | `CREATED_BY` | اسم مستخدم | `VARCHAR2(128 CHAR)` | ✔ |  |  |  | Trigger |  | منشئ السجل |
+| 17 | `CREATED_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` | ✔ | SYSTIMESTAMP |  |  | Trigger |  | وقت الإنشاء |
+| 18 | `UPDATED_BY` | اسم مستخدم | `VARCHAR2(128 CHAR)` |  |  |  |  | Trigger |  | آخر من عدل السجل |
+| 19 | `UPDATED_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` |  |  |  |  | Trigger |  | وقت آخر تعديل |
+
+## HIS_CARE_TASK
+
+| البند | القيمة |
+|---|---|
+| الاسم العربي | مهام المتابعة التمريضية |
+| English | Nursing Care Tasks |
+| الحزمة المالكة | 31 — `NOONA_HIS_PKG` |
+| نطاق الملكية | `C` — مملوك للشركة Company-Owned |
+| الحساسية | CONFIDENTIAL |
+| النمط | قابل للتعديل وفق دورة الحياة |
+| قيود أعمال | EVERY_HOURS > 0 |
+
+| # | العمود | النوع المنطقي | Oracle Type | إلزامي | افتراضي | مفاتيح | القيم المقبولة | المصدر | PII | الوصف |
+|---:|---|---|---|:---:|---|---|---|---|:---:|---|
+| 1 | `ID` | معرف | `NUMBER(19)` | ✔ |  | PK |  | النظام/الحزمة |  | المفتاح الداخلي الثابت (Identity) - لا يعاد استخدامه |
+| 2 | `TENANT_ID` | معرف | `NUMBER(19)` | ✔ |  | FK→PLT_TENANT |  | Security Context |  | المؤسسة المالكة؛ يملأ من Security Context الموثوق لا من مدخلات المستخدم |
+| 3 | `COMPANY_ID` | معرف | `NUMBER(19)` | ✔ |  | FK→ORG_COMPANY |  | Security Context |  | الشركة (الكيان القانوني) المالكة للسجل |
+| 4 | `VISIT_ID` | معرف | `NUMBER(19)` | ✔ |  | FK→HIS_VISIT |  | إدخال المستخدم |  | الزيارة |
+| 5 | `TASK_TYPE` | رمز | `VARCHAR2(30 CHAR)` | ✔ |  |  | VITALS, BLOOD_SUGAR, TURNING, WOUND_CARE, INTAKE_OUTPUT, DOCTOR_ROUND, OBSERVATION, OTHER | إدخال المستخدم |  | النوع |
+| 6 | `DESCRIPTION` | نص | `VARCHAR2(500 CHAR)` |  |  |  |  | إدخال المستخدم |  | الوصف (English) |
+| 7 | `EVERY_HOURS` | رقم | `NUMBER` | ✔ |  |  |  | إدخال المستخدم |  | التكرار بالساعات |
+| 8 | `NEXT_DUE_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` | ✔ |  |  |  | إدخال المستخدم |  | الموعد القادم |
+| 9 | `END_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` |  |  |  |  | إدخال المستخدم |  | حتى |
+| 10 | `LAST_DONE_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` |  |  |  |  | إدخال المستخدم |  | آخر تنفيذ |
+| 11 | `ALERT_LEVEL` | عدد صحيح | `NUMBER(10)` | ✔ | 0 |  |  | إدخال المستخدم |  | التنبيه المرسل للموعد القادم |
+| 12 | `STATUS_CODE` | رمز | `VARCHAR2(30 CHAR)` | ✔ | 'ACTIVE' |  | ACTIVE, STOPPED | النظام/الحزمة |  | الحالة ضمن دورة الحياة المعتمدة |
+| 13 | `ROW_VERSION` | عدد صحيح | `NUMBER(10)` | ✔ | 1 |  |  | Trigger |  | رقم الإصدار للتحكم في التزامن المتفائل |
+| 14 | `CREATED_BY` | اسم مستخدم | `VARCHAR2(128 CHAR)` | ✔ |  |  |  | Trigger |  | منشئ السجل |
+| 15 | `CREATED_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` | ✔ | SYSTIMESTAMP |  |  | Trigger |  | وقت الإنشاء |
+| 16 | `UPDATED_BY` | اسم مستخدم | `VARCHAR2(128 CHAR)` |  |  |  |  | Trigger |  | آخر من عدل السجل |
+| 17 | `UPDATED_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` |  |  |  |  | Trigger |  | وقت آخر تعديل |
+
+## HIS_CARE_LOG
+
+| البند | القيمة |
+|---|---|
+| الاسم العربي | سجل تنفيذ مهام المتابعة |
+| English | Care Task Log |
+| الحزمة المالكة | 31 — `NOONA_HIS_PKG` |
+| نطاق الملكية | `C` — مملوك للشركة Company-Owned |
+| الحساسية | CONFIDENTIAL |
+| النمط | Append-only (غير قابل للتعديل) |
+
+| # | العمود | النوع المنطقي | Oracle Type | إلزامي | افتراضي | مفاتيح | القيم المقبولة | المصدر | PII | الوصف |
+|---:|---|---|---|:---:|---|---|---|---|:---:|---|
+| 1 | `ID` | معرف | `NUMBER(19)` | ✔ |  | PK |  | النظام/الحزمة |  | المفتاح الداخلي الثابت (Identity) - لا يعاد استخدامه |
+| 2 | `TENANT_ID` | معرف | `NUMBER(19)` | ✔ |  | FK→PLT_TENANT |  | Security Context |  | المؤسسة المالكة؛ يملأ من Security Context الموثوق لا من مدخلات المستخدم |
+| 3 | `COMPANY_ID` | معرف | `NUMBER(19)` | ✔ |  | FK→ORG_COMPANY |  | Security Context |  | الشركة (الكيان القانوني) المالكة للسجل |
+| 4 | `TASK_ID` | معرف | `NUMBER(19)` | ✔ |  | FK→HIS_CARE_TASK |  | إدخال المستخدم |  | المهمة |
+| 5 | `VISIT_ID` | معرف | `NUMBER(19)` | ✔ |  | FK→HIS_VISIT |  | إدخال المستخدم |  | الزيارة |
+| 6 | `DONE_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` | ✔ | SYSTIMESTAMP |  |  | إدخال المستخدم |  | الوقت |
+| 7 | `NURSE_ID` | معرف | `NUMBER(19)` |  |  | FK→HIS_DOCTOR |  | إدخال المستخدم |  | المنفذ |
+| 8 | `RESULT_VALUE` | نص | `VARCHAR2(200 CHAR)` |  |  |  |  | إدخال المستخدم |  | القيمة (مثل: سكر 140، المدخلات 500 مل) |
+| 9 | `NOTES` | نص | `VARCHAR2(500 CHAR)` |  |  |  |  | إدخال المستخدم |  | ملاحظات |
+| 10 | `CREATED_BY` | اسم مستخدم | `VARCHAR2(128 CHAR)` | ✔ |  |  |  | Trigger |  | منشئ السجل |
+| 11 | `CREATED_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` | ✔ | SYSTIMESTAMP |  |  | Trigger |  | وقت الإنشاء UTC |
 

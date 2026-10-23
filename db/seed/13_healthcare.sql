@@ -30,6 +30,13 @@ BEGIN
      ON (s.tenant_id IS NULL AND s.code = x.code)
    WHEN NOT MATCHED THEN INSERT (tenant_id, code, name_ar, name_en, module_code, allow_manual, requires_approval, is_active, created_by)
         VALUES (NULL, x.code, x.name_ar, x.name_en, x.mdl, 'N', 'N', 'Y', 'SYSTEM');
+  -- تنبيهات التمريض: موعد الجرعة ومهام المتابعة للممرضين المناوبين
+  MERGE INTO ntf_event_type n
+  USING (SELECT 'HIS_DOSE_DUE' code, 'موعد جرعة دواء لمريض منوم' name_ar, 'Medication dose due' name_en FROM dual
+         UNION ALL SELECT 'HIS_CARE_DUE', 'موعد متابعة تمريضية', 'Nursing care task due' FROM dual) x
+     ON (n.code = x.code)
+   WHEN NOT MATCHED THEN INSERT (code, name_ar, name_en, module_code, category, is_mandatory, default_channels)
+        VALUES (x.code, x.name_ar, x.name_en, 'HIS', 'ACTION_REQUIRED', 'N', 'IN_APP');
   NOONA_CORE_PKG.end_system;
   COMMIT;
 EXCEPTION WHEN OTHERS THEN

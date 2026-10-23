@@ -22,7 +22,7 @@ wwv_flow_imp_page.create_page(
 ,p_protection_level=>'N'
 );
 wwv_flow_imp_page.create_page_plug(
- p_id=>wwv_flow_imp.id(91820275000000843)
+ p_id=>wwv_flow_imp.id(91820275000000850)
 ,p_plug_name=>'Patient'
 ,p_region_template_options=>'#DEFAULT#:nn-rpt-filters:t-Region--removeHeader js-removeLandmark'
 ,p_plug_template=>4072358936313175081
@@ -33,10 +33,10 @@ wwv_flow_imp_page.create_page_plug(
   'show_line_breaks', 'Y')).to_clob
 );
 wwv_flow_imp_page.create_page_item(
- p_id=>wwv_flow_imp.id(91820275000000844)
+ p_id=>wwv_flow_imp.id(91820275000000851)
 ,p_name=>'P12_ID'
 ,p_item_sequence=>10
-,p_item_plug_id=>wwv_flow_imp.id(91820275000000843)
+,p_item_plug_id=>wwv_flow_imp.id(91820275000000850)
 ,p_prompt=>'المريض'
 ,p_display_as=>'NATIVE_SELECT_LIST'
 ,p_lov=>'select name_ar || '' - '' || mrn || nvl2(mobile, '' - '' || mobile, '''') d, id r from his_patient where company_id = noona_his_pkg.company and status_code = ''ACTIVE'' order by name_ar'
@@ -50,7 +50,7 @@ wwv_flow_imp_page.create_page_item(
   'page_action_on_selection', 'SUBMIT')).to_clob
 );
 wwv_flow_imp_page.create_page_plug(
- p_id=>wwv_flow_imp.id(91820275000000845)
+ p_id=>wwv_flow_imp.id(91820275000000852)
 ,p_plug_name=>'Record'
 ,p_region_template_options=>'#DEFAULT#:t-Region--scrollBody:nn-print-area:t-Region--removeHeader js-removeLandmark:t-Region--noUI'
 ,p_plug_template=>4072358936313175081
@@ -64,9 +64,9 @@ wwv_flow_imp_page.create_page_plug(
 ,p_plug_source_type=>'NATIVE_DYNAMIC_CONTENT'
 );
 wwv_flow_imp_page.create_page_button(
- p_id=>wwv_flow_imp.id(91820275000000846)
+ p_id=>wwv_flow_imp.id(91820275000000853)
 ,p_button_sequence=>10
-,p_button_plug_id=>wwv_flow_imp.id(91820275000000843)
+,p_button_plug_id=>wwv_flow_imp.id(91820275000000850)
 ,p_button_name=>'PRINT'
 ,p_button_action=>'REDIRECT_URL'
 ,p_button_template_options=>'#DEFAULT#'
@@ -76,9 +76,9 @@ wwv_flow_imp_page.create_page_button(
 ,p_button_redirect_url=>'javascript:window.print();'
 );
 wwv_flow_imp_page.create_page_button(
- p_id=>wwv_flow_imp.id(91820275000000847)
+ p_id=>wwv_flow_imp.id(91820275000000854)
 ,p_button_sequence=>20
-,p_button_plug_id=>wwv_flow_imp.id(91820275000000843)
+,p_button_plug_id=>wwv_flow_imp.id(91820275000000850)
 ,p_button_name=>'EDIT'
 ,p_button_action=>'REDIRECT_URL'
 ,p_button_template_options=>'#DEFAULT#'

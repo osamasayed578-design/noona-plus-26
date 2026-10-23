@@ -328,6 +328,7 @@ b_inv = p.button(fb, 10, 'INVOICE', 'إصدار الفاتورة والتحصي�
 b_close = p.button(fb, 20, 'CLOSE', 'إقفال الزيارة')
 p.button(fo, 20, 'RX', 'Prescription - وصفة', redirect=url(33, 'P33_VISIT', '&P31_ID.', 'RP,33'))
 p.button(fo, 60, 'NURSING', 'التمريض والعلامات الحيوية', redirect=url(35, 'P35_VISIT', '&P31_ID.', 'RP,35'))
+p.button(fo, 65, 'CHART', 'الملف الإلكتروني للمنوم', redirect=url(76, 'P76_VISIT', '&P31_ID.', 'RP,76'))
 p.button(fo, 70, 'CERT', 'تقرير طبي / إجازة', redirect=url(36, 'P36_VISIT', '&P31_ID.', 'RP,36'))
 p.button(fo, 80, 'EMR', 'الملف الطبي', redirect="javascript:location.href='f?p='+apex.env.APP_ID+':12:'+apex.env.APP_SESSION+'::NO:RP,12:P12_ID:'+$('#P31_PATIENT').val();")
 p.button(fo, 30, 'ADMIT', 'التنويم', redirect=url(56))
@@ -729,10 +730,15 @@ app.nav_item('مكونات التحاليل وقوالب التقارير', 64, 
 app.nav_item('الأجهزة الطبية والمعايرة', 66, 'fa-wrench', 56, parent=st)
 app.nav_item('التقارير والمطالبات', 70, 'fa-bar-chart', 60)
 
-import his2_pages, his3_pages
+import his2_pages, his3_pages, his4_pages
 his2_pages.build(app, url, link, HIS, dict(PATIENT_LOV=PATIENT_LOV, DOCTOR_LOV=DOCTOR_LOV, DEPT_LOV=DEPT_LOV, PAYER_LOV=PAYER_LOV,
                                           MODALITY_LOV=MODALITY_LOV))
 his3_pages.build(app, url, link, HIS, dict(PATIENT_LOV=PATIENT_LOV, DOCTOR_LOV=DOCTOR_LOV, PAYER_LOV=PAYER_LOV, STATUS_LOV=STATUS_LOV))
+his4_pages.build(app, url, link, HIS, {})
+nr = app.nav_item('التمريض والتنويم', None, 'fa-user-md', 46)
+app.nav_item('محطة التمريض', 75, 'fa-bell', 461, parent=nr)
+app.nav_item('الملف الإلكتروني للمنوم', 76, 'fa-folder-open', 462, parent=nr)
+app.nav_item('ورديات التمريض والمناوبات', 74, 'fa-calendar', 463, parent=nr)
 app.nav_item('لوحة الطوارئ', 59, 'fa-ambulance', 25, parent=rc)
 app.nav_item('الملف الطبي للمريض', 12, 'fa-folder-open-o', 26, parent=rc)
 app.nav_item('التمريض والعلامات الحيوية', 35, 'fa-heart', 33, parent=cl)

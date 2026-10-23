@@ -1258,3 +1258,36 @@ html[dir="rtl"] .nn-rst-kpi b { text-align: right; }
 .nn-his-emro { padding: 2px 0; }
 @media (max-width: 760px) { .nn-his-json { grid-template-columns: 1fr; } }
 @media print { .nn-his-cert { border: 0; padding: 0; } }
+/* المستشفى - المرحلة الرابعة: المناوبون، محطة التمريض، التنبيهات، جدول الجرعات */
+.nn-his-duty { display: flex; flex-wrap: wrap; gap: 8px; }
+.nn-his-nurse { display: flex; flex-direction: column; padding: 6px 12px; border-radius: 999px; background: var(--nn-primary-50); border: 1px solid var(--nn-primary-100); }
+.nn-his-nurse.is-charge { background: var(--nn-success-50); border-color: var(--nn-success); }
+.nn-his-nurse small { color: var(--nn-muted); font-size: .78em; }
+.nn-his-station { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 12px; }
+.nn-his-pt { display: flex; flex-direction: column; gap: 4px; padding: 10px 12px; background: var(--nn-surface); border: 1px solid var(--nn-border);
+  border-inline-start: 5px solid var(--nn-primary); border-radius: var(--nn-radius); cursor: pointer; }
+.nn-his-pt:hover { box-shadow: 0 2px 8px rgba(16, 24, 40, .12); }
+.nn-his-pt.is-late { border-inline-start-color: var(--nn-danger); background: #fffafa; }
+.nn-his-pt header, .nn-his-pt footer { display: flex; justify-content: space-between; gap: 8px; }
+.nn-his-pt header b { font-size: 1.1rem; direction: ltr; }
+.nn-his-pt .nm { font-weight: 600; }
+.nn-his-pt small { color: var(--nn-muted); }
+.nn-his-pt div[dir="ltr"] { text-align: left; font-size: .9em; }
+.nn-his-pt div[dir="ltr"] > small:first-child { display: inline-block; min-width: 70px; }
+.nn-his-alerts { display: flex; flex-wrap: wrap; gap: 8px; align-items: stretch; }
+.nn-his-alerts .hd { width: 100%; font-weight: 700; color: var(--nn-danger); }
+.nn-his-alerts .hd.ok { color: var(--nn-success); font-weight: 400; }
+.nn-his-alert { padding: 6px 10px; border-radius: 8px; background: var(--nn-warning-50); border: 1px solid var(--nn-warning); }
+.nn-his-alert.is-late { background: var(--nn-danger-50); border-color: var(--nn-danger); animation: nnPulse 1.4s ease-in-out infinite; }
+@keyframes nnPulse { 50% { box-shadow: 0 0 0 4px rgba(196, 43, 28, .18); } }
+@media (prefers-reduced-motion: reduce) { .nn-his-alert.is-late { animation: none; } }
+.nn-his-lab tr.is-late td { background: var(--nn-danger-50); }
+.nn-his-lab tr.is-due td { background: var(--nn-warning-50); }
+.nn-his-chart h3 { margin: 16px 0 6px; font-size: 1rem; color: var(--nn-head-text); text-align: left; }
+.nn-his-dose { display: inline-block; margin: 2px; padding: 2px 6px; border-radius: 6px; font-size: .78rem; direction: ltr; border: 1px solid var(--nn-border); }
+.nn-his-dose.ds-due { background: #f8fafc; }
+.nn-his-dose.ds-late { background: var(--nn-danger-50); border-color: var(--nn-danger); color: var(--nn-danger); font-weight: 700; }
+.nn-his-dose.ds-given { background: var(--nn-success-50); border-color: var(--nn-success); color: var(--nn-success); }
+.nn-his-dose.ds-held, .nn-his-dose.ds-refused { background: var(--nn-warning-50); border-color: var(--nn-warning); color: var(--nn-warning); }
+.nn-his-dose.ds-missed { background: var(--nn-danger-50); color: var(--nn-danger); text-decoration: line-through; }
+.nn-his-dose.ds-cancelled { opacity: .45; text-decoration: line-through; }

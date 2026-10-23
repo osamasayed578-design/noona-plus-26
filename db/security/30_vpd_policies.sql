@@ -198,6 +198,8 @@ BEGIN
   NOONA_VPD_PKG.add_tenant_policy('HIS_APPOINTMENT');
   NOONA_VPD_PKG.add_tenant_policy('HIS_BED');
   NOONA_VPD_PKG.add_tenant_policy('HIS_BED_MOVE');
+  NOONA_VPD_PKG.add_tenant_policy('HIS_CARE_LOG');
+  NOONA_VPD_PKG.add_tenant_policy('HIS_CARE_TASK');
   NOONA_VPD_PKG.add_tenant_policy('HIS_CERTIFICATE');
   NOONA_VPD_PKG.add_tenant_policy('HIS_CLAIM_BATCH');
   NOONA_VPD_PKG.add_tenant_policy('HIS_CLAIM_LINE');
@@ -214,6 +216,9 @@ BEGIN
   NOONA_VPD_PKG.add_tenant_policy('HIS_LAB_RESULT');
   NOONA_VPD_PKG.add_tenant_policy('HIS_LINK_MESSAGE');
   NOONA_VPD_PKG.add_tenant_policy('HIS_MED_ADMIN');
+  NOONA_VPD_PKG.add_tenant_policy('HIS_MED_SCHEDULE');
+  NOONA_VPD_PKG.add_tenant_policy('HIS_NURSE_ROSTER');
+  NOONA_VPD_PKG.add_tenant_policy('HIS_NURSE_SHIFT');
   NOONA_VPD_PKG.add_tenant_policy('HIS_ORDER');
   NOONA_VPD_PKG.add_tenant_policy('HIS_PATIENT');
   NOONA_VPD_PKG.add_tenant_policy('HIS_PAYER');

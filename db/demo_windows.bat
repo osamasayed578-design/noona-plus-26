@@ -48,6 +48,9 @@ echo.
 sqlplus -S -L NOONA_APP/"%APP_PWD%"@%CONN% @demo/demo_healthcare3.sql %ADMIN_USER% < nul
 if errorlevel 1 goto fail
 echo.
+sqlplus -S -L NOONA_APP/"%APP_PWD%"@%CONN% @demo/demo_healthcare4.sql %ADMIN_USER% < nul
+if errorlevel 1 goto fail
+echo.
 echo ===== Demo data loaded. Open Finance (incl. Fixed Assets), Supply Chain, Sales/POS, Manufacturing, Documents, HR and Real Estate and Hospitality to review it. Restaurants are in Sales and POS. Hospital data is in Hospital and Clinics.
 pause
 exit /b 0

@@ -73,6 +73,7 @@ PROMPT ========== 4/7 Core PL/SQL services
 @@plsql/119_noona_his_claim_pkg.sql
 @@plsql/120_noona_his_link_pkg.sql
 @@plsql/121_noona_his_clin_pkg.sql
+@@plsql/122_noona_his_nurse_pkg.sql
 
 PROMPT ========== 5/7 Seed: registry & reference data
 @@seed/01_registry_seed.sql
@@ -98,6 +99,7 @@ PROMPT ========== 7/7 Grants to NOONA_APP
 
 PROMPT ========== Compile (cross-package dependencies)
 EXEC DBMS_UTILITY.COMPILE_SCHEMA(USER, FALSE)
+@@upgrade_parts/28_his_alert_job.sql
 PROMPT ========== Invalid objects (should be none)
 SELECT object_type, object_name FROM user_objects WHERE status <> 'VALID';
 

@@ -22,7 +22,7 @@ wwv_flow_imp_page.create_page(
 ,p_protection_level=>'C'
 );
 wwv_flow_imp_page.create_page_plug(
- p_id=>wwv_flow_imp.id(91820275000000237)
+ p_id=>wwv_flow_imp.id(91820275000000238)
 ,p_plug_name=>'زيارات بمبالغ غير مفوترة'
 ,p_region_template_options=>'#DEFAULT#:t-Region--scrollBody'
 ,p_component_template_options=>'#DEFAULT#'
@@ -40,7 +40,7 @@ wwv_flow_imp_page.create_page_plug(
 ,p_prn_page_header=>'زيارات بمبالغ غير مفوترة'
 );
 wwv_flow_imp_page.create_worksheet(
- p_id=>wwv_flow_imp.id(91820275000000238)
+ p_id=>wwv_flow_imp.id(91820275000000239)
 ,p_max_row_count=>'1000000'
 ,p_no_data_found_message=>'لا توجد بيانات'
 ,p_pagination_type=>'ROWS_X_TO_Y'
@@ -54,10 +54,10 @@ wwv_flow_imp_page.create_worksheet(
 ,p_detail_link=>'f?p=&APP_ID.:31:&SESSION.::&DEBUG.:RP,31:P31_ID:#ID#'
 ,p_detail_link_text=>'<span role="img" aria-label="تعديل" class="fa fa-edit" title="فتح"></span>'
 ,p_owner=>'NOONA'
-,p_internal_uid=>91820275000000238
+,p_internal_uid=>91820275000000239
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820275000000240)
+ p_id=>wwv_flow_imp.id(91820275000000241)
 ,p_db_column_name=>'ID'
 ,p_display_order=>10
 ,p_column_identifier=>'A'
@@ -68,7 +68,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820275000000241)
+ p_id=>wwv_flow_imp.id(91820275000000242)
 ,p_db_column_name=>'VISIT_NO'
 ,p_display_order=>20
 ,p_column_identifier=>'B'
@@ -78,7 +78,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820275000000242)
+ p_id=>wwv_flow_imp.id(91820275000000243)
 ,p_db_column_name=>'VISIT_AT'
 ,p_display_order=>30
 ,p_column_identifier=>'C'
@@ -88,7 +88,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820275000000243)
+ p_id=>wwv_flow_imp.id(91820275000000244)
 ,p_db_column_name=>'PATIENT'
 ,p_display_order=>40
 ,p_column_identifier=>'D'
@@ -98,7 +98,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820275000000244)
+ p_id=>wwv_flow_imp.id(91820275000000245)
 ,p_db_column_name=>'MRN'
 ,p_display_order=>50
 ,p_column_identifier=>'E'
@@ -108,7 +108,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820275000000245)
+ p_id=>wwv_flow_imp.id(91820275000000246)
 ,p_db_column_name=>'DEPT'
 ,p_display_order=>60
 ,p_column_identifier=>'F'
@@ -118,7 +118,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820275000000246)
+ p_id=>wwv_flow_imp.id(91820275000000247)
 ,p_db_column_name=>'PATIENT_DUE'
 ,p_display_order=>70
 ,p_column_identifier=>'G'
@@ -128,7 +128,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820275000000247)
+ p_id=>wwv_flow_imp.id(91820275000000248)
 ,p_db_column_name=>'PAYER_DUE'
 ,p_display_order=>80
 ,p_column_identifier=>'H'
@@ -138,16 +138,16 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_rpt(
- p_id=>wwv_flow_imp.id(91820275000000239)
+ p_id=>wwv_flow_imp.id(91820275000000240)
 ,p_application_user=>'APXWS_DEFAULT'
 ,p_report_seq=>10
-,p_report_alias=>'239'
+,p_report_alias=>'240'
 ,p_status=>'PUBLIC'
 ,p_is_default=>'Y'
 ,p_report_columns=>'VISIT_NO:VISIT_AT:PATIENT:MRN:DEPT:PATIENT_DUE:PAYER_DUE'
 );
 wwv_flow_imp_page.create_page_plug(
- p_id=>wwv_flow_imp.id(91820275000000248)
+ p_id=>wwv_flow_imp.id(91820275000000249)
 ,p_plug_name=>'فواتير اليوم'
 ,p_region_template_options=>'#DEFAULT#:t-Region--scrollBody'
 ,p_component_template_options=>'#DEFAULT#'
@@ -162,7 +162,7 @@ wwv_flow_imp_page.create_page_plug(
 ,p_prn_page_header=>'فواتير اليوم'
 );
 wwv_flow_imp_page.create_worksheet(
- p_id=>wwv_flow_imp.id(91820275000000249)
+ p_id=>wwv_flow_imp.id(91820275000000250)
 ,p_max_row_count=>'1000000'
 ,p_no_data_found_message=>'لا توجد بيانات'
 ,p_pagination_type=>'ROWS_X_TO_Y'
@@ -176,10 +176,10 @@ wwv_flow_imp_page.create_worksheet(
 ,p_detail_link=>'f?p=&APP_ID.:41:&SESSION.::&DEBUG.:RP,41:P41_ID:#ID#'
 ,p_detail_link_text=>'<span role="img" aria-label="تعديل" class="fa fa-edit" title="فتح"></span>'
 ,p_owner=>'NOONA'
-,p_internal_uid=>91820275000000249
+,p_internal_uid=>91820275000000250
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820275000000251)
+ p_id=>wwv_flow_imp.id(91820275000000252)
 ,p_db_column_name=>'ID'
 ,p_display_order=>10
 ,p_column_identifier=>'A'
@@ -190,7 +190,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820275000000252)
+ p_id=>wwv_flow_imp.id(91820275000000253)
 ,p_db_column_name=>'DOC_NO'
 ,p_display_order=>20
 ,p_column_identifier=>'B'
@@ -200,7 +200,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820275000000253)
+ p_id=>wwv_flow_imp.id(91820275000000254)
 ,p_db_column_name=>'PATIENT'
 ,p_display_order=>30
 ,p_column_identifier=>'C'
@@ -210,7 +210,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820275000000254)
+ p_id=>wwv_flow_imp.id(91820275000000255)
 ,p_db_column_name=>'PAYER'
 ,p_display_order=>40
 ,p_column_identifier=>'D'
@@ -220,7 +220,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820275000000255)
+ p_id=>wwv_flow_imp.id(91820275000000256)
 ,p_db_column_name=>'PATIENT_TOTAL'
 ,p_display_order=>50
 ,p_column_identifier=>'E'
@@ -230,7 +230,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820275000000256)
+ p_id=>wwv_flow_imp.id(91820275000000257)
 ,p_db_column_name=>'PAYER_TOTAL'
 ,p_display_order=>60
 ,p_column_identifier=>'F'
@@ -240,7 +240,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820275000000257)
+ p_id=>wwv_flow_imp.id(91820275000000258)
 ,p_db_column_name=>'PAID_AMOUNT'
 ,p_display_order=>70
 ,p_column_identifier=>'G'
@@ -250,7 +250,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820275000000258)
+ p_id=>wwv_flow_imp.id(91820275000000259)
 ,p_db_column_name=>'PAYMENT_METHOD'
 ,p_display_order=>80
 ,p_column_identifier=>'H'
@@ -260,7 +260,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820275000000259)
+ p_id=>wwv_flow_imp.id(91820275000000260)
 ,p_db_column_name=>'STATUS'
 ,p_display_order=>90
 ,p_column_identifier=>'I'
@@ -270,10 +270,10 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_rpt(
- p_id=>wwv_flow_imp.id(91820275000000250)
+ p_id=>wwv_flow_imp.id(91820275000000251)
 ,p_application_user=>'APXWS_DEFAULT'
 ,p_report_seq=>10
-,p_report_alias=>'250'
+,p_report_alias=>'251'
 ,p_status=>'PUBLIC'
 ,p_is_default=>'Y'
 ,p_report_columns=>'DOC_NO:PATIENT:PAYER:PATIENT_TOTAL:PAYER_TOTAL:PAID_AMOUNT:PAYMENT_METHOD:STATUS'
