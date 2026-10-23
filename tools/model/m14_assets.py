@@ -62,6 +62,7 @@ DEPR_START_DATE DATE NN          | بداية الإهلاك
 ACCUMULATED_DEPR AMT NN D=0 @SYS | مجمع الإهلاك
 NET_BOOK_VALUE  AMT  NN D=0 @CALC | صافي القيمة الدفترية
 LAST_DEPR_PERIOD_ID ID >GL_PERIOD | آخر فترة إهلاك
+DEPRECIATED_TO  DATE             | مهلك حتى تاريخ (آخر فترة أو رصيد افتتاحي أو تاريخ الاستبعاد)
 ''', uk=[('ASSET_ID', 'BOOK_ID')], area='asset')
 
 table('FA_TRANSACTION', 'حركات الأصول', 'Asset Transactions', scope='C', mix='doc wf posted status',
@@ -118,6 +119,8 @@ GAIN_LOSS       AMT  @CALC       | الربح/الخسارة
 BUYER_PARTY_ID  ID   >PTY_PARTY  | المشتري
 SALES_INVOICE_ID ID  >SAL_INVOICE | فاتورة البيع
 EVIDENCE_DOCUMENT_ID ID >DMS_DOCUMENT | الإثبات
+VAT_AMOUNT      AMT  NN D=0      | ضريبة القيمة المضافة على البيع
+REASON          V1000            | السبب والملاحظات
 ''', area='transaction')
 
 table('FA_COUNT', 'جرد الأصول', 'Asset Physical Counts', scope='C', mix='doc status', status='PLANNED IN_PROGRESS REVIEW APPROVED CLOSED', cols='''
