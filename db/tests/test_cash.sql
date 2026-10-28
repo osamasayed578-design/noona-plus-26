@@ -221,6 +221,7 @@ BEGIN
   ok('cash dashboard renders', INSTR(l_c, 'nn-kpi') > 0);
 
   -- كفاية الرصيد في صرف الوحدات الأخرى (سداد مورد): الصندوق لا يصرف فوق رصيده، والبنك حتى رصيده + حد المكشوف
+  l_n := NOONA_PUR_PKG.quick_setup;
   l_n := NOONA_PUR_PKG.save_supplier('{"name":"مورد رصيد اختبار ' || l_sfx || '","term":"NET30"}');
   BEGIN l_j := NOONA_PUR_PKG.pay_supplier('{"sup":' || l_n || ',"amount":5000.01,"place":"BOX:' || l_box || '","method":"CASH"}');
     ok('box cannot pay above its balance (other modules)', FALSE);

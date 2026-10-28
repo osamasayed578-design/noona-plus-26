@@ -89,6 +89,8 @@ BEGIN
 
   INSERT INTO sec_data_scope (tenant_id, role_grant_id, scope_type)
   VALUES (l_tenant, l_grant, 'ALL_TENANT');
+  -- دور مسؤول الشركة (كما عند تجهيز مؤسسة من المنصة)
+  NOONA_PLATFORM_PKG.ensure_company_admin_role(l_tenant);
 
   -- التقويم المالي 2026 (12 شهراً)
   INSERT INTO gl_fiscal_calendar (tenant_id, company_id, code, name_ar, name_en, period_pattern)
