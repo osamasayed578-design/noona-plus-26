@@ -564,7 +564,7 @@ def gen_security_and_seed():
         g.append(f'GRANT EXECUTE ON {pkg} TO NOONA_APP;')
         syn.append(f'CREATE OR REPLACE SYNONYM {pkg} FOR NOONA_OWNER.{pkg};')
     # واجهات العرض المكتوبة يدوياً في db/plsql (قراءة فقط للتطبيق)
-    for view in ('NOONA_V_MY_TASKS', 'NOONA_V_TASK_HISTORY', 'NOONA_V_MY_NOTIFICATIONS', 'NOONA_V_APPS'):
+    for view in ('NOONA_V_MY_TASKS', 'NOONA_V_TASK_HISTORY', 'NOONA_V_MY_NOTIFICATIONS', 'NOONA_V_APPS', 'NOONA_V_TAX_REGISTER'):
         g.append(f'GRANT SELECT ON {view} TO NOONA_APP;')
         syn.append(f'CREATE OR REPLACE SYNONYM {view} FOR NOONA_OWNER.{view};')
     write('db/security/40_grants_noona_app.sql', '\n'.join(g) + '\n')

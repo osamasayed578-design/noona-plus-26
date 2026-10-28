@@ -35,6 +35,7 @@ PROMPT ========== الحزم
 @@plsql/104_noona_inv_pkg.sql
 @@plsql/114_noona_hsp_pkg.sql
 @@plsql/117_noona_his_pkg.sql
+@@plsql/106_noona_sal_pkg.sql
 @@plsql/125_noona_loc_pkg.sql
 @@plsql/126_noona_einv_pkg.sql
 @@plsql/123_noona_bi_pkg.sql

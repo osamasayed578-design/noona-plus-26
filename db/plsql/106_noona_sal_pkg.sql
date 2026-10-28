@@ -685,6 +685,7 @@ CREATE OR REPLACE PACKAGE BODY NOONA_SAL_PKG AS
                            posted_by = NOONA_CTX_PKG.current_user_name
      WHERE id = p_invoice_id;
     NOONA_AUDIT_PKG.log_event('POSTING', c_inv, p_invoice_id, 'POST', 'SUCCESS');
+    NOONA_EINV_PKG.on_invoice_posted(p_invoice_id);
   END post_invoice;
 
   PROCEDURE cancel_invoice(p_invoice_id IN NUMBER) IS
@@ -857,6 +858,7 @@ CREATE OR REPLACE PACKAGE BODY NOONA_SAL_PKG AS
                            posted_by = NOONA_CTX_PKG.current_user_name
      WHERE id = l_id;
     NOONA_AUDIT_PKG.log_event('POSTING', c_inv, l_id, 'RETURN', 'SUCCESS');
+    NOONA_EINV_PKG.on_invoice_posted(l_id);
     RETURN l_id;
   EXCEPTION WHEN NO_DATA_FOUND THEN
     NOONA_CORE_PKG.raise_error('NOONA-SAL-025', 'فاتورة المبيعات غير موجودة', 'Sales invoice not found');
@@ -1176,7 +1178,7 @@ CREATE OR REPLACE PACKAGE BODY NOONA_SAL_PKG AS
     RETURN l_html || ('</tbody><tfoot><tr><td colspan="5">الإجمالي</td><td>' || fmt0(l_i.subtotal) || '</td><td>' || fmt0(l_i.tax_amount)
         || '</td><td>' || fmt0(l_i.total_amount) || '</td></tr></tfoot></table>'
         || '<p class="nn-rpt-words">' || esc(NOONA_CSH_PKG.amount_words(l_i.total_amount, l_i.currency_code)) || '</p>'
-        || '<div class="nn-qr" data-qr="' || zatca_qr(NVL(l_i.issued_at, SYSTIMESTAMP), l_i.total_amount, l_i.tax_amount) || '"></div>');
+        || '<div class="nn-qr" data-qr="' || NVL(NOONA_EINV_PKG.invoice_qr(l_i.id), zatca_qr(NVL(l_i.issued_at, SYSTIMESTAMP), l_i.total_amount, l_i.tax_amount)) || '"></div>');
   EXCEPTION WHEN NO_DATA_FOUND THEN
     NOONA_CORE_PKG.raise_error('NOONA-SAL-025', 'فاتورة المبيعات غير موجودة', 'Sales invoice not found');
   END invoice_print;
