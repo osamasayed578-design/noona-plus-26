@@ -45,6 +45,9 @@ CREATE OR REPLACE PACKAGE NOONA_INV_PKG AUTHID DEFINER AS
   FUNCTION item_cost_center(p_item_id IN NUMBER, p_warehouse_id IN NUMBER DEFAULT NULL) RETURN NUMBER;
   -- الضريبة
   FUNCTION tax_id(p_code IN VARCHAR2) RETURN NUMBER;
+  -- كود ضريبة القيمة المضافة المقابل (بنفس الطبيعة: قياسية، صفرية، معفاة، خارج النطاق) في حزمة دولة الشركة الحالية
+  -- (الأكواد العامة VAT15/VAT0... تخص السعودية؛ شركة إماراتية تأخذ AE_VAT5...، ودولة بلا ضريبة تأخذ كود خارج النطاق)
+  FUNCTION company_tax_code(p_tax_code_id IN NUMBER) RETURN NUMBER;
   FUNCTION tax_rate(p_tax_code_id IN NUMBER, p_date IN DATE DEFAULT NULL) RETURN NUMBER;
   FUNCTION item_tax_code(p_item_id IN NUMBER, p_purpose IN VARCHAR2 DEFAULT 'SALE') RETURN NUMBER;
   -- حساب الضريبة على المدخلات (1107) أو المخرجات (2104) للشركة
@@ -143,12 +146,37 @@ CREATE OR REPLACE PACKAGE BODY NOONA_INV_PKG AS
     RETURN l;
   END ensure_account;
 
-  FUNCTION tax_id(p_code IN VARCHAR2) RETURN NUMBER IS
+  FUNCTION tax_id_raw(p_code IN VARCHAR2) RETURN NUMBER IS
     l NUMBER;
   BEGIN
     SELECT MIN(id) KEEP (DENSE_RANK FIRST ORDER BY tenant_id NULLS LAST) INTO l
       FROM loc_tax_code WHERE code = p_code AND status_code = 'ACTIVE';
     RETURN l;
+  END tax_id_raw;
+
+  FUNCTION company_tax_code(p_tax_code_id IN NUMBER) RETURN NUMBER IS
+    l_pack NUMBER;
+    l_cpk  NUMBER;
+    l_cat  VARCHAR2(30);
+    l_nat  VARCHAR2(30);
+    l      NUMBER;
+  BEGIN
+    IF p_tax_code_id IS NULL THEN RETURN NULL; END IF;
+    SELECT MAX(t.country_pack_id), MAX(t.tax_category), MAX(c.tax_nature) INTO l_pack, l_cat, l_nat
+      FROM loc_tax_code c JOIN loc_tax_type t ON t.id = c.tax_type_id WHERE c.id = p_tax_code_id;
+    IF NVL(l_cat, 'X') <> 'VAT' THEN RETURN p_tax_code_id; END IF;
+    SELECT MAX(country_pack_id) INTO l_cpk FROM org_company WHERE id = company;
+    IF l_cpk IS NULL OR l_cpk = NVL(l_pack, -1) THEN RETURN p_tax_code_id; END IF;
+    SELECT MIN(c.id) KEEP (DENSE_RANK FIRST ORDER BY CASE WHEN c.tax_nature = l_nat THEN 0 ELSE 1 END, c.tenant_id NULLS LAST, c.id) INTO l
+      FROM loc_tax_code c JOIN loc_tax_type t ON t.id = c.tax_type_id
+     WHERE t.country_pack_id = l_cpk AND t.tax_category = 'VAT' AND c.status_code = 'ACTIVE'
+       AND c.tax_nature IN (l_nat, 'OUT_OF_SCOPE');
+    RETURN NVL(l, p_tax_code_id);
+  END company_tax_code;
+
+  FUNCTION tax_id(p_code IN VARCHAR2) RETURN NUMBER IS
+  BEGIN
+    RETURN company_tax_code(tax_id_raw(p_code));
   END tax_id;
 
   FUNCTION tax_rate(p_tax_code_id IN NUMBER, p_date IN DATE DEFAULT NULL) RETURN NUMBER IS
@@ -179,7 +207,7 @@ CREATE OR REPLACE PACKAGE BODY NOONA_INV_PKG AS
     IF l IS NULL THEN
       SELECT MAX(g.default_tax_code_id) INTO l FROM inv_item i JOIN inv_item_category g ON g.id = i.category_id WHERE i.id = p_item_id;
     END IF;
-    RETURN NVL(l, tax_id('VAT15'));
+    RETURN company_tax_code(NVL(l, tax_id('VAT15')));
   END item_tax_code;
 
   FUNCTION account_for(p_item_id IN NUMBER, p_kind IN VARCHAR2) RETURN NUMBER IS
@@ -327,7 +355,8 @@ CREATE OR REPLACE PACKAGE BODY NOONA_INV_PKG AS
     ensure_sequence('INV_ITEM', 'ITM-');
     ensure_sequence('INV_TRANSACTION', 'IT-');
     -- حسابات ضريبة القيمة المضافة للشركة
-    FOR t IN (SELECT id FROM loc_tax_code WHERE tenant_id IS NULL AND code IN ('VAT15', 'VAT0', 'VATEX', 'VATOS')) LOOP
+    -- أكواد ضريبة القيمة المضافة لحزمة دولة الشركة (السعودية: VAT15/VAT0/VATEX/VATOS)
+    FOR t IN (SELECT DISTINCT company_tax_code(id) id FROM loc_tax_code WHERE tenant_id IS NULL AND code IN ('VAT15', 'VAT0', 'VATEX', 'VATOS', 'VATRC')) LOOP
       INSERT INTO loc_tax_account (company_id, tax_code_id, payable_account_id, recoverable_account_id, effective_from)
       SELECT company, t.id, acc_id('2104'), acc_id('1107'), DATE '2000-01-01' FROM dual
        WHERE NOT EXISTS (SELECT 1 FROM loc_tax_account WHERE company_id = company AND tax_code_id = t.id);

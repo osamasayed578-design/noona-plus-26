@@ -120,6 +120,11 @@ CARRY_FORWARD   AMT              | المرحل
 FILED_AT        TS               | وقت التقديم
 GOV_REFERENCE   V200             | مرجع الجهة الحكومية
 FILING_DOCUMENT_ID ID >DMS_DOCUMENT | نسخة الإقرار
+ACCOUNTING_EVENT_ID ID >ACE_ACCOUNTING_EVENT | قيد التسوية عند الاعتماد
+PAID_AMOUNT     AMT              | المسدد
+PAID_AT         TS               | وقت السداد
+PAYMENT_EVENT_ID ID  >ACE_ACCOUNTING_EVENT | قيد السداد
+NOTES           V2000            | ملاحظات المراجعة
 ''', uk=[('TENANT_ID', 'COMPANY_ID', 'TAX_TYPE_ID', 'PERIOD_START')], area='tax')
 
 table('LOC_TAX_RETURN_LINE', 'خانات الإقرار', 'Tax Return Boxes', scope='T', cols='''
@@ -139,6 +144,12 @@ WITHHELD_AMOUNT AMT  NN          | المستقطع
 CURRENCY_CODE   CUR  NN          | العملة
 DUE_DATE        DATE             | تاريخ استحقاق التوريد
 DOCUMENT_ID     ID   >DMS_DOCUMENT | الشهادة
+SUPPLIER_ACCOUNT_ID ID >AP_SUPPLIER_ACCOUNT | حساب المورد
+RATE_PCT        PCT              | النسبة
+PAYMENT_DATE    DATE             | تاريخ الدفع للمورد
+SERVICE_DESC    V500             | طبيعة الخدمة
+TAX_RETURN_ID   ID   >LOC_TAX_RETURN | إقرار الاستقطاع الشهري
+ACCOUNTING_EVENT_ID ID >ACE_ACCOUNTING_EVENT | القيد
 ''', uk=[('TENANT_ID', 'COMPANY_ID', 'CERTIFICATE_NO')], area='tax')
 
 table('LOC_EINVOICE_PROFILE', 'إعدادات الفوترة الإلكترونية', 'E-Invoicing Profiles', scope='C', mix='branch status', status='DRAFT ONBOARDING ACTIVE SUSPENDED', cols='''
@@ -169,5 +180,9 @@ LEGAL_DOCUMENT_ID ID >DMS_DOCUMENT | النسخة القانونية المعت�
 ERROR_INFO      JSON             | أخطاء التحقق/الرفض
 SUBMITTED_AT    TS               | وقت الإرسال
 RESPONDED_AT    TS               | وقت الاستجابة
+INVOICE_TYPE_CODE V10            | نوع المستند (388 فاتورة، 381 إشعار دائن، 383 مدين)
+INVOICE_SUBTYPE V10              | 0100000 ضريبية (B2B) أو 0200000 مبسطة (B2C)
+XML_CONTENT     CLOB             | فاتورة UBL 2.1 كما أرسلت
+SIGNATURE_VALUE V4000            | التوقيع الرقمي (من خدمة التوقيع)
 ''', uk=[('TENANT_ID', 'IDEMPOTENCY_KEY'), ('TENANT_ID', 'INVOICE_UUID')],
       ix=[('TENANT_ID', 'STATUS_CODE', 'NEXT_RETRY_AT')], area='einvoice')

@@ -9,7 +9,8 @@
 
 CREATE OR REPLACE PACKAGE NOONA_HIS_PKG AUTHID DEFINER AS
 
-  c_vat CONSTANT NUMBER := 15;
+  -- نسبة ضريبة القيمة المضافة القياسية لدولة الشركة (من حزمة الدولة)
+  FUNCTION c_vat RETURN NUMBER;
 
   FUNCTION company RETURN NUMBER;
   -- الحسابات والترقيم
@@ -110,6 +111,18 @@ CREATE OR REPLACE PACKAGE BODY NOONA_HIS_PKG AS
   TYPE t_price IS RECORD (unit NUMBER, covered VARCHAR2(1), approval VARCHAR2(1), pct NUMBER);
 
   FUNCTION esc(p VARCHAR2) RETURN VARCHAR2 IS BEGIN RETURN NOONA_UI_PKG.esc(p); END;
+  FUNCTION c_vat RETURN NUMBER IS
+  BEGIN
+    RETURN NOONA_INV_PKG.tax_rate(NOONA_INV_PKG.tax_id('VAT15'), TRUNC(SYSDATE));
+  END c_vat;
+
+  FUNCTION company_country RETURN VARCHAR2 IS
+    l VARCHAR2(2);
+  BEGIN
+    SELECT MAX(country_code) INTO l FROM org_company WHERE id = TO_NUMBER(SYS_CONTEXT('NOONA_CTX', 'COMPANY_ID'));
+    RETURN l;
+  END company_country;
+
   FUNCTION company RETURN NUMBER IS BEGIN RETURN TO_NUMBER(SYS_CONTEXT('NOONA_CTX', 'COMPANY_ID')); END;
   FUNCTION fmt0(p NUMBER) RETURN VARCHAR2 IS
   BEGIN
@@ -726,7 +739,8 @@ CREATE OR REPLACE PACKAGE BODY NOONA_HIS_PKG AS
   BEGIN
     SELECT * INTO l_v FROM his_visit WHERE id = p_visit_id;
     SELECT * INTO l_p FROM his_patient WHERE id = l_v.patient_id;
-    l_rate := CASE WHEN l_p.nationality = 'SA' THEN 0 ELSE c_vat END;
+    -- السعودية: الخدمات الصحية الخاصة للمواطن بنسبة صفرية (تتحملها الدولة)
+    l_rate := CASE WHEN l_p.nationality = 'SA' AND company_country = 'SA' THEN 0 ELSE c_vat END;
     IF l_v.bill_to = 'PAYER' AND l_v.payer_plan_id IS NOT NULL THEN
       SELECT * INTO l_pl FROM his_payer_plan WHERE id = l_v.payer_plan_id;
       l_cap := l_pl.max_patient_share;
