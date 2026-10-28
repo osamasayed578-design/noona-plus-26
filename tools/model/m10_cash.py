@@ -15,6 +15,7 @@ CURRENCY_CODE   CUR  NN          | العملة
 GL_ACCOUNT_ID   ID   NN >GL_ACCOUNT | حساب الأستاذ
 CLEARING_ACCOUNT_ID ID >GL_ACCOUNT | الحساب الوسيط (شيكات/تحويلات معلقة)
 MAX_PAYMENT_AMOUNT AMT           | حد العملية الواحدة
+OVERDRAFT_LIMIT AMT              | حد السحب على المكشوف (تسهيل بنكي؛ فارغ = لا يصرف فوق الرصيد)
 SIGNATORY_RULES JSON             | قواعد المفوضين بالتوقيع
 STATEMENT_FORMAT CODE IN:MT940,CAMT053,CSV,API | صيغة الكشف
 ''', area='account', sens='CONFIDENTIAL')

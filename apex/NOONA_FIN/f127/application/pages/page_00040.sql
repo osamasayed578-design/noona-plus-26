@@ -483,6 +483,91 @@ wwv_flow_imp_page.create_page_process(
 );
 wwv_flow_imp_page.create_page_plug(
  p_id=>wwv_flow_imp.id(91820266000000209)
+,p_plug_name=>'أرصدة سالبة تحتاج تسوية'
+,p_region_template_options=>'#DEFAULT#:t-Region--scrollBody'
+,p_plug_template=>4072358936313175081
+,p_plug_display_sequence=>5
+,p_plug_display_condition_type=>'EXPRESSION'
+,p_plug_display_when_condition=>'noona_csh_pkg.negative_balances_html is not null'
+,p_plug_display_when_cond2=>'PLSQL'
+,p_function_body_language=>'PLSQL'
+,p_plug_source=>wwv_flow_string.join(wwv_flow_t_varchar2(
+'return noona_csh_pkg.negative_balances_html;'))
+,p_plug_source_type=>'NATIVE_DYNAMIC_CONTENT'
+);
+wwv_flow_imp_page.create_page_plug(
+ p_id=>wwv_flow_imp.id(91820266000000210)
+,p_plug_name=>'حد السحب على المكشوف'
+,p_region_template_options=>'#DEFAULT#'
+,p_plug_template=>4072358936313175081
+,p_plug_display_sequence=>36
+,p_plug_source=>wwv_flow_string.join(wwv_flow_t_varchar2(
+'<p class="nn-hint">لا يصرف أي صندوق فوق رصيده في كل الأنظمة (السندات، المشتريات، المشروعات، العقارات، الإيجارات، نقاط البيع). الحساب البنكي كذلك ما لم يحدد له حد سحب على المكشوف بتسهيل من البنك؛ عندها يصرف حتى الرصيد + الحد. اترك الحد صفراً لإلغائه.</p>'))
+,p_attributes=>wwv_flow_t_plugin_attributes(wwv_flow_t_varchar2(
+  'expand_shortcuts', 'N',
+  'output_as', 'HTML',
+  'show_line_breaks', 'Y')).to_clob
+);
+wwv_flow_imp_page.create_page_item(
+ p_id=>wwv_flow_imp.id(91820266000000211)
+,p_name=>'P40_OD_BANK'
+,p_item_sequence=>10
+,p_item_plug_id=>wwv_flow_imp.id(91820266000000210)
+,p_prompt=>'الحساب البنكي'
+,p_display_as=>'NATIVE_SELECT_LIST'
+,p_lov=>'select code || '' '' || name_ar || nvl2(overdraft_limit, '' (الحد الحالي '' || to_char(overdraft_limit, ''FM999,999,999,990'') || '')'', '''') d, id r from csh_bank_account where company_id = noona_gl_pkg.company and status_code = ''ACTIVE'' order by code'
+,p_lov_display_null=>'YES'
+,p_lov_null_text=>'- اختر -'
+,p_cHeight=>1
+,p_lov_display_extra=>'NO'
+,p_field_template=>1609121967514267634
+,p_item_template_options=>'#DEFAULT#'
+,p_attributes=>wwv_flow_t_plugin_attributes(wwv_flow_t_varchar2(
+  'page_action_on_selection', 'NONE')).to_clob
+);
+wwv_flow_imp_page.create_page_item(
+ p_id=>wwv_flow_imp.id(91820266000000212)
+,p_name=>'P40_OD_LIMIT'
+,p_item_sequence=>20
+,p_item_plug_id=>wwv_flow_imp.id(91820266000000210)
+,p_prompt=>'الحد'
+,p_display_as=>'NATIVE_NUMBER_FIELD'
+,p_cSize=>20
+,p_begin_on_new_line=>'N'
+,p_field_template=>1609121967514267634
+,p_item_template_options=>'#DEFAULT#'
+,p_attributes=>wwv_flow_t_plugin_attributes(wwv_flow_t_varchar2(
+  'number_alignment', 'left',
+  'virtual_keyboard', 'decimal')).to_clob
+);
+wwv_flow_imp_page.create_page_button(
+ p_id=>wwv_flow_imp.id(91820266000000213)
+,p_button_sequence=>10
+,p_button_plug_id=>wwv_flow_imp.id(91820266000000210)
+,p_button_name=>'SET_OD'
+,p_button_action=>'SUBMIT'
+,p_button_template_options=>'#DEFAULT#'
+,p_button_template_id=>4072362960822175091
+,p_button_is_hot=>'Y'
+,p_button_image_alt=>'حفظ الحد'
+,p_button_position=>'NEXT'
+);
+wwv_flow_imp_page.create_page_process(
+ p_id=>wwv_flow_imp.id(91820266000000214)
+,p_process_sequence=>27
+,p_process_point=>'AFTER_SUBMIT'
+,p_process_type=>'NATIVE_PLSQL'
+,p_process_name=>'Overdraft'
+,p_process_sql_clob=>wwv_flow_string.join(wwv_flow_t_varchar2(
+'noona_csh_pkg.set_overdraft(:P40_OD_BANK, to_number(:P40_OD_LIMIT));'))
+,p_process_clob_language=>'PLSQL'
+,p_error_display_location=>'INLINE_IN_NOTIFICATION'
+,p_process_when_button_id=>wwv_flow_imp.id(91820266000000213)
+,p_process_success_message=>'تم حفظ حد السحب على المكشوف'
+,p_internal_uid=>91820266000000214
+);
+wwv_flow_imp_page.create_page_plug(
+ p_id=>wwv_flow_imp.id(91820266000000215)
 ,p_plug_name=>'الإعدادات الافتراضية'
 ,p_region_template_options=>'#DEFAULT#'
 ,p_plug_template=>4072358936313175081
@@ -495,9 +580,9 @@ wwv_flow_imp_page.create_page_plug(
   'show_line_breaks', 'Y')).to_clob
 );
 wwv_flow_imp_page.create_page_button(
- p_id=>wwv_flow_imp.id(91820266000000210)
+ p_id=>wwv_flow_imp.id(91820266000000216)
 ,p_button_sequence=>10
-,p_button_plug_id=>wwv_flow_imp.id(91820266000000209)
+,p_button_plug_id=>wwv_flow_imp.id(91820266000000215)
 ,p_button_name=>'SEED_CASH'
 ,p_button_action=>'SUBMIT'
 ,p_button_template_options=>'#DEFAULT#'
@@ -506,7 +591,7 @@ wwv_flow_imp_page.create_page_button(
 ,p_button_position=>'NEXT'
 );
 wwv_flow_imp_page.create_page_process(
- p_id=>wwv_flow_imp.id(91820266000000211)
+ p_id=>wwv_flow_imp.id(91820266000000217)
 ,p_process_sequence=>26
 ,p_process_point=>'AFTER_SUBMIT'
 ,p_process_type=>'NATIVE_PLSQL'
@@ -520,11 +605,11 @@ wwv_flow_imp_page.create_page_process(
 'end;'))
 ,p_process_clob_language=>'PLSQL'
 ,p_error_display_location=>'INLINE_IN_NOTIFICATION'
-,p_process_when_button_id=>wwv_flow_imp.id(91820266000000210)
-,p_internal_uid=>91820266000000211
+,p_process_when_button_id=>wwv_flow_imp.id(91820266000000216)
+,p_internal_uid=>91820266000000217
 );
 wwv_flow_imp_page.create_page_plug(
- p_id=>wwv_flow_imp.id(91820266000000212)
+ p_id=>wwv_flow_imp.id(91820266000000218)
 ,p_plug_name=>'حالة صندوق أو حساب بنكي'
 ,p_region_template_options=>'#DEFAULT#'
 ,p_plug_template=>4072358936313175081
@@ -535,10 +620,10 @@ wwv_flow_imp_page.create_page_plug(
   'show_line_breaks', 'Y')).to_clob
 );
 wwv_flow_imp_page.create_page_item(
- p_id=>wwv_flow_imp.id(91820266000000213)
+ p_id=>wwv_flow_imp.id(91820266000000219)
 ,p_name=>'P40_PLACE'
 ,p_item_sequence=>10
-,p_item_plug_id=>wwv_flow_imp.id(91820266000000212)
+,p_item_plug_id=>wwv_flow_imp.id(91820266000000218)
 ,p_prompt=>'الصندوق / الحساب'
 ,p_display_as=>'NATIVE_SELECT_LIST'
 ,p_lov=>'select ''صندوق: '' || code || '' '' || name_ar d, ''BOX:'' || id r from csh_cash_box where company_id = noona_gl_pkg.company union all select ''بنك: '' || code || '' '' || name_ar || '' '' || account_no_masked, ''BANK:'' || id from csh_bank_account where company_id = noona_gl_pkg.company order by 1'
@@ -552,10 +637,10 @@ wwv_flow_imp_page.create_page_item(
   'page_action_on_selection', 'NONE')).to_clob
 );
 wwv_flow_imp_page.create_page_item(
- p_id=>wwv_flow_imp.id(91820266000000214)
+ p_id=>wwv_flow_imp.id(91820266000000220)
 ,p_name=>'P40_STATUS'
 ,p_item_sequence=>20
-,p_item_plug_id=>wwv_flow_imp.id(91820266000000212)
+,p_item_plug_id=>wwv_flow_imp.id(91820266000000218)
 ,p_prompt=>'الحالة'
 ,p_display_as=>'NATIVE_SELECT_LIST'
 ,p_lov=>'STATIC2:نشط;ACTIVE,معلق (صندوق);SUSPENDED,مجمد (بنك);FROZEN,مغلق;CLOSED'
@@ -568,9 +653,9 @@ wwv_flow_imp_page.create_page_item(
   'page_action_on_selection', 'NONE')).to_clob
 );
 wwv_flow_imp_page.create_page_button(
- p_id=>wwv_flow_imp.id(91820266000000215)
+ p_id=>wwv_flow_imp.id(91820266000000221)
 ,p_button_sequence=>10
-,p_button_plug_id=>wwv_flow_imp.id(91820266000000212)
+,p_button_plug_id=>wwv_flow_imp.id(91820266000000218)
 ,p_button_name=>'SET_STATUS'
 ,p_button_action=>'SUBMIT'
 ,p_button_template_options=>'#DEFAULT#'
@@ -579,7 +664,7 @@ wwv_flow_imp_page.create_page_button(
 ,p_button_position=>'NEXT'
 );
 wwv_flow_imp_page.create_page_process(
- p_id=>wwv_flow_imp.id(91820266000000216)
+ p_id=>wwv_flow_imp.id(91820266000000222)
 ,p_process_sequence=>30
 ,p_process_point=>'AFTER_SUBMIT'
 ,p_process_type=>'NATIVE_PLSQL'
@@ -592,12 +677,12 @@ wwv_flow_imp_page.create_page_process(
 'end if;'))
 ,p_process_clob_language=>'PLSQL'
 ,p_error_display_location=>'INLINE_IN_NOTIFICATION'
-,p_process_when_button_id=>wwv_flow_imp.id(91820266000000215)
+,p_process_when_button_id=>wwv_flow_imp.id(91820266000000221)
 ,p_process_success_message=>'تم تغيير الحالة'
-,p_internal_uid=>91820266000000216
+,p_internal_uid=>91820266000000222
 );
 wwv_flow_imp_page.create_page_branch(
- p_id=>wwv_flow_imp.id(91820266000000217)
+ p_id=>wwv_flow_imp.id(91820266000000223)
 ,p_branch_action=>'f?p=&APP_ID.:40:&SESSION.::&DEBUG.:40::&success_msg=#SUCCESS_MSG#'
 ,p_branch_point=>'AFTER_PROCESSING'
 ,p_branch_type=>'REDIRECT_URL'

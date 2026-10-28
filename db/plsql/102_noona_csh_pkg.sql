@@ -29,6 +29,10 @@ CREATE OR REPLACE PACKAGE NOONA_CSH_PKG AUTHID DEFINER AS
   -- صندوق العهد النثرية وحساب بنكي افتراضي (إن لم توجد)؛ يعيد عدد ما أضيف
   FUNCTION seed_defaults RETURN NUMBER;
   PROCEDURE set_box_status(p_box_id IN NUMBER, p_status IN VARCHAR2);
+  -- حد السحب على المكشوف للحساب البنكي (تسهيل من البنك)؛ فارغ أو صفر = لا يصرف فوق الرصيد
+  PROCEDURE set_overdraft(p_bank_account_id IN NUMBER, p_limit IN NUMBER);
+  -- الصناديق والحسابات البنكية برصيد سالب (من حركات قبل تفعيل منع الصرف فوق الرصيد) لتسويتها
+  FUNCTION negative_balances_html RETURN CLOB;
   PROCEDURE set_bank_status(p_bank_account_id IN NUMBER, p_status IN VARCHAR2);
 
   -- ---------------------------------------------------------- السندات
@@ -206,6 +210,19 @@ CREATE OR REPLACE PACKAGE BODY NOONA_CSH_PKG AS
     NOONA_AUDIT_PKG.log_event('CONFIG', 'CSH_CASH_BOX', p_box_id, 'STATUS_' || p_status, 'SUCCESS');
   END set_box_status;
 
+  PROCEDURE set_overdraft(p_bank_account_id IN NUMBER, p_limit IN NUMBER) IS
+    l_old NUMBER;
+  BEGIN
+    guard('CSH_BANK_ACCOUNT.UPDATE');
+    NOONA_CORE_PKG.assert(NVL(p_limit, 0) >= 0, 'NOONA-CSH-043', 'حد السحب على المكشوف لا يكون سالباً', 'Overdraft limit cannot be negative');
+    SELECT overdraft_limit INTO l_old FROM csh_bank_account WHERE id = p_bank_account_id AND company_id = NOONA_GL_PKG.company FOR UPDATE;
+    UPDATE csh_bank_account SET overdraft_limit = NULLIF(p_limit, 0) WHERE id = p_bank_account_id;
+    NOONA_AUDIT_PKG.log_event('CONFIG', 'CSH_BANK_ACCOUNT', p_bank_account_id, 'OVERDRAFT_LIMIT', 'SUCCESS',
+                              p_old_values => JSON_OBJECT('limit' VALUE l_old), p_new_values => JSON_OBJECT('limit' VALUE NULLIF(p_limit, 0)));
+  EXCEPTION WHEN NO_DATA_FOUND THEN
+    NOONA_CORE_PKG.raise_error('NOONA-CSH-044', 'الحساب البنكي غير موجود', 'Bank account not found');
+  END set_overdraft;
+
   PROCEDURE set_bank_status(p_bank_account_id IN NUMBER, p_status IN VARCHAR2) IS
   BEGIN
     guard('CSH_BANK_ACCOUNT.UPDATE');
@@ -320,6 +337,32 @@ CREATE OR REPLACE PACKAGE BODY NOONA_CSH_PKG AS
     RETURN l;
   END place_account;
 
+  -- كفاية الرصيد قبل أي صرف: الصندوق لا يصرف فوق رصيده أبداً، والحساب البنكي حتى رصيده + حد السحب على المكشوف
+  -- (تسهيل بنكي يحدد في الحساب) وضمن حد العملية الواحدة. القفل على الصندوق/الحساب يمنع صرفين متزامنين يتجاوزان الرصيد.
+  PROCEDURE assert_funds(p_box_id NUMBER, p_bank_id NUMBER, p_amount NUMBER, p_what VARCHAR2 DEFAULT NULL) IS
+    l_name VARCHAR2(200);
+    l_od   NUMBER;
+    l_max  NUMBER;
+    l_bal  NUMBER;
+  BEGIN
+    IF NVL(p_amount, 0) <= 0 THEN RETURN; END IF;
+    IF p_box_id IS NOT NULL THEN
+      SELECT name_ar INTO l_name FROM csh_cash_box WHERE id = p_box_id FOR UPDATE;
+      l_bal := balance(p_box_id, NULL);
+      NOONA_CORE_PKG.assert(l_bal >= ROUND(p_amount, 2), 'NOONA-CSH-040',
+        'رصيد ' || l_name || ' (' || fmt0(l_bal) || ') لا يكفي ' || NVL(p_what, 'لصرف') || ' ' || fmt0(p_amount),
+        'Insufficient cash box balance');
+    ELSIF p_bank_id IS NOT NULL THEN
+      SELECT name_ar, NVL(overdraft_limit, 0), max_payment_amount INTO l_name, l_od, l_max FROM csh_bank_account WHERE id = p_bank_id FOR UPDATE;
+      NOONA_CORE_PKG.assert(l_max IS NULL OR p_amount <= l_max, 'NOONA-CSH-041',
+        'المبلغ يتجاوز حد الدفع للحساب البنكي (' || fmt0(l_max) || ')', 'Amount exceeds the bank account payment limit');
+      l_bal := balance(NULL, p_bank_id);
+      NOONA_CORE_PKG.assert(l_bal + l_od >= ROUND(p_amount, 2), 'NOONA-CSH-042',
+        'رصيد ' || l_name || ' (' || fmt0(l_bal) || CASE WHEN l_od > 0 THEN ' + سحب على المكشوف ' || fmt0(l_od) END || ') لا يكفي '
+        || NVL(p_what, 'لصرف') || ' ' || fmt0(p_amount), 'Insufficient bank balance');
+    END IF;
+  END assert_funds;
+
   FUNCTION record_settlement(p_type IN VARCHAR2, p_place IN VARCHAR2, p_date IN DATE, p_amount IN NUMBER, p_party_id IN NUMBER,
                              p_party_name IN VARCHAR2, p_source_type IN VARCHAR2, p_source_id IN NUMBER, p_doc_no IN VARCHAR2,
                              p_description IN VARCHAR2, p_event_id IN NUMBER, p_channel IN VARCHAR2 DEFAULT NULL) RETURN NUMBER
@@ -337,6 +380,9 @@ CREATE OR REPLACE PACKAGE BODY NOONA_CSH_PKG AS
     ELSE
       l_bnk := TO_NUMBER(SUBSTR(p_place, 6));
       SELECT currency_code INTO l_cur FROM csh_bank_account WHERE id = l_bnk;
+    END IF;
+    IF p_type <> 'RECEIPT' THEN
+      assert_funds(l_box, l_bnk, p_amount);
     END IF;
     INSERT INTO csh_transaction (company_id, branch_id, doc_no, doc_date, source_entity_type, source_entity_id, currency_code, exchange_rate,
                                  txn_type, channel, bank_account_id, cash_box_id, counterparty_party_id, counterparty_name, amount, amount_func,
@@ -564,15 +610,7 @@ CREATE OR REPLACE PACKAGE BODY NOONA_CSH_PKG AS
     END IF;
     NOONA_CORE_PKG.assert(l_st = 'ACTIVE', 'NOONA-CSH-025', 'الصندوق أو الحساب البنكي غير نشط', 'Cash box or bank account is not active');
     IF NOT l_in THEN
-      IF l_t.cash_box_id IS NOT NULL THEN
-        -- الصندوق مقفول (FOR UPDATE) فلا يصرف سندان متزامنان أكثر من الرصيد
-        l_bal := balance(l_t.cash_box_id, NULL);
-        NOONA_CORE_PKG.assert(l_bal >= l_t.amount, 'NOONA-CSH-040',
-          'رصيد الصندوق (' || fmt0(l_bal) || ') لا يكفي لصرف ' || fmt0(l_t.amount), 'Insufficient cash box balance');
-      ELSE
-        NOONA_CORE_PKG.assert(l_max IS NULL OR l_t.amount <= l_max, 'NOONA-CSH-041',
-          'المبلغ يتجاوز حد الدفع للحساب البنكي (' || fmt0(l_max) || ')', 'Amount exceeds the bank account payment limit');
-      END IF;
+      assert_funds(l_t.cash_box_id, l_t.bank_account_id, l_t.amount);
     END IF;
     -- القيد: القبض مدين النقدية ودائن السطور، والصرف عكسه
     l_lines.EXTEND;
@@ -632,10 +670,8 @@ CREATE OR REPLACE PACKAGE BODY NOONA_CSH_PKG AS
     NOONA_CORE_PKG.assert(l_t.status_code = 'SETTLED', 'NOONA-CSH-033', 'يعكس السند المرحل فقط', 'Only posted vouchers can be reversed');
     NOONA_CORE_PKG.assert(p_reason IS NOT NULL, 'NOONA-GL-081', 'سبب العكس إلزامي', 'Reason is required');
     -- عكس سند قبض نقدي يخفض الصندوق: لا يسمح برصيد سالب
-    IF l_t.txn_type = 'RECEIPT' AND l_t.cash_box_id IS NOT NULL THEN
-      l_bal := balance(l_t.cash_box_id, NULL);
-      NOONA_CORE_PKG.assert(l_bal >= l_t.amount, 'NOONA-CSH-040',
-        'رصيد الصندوق (' || fmt0(l_bal) || ') لا يكفي لعكس القبض', 'Insufficient cash box balance');
+    IF l_t.txn_type = 'RECEIPT' THEN
+      assert_funds(l_t.cash_box_id, l_t.bank_account_id, l_t.amount, 'لعكس القبض');
     END IF;
     l_rev := NOONA_ACE_PKG.reverse_source(c_entity, p_id, p_date, p_reason);
     UPDATE csh_transaction SET status_code = 'REVERSED' WHERE id = p_id;
@@ -894,5 +930,25 @@ CREATE OR REPLACE PACKAGE BODY NOONA_CSH_PKG AS
         || fmt0(l_out) || '</td><td>' || fmt0(l_bal) || '</td></tr></tfoot></table>');
   END cash_book;
 
+  FUNCTION negative_balances_html RETURN CLOB IS
+    l_h CLOB;
+    l_n PLS_INTEGER := 0;
+  BEGIN
+    NOONA_SECURITY_PKG.assert_permission('CSH_CASH_BOX.VIEW', NOONA_GL_PKG.company);
+    l_h := '<table class="nn-prj-t"><thead><tr><th>الصندوق / الحساب</th><th>النوع</th><th class="n">الرصيد</th><th class="n">حد المكشوف</th>'
+        || '<th>المطلوب</th></tr></thead><tbody>';
+    FOR r IN (SELECT * FROM (
+                SELECT b.name_ar nm, 'صندوق' kind, balance(b.id, NULL) bal, 0 od FROM csh_cash_box b WHERE b.company_id = NOONA_GL_PKG.company
+                UNION ALL
+                SELECT a.name_ar, 'حساب بنكي', balance(NULL, a.id), NVL(a.overdraft_limit, 0) FROM csh_bank_account a
+                 WHERE a.company_id = NOONA_GL_PKG.company) WHERE bal < 0 ORDER BY bal) LOOP
+      l_n := l_n + 1;
+      l_h := l_h || '<tr><td>' || esc(r.nm) || '</td><td>' || r.kind || '</td><td class="n nn-neg">' || fmt0(r.bal)
+          || '</td><td class="n">' || fmt(r.od) || '</td><td>' || CASE WHEN -r.bal <= r.od THEN 'ضمن التسهيل البنكي'
+             ELSE 'تمويل ' || fmt0(-r.bal - r.od) || ' بسند قبض أو تحويل، أو مراجعة المصروفات المسجلة عليه' END || '</td></tr>';
+    END LOOP;
+    RETURN CASE WHEN l_n = 0 THEN NULL ELSE '<p class="nn-hint">هذه الأرصدة سالبة من حركات سابقة. أي صرف جديد منها سيرفض حتى تمول.</p>'
+                                         || l_h || '</tbody></table>' END;
+  END negative_balances_html;
 END NOONA_CSH_PKG;
 /

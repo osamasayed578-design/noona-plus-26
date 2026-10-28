@@ -57,6 +57,30 @@ DECLARE
     l_x := NOONA_SAL_PKG.receive('{"cust":' || l_cu || ',"date":"' || d(TRUNC(SYSDATE)) || '","amount":' || p_amt || ',"place":"BOX:' || l_box
                                  || '","method":"BANK_APP","alloc":[{"inv":' || l_oi || ',"a":' || p_amt || '}]}');
   END pay;
+  -- تمويل الصندوق قبل الصرف منه (لا يصرف الصندوق فوق رصيده): سند قبض من الشركاء (3101) يعتمده المعتمد التجريبي (فصل المهام)
+  PROCEDURE fund_box(p_need NUMBER, p_desc VARCHAR2) IS
+    l_v   NUMBER;
+    l_m   NUMBER;
+    l_rl  NUMBER;
+    l_g   NUMBER;
+    l_amt NUMBER := p_need - NOONA_CSH_PKG.balance(l_box, NULL);
+  BEGIN
+    IF l_amt <= 0 THEN RETURN; END IF;
+    SELECT MIN(m.id) INTO l_m FROM sec_user_membership m JOIN sec_user u ON u.id = m.user_id WHERE u.username = 'DEMO_APPROVER';
+    IF l_m IS NULL THEN
+      l_m := NOONA_SEC_ADMIN_PKG.create_user('DEMO_APPROVER', 'المعتمد المالي (تجريبي)', 'demo.approver@noona.local', NOONA_GL_PKG.company);
+      l_rl := NOONA_SEC_ADMIN_PKG.create_role('DEMO_APPROVER', 'معتمد مالي (تجريبي)');
+      l_g := NOONA_SEC_ADMIN_PKG.add_module_permissions(l_rl, 'GL', 'VIEW,APPROVE,POST,REVERSE');
+      l_g := NOONA_SEC_ADMIN_PKG.add_module_permissions(l_rl, 'CSH', 'VIEW,APPROVE,POST');
+      l_g := NOONA_SEC_ADMIN_PKG.grant_role(l_m, l_rl, NULL, 'بيانات تجريبية');
+    END IF;
+    l_v := NOONA_CSH_PKG.save_voucher(NULL, 'RECEIPT', GREATEST(TRUNC(SYSDATE, 'YYYY'), TRUNC(SYSDATE) - 200), l_box, NULL, NULL, 'الشركاء', p_desc, 'DEMO',
+                                      '[{"a":"3101","m":' || CEIL(l_amt) || '}]');
+    NOONA_CSH_PKG.submit_voucher(l_v);
+    NOONA_APEX_PKG.post_auth('DEMO_APPROVER', TRUNC(DBMS_RANDOM.VALUE(1e12, 9e12)));
+    NOONA_CSH_PKG.approve_voucher(l_v);
+    NOONA_APEX_PKG.post_auth(c_admin, TRUNC(DBMS_RANDOM.VALUE(1e12, 9e12)));
+  END fund_box;
 BEGIN
   NOONA_APEX_PKG.post_auth(c_admin, TRUNC(DBMS_RANDOM.VALUE(1e12, 9e12)));
   SELECT COUNT(*) INTO l_n FROM re_property WHERE company_id = NOONA_RES_PKG.company AND code = 'DEMO-RE-T';
@@ -71,6 +95,7 @@ BEGIN
     NOONA_APEX_PKG.cleanup_request;
     RETURN;
   END IF;
+  fund_box(3500000, 'تمويل من الشركاء لتطوير الأبراج');
   l_n := NOONA_RES_PKG.setup_accounts + NOONA_PRP_PKG.setup_accounts;
 
   -- ======================================================== برج للبيع

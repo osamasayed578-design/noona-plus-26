@@ -312,6 +312,18 @@ be = p.button(fe, 10, 'EDIT_BANK', 'حفظ التعديل', hot=True)
 p.process(25, 'AFTER_SUBMIT', 'Edit Bank', [
     'noona_csh_pkg.update_bank_account(:P40_EDIT_BANK, :P40_EDIT_NAME, :P40_EDIT_BNK, :P40_EDIT_NO, :P40_EDIT_IBAN, :P40_EDIT_MAX);'],
     when_button=be, success='تم تعديل الحساب البنكي')
+p.dynamic('أرصدة سالبة تحتاج تسوية', 5, 'return noona_csh_pkg.negative_balances_html;',
+          condition='noona_csh_pkg.negative_balances_html is not null')
+fo = p.static('حد السحب على المكشوف', 36, text='<p class="nn-hint">لا يصرف أي صندوق فوق رصيده في كل الأنظمة (السندات، المشتريات، المشروعات، '
+              'العقارات، الإيجارات، نقاط البيع). الحساب البنكي كذلك ما لم يحدد له حد سحب على المكشوف بتسهيل من البنك؛ عندها يصرف حتى '
+              'الرصيد + الحد. اترك الحد صفراً لإلغائه.</p>')
+p.select('P40_OD_BANK', fo, 10, 'الحساب البنكي', lov_sql=(
+    "select code || ' ' || name_ar || nvl2(overdraft_limit, ' (الحد الحالي ' || to_char(overdraft_limit, 'FM999,999,999,990') || ')', '') d, id r "
+    "from csh_bank_account where company_id = noona_gl_pkg.company and status_code = 'ACTIVE' order by code"))
+p.number('P40_OD_LIMIT', fo, 20, 'الحد')
+bo = p.button(fo, 10, 'SET_OD', 'حفظ الحد', hot=True)
+p.process(27, 'AFTER_SUBMIT', 'Overdraft', 'noona_csh_pkg.set_overdraft(:P40_OD_BANK, to_number(:P40_OD_LIMIT));', when_button=bo,
+          success='تم حفظ حد السحب على المكشوف')
 fd = p.static('الإعدادات الافتراضية', 38, text='<p class="nn-hint">يضيف صندوق العهد النثرية وحساباً بنكياً جارياً افتراضياً (عدّل رقمه من "تعديل حساب بنكي") إن لم توجد.</p>')
 bd = p.button(fd, 10, 'SEED_CASH', 'إضافة الصناديق والبنوك الافتراضية')
 p.process(26, 'AFTER_SUBMIT', 'Seed Cash', [

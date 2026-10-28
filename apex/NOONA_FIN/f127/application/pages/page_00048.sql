@@ -22,7 +22,7 @@ wwv_flow_imp_page.create_page(
 ,p_protection_level=>'C'
 );
 wwv_flow_imp_page.create_page_plug(
- p_id=>wwv_flow_imp.id(91820266000000428)
+ p_id=>wwv_flow_imp.id(91820266000000434)
 ,p_plug_name=>'أسعار صرف الشركة'
 ,p_region_template_options=>'#DEFAULT#'
 ,p_component_template_options=>'#DEFAULT#'
@@ -39,7 +39,7 @@ wwv_flow_imp_page.create_page_plug(
 ,p_prn_page_header=>'أسعار صرف الشركة'
 );
 wwv_flow_imp_page.create_worksheet(
- p_id=>wwv_flow_imp.id(91820266000000429)
+ p_id=>wwv_flow_imp.id(91820266000000435)
 ,p_max_row_count=>'1000000'
 ,p_no_data_found_message=>'لا توجد بيانات'
 ,p_pagination_type=>'ROWS_X_TO_Y'
@@ -51,10 +51,10 @@ wwv_flow_imp_page.create_worksheet(
 ,p_download_formats=>'CSV:HTML:XLSX:PDF'
 ,p_enable_mail_download=>'N'
 ,p_owner=>'NOONA'
-,p_internal_uid=>91820266000000429
+,p_internal_uid=>91820266000000435
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820266000000431)
+ p_id=>wwv_flow_imp.id(91820266000000437)
 ,p_db_column_name=>'ID'
 ,p_display_order=>10
 ,p_column_identifier=>'A'
@@ -65,7 +65,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820266000000432)
+ p_id=>wwv_flow_imp.id(91820266000000438)
 ,p_db_column_name=>'CUR'
 ,p_display_order=>20
 ,p_column_identifier=>'B'
@@ -75,7 +75,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820266000000433)
+ p_id=>wwv_flow_imp.id(91820266000000439)
 ,p_db_column_name=>'TO_CURRENCY'
 ,p_display_order=>30
 ,p_column_identifier=>'C'
@@ -85,7 +85,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820266000000434)
+ p_id=>wwv_flow_imp.id(91820266000000440)
 ,p_db_column_name=>'RATE_TYPE'
 ,p_display_order=>40
 ,p_column_identifier=>'D'
@@ -95,7 +95,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820266000000435)
+ p_id=>wwv_flow_imp.id(91820266000000441)
 ,p_db_column_name=>'RATE_DATE'
 ,p_display_order=>50
 ,p_column_identifier=>'E'
@@ -105,7 +105,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820266000000436)
+ p_id=>wwv_flow_imp.id(91820266000000442)
 ,p_db_column_name=>'RATE'
 ,p_display_order=>60
 ,p_column_identifier=>'F'
@@ -115,7 +115,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820266000000437)
+ p_id=>wwv_flow_imp.id(91820266000000443)
 ,p_db_column_name=>'INVERSE_RATE'
 ,p_display_order=>70
 ,p_column_identifier=>'G'
@@ -125,7 +125,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820266000000438)
+ p_id=>wwv_flow_imp.id(91820266000000444)
 ,p_db_column_name=>'STATUS_HTML'
 ,p_display_order=>80
 ,p_column_identifier=>'H'
@@ -136,7 +136,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820266000000439)
+ p_id=>wwv_flow_imp.id(91820266000000445)
 ,p_db_column_name=>'REASON'
 ,p_display_order=>90
 ,p_column_identifier=>'I'
@@ -146,7 +146,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820266000000440)
+ p_id=>wwv_flow_imp.id(91820266000000446)
 ,p_db_column_name=>'CREATED_BY'
 ,p_display_order=>100
 ,p_column_identifier=>'J'
@@ -156,7 +156,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820266000000441)
+ p_id=>wwv_flow_imp.id(91820266000000447)
 ,p_db_column_name=>'APPROVED_BY'
 ,p_display_order=>110
 ,p_column_identifier=>'K'
@@ -166,16 +166,16 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_rpt(
- p_id=>wwv_flow_imp.id(91820266000000430)
+ p_id=>wwv_flow_imp.id(91820266000000436)
 ,p_application_user=>'APXWS_DEFAULT'
 ,p_report_seq=>10
-,p_report_alias=>'430'
+,p_report_alias=>'436'
 ,p_status=>'PUBLIC'
 ,p_is_default=>'Y'
 ,p_report_columns=>'CUR:TO_CURRENCY:RATE_TYPE:RATE_DATE:RATE:INVERSE_RATE:STATUS_HTML:REASON:CREATED_BY:APPROVED_BY'
 );
 wwv_flow_imp_page.create_page_plug(
- p_id=>wwv_flow_imp.id(91820266000000442)
+ p_id=>wwv_flow_imp.id(91820266000000448)
 ,p_plug_name=>'سعر جديد'
 ,p_region_template_options=>'#DEFAULT#'
 ,p_plug_template=>4072358936313175081
@@ -188,10 +188,10 @@ wwv_flow_imp_page.create_page_plug(
   'show_line_breaks', 'Y')).to_clob
 );
 wwv_flow_imp_page.create_page_item(
- p_id=>wwv_flow_imp.id(91820266000000443)
+ p_id=>wwv_flow_imp.id(91820266000000449)
 ,p_name=>'P48_TYPE'
 ,p_item_sequence=>5
-,p_item_plug_id=>wwv_flow_imp.id(91820266000000442)
+,p_item_plug_id=>wwv_flow_imp.id(91820266000000448)
 ,p_prompt=>'نوع السعر'
 ,p_display_as=>'NATIVE_SELECT_LIST'
 ,p_lov=>'select name_ar d, id r from ref_rate_type where is_active = ''Y'' order by case code when ''ACCOUNTING'' then 0 else 1 end, name_ar'
@@ -203,10 +203,10 @@ wwv_flow_imp_page.create_page_item(
   'page_action_on_selection', 'NONE')).to_clob
 );
 wwv_flow_imp_page.create_page_item(
- p_id=>wwv_flow_imp.id(91820266000000444)
+ p_id=>wwv_flow_imp.id(91820266000000450)
 ,p_name=>'P48_CUR'
 ,p_item_sequence=>10
-,p_item_plug_id=>wwv_flow_imp.id(91820266000000442)
+,p_item_plug_id=>wwv_flow_imp.id(91820266000000448)
 ,p_prompt=>'العملة'
 ,p_display_as=>'NATIVE_SELECT_LIST'
 ,p_lov=>'select currency_code || '' - '' || name_ar d, currency_code r from ref_currency where is_active = ''Y'' and currency_code <> noona_gl_pkg.ledger_currency order by currency_code'
@@ -221,10 +221,10 @@ wwv_flow_imp_page.create_page_item(
   'page_action_on_selection', 'NONE')).to_clob
 );
 wwv_flow_imp_page.create_page_item(
- p_id=>wwv_flow_imp.id(91820266000000445)
+ p_id=>wwv_flow_imp.id(91820266000000451)
 ,p_name=>'P48_DATE'
 ,p_item_sequence=>20
-,p_item_plug_id=>wwv_flow_imp.id(91820266000000442)
+,p_item_plug_id=>wwv_flow_imp.id(91820266000000448)
 ,p_prompt=>'ساري من تاريخ'
 ,p_display_as=>'NATIVE_DATE_PICKER_APEX'
 ,p_cSize=>20
@@ -240,10 +240,10 @@ wwv_flow_imp_page.create_page_item(
   'use_defaults', 'Y')).to_clob
 );
 wwv_flow_imp_page.create_page_item(
- p_id=>wwv_flow_imp.id(91820266000000446)
+ p_id=>wwv_flow_imp.id(91820266000000452)
 ,p_name=>'P48_RATE'
 ,p_item_sequence=>30
-,p_item_plug_id=>wwv_flow_imp.id(91820266000000442)
+,p_item_plug_id=>wwv_flow_imp.id(91820266000000448)
 ,p_prompt=>'السعر'
 ,p_display_as=>'NATIVE_NUMBER_FIELD'
 ,p_cSize=>20
@@ -255,10 +255,10 @@ wwv_flow_imp_page.create_page_item(
   'virtual_keyboard', 'decimal')).to_clob
 );
 wwv_flow_imp_page.create_page_item(
- p_id=>wwv_flow_imp.id(91820266000000447)
+ p_id=>wwv_flow_imp.id(91820266000000453)
 ,p_name=>'P48_REASON'
 ,p_item_sequence=>40
-,p_item_plug_id=>wwv_flow_imp.id(91820266000000442)
+,p_item_plug_id=>wwv_flow_imp.id(91820266000000448)
 ,p_prompt=>'المصدر (مثل: البنك المركزي)'
 ,p_display_as=>'NATIVE_TEXT_FIELD'
 ,p_cSize=>40
@@ -272,9 +272,9 @@ wwv_flow_imp_page.create_page_item(
   'trim_spaces', 'BOTH')).to_clob
 );
 wwv_flow_imp_page.create_page_button(
- p_id=>wwv_flow_imp.id(91820266000000448)
+ p_id=>wwv_flow_imp.id(91820266000000454)
 ,p_button_sequence=>10
-,p_button_plug_id=>wwv_flow_imp.id(91820266000000442)
+,p_button_plug_id=>wwv_flow_imp.id(91820266000000448)
 ,p_button_name=>'ADD_RATE'
 ,p_button_action=>'SUBMIT'
 ,p_button_template_options=>'#DEFAULT#'
@@ -284,9 +284,9 @@ wwv_flow_imp_page.create_page_button(
 ,p_button_position=>'NEXT'
 );
 wwv_flow_imp_page.create_page_button(
- p_id=>wwv_flow_imp.id(91820266000000449)
+ p_id=>wwv_flow_imp.id(91820266000000455)
 ,p_button_sequence=>20
-,p_button_plug_id=>wwv_flow_imp.id(91820266000000442)
+,p_button_plug_id=>wwv_flow_imp.id(91820266000000448)
 ,p_button_name=>'SEED_RATES'
 ,p_button_action=>'SUBMIT'
 ,p_button_template_options=>'#DEFAULT#'
@@ -295,7 +295,7 @@ wwv_flow_imp_page.create_page_button(
 ,p_button_position=>'NEXT'
 );
 wwv_flow_imp_page.create_page_process(
- p_id=>wwv_flow_imp.id(91820266000000450)
+ p_id=>wwv_flow_imp.id(91820266000000456)
 ,p_process_sequence=>5
 ,p_process_point=>'BEFORE_HEADER'
 ,p_process_type=>'NATIVE_PLSQL'
@@ -306,10 +306,10 @@ wwv_flow_imp_page.create_page_process(
 'end;'))
 ,p_process_clob_language=>'PLSQL'
 ,p_error_display_location=>'INLINE_IN_NOTIFICATION'
-,p_internal_uid=>91820266000000450
+,p_internal_uid=>91820266000000456
 );
 wwv_flow_imp_page.create_page_process(
- p_id=>wwv_flow_imp.id(91820266000000451)
+ p_id=>wwv_flow_imp.id(91820266000000457)
 ,p_process_sequence=>10
 ,p_process_point=>'AFTER_SUBMIT'
 ,p_process_type=>'NATIVE_PLSQL'
@@ -325,11 +325,11 @@ wwv_flow_imp_page.create_page_process(
 'end;'))
 ,p_process_clob_language=>'PLSQL'
 ,p_error_display_location=>'INLINE_IN_NOTIFICATION'
-,p_process_when_button_id=>wwv_flow_imp.id(91820266000000448)
-,p_internal_uid=>91820266000000451
+,p_process_when_button_id=>wwv_flow_imp.id(91820266000000454)
+,p_internal_uid=>91820266000000457
 );
 wwv_flow_imp_page.create_page_process(
- p_id=>wwv_flow_imp.id(91820266000000452)
+ p_id=>wwv_flow_imp.id(91820266000000458)
 ,p_process_sequence=>20
 ,p_process_point=>'AFTER_SUBMIT'
 ,p_process_type=>'NATIVE_PLSQL'
@@ -343,11 +343,11 @@ wwv_flow_imp_page.create_page_process(
 'end;'))
 ,p_process_clob_language=>'PLSQL'
 ,p_error_display_location=>'INLINE_IN_NOTIFICATION'
-,p_process_when_button_id=>wwv_flow_imp.id(91820266000000449)
-,p_internal_uid=>91820266000000452
+,p_process_when_button_id=>wwv_flow_imp.id(91820266000000455)
+,p_internal_uid=>91820266000000458
 );
 wwv_flow_imp_page.create_page_plug(
- p_id=>wwv_flow_imp.id(91820266000000453)
+ p_id=>wwv_flow_imp.id(91820266000000459)
 ,p_plug_name=>'اعتماد الأسعار المعلقة (لا يعتمد المدخل سعره)'
 ,p_region_template_options=>'#DEFAULT#'
 ,p_plug_template=>4072358936313175081
@@ -358,10 +358,10 @@ wwv_flow_imp_page.create_page_plug(
   'show_line_breaks', 'Y')).to_clob
 );
 wwv_flow_imp_page.create_page_item(
- p_id=>wwv_flow_imp.id(91820266000000454)
+ p_id=>wwv_flow_imp.id(91820266000000460)
 ,p_name=>'P48_PENDING'
 ,p_item_sequence=>10
-,p_item_plug_id=>wwv_flow_imp.id(91820266000000453)
+,p_item_plug_id=>wwv_flow_imp.id(91820266000000459)
 ,p_prompt=>'سعر معلق'
 ,p_display_as=>'NATIVE_SELECT_LIST'
 ,p_lov=>'select to_char(r.rate_date, ''YYYY-MM-DD'') || '' · '' || r.from_currency || ''/'' || r.to_currency || '' = '' || r.rate || '' · '' || r.created_by d, r.id r from ref_exchange_rate r where r.status_code = ''DRAFT'' and r.company_id = noona_gl_pkg.company order by r.rate_date desc'
@@ -375,10 +375,10 @@ wwv_flow_imp_page.create_page_item(
   'page_action_on_selection', 'NONE')).to_clob
 );
 wwv_flow_imp_page.create_page_item(
- p_id=>wwv_flow_imp.id(91820266000000455)
+ p_id=>wwv_flow_imp.id(91820266000000461)
 ,p_name=>'P48_REJECT_REASON'
 ,p_item_sequence=>20
-,p_item_plug_id=>wwv_flow_imp.id(91820266000000453)
+,p_item_plug_id=>wwv_flow_imp.id(91820266000000459)
 ,p_prompt=>'سبب الرفض'
 ,p_display_as=>'NATIVE_TEXT_FIELD'
 ,p_cSize=>40
@@ -393,9 +393,9 @@ wwv_flow_imp_page.create_page_item(
   'trim_spaces', 'BOTH')).to_clob
 );
 wwv_flow_imp_page.create_page_button(
- p_id=>wwv_flow_imp.id(91820266000000456)
+ p_id=>wwv_flow_imp.id(91820266000000462)
 ,p_button_sequence=>10
-,p_button_plug_id=>wwv_flow_imp.id(91820266000000453)
+,p_button_plug_id=>wwv_flow_imp.id(91820266000000459)
 ,p_button_name=>'APPROVE_RATE'
 ,p_button_action=>'SUBMIT'
 ,p_button_template_options=>'#DEFAULT#'
@@ -405,9 +405,9 @@ wwv_flow_imp_page.create_page_button(
 ,p_button_position=>'NEXT'
 );
 wwv_flow_imp_page.create_page_button(
- p_id=>wwv_flow_imp.id(91820266000000457)
+ p_id=>wwv_flow_imp.id(91820266000000463)
 ,p_button_sequence=>20
-,p_button_plug_id=>wwv_flow_imp.id(91820266000000453)
+,p_button_plug_id=>wwv_flow_imp.id(91820266000000459)
 ,p_button_name=>'REJECT_RATE'
 ,p_button_action=>'SUBMIT'
 ,p_button_template_options=>'#DEFAULT#'
@@ -416,7 +416,7 @@ wwv_flow_imp_page.create_page_button(
 ,p_button_position=>'NEXT'
 );
 wwv_flow_imp_page.create_page_process(
- p_id=>wwv_flow_imp.id(91820266000000458)
+ p_id=>wwv_flow_imp.id(91820266000000464)
 ,p_process_sequence=>30
 ,p_process_point=>'AFTER_SUBMIT'
 ,p_process_type=>'NATIVE_PLSQL'
@@ -425,12 +425,12 @@ wwv_flow_imp_page.create_page_process(
 'noona_refdata_pkg.approve_rate(:P48_PENDING);'))
 ,p_process_clob_language=>'PLSQL'
 ,p_error_display_location=>'INLINE_IN_NOTIFICATION'
-,p_process_when_button_id=>wwv_flow_imp.id(91820266000000456)
+,p_process_when_button_id=>wwv_flow_imp.id(91820266000000462)
 ,p_process_success_message=>'تم اعتماد السعر'
-,p_internal_uid=>91820266000000458
+,p_internal_uid=>91820266000000464
 );
 wwv_flow_imp_page.create_page_process(
- p_id=>wwv_flow_imp.id(91820266000000459)
+ p_id=>wwv_flow_imp.id(91820266000000465)
 ,p_process_sequence=>40
 ,p_process_point=>'AFTER_SUBMIT'
 ,p_process_type=>'NATIVE_PLSQL'
@@ -439,12 +439,12 @@ wwv_flow_imp_page.create_page_process(
 'noona_refdata_pkg.reject_rate(:P48_PENDING, :P48_REJECT_REASON);'))
 ,p_process_clob_language=>'PLSQL'
 ,p_error_display_location=>'INLINE_IN_NOTIFICATION'
-,p_process_when_button_id=>wwv_flow_imp.id(91820266000000457)
+,p_process_when_button_id=>wwv_flow_imp.id(91820266000000463)
 ,p_process_success_message=>'تم رفض السعر'
-,p_internal_uid=>91820266000000459
+,p_internal_uid=>91820266000000465
 );
 wwv_flow_imp_page.create_page_branch(
- p_id=>wwv_flow_imp.id(91820266000000460)
+ p_id=>wwv_flow_imp.id(91820266000000466)
 ,p_branch_action=>'f?p=&APP_ID.:48:&SESSION.::&DEBUG.:48::&success_msg=#SUCCESS_MSG#'
 ,p_branch_point=>'AFTER_PROCESSING'
 ,p_branch_type=>'REDIRECT_URL'

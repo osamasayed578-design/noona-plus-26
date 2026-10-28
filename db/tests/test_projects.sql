@@ -66,13 +66,22 @@ DECLARE
      WHERE j.accounting_event_id = (SELECT accounting_event_id FROM prj_progress_claim WHERE id = p_claim);
     RETURN l_d || '/' || l_k;
   END jdr;
+  -- تمويل صندوق الاختبار (الصرف فوق الرصيد ممنوع): مقبوضات مقدمة من عميل
+  PROCEDURE fund(p_amt NUMBER) IS
+    l_fc NUMBER;
+    l_fr NUMBER;
+  BEGIN
+    l_fc := NOONA_SAL_PKG.save_customer('{"name":"ممول صندوق اختبار ' || l_sfx || '-' || p_amt || '","term":"NET0"}');
+    l_fr := NOONA_SAL_PKG.receive('{"cust":' || l_fc || ',"amount":' || p_amt || ',"place":"BOX:' || l_box || '","method":"CASH"}');
+  END fund;
 BEGIN
   NOONA_APEX_PKG.post_auth('ADMIN', TRUNC(DBMS_RANDOM.VALUE(1e12, 9e12)));
   l_n := NOONA_PRJ_PKG.setup_accounts;
   ok('project accounts ready', l_n = 7 AND NOONA_INV_PKG.acc_id('1140') IS NOT NULL AND NOONA_INV_PKG.acc_id('4130') IS NOT NULL);
   l_cust := NOONA_SAL_PKG.save_customer('{"name":"مالك اختبار ' || l_sfx || '","person":"N","tax":"300000000000003","term":"NET30"}');
   l_sup := NOONA_PUR_PKG.save_supplier('{"name":"مقاول باطن ' || l_sfx || '","person":"N","type":"SERVICES","term":"NET30"}');
-  SELECT MIN(id) INTO l_box FROM csh_cash_box WHERE company_id = NOONA_PRJ_PKG.company AND status_code = 'ACTIVE';
+  l_box := NOONA_CSH_PKG.create_cash_box('PB' || SUBSTR(l_sfx, 1, 6), 'صندوق مشروعات اختبار');
+  fund(1000000);
 
   -- ======================================================== المشروع
   BEGIN l_x := NOONA_PRJ_PKG.save_project('{"name":"x","start":"2026-05-01","end":"2026-04-01"}'); ok('end before start rejected', FALSE);
@@ -115,6 +124,10 @@ BEGIN
   ok('cost reversed', l_s = 'REVERSED');
   l_x := NOONA_PRJ_PKG.post_expense('{"project":' || l_prj || ',"wbs":' || l_w1 || ',"type":"EQUIPMENT","amount":4000,"place":"BOX:' || l_box
          || '","desc":"إيجار رافعة"}');
+  BEGIN l_n := NOONA_PRJ_PKG.post_expense('{"project":' || l_prj || ',"type":"OTHER","amount":' || (NOONA_CSH_PKG.balance(l_box, NULL) + 1)
+                                          || ',"place":"BOX:' || l_box || '","desc":"أكبر من رصيد الصندوق"}');
+    ok('project expense cannot exceed the cash box balance', FALSE);
+  EXCEPTION WHEN OTHERS THEN expect('project expense cannot exceed the cash box balance', 'NOONA-CSH-040', SQLERRM); END;
   -- مواد من المخزون
   SELECT MIN(o.item_id) KEEP (DENSE_RANK FIRST ORDER BY o.on_hand_qty DESC), MIN(o.warehouse_id) KEEP (DENSE_RANK FIRST ORDER BY o.on_hand_qty DESC)
     INTO l_item, l_wh FROM inv_onhand o JOIN inv_item i ON i.id = o.item_id

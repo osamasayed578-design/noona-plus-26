@@ -12,7 +12,7 @@ wwv_flow_imp.component_begin (
 ,p_default_owner=>'NOONA_APP'
 );
 wwv_flow_imp_shared.create_security_scheme(
- p_id=>wwv_flow_imp.id(91820266000000718)
+ p_id=>wwv_flow_imp.id(91820266000000724)
 ,p_name=>'NOONA - Tax'
 ,p_scheme_type=>'NATIVE_FUNCTION_BODY'
 ,p_attribute_01=>'return noona_security_pkg.has_permission(''LOC_TAX_RETURN.VIEW'', noona_loc_pkg.company) = ''Y'';'

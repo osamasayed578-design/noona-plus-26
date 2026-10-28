@@ -53,16 +53,17 @@
 | 14 | `GL_ACCOUNT_ID` | معرف | `NUMBER(19)` | ✔ |  | FK→GL_ACCOUNT |  | إدخال المستخدم |  | حساب الأستاذ |
 | 15 | `CLEARING_ACCOUNT_ID` | معرف | `NUMBER(19)` |  |  | FK→GL_ACCOUNT |  | إدخال المستخدم |  | الحساب الوسيط (شيكات/تحويلات معلقة) |
 | 16 | `MAX_PAYMENT_AMOUNT` | مبلغ | `NUMBER(24,6)` |  |  |  |  | إدخال المستخدم |  | حد العملية الواحدة |
-| 17 | `SIGNATORY_RULES` | JSON | `CLOB` |  |  |  | JSON صالح | إدخال المستخدم |  | قواعد المفوضين بالتوقيع |
-| 18 | `STATEMENT_FORMAT` | رمز | `VARCHAR2(30 CHAR)` |  |  |  | MT940, CAMT053, CSV, API | إدخال المستخدم |  | صيغة الكشف |
-| 19 | `STATUS_CODE` | رمز | `VARCHAR2(30 CHAR)` | ✔ | 'DRAFT' |  | DRAFT, ACTIVE, FROZEN, CLOSED | النظام/الحزمة |  | الحالة ضمن دورة الحياة المعتمدة |
-| 20 | `EFFECTIVE_FROM` | تاريخ | `DATE` | ✔ | TRUNC(SYSDATE) |  |  | إدخال المستخدم |  | تاريخ بداية السريان |
-| 21 | `EFFECTIVE_TO` | تاريخ | `DATE` |  |  |  |  | إدخال المستخدم |  | تاريخ نهاية السريان (فارغ = مفتوح) |
-| 22 | `ROW_VERSION` | عدد صحيح | `NUMBER(10)` | ✔ | 1 |  |  | Trigger |  | رقم الإصدار للتحكم في التزامن المتفائل |
-| 23 | `CREATED_BY` | اسم مستخدم | `VARCHAR2(128 CHAR)` | ✔ |  |  |  | Trigger |  | منشئ السجل |
-| 24 | `CREATED_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` | ✔ | SYSTIMESTAMP |  |  | Trigger |  | وقت الإنشاء |
-| 25 | `UPDATED_BY` | اسم مستخدم | `VARCHAR2(128 CHAR)` |  |  |  |  | Trigger |  | آخر من عدل السجل |
-| 26 | `UPDATED_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` |  |  |  |  | Trigger |  | وقت آخر تعديل |
+| 17 | `OVERDRAFT_LIMIT` | مبلغ | `NUMBER(24,6)` |  |  |  |  | إدخال المستخدم |  | حد السحب على المكشوف (تسهيل بنكي؛ فارغ = لا يصرف فوق الرصيد) |
+| 18 | `SIGNATORY_RULES` | JSON | `CLOB` |  |  |  | JSON صالح | إدخال المستخدم |  | قواعد المفوضين بالتوقيع |
+| 19 | `STATEMENT_FORMAT` | رمز | `VARCHAR2(30 CHAR)` |  |  |  | MT940, CAMT053, CSV, API | إدخال المستخدم |  | صيغة الكشف |
+| 20 | `STATUS_CODE` | رمز | `VARCHAR2(30 CHAR)` | ✔ | 'DRAFT' |  | DRAFT, ACTIVE, FROZEN, CLOSED | النظام/الحزمة |  | الحالة ضمن دورة الحياة المعتمدة |
+| 21 | `EFFECTIVE_FROM` | تاريخ | `DATE` | ✔ | TRUNC(SYSDATE) |  |  | إدخال المستخدم |  | تاريخ بداية السريان |
+| 22 | `EFFECTIVE_TO` | تاريخ | `DATE` |  |  |  |  | إدخال المستخدم |  | تاريخ نهاية السريان (فارغ = مفتوح) |
+| 23 | `ROW_VERSION` | عدد صحيح | `NUMBER(10)` | ✔ | 1 |  |  | Trigger |  | رقم الإصدار للتحكم في التزامن المتفائل |
+| 24 | `CREATED_BY` | اسم مستخدم | `VARCHAR2(128 CHAR)` | ✔ |  |  |  | Trigger |  | منشئ السجل |
+| 25 | `CREATED_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` | ✔ | SYSTIMESTAMP |  |  | Trigger |  | وقت الإنشاء |
+| 26 | `UPDATED_BY` | اسم مستخدم | `VARCHAR2(128 CHAR)` |  |  |  |  | Trigger |  | آخر من عدل السجل |
+| 27 | `UPDATED_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` |  |  |  |  | Trigger |  | وقت آخر تعديل |
 
 ## CSH_CASH_BOX
 

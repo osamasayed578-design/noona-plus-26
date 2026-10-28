@@ -100,12 +100,21 @@ DECLARE
     l_id := NOONA_SAL_PKG.receive('{"cust":' || l_cu || ',"date":"' || TO_CHAR(SYSDATE, 'YYYY-MM-DD') || '","amount":' || p_amt || ',"place":"BOX:' || l_box
                                   || '","method":"CASH","alloc":[{"inv":' || l_oi || ',"a":' || p_amt || '}]}');
   END pay;
+  -- تمويل صندوق الاختبار (الصرف فوق الرصيد ممنوع): مقبوضات مقدمة من عميل
+  PROCEDURE fund(p_amt NUMBER) IS
+    l_fc NUMBER;
+    l_fr NUMBER;
+  BEGIN
+    l_fc := NOONA_SAL_PKG.save_customer('{"name":"ممول صندوق اختبار ' || l_sfx || '-' || p_amt || '","term":"NET0"}');
+    l_fr := NOONA_SAL_PKG.receive('{"cust":' || l_fc || ',"amount":' || p_amt || ',"place":"BOX:' || l_box || '","method":"CASH"}');
+  END fund;
 BEGIN
   NOONA_APEX_PKG.cleanup_request;
   NOONA_APEX_PKG.post_auth('ADMIN', TRUNC(DBMS_RANDOM.VALUE(1e12, 9e12)));
   UPDATE dms_archive_rule SET is_active = 'N';
   UPDATE loc_einvoice_profile SET status_code = 'SUSPENDED' WHERE company_id = NOONA_RES_PKG.company;
   l_box := NOONA_CSH_PKG.create_cash_box('RB' || SUBSTR(l_sfx, 1, 6), 'صندوق عقارات اختبار');
+  fund(2000000);
   l_n := NOONA_RES_PKG.setup_accounts + NOONA_PRP_PKG.setup_accounts;
   ok('real estate accounts ready', NOONA_INV_PKG.acc_id('2150') IS NOT NULL AND NOONA_INV_PKG.acc_id('4140') IS NOT NULL AND NOONA_INV_PKG.acc_id('1150') IS NOT NULL
      AND NOONA_INV_PKG.acc_id('4150') IS NOT NULL AND NOONA_INV_PKG.acc_id('2153') IS NOT NULL AND NOONA_INV_PKG.acc_id('2154') IS NOT NULL);

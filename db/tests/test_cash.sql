@@ -220,6 +220,29 @@ BEGIN
   l_c := NOONA_CSH_PKG.summary('1');
   ok('cash dashboard renders', INSTR(l_c, 'nn-kpi') > 0);
 
+  -- كفاية الرصيد في صرف الوحدات الأخرى (سداد مورد): الصندوق لا يصرف فوق رصيده، والبنك حتى رصيده + حد المكشوف
+  l_n := NOONA_PUR_PKG.save_supplier('{"name":"مورد رصيد اختبار ' || l_sfx || '","term":"NET30"}');
+  BEGIN l_j := NOONA_PUR_PKG.pay_supplier('{"sup":' || l_n || ',"amount":5000.01,"place":"BOX:' || l_box || '","method":"CASH"}');
+    ok('box cannot pay above its balance (other modules)', FALSE);
+  EXCEPTION WHEN OTHERS THEN
+    ok('box cannot pay above its balance (other modules)', INSTR(SQLERRM, 'NOONA-CSH-040') > 0 OR INSTR(SQLERRM, 'NOONA-PUR-042') > 0, SQLERRM); END;
+  l_j := NOONA_PUR_PKG.pay_supplier('{"sup":' || l_n || ',"amount":5000,"place":"BOX:' || l_box || '","method":"CASH"}');
+  ok('box can pay exactly its balance', NOONA_CSH_PKG.balance(l_box, NULL) = 0, NOONA_CSH_PKG.balance(l_box, NULL));
+  l_bal0 := NOONA_CSH_PKG.balance(NULL, l_bank);
+  BEGIN l_j := NOONA_PUR_PKG.pay_supplier('{"sup":' || l_n || ',"amount":' || (GREATEST(l_bal0, 0) + 700) || ',"place":"BANK:' || l_bank || '","method":"BANK_APP"}');
+    ok('bank cannot pay above balance without overdraft', FALSE);
+  EXCEPTION WHEN OTHERS THEN expect('bank cannot pay above balance without overdraft', 'NOONA-CSH-042', SQLERRM); END;
+  BEGIN NOONA_CSH_PKG.set_overdraft(l_bank, -5); ok('negative overdraft rejected', FALSE);
+  EXCEPTION WHEN OTHERS THEN expect('negative overdraft rejected', 'NOONA-CSH-043', SQLERRM); END;
+  NOONA_CSH_PKG.set_overdraft(l_bank, 1000);
+  l_j := NOONA_PUR_PKG.pay_supplier('{"sup":' || l_n || ',"amount":' || (GREATEST(l_bal0, 0) + 700) || ',"place":"BANK:' || l_bank || '","method":"BANK_APP"}');
+  ok('overdraft facility allows paying within the limit', NOONA_CSH_PKG.balance(NULL, l_bank) = LEAST(l_bal0, 0) - 700, NOONA_CSH_PKG.balance(NULL, l_bank));
+  BEGIN l_j := NOONA_PUR_PKG.pay_supplier('{"sup":' || l_n || ',"amount":400,"place":"BANK:' || l_bank || '","method":"BANK_APP"}');
+    ok('overdraft limit enforced', FALSE);
+  EXCEPTION WHEN OTHERS THEN expect('overdraft limit enforced', 'NOONA-CSH-042', SQLERRM); END;
+  l_c := NOONA_CSH_PKG.negative_balances_html;
+  ok('negative balances report', INSTR(l_c, 'الحساب الجاري') > 0 AND INSTR(l_c, 'ضمن التسهيل البنكي') > 0, SUBSTR(l_c, 1, 200));
+
   ROLLBACK;
   NOONA_APEX_PKG.cleanup_request;
   DBMS_OUTPUT.PUT_LINE('=== RESULT: ' || g_pass || ' passed, ' || g_fail || ' failed');
