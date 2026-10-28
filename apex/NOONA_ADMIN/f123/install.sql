@@ -27,6 +27,7 @@ prompt --install
 @@application/shared_components/user_interface/lovs/noona_currencies.sql
 @@application/shared_components/user_interface/lovs/noona_countries.sql
 @@application/shared_components/security/authorizations/noona_org_admin.sql
+@@application/shared_components/security/authorizations/noona_api_view.sql
 @@application/shared_components/navigation/navigation_bar.sql
 @@application/shared_components/logic/application_settings.sql
 @@application/shared_components/navigation/tabs/standard.sql
@@ -72,5 +73,13 @@ prompt --install
 @@application/pages/page_00052.sql
 @@application/pages/page_00053.sql
 @@application/pages/page_00060.sql
+@@application/pages/page_00070.sql
+@@application/pages/page_00071.sql
+@@application/pages/page_00072.sql
+@@application/pages/page_00073.sql
+@@application/pages/page_00074.sql
+@@application/pages/page_00075.sql
+@@application/pages/page_00076.sql
+@@application/pages/page_00077.sql
 @@application/pages/page_09999.sql
 @@application/end_environment.sql

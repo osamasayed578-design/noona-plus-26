@@ -29,6 +29,8 @@ if errorlevel 1 goto :fail
 
 echo ===== 2/5 synonyms (NOONA_APP)
 sqlplus -S -L NOONA_APP/"%APP_PWD%"@%CONN% @security/41_synonyms_noona_app.sql < nul > nul
+echo ===== REST API v1 on ORDS (/ords/noona/v1/) - skipped with a warning if ORDS is not installed in this database
+sqlplus -S -L NOONA_APP/"%APP_PWD%"@%CONN% @ords/api_v1.sql < nul | findstr /c:"published" /c:"ORA-"
 if errorlevel 1 goto :fail
 
 echo ===== 3/5 demo tenant (NOONA_OWNER)
@@ -70,6 +72,7 @@ sqlplus -S -L NOONA_APP/"%APP_PWD%"@%CONN% @tests/test_reports_hub.sql < nul | f
 sqlplus -S -L NOONA_APP/"%APP_PWD%"@%CONN% @tests/test_projects.sql < nul | findstr /c:"RESULT" /c:"FAIL" /c:"ORA-"
 sqlplus -S -L NOONA_APP/"%APP_PWD%"@%CONN% @tests/test_localization.sql < nul | findstr /c:"RESULT" /c:"FAIL" /c:"ORA-"
 sqlplus -S -L NOONA_APP/"%APP_PWD%"@%CONN% @tests/test_real_estate.sql < nul | findstr /c:"RESULT" /c:"FAIL" /c:"ORA-"
+sqlplus -S -L NOONA_APP/"%APP_PWD%"@%CONN% @tests/test_api.sql < nul | findstr /c:"RESULT" /c:"FAIL" /c:"ORA-"
 
 echo.
 echo ===== Finished. Expected: 79 / 26 / 21 / 25 / 10 / 19 / 18 / 19 / 43 / 29 / 26 / 38 / 24 / 52 / 49 / 54 / 77 / 41 / 47 / 54 / 70 / 72 / 75 / 62 / 51 / 62 / 36 / 37 / 70 passed, 0 failed (test_dms prints a WARN line when no NOONA_DMS_T[tenant] server folder exists).

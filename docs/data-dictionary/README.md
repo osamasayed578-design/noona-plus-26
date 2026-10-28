@@ -43,7 +43,7 @@
 | 20 | الرواتب | Payroll | `NOONA_PAYROLL_PKG` | 16 | [p20_pay](p20_pay.md) |
 | 21 | التصنيع | Manufacturing | `NOONA_MANUFACTURING_PKG` | 13 | [p21_mfg](p21_mfg.md) |
 | 22 | التقارير وذكاء الأعمال | Reporting & Business Intelligence | `NOONA_BI_PKG` | 9 | [p22_bi](p22_bi.md) |
-| 23 | ORDS وواجهات API والتكاملات | ORDS, APIs & Integrations | `NOONA_API_PKG` | 11 | [p23_api](p23_api.md) |
+| 23 | ORDS وواجهات API والتكاملات | ORDS, APIs & Integrations | `NOONA_API_PKG` | 13 | [p23_api](p23_api.md) |
 | 24 | الذكاء الاصطناعي و RAG والوكلاء | AI, RAG & Agents | `NOONA_AI_PKG` | 15 | [p24_ai](p24_ai.md) |
 | 25 | حزم الدول والتوطين والضرائب | Country Packs, Localization & Tax Engine | `NOONA_LOCALIZATION_PKG` | 15 | [p25_loc](p25_loc.md) |
 | 26 | الاختبار الشامل وضمان الجودة | Quality Assurance & Traceability | `NOONA_QA_PKG` | 7 | [p26_qa](p26_qa.md) |
@@ -53,5 +53,5 @@
 | 30 | التشغيل والدعم والتطوير المستمر | Operations, Support & Continuous Improvement | `NOONA_OPERATIONS_PKG` | 12 | [p30_ops](p30_ops.md) |
 | 31 | المستشفيات والمراكز الطبية | Hospital & Clinics | `NOONA_HIS_PKG` | 40 | [p31_his](p31_his.md) |
 
-**الإجمالي:** 619 جدول · 10857 عمود.
+**الإجمالي:** 621 جدول · 10897 عمود.
 

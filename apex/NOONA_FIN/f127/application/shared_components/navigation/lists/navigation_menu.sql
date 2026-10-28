@@ -450,6 +450,24 @@ wwv_flow_imp_shared.create_list_item(
 ,p_security_scheme=>wwv_flow_imp.id(91820266000000718)
 ,p_list_item_current_type=>'TARGET_PAGE'
 );
+wwv_flow_imp_shared.create_list_item(
+ p_id=>wwv_flow_imp.id(91820266000000893)
+,p_list_item_display_sequence=>38
+,p_list_item_link_text=>'المطابقة البنكية'
+,p_list_item_link_target=>''
+,p_list_item_icon=>'fa-check-square'
+,p_security_scheme=>wwv_flow_imp.id(91820266000000866)
+);
+wwv_flow_imp_shared.create_list_item(
+ p_id=>wwv_flow_imp.id(91820266000000894)
+,p_list_item_display_sequence=>381
+,p_list_item_link_text=>'كشوف الحساب والمطابقة'
+,p_list_item_link_target=>'f?p=&APP_ID.:79:&APP_SESSION.::&DEBUG.:::'
+,p_list_item_icon=>'fa-university'
+,p_parent_list_item_id=>wwv_flow_imp.id(91820266000000893)
+,p_security_scheme=>wwv_flow_imp.id(91820266000000866)
+,p_list_item_current_type=>'TARGET_PAGE'
+);
 wwv_flow_imp.component_end;
 end;
 /

@@ -36,6 +36,10 @@ SCOPES          V2000            | النطاقات المسموحة
 IP_ALLOWLIST    V2000            | عناوين IP المسموحة
 RATE_LIMIT_PER_MIN INT           | حد المعدل
 EXPIRES_AT      TS               | الانتهاء
+COMPANY_ID      ID   >ORG_COMPANY | الشركة التي يعمل فيها العميل
+ROLE_ID         ID   >SEC_ROLE   | الدور (صلاحيات العميل)
+DESCRIPTION     V500             | الوصف والاستخدام
+TOKEN_TTL_MIN   INT  NN D=60     | صلاحية رمز الدخول بالدقائق
 ''', uk=[('CLIENT_ID',)], area='security')
 
 table('API_CLIENT_SECRET', 'أسرار عملاء API', 'API Client Secrets', scope='T', mix='status', status='ACTIVE ROTATING REVOKED EXPIRED', cols='''
@@ -45,6 +49,15 @@ SECRET_HINT     V10              | آخر أحرف للتعرف
 EXPIRES_AT      TS               | الانتهاء
 LAST_USED_AT    TS               | آخر استخدام
 ''', area='security', sens='HIGHLY_RESTRICTED')
+
+table('API_ACCESS_TOKEN', 'رموز الدخول', 'API Access Tokens', scope='T', cols='''
+API_CLIENT_ID   ID   NN >API_CLIENT | العميل
+TOKEN_HASH      V128 NN          | Hash الرمز فقط
+SESSION_REF     NUM  NN          | مرجع جلسة الخدمة
+EXPIRES_AT      TS   NN          | الانتهاء
+REVOKED_AT      TS               | الإلغاء
+CLIENT_IP       V45              | IP
+''', uk=[('TOKEN_HASH',)], ix=[('API_CLIENT_ID', 'EXPIRES_AT')], area='security', sens='HIGHLY_RESTRICTED')
 
 table('API_ENDPOINT', 'نقاط النهاية', 'API Endpoints', scope='G', mix='active', cols='''
 MODULE_CODE     CODE NN          | الحزمة
@@ -95,6 +108,7 @@ NEXT_ATTEMPT_AT TS   NN D=SYSTIMESTAMP | المحاولة التالية (Backof
 LAST_ERROR      V4000            | آخر خطأ
 CORRELATION_ID  V64              | معرف الارتباط
 PROCESSED_AT    TS               | وقت المعالجة
+COMPANY_ID      ID   >ORG_COMPANY | الشركة
 ''', ix=[('STATUS_CODE', 'NEXT_ATTEMPT_AT'), ('TENANT_ID', 'AGGREGATE_TYPE', 'AGGREGATE_ID')], area='reliability',
       purpose='يكتب مع المعاملة نفسها ثم ينشر لاحقاً؛ يضمن عدم فقد الأحداث')
 
@@ -115,6 +129,10 @@ EVENT_TYPE      V100 NN          | الحدث
 TARGET_URL      V1000 NN         | العنوان
 SIGNING_SECRET_REF V200 NN       | مرجع سر التوقيع
 FAILURE_COUNT   INT  NN D=0      | الإخفاقات المتتالية
+COMPANY_ID      ID   >ORG_COMPANY | الشركة
+DESCRIPTION     V500             | الوصف
+LAST_DELIVERY_AT TS              | آخر تسليم
+LAST_HTTP_STATUS INT             | آخر استجابة
 ''', area='webhook')
 
 table('API_WEBHOOK_DELIVERY', 'تسليمات Webhook', 'Webhook Deliveries', scope='T', mix='status', status='PENDING DELIVERED FAILED DEAD', cols='''
@@ -124,4 +142,17 @@ ATTEMPT_NO      INT  NN D=1      | المحاولة
 HTTP_STATUS     INT              | الاستجابة
 DURATION_MS     INT              | المدة
 NEXT_RETRY_AT   TS               | المحاولة التالية
+EVENT_TYPE      V100             | الحدث
+RESPONSE_SNIPPET V1000           | بداية الاستجابة أو الخطأ
 ''', area='webhook')
+
+table('API_IMPORT_JOB', 'مهام الاستيراد', 'Import Jobs', scope='T', mix='status', status='RUNNING COMPLETED PARTIAL FAILED', cols='''
+COMPANY_ID      ID   >ORG_COMPANY | الشركة
+IMPORT_TYPE     CODE NN IN:CUSTOMERS,SUPPLIERS,ITEMS,BANK_STATEMENT,ORDERS | النوع
+FILE_NAME       V300             | الملف
+TOTAL_ROWS      INT  NN D=0      | الأسطر
+OK_ROWS         INT  NN D=0      | الناجحة
+FAILED_ROWS     INT  NN D=0      | الفاشلة
+ERRORS          JSON             | أخطاء الأسطر
+RESULT_REF      ID               | الناتج (رقم الكشف...)
+''', area='connectors', purpose='استيراد دفعي بأخطاء لكل سطر دون إيقاف الباقي')

@@ -761,5 +761,7 @@ from fa_pages import build as fa_pages
 fa_pages(app, url)
 from loc_pages import build as loc_pages
 loc_pages(app, url)
+from api_pages import build_fin as bank_pages
+bank_pages(app, url)
 app.finalize()
 print('NOONA_FIN built:', len(app.pages), 'pages')

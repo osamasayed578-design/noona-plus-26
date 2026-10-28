@@ -1428,3 +1428,10 @@ pre.nn-einv-xml { direction: ltr; text-align: left; max-height: 480px; overflow:
 .nn-prj-cert-sign { display: flex; justify-content: space-between; margin-top: 40px; text-align: center; }
 .nn-prj-draft { position: absolute; top: 40%; inset-inline: 0; text-align: center; font-size: 3rem; color: rgba(196, 43, 28, .15); transform: rotate(-20deg); pointer-events: none; font-weight: 800; }
 @media print { .nn-prj-cert { border: 0; padding: 0; } }
+
+/* ===== التكاملات والمطابقة البنكية ===== */
+.nn-csv { background: var(--nn-surface-2, #f6f7f9); border: 1px solid var(--nn-border, #e3e6ea); border-radius: 6px; padding: 10px 12px;
+  font: 12px/1.6 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; white-space: pre-wrap; text-align: left; direction: ltr; margin: 0; }
+.nn-recon td.nn-recon-act { white-space: nowrap; }
+.nn-recon td.nn-recon-act .t-Button { margin: 0 2px; }
+.nn-recon tr[data-match] td:nth-child(7) { background: rgba(46, 125, 50, .05); }

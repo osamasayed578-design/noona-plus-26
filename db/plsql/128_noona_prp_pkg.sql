@@ -472,6 +472,7 @@ CREATE OR REPLACE PACKAGE BODY NOONA_PRP_PKG AS
       UPDATE prp_lease SET status_code = 'RENEWED' WHERE id = l.previous_lease_id AND status_code IN ('ACTIVE', 'RENEWAL_PENDING', 'EXPIRED');
     END IF;
     NOONA_AUDIT_PKG.log_event('APPROVAL', c_lease, l.id, 'ACTIVATE', 'SUCCESS');
+    NOONA_API_PKG.publish('PRP_LEASE.ACTIVATED', c_lease, l.id);
   END activate_lease;
 
   PROCEDURE refresh_schedule(p_lease_id IN NUMBER DEFAULT NULL) IS

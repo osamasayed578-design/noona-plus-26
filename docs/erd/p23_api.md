@@ -1,10 +1,10 @@
 # ERD — الحزمة 23: ORDS وواجهات API والتكاملات
 
-**ORDS, APIs & Integrations** · الحزمة البرمجية `NOONA_API_PKG` · عدد الجداول: **11**
+**ORDS, APIs & Integrations** · الحزمة البرمجية `NOONA_API_PKG` · عدد الجداول: **13**
 
 Integration Matrix، وعملاء API وأسرارهم بمراجع Vault، وسجل نقاط النهاية بإصداراتها، وسجل الطلبات، ومفاتيح Idempotency، و Outbox/Inbox للأحداث الصادرة والواردة مع Retry و Dead-Letter، والـWebhooks.
 
-الجداول الخارجية المرتبطة (من حزم أخرى): `ORG_COMPANY`, `REF_COUNTRY`, `REF_ENTITY_TYPE`, `SEC_PERMISSION`, `SEC_USER`, `SEC_USER_MEMBERSHIP`
+الجداول الخارجية المرتبطة (من حزم أخرى): `ORG_COMPANY`, `REF_COUNTRY`, `REF_ENTITY_TYPE`, `SEC_PERMISSION`, `SEC_ROLE`, `SEC_USER`, `SEC_USER_MEMBERSHIP`
 
 ```mermaid
 erDiagram
@@ -32,6 +32,8 @@ erDiagram
     VARCHAR2 CLIENT_ID UK
     NUMBER SERVICE_USER_ID FK
     NUMBER OWNER_MEMBER_ID FK
+    NUMBER COMPANY_ID FK
+    NUMBER ROLE_ID FK
     VARCHAR2 STATUS_CODE
   }
   API_CLIENT_SECRET {
@@ -39,6 +41,12 @@ erDiagram
     NUMBER TENANT_ID FK
     NUMBER API_CLIENT_ID FK
     VARCHAR2 STATUS_CODE
+  }
+  API_ACCESS_TOKEN {
+    NUMBER ID PK
+    NUMBER TENANT_ID FK
+    NUMBER API_CLIENT_ID FK
+    VARCHAR2 TOKEN_HASH UK
   }
   API_ENDPOINT {
     NUMBER ID PK
@@ -63,6 +71,7 @@ erDiagram
   API_OUTBOX {
     NUMBER ID PK
     NUMBER TENANT_ID FK
+    NUMBER COMPANY_ID FK
     VARCHAR2 STATUS_CODE
   }
   API_INBOX {
@@ -76,6 +85,7 @@ erDiagram
     NUMBER ID PK
     NUMBER TENANT_ID FK
     NUMBER API_CLIENT_ID FK
+    NUMBER COMPANY_ID FK
     VARCHAR2 STATUS_CODE
   }
   API_WEBHOOK_DELIVERY {
@@ -83,6 +93,12 @@ erDiagram
     NUMBER TENANT_ID FK
     NUMBER SUBSCRIPTION_ID FK
     NUMBER OUTBOX_ID FK
+    VARCHAR2 STATUS_CODE
+  }
+  API_IMPORT_JOB {
+    NUMBER ID PK
+    NUMBER TENANT_ID FK
+    NUMBER COMPANY_ID FK
     VARCHAR2 STATUS_CODE
   }
   REF_COUNTRY {
@@ -97,6 +113,9 @@ erDiagram
   SEC_USER_MEMBERSHIP {
     NUMBER ID PK
   }
+  SEC_ROLE {
+    NUMBER ID PK
+  }
   SEC_PERMISSION {
     NUMBER ID PK
   }
@@ -105,15 +124,21 @@ erDiagram
   }
   API_CLIENT |o--o{ API_REQUEST_LOG : "API_CLIENT_ID"
   API_CLIENT |o--o{ API_WEBHOOK_SUBSCRIPTION : "API_CLIENT_ID"
+  API_CLIENT ||--o{ API_ACCESS_TOKEN : "API_CLIENT_ID"
   API_CLIENT ||--o{ API_CLIENT_SECRET : "API_CLIENT_ID"
   API_ENDPOINT |o--o{ API_REQUEST_LOG : "ENDPOINT_ID"
   API_INTEGRATION ||--o{ API_INTEGRATION_CONFIG : "INTEGRATION_ID"
   API_OUTBOX |o--o{ API_WEBHOOK_DELIVERY : "OUTBOX_ID"
   API_WEBHOOK_SUBSCRIPTION ||--o{ API_WEBHOOK_DELIVERY : "SUBSCRIPTION_ID"
+  ORG_COMPANY |o--o{ API_CLIENT : "COMPANY_ID"
+  ORG_COMPANY |o--o{ API_IMPORT_JOB : "COMPANY_ID"
   ORG_COMPANY |o--o{ API_INTEGRATION_CONFIG : "COMPANY_ID"
+  ORG_COMPANY |o--o{ API_OUTBOX : "COMPANY_ID"
+  ORG_COMPANY |o--o{ API_WEBHOOK_SUBSCRIPTION : "COMPANY_ID"
   REF_COUNTRY |o--o{ API_INTEGRATION : "COUNTRY_CODE"
   REF_ENTITY_TYPE |o--o{ API_IDEMPOTENCY_KEY : "RESULT_ENTITY_TYPE"
   SEC_PERMISSION |o--o{ API_ENDPOINT : "PERMISSION_CODE"
+  SEC_ROLE |o--o{ API_CLIENT : "ROLE_ID"
   SEC_USER |o--o{ API_CLIENT : "SERVICE_USER_ID"
   SEC_USER_MEMBERSHIP |o--o{ API_CLIENT : "OWNER_MEMBER_ID"
 ```
@@ -126,6 +151,7 @@ erDiagram
 | `API_INTEGRATION_CONFIG` | إعدادات التكامل للمؤسسة | Tenant Integration Config | T |
 | `API_CLIENT` | عملاء API | API Clients | T |
 | `API_CLIENT_SECRET` | أسرار عملاء API | API Client Secrets | T |
+| `API_ACCESS_TOKEN` | رموز الدخول | API Access Tokens | T |
 | `API_ENDPOINT` | نقاط النهاية | API Endpoints | G |
 | `API_REQUEST_LOG` | سجل طلبات API | API Request Log | TO |
 | `API_IDEMPOTENCY_KEY` | مفاتيح منع التكرار | Idempotency Keys | T |
@@ -133,3 +159,4 @@ erDiagram
 | `API_INBOX` | صندوق الرسائل الواردة | Inbound Message Inbox | TO |
 | `API_WEBHOOK_SUBSCRIPTION` | اشتراكات Webhook | Webhook Subscriptions | T |
 | `API_WEBHOOK_DELIVERY` | تسليمات Webhook | Webhook Deliveries | T |
+| `API_IMPORT_JOB` | مهام الاستيراد | Import Jobs | T |

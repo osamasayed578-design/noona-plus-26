@@ -743,6 +743,7 @@ CREATE OR REPLACE PACKAGE BODY NOONA_RES_PKG AS
     END LOOP;
     refresh_installments(c.id);
     NOONA_AUDIT_PKG.log_event('POSTING', c_ctr, c.id, 'SIGN', 'SUCCESS');
+    NOONA_API_PKG.publish('RE_SALE_CONTRACT.SIGNED', c_ctr, c.id);
   END sign_contract;
 
   PROCEDURE terminate_contract(p_contract_id IN NUMBER, p_reason IN VARCHAR2, p_forfeit IN NUMBER, p_place IN VARCHAR2 DEFAULT NULL) IS

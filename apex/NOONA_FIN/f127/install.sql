@@ -28,6 +28,7 @@ prompt --install
 @@application/shared_components/user_interface/lovs/noona_countries.sql
 @@application/shared_components/security/authorizations/noona_fa_view.sql
 @@application/shared_components/security/authorizations/noona_tax_view.sql
+@@application/shared_components/security/authorizations/noona_bank_recon.sql
 @@application/shared_components/navigation/navigation_bar.sql
 @@application/shared_components/logic/application_settings.sql
 @@application/shared_components/navigation/tabs/standard.sql
@@ -96,5 +97,7 @@ prompt --install
 @@application/pages/page_00076.sql
 @@application/pages/page_00077.sql
 @@application/pages/page_00078.sql
+@@application/pages/page_00079.sql
+@@application/pages/page_00080.sql
 @@application/pages/page_09999.sql
 @@application/end_environment.sql

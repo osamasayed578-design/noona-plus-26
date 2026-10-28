@@ -34,9 +34,11 @@ BEGIN
   NOONA_VPD_PKG.add_shared_policy('AI_TOOL');
   NOONA_VPD_PKG.add_tenant_policy('AI_TOOL_CALL');
   NOONA_VPD_PKG.add_tenant_policy('AI_USAGE');
+  NOONA_VPD_PKG.add_tenant_policy('API_ACCESS_TOKEN');
   NOONA_VPD_PKG.add_tenant_policy('API_CLIENT');
   NOONA_VPD_PKG.add_tenant_policy('API_CLIENT_SECRET');
   NOONA_VPD_PKG.add_tenant_policy('API_IDEMPOTENCY_KEY');
+  NOONA_VPD_PKG.add_tenant_policy('API_IMPORT_JOB');
   NOONA_VPD_PKG.add_shared_policy('API_INBOX');
   NOONA_VPD_PKG.add_shared_policy('API_INTEGRATION');
   NOONA_VPD_PKG.add_tenant_policy('API_INTEGRATION_CONFIG');

@@ -712,6 +712,7 @@ CREATE OR REPLACE PACKAGE BODY NOONA_SAL_PKG AS
      WHERE id = p_invoice_id;
     NOONA_AUDIT_PKG.log_event('POSTING', c_inv, p_invoice_id, 'POST', 'SUCCESS');
     NOONA_EINV_PKG.on_invoice_posted(p_invoice_id);
+    NOONA_API_PKG.publish('SAL_INVOICE.POSTED', c_inv, p_invoice_id);
   END post_invoice;
 
   PROCEDURE cancel_invoice(p_invoice_id IN NUMBER) IS
@@ -986,6 +987,7 @@ CREATE OR REPLACE PACKAGE BODY NOONA_SAL_PKG AS
                           posted_at = SYSTIMESTAMP, posted_by = NOONA_CTX_PKG.current_user_name
      WHERE id = l_id;
     NOONA_AUDIT_PKG.log_event('POSTING', c_rcp, l_id, 'CONFIRM', 'SUCCESS');
+    NOONA_API_PKG.publish('AR_RECEIPT.CREATED', c_rcp, l_id);
     RETURN l_id;
   END receive;
 

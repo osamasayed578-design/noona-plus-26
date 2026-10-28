@@ -82,6 +82,8 @@ PROMPT ========== 4/7 Core PL/SQL services
 @@plsql/126_noona_einv_pkg.sql
 @@plsql/127_noona_res_pkg.sql
 @@plsql/128_noona_prp_pkg.sql
+@@plsql/129_noona_api_pkg.sql
+@@plsql/130_noona_conn_pkg.sql
 
 PROMPT ========== 5/7 Seed: registry & reference data
 @@seed/01_registry_seed.sql
@@ -100,6 +102,7 @@ PROMPT ========== 5/7 Seed: registry & reference data
 @@seed/15_projects.sql
 @@seed/16_country_packs.sql
 @@seed/17_real_estate.sql
+@@seed/18_api.sql
 @@seed/14_reports_catalog.sql
 
 PROMPT ========== 6/7 Row-Level Security (VPD)
@@ -112,6 +115,7 @@ PROMPT ========== 7/7 Grants to NOONA_APP
 PROMPT ========== Compile (cross-package dependencies)
 EXEC DBMS_UTILITY.COMPILE_SCHEMA(USER, FALSE)
 @@upgrade_parts/28_his_alert_job.sql
+@@upgrade_parts/33_api_job.sql
 PROMPT ========== Invalid objects (should be none)
 SELECT object_type, object_name FROM user_objects WHERE status <> 'VALID';
 

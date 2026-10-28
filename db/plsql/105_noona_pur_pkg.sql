@@ -697,6 +697,7 @@ CREATE OR REPLACE PACKAGE BODY NOONA_PUR_PKG AS
       UPDATE pur_order SET status_code = CASE WHEN l_n = 0 THEN 'RECEIVED' ELSE 'PARTIALLY_RECEIVED' END WHERE id = l_i.purchase_order_id;
     END IF;
     NOONA_AUDIT_PKG.log_event('POSTING', c_inv, p_invoice_id, 'POST', 'SUCCESS');
+    NOONA_API_PKG.publish('AP_INVOICE.POSTED', c_inv, p_invoice_id);
   END post_invoice;
 
   PROCEDURE cancel_invoice(p_invoice_id IN NUMBER) IS

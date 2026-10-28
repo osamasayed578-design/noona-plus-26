@@ -12,6 +12,7 @@ Integration Matrix، وعملاء API وأسرارهم بمراجع Vault، وس
 | [`API_INTEGRATION_CONFIG`](#api_integration_config) | إعدادات التكامل للمؤسسة | Tenant Integration Config | T | INTERNAL |
 | [`API_CLIENT`](#api_client) | عملاء API | API Clients | T | INTERNAL |
 | [`API_CLIENT_SECRET`](#api_client_secret) | أسرار عملاء API | API Client Secrets | T | HIGHLY_RESTRICTED |
+| [`API_ACCESS_TOKEN`](#api_access_token) | رموز الدخول | API Access Tokens | T | HIGHLY_RESTRICTED |
 | [`API_ENDPOINT`](#api_endpoint) | نقاط النهاية | API Endpoints | G | INTERNAL |
 | [`API_REQUEST_LOG`](#api_request_log) | سجل طلبات API | API Request Log | TO | INTERNAL |
 | [`API_IDEMPOTENCY_KEY`](#api_idempotency_key) | مفاتيح منع التكرار | Idempotency Keys | T | INTERNAL |
@@ -19,6 +20,7 @@ Integration Matrix، وعملاء API وأسرارهم بمراجع Vault، وس
 | [`API_INBOX`](#api_inbox) | صندوق الرسائل الواردة | Inbound Message Inbox | TO | INTERNAL |
 | [`API_WEBHOOK_SUBSCRIPTION`](#api_webhook_subscription) | اشتراكات Webhook | Webhook Subscriptions | T | INTERNAL |
 | [`API_WEBHOOK_DELIVERY`](#api_webhook_delivery) | تسليمات Webhook | Webhook Deliveries | T | INTERNAL |
+| [`API_IMPORT_JOB`](#api_import_job) | مهام الاستيراد | Import Jobs | T | INTERNAL |
 
 ## API_INTEGRATION
 
@@ -114,12 +116,16 @@ Integration Matrix، وعملاء API وأسرارهم بمراجع Vault، وس
 | 10 | `IP_ALLOWLIST` | نص | `VARCHAR2(2000 CHAR)` |  |  |  |  | إدخال المستخدم |  | عناوين IP المسموحة |
 | 11 | `RATE_LIMIT_PER_MIN` | عدد صحيح | `NUMBER(10)` |  |  |  |  | إدخال المستخدم |  | حد المعدل |
 | 12 | `EXPIRES_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` |  |  |  |  | إدخال المستخدم |  | الانتهاء |
-| 13 | `STATUS_CODE` | رمز | `VARCHAR2(30 CHAR)` | ✔ | 'ACTIVE' |  | ACTIVE, SUSPENDED, REVOKED, EXPIRED | النظام/الحزمة |  | الحالة ضمن دورة الحياة المعتمدة |
-| 14 | `ROW_VERSION` | عدد صحيح | `NUMBER(10)` | ✔ | 1 |  |  | Trigger |  | رقم الإصدار للتحكم في التزامن المتفائل |
-| 15 | `CREATED_BY` | اسم مستخدم | `VARCHAR2(128 CHAR)` | ✔ |  |  |  | Trigger |  | منشئ السجل |
-| 16 | `CREATED_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` | ✔ | SYSTIMESTAMP |  |  | Trigger |  | وقت الإنشاء |
-| 17 | `UPDATED_BY` | اسم مستخدم | `VARCHAR2(128 CHAR)` |  |  |  |  | Trigger |  | آخر من عدل السجل |
-| 18 | `UPDATED_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` |  |  |  |  | Trigger |  | وقت آخر تعديل |
+| 13 | `COMPANY_ID` | معرف | `NUMBER(19)` |  |  | FK→ORG_COMPANY |  | إدخال المستخدم |  | الشركة التي يعمل فيها العميل |
+| 14 | `ROLE_ID` | معرف | `NUMBER(19)` |  |  | FK→SEC_ROLE |  | إدخال المستخدم |  | الدور (صلاحيات العميل) |
+| 15 | `DESCRIPTION` | نص | `VARCHAR2(500 CHAR)` |  |  |  |  | إدخال المستخدم |  | الوصف والاستخدام |
+| 16 | `TOKEN_TTL_MIN` | عدد صحيح | `NUMBER(10)` | ✔ | 60 |  |  | إدخال المستخدم |  | صلاحية رمز الدخول بالدقائق |
+| 17 | `STATUS_CODE` | رمز | `VARCHAR2(30 CHAR)` | ✔ | 'ACTIVE' |  | ACTIVE, SUSPENDED, REVOKED, EXPIRED | النظام/الحزمة |  | الحالة ضمن دورة الحياة المعتمدة |
+| 18 | `ROW_VERSION` | عدد صحيح | `NUMBER(10)` | ✔ | 1 |  |  | Trigger |  | رقم الإصدار للتحكم في التزامن المتفائل |
+| 19 | `CREATED_BY` | اسم مستخدم | `VARCHAR2(128 CHAR)` | ✔ |  |  |  | Trigger |  | منشئ السجل |
+| 20 | `CREATED_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` | ✔ | SYSTIMESTAMP |  |  | Trigger |  | وقت الإنشاء |
+| 21 | `UPDATED_BY` | اسم مستخدم | `VARCHAR2(128 CHAR)` |  |  |  |  | Trigger |  | آخر من عدل السجل |
+| 22 | `UPDATED_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` |  |  |  |  | Trigger |  | وقت آخر تعديل |
 
 ## API_CLIENT_SECRET
 
@@ -142,6 +148,34 @@ Integration Matrix، وعملاء API وأسرارهم بمراجع Vault، وس
 | 6 | `EXPIRES_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` |  |  |  |  | إدخال المستخدم |  | الانتهاء |
 | 7 | `LAST_USED_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` |  |  |  |  | إدخال المستخدم |  | آخر استخدام |
 | 8 | `STATUS_CODE` | رمز | `VARCHAR2(30 CHAR)` | ✔ | 'ACTIVE' |  | ACTIVE, ROTATING, REVOKED, EXPIRED | النظام/الحزمة |  | الحالة ضمن دورة الحياة المعتمدة |
+| 9 | `ROW_VERSION` | عدد صحيح | `NUMBER(10)` | ✔ | 1 |  |  | Trigger |  | رقم الإصدار للتحكم في التزامن المتفائل |
+| 10 | `CREATED_BY` | اسم مستخدم | `VARCHAR2(128 CHAR)` | ✔ |  |  |  | Trigger |  | منشئ السجل |
+| 11 | `CREATED_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` | ✔ | SYSTIMESTAMP |  |  | Trigger |  | وقت الإنشاء |
+| 12 | `UPDATED_BY` | اسم مستخدم | `VARCHAR2(128 CHAR)` |  |  |  |  | Trigger |  | آخر من عدل السجل |
+| 13 | `UPDATED_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` |  |  |  |  | Trigger |  | وقت آخر تعديل |
+
+## API_ACCESS_TOKEN
+
+| البند | القيمة |
+|---|---|
+| الاسم العربي | رموز الدخول |
+| English | API Access Tokens |
+| الحزمة المالكة | 23 — `NOONA_API_PKG` |
+| نطاق الملكية | `T` — مملوك للمؤسسة Tenant-Owned |
+| الحساسية | HIGHLY_RESTRICTED |
+| النمط | قابل للتعديل وفق دورة الحياة |
+| مفاتيح فريدة | UK1: (TOKEN_HASH) |
+
+| # | العمود | النوع المنطقي | Oracle Type | إلزامي | افتراضي | مفاتيح | القيم المقبولة | المصدر | PII | الوصف |
+|---:|---|---|---|:---:|---|---|---|---|:---:|---|
+| 1 | `ID` | معرف | `NUMBER(19)` | ✔ |  | PK |  | النظام/الحزمة |  | المفتاح الداخلي الثابت (Identity) - لا يعاد استخدامه |
+| 2 | `TENANT_ID` | معرف | `NUMBER(19)` | ✔ |  | FK→PLT_TENANT |  | Security Context |  | المؤسسة المالكة؛ يملأ من Security Context الموثوق لا من مدخلات المستخدم |
+| 3 | `API_CLIENT_ID` | معرف | `NUMBER(19)` | ✔ |  | FK→API_CLIENT |  | إدخال المستخدم |  | العميل |
+| 4 | `TOKEN_HASH` | نص | `VARCHAR2(128 CHAR)` | ✔ |  | UK1 |  | إدخال المستخدم |  | Hash الرمز فقط |
+| 5 | `SESSION_REF` | رقم | `NUMBER` | ✔ |  |  |  | إدخال المستخدم |  | مرجع جلسة الخدمة |
+| 6 | `EXPIRES_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` | ✔ |  |  |  | إدخال المستخدم |  | الانتهاء |
+| 7 | `REVOKED_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` |  |  |  |  | إدخال المستخدم |  | الإلغاء |
+| 8 | `CLIENT_IP` | نص | `VARCHAR2(45 CHAR)` |  |  |  |  | إدخال المستخدم |  | IP |
 | 9 | `ROW_VERSION` | عدد صحيح | `NUMBER(10)` | ✔ | 1 |  |  | Trigger |  | رقم الإصدار للتحكم في التزامن المتفائل |
 | 10 | `CREATED_BY` | اسم مستخدم | `VARCHAR2(128 CHAR)` | ✔ |  |  |  | Trigger |  | منشئ السجل |
 | 11 | `CREATED_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` | ✔ | SYSTIMESTAMP |  |  | Trigger |  | وقت الإنشاء |
@@ -265,12 +299,13 @@ Integration Matrix، وعملاء API وأسرارهم بمراجع Vault، وس
 | 12 | `LAST_ERROR` | نص | `VARCHAR2(4000 CHAR)` |  |  |  |  | إدخال المستخدم |  | آخر خطأ |
 | 13 | `CORRELATION_ID` | نص | `VARCHAR2(64 CHAR)` |  |  |  |  | إدخال المستخدم |  | معرف الارتباط |
 | 14 | `PROCESSED_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` |  |  |  |  | إدخال المستخدم |  | وقت المعالجة |
-| 15 | `STATUS_CODE` | رمز | `VARCHAR2(30 CHAR)` | ✔ | 'PENDING' |  | PENDING, PROCESSING, SENT, FAILED, DEAD, CANCELLED | النظام/الحزمة |  | الحالة ضمن دورة الحياة المعتمدة |
-| 16 | `ROW_VERSION` | عدد صحيح | `NUMBER(10)` | ✔ | 1 |  |  | Trigger |  | رقم الإصدار للتحكم في التزامن المتفائل |
-| 17 | `CREATED_BY` | اسم مستخدم | `VARCHAR2(128 CHAR)` | ✔ |  |  |  | Trigger |  | منشئ السجل |
-| 18 | `CREATED_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` | ✔ | SYSTIMESTAMP |  |  | Trigger |  | وقت الإنشاء |
-| 19 | `UPDATED_BY` | اسم مستخدم | `VARCHAR2(128 CHAR)` |  |  |  |  | Trigger |  | آخر من عدل السجل |
-| 20 | `UPDATED_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` |  |  |  |  | Trigger |  | وقت آخر تعديل |
+| 15 | `COMPANY_ID` | معرف | `NUMBER(19)` |  |  | FK→ORG_COMPANY |  | إدخال المستخدم |  | الشركة |
+| 16 | `STATUS_CODE` | رمز | `VARCHAR2(30 CHAR)` | ✔ | 'PENDING' |  | PENDING, PROCESSING, SENT, FAILED, DEAD, CANCELLED | النظام/الحزمة |  | الحالة ضمن دورة الحياة المعتمدة |
+| 17 | `ROW_VERSION` | عدد صحيح | `NUMBER(10)` | ✔ | 1 |  |  | Trigger |  | رقم الإصدار للتحكم في التزامن المتفائل |
+| 18 | `CREATED_BY` | اسم مستخدم | `VARCHAR2(128 CHAR)` | ✔ |  |  |  | Trigger |  | منشئ السجل |
+| 19 | `CREATED_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` | ✔ | SYSTIMESTAMP |  |  | Trigger |  | وقت الإنشاء |
+| 20 | `UPDATED_BY` | اسم مستخدم | `VARCHAR2(128 CHAR)` |  |  |  |  | Trigger |  | آخر من عدل السجل |
+| 21 | `UPDATED_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` |  |  |  |  | Trigger |  | وقت آخر تعديل |
 
 ## API_INBOX
 
@@ -323,12 +358,16 @@ Integration Matrix، وعملاء API وأسرارهم بمراجع Vault، وس
 | 5 | `TARGET_URL` | نص | `VARCHAR2(1000 CHAR)` | ✔ |  |  |  | إدخال المستخدم |  | العنوان |
 | 6 | `SIGNING_SECRET_REF` | نص | `VARCHAR2(200 CHAR)` | ✔ |  |  |  | إدخال المستخدم |  | مرجع سر التوقيع |
 | 7 | `FAILURE_COUNT` | عدد صحيح | `NUMBER(10)` | ✔ | 0 |  |  | إدخال المستخدم |  | الإخفاقات المتتالية |
-| 8 | `STATUS_CODE` | رمز | `VARCHAR2(30 CHAR)` | ✔ | 'ACTIVE' |  | ACTIVE, PAUSED, DISABLED | النظام/الحزمة |  | الحالة ضمن دورة الحياة المعتمدة |
-| 9 | `ROW_VERSION` | عدد صحيح | `NUMBER(10)` | ✔ | 1 |  |  | Trigger |  | رقم الإصدار للتحكم في التزامن المتفائل |
-| 10 | `CREATED_BY` | اسم مستخدم | `VARCHAR2(128 CHAR)` | ✔ |  |  |  | Trigger |  | منشئ السجل |
-| 11 | `CREATED_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` | ✔ | SYSTIMESTAMP |  |  | Trigger |  | وقت الإنشاء |
-| 12 | `UPDATED_BY` | اسم مستخدم | `VARCHAR2(128 CHAR)` |  |  |  |  | Trigger |  | آخر من عدل السجل |
-| 13 | `UPDATED_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` |  |  |  |  | Trigger |  | وقت آخر تعديل |
+| 8 | `COMPANY_ID` | معرف | `NUMBER(19)` |  |  | FK→ORG_COMPANY |  | إدخال المستخدم |  | الشركة |
+| 9 | `DESCRIPTION` | نص | `VARCHAR2(500 CHAR)` |  |  |  |  | إدخال المستخدم |  | الوصف |
+| 10 | `LAST_DELIVERY_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` |  |  |  |  | إدخال المستخدم |  | آخر تسليم |
+| 11 | `LAST_HTTP_STATUS` | عدد صحيح | `NUMBER(10)` |  |  |  |  | إدخال المستخدم |  | آخر استجابة |
+| 12 | `STATUS_CODE` | رمز | `VARCHAR2(30 CHAR)` | ✔ | 'ACTIVE' |  | ACTIVE, PAUSED, DISABLED | النظام/الحزمة |  | الحالة ضمن دورة الحياة المعتمدة |
+| 13 | `ROW_VERSION` | عدد صحيح | `NUMBER(10)` | ✔ | 1 |  |  | Trigger |  | رقم الإصدار للتحكم في التزامن المتفائل |
+| 14 | `CREATED_BY` | اسم مستخدم | `VARCHAR2(128 CHAR)` | ✔ |  |  |  | Trigger |  | منشئ السجل |
+| 15 | `CREATED_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` | ✔ | SYSTIMESTAMP |  |  | Trigger |  | وقت الإنشاء |
+| 16 | `UPDATED_BY` | اسم مستخدم | `VARCHAR2(128 CHAR)` |  |  |  |  | Trigger |  | آخر من عدل السجل |
+| 17 | `UPDATED_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` |  |  |  |  | Trigger |  | وقت آخر تعديل |
 
 ## API_WEBHOOK_DELIVERY
 
@@ -351,10 +390,43 @@ Integration Matrix، وعملاء API وأسرارهم بمراجع Vault، وس
 | 6 | `HTTP_STATUS` | عدد صحيح | `NUMBER(10)` |  |  |  |  | إدخال المستخدم |  | الاستجابة |
 | 7 | `DURATION_MS` | عدد صحيح | `NUMBER(10)` |  |  |  |  | إدخال المستخدم |  | المدة |
 | 8 | `NEXT_RETRY_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` |  |  |  |  | إدخال المستخدم |  | المحاولة التالية |
-| 9 | `STATUS_CODE` | رمز | `VARCHAR2(30 CHAR)` | ✔ | 'PENDING' |  | PENDING, DELIVERED, FAILED, DEAD | النظام/الحزمة |  | الحالة ضمن دورة الحياة المعتمدة |
-| 10 | `ROW_VERSION` | عدد صحيح | `NUMBER(10)` | ✔ | 1 |  |  | Trigger |  | رقم الإصدار للتحكم في التزامن المتفائل |
-| 11 | `CREATED_BY` | اسم مستخدم | `VARCHAR2(128 CHAR)` | ✔ |  |  |  | Trigger |  | منشئ السجل |
-| 12 | `CREATED_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` | ✔ | SYSTIMESTAMP |  |  | Trigger |  | وقت الإنشاء |
-| 13 | `UPDATED_BY` | اسم مستخدم | `VARCHAR2(128 CHAR)` |  |  |  |  | Trigger |  | آخر من عدل السجل |
-| 14 | `UPDATED_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` |  |  |  |  | Trigger |  | وقت آخر تعديل |
+| 9 | `EVENT_TYPE` | نص | `VARCHAR2(100 CHAR)` |  |  |  |  | إدخال المستخدم |  | الحدث |
+| 10 | `RESPONSE_SNIPPET` | نص | `VARCHAR2(1000 CHAR)` |  |  |  |  | إدخال المستخدم |  | بداية الاستجابة أو الخطأ |
+| 11 | `STATUS_CODE` | رمز | `VARCHAR2(30 CHAR)` | ✔ | 'PENDING' |  | PENDING, DELIVERED, FAILED, DEAD | النظام/الحزمة |  | الحالة ضمن دورة الحياة المعتمدة |
+| 12 | `ROW_VERSION` | عدد صحيح | `NUMBER(10)` | ✔ | 1 |  |  | Trigger |  | رقم الإصدار للتحكم في التزامن المتفائل |
+| 13 | `CREATED_BY` | اسم مستخدم | `VARCHAR2(128 CHAR)` | ✔ |  |  |  | Trigger |  | منشئ السجل |
+| 14 | `CREATED_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` | ✔ | SYSTIMESTAMP |  |  | Trigger |  | وقت الإنشاء |
+| 15 | `UPDATED_BY` | اسم مستخدم | `VARCHAR2(128 CHAR)` |  |  |  |  | Trigger |  | آخر من عدل السجل |
+| 16 | `UPDATED_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` |  |  |  |  | Trigger |  | وقت آخر تعديل |
+
+## API_IMPORT_JOB
+
+| البند | القيمة |
+|---|---|
+| الاسم العربي | مهام الاستيراد |
+| English | Import Jobs |
+| الحزمة المالكة | 23 — `NOONA_API_PKG` |
+| نطاق الملكية | `T` — مملوك للمؤسسة Tenant-Owned |
+| الحساسية | INTERNAL |
+| النمط | قابل للتعديل وفق دورة الحياة |
+| الغرض | استيراد دفعي بأخطاء لكل سطر دون إيقاف الباقي |
+
+| # | العمود | النوع المنطقي | Oracle Type | إلزامي | افتراضي | مفاتيح | القيم المقبولة | المصدر | PII | الوصف |
+|---:|---|---|---|:---:|---|---|---|---|:---:|---|
+| 1 | `ID` | معرف | `NUMBER(19)` | ✔ |  | PK |  | النظام/الحزمة |  | المفتاح الداخلي الثابت (Identity) - لا يعاد استخدامه |
+| 2 | `TENANT_ID` | معرف | `NUMBER(19)` | ✔ |  | FK→PLT_TENANT |  | Security Context |  | المؤسسة المالكة؛ يملأ من Security Context الموثوق لا من مدخلات المستخدم |
+| 3 | `COMPANY_ID` | معرف | `NUMBER(19)` |  |  | FK→ORG_COMPANY |  | إدخال المستخدم |  | الشركة |
+| 4 | `IMPORT_TYPE` | رمز | `VARCHAR2(30 CHAR)` | ✔ |  |  | CUSTOMERS, SUPPLIERS, ITEMS, BANK_STATEMENT, ORDERS | إدخال المستخدم |  | النوع |
+| 5 | `FILE_NAME` | نص | `VARCHAR2(300 CHAR)` |  |  |  |  | إدخال المستخدم |  | الملف |
+| 6 | `TOTAL_ROWS` | عدد صحيح | `NUMBER(10)` | ✔ | 0 |  |  | إدخال المستخدم |  | الأسطر |
+| 7 | `OK_ROWS` | عدد صحيح | `NUMBER(10)` | ✔ | 0 |  |  | إدخال المستخدم |  | الناجحة |
+| 8 | `FAILED_ROWS` | عدد صحيح | `NUMBER(10)` | ✔ | 0 |  |  | إدخال المستخدم |  | الفاشلة |
+| 9 | `ERRORS` | JSON | `CLOB` |  |  |  | JSON صالح | إدخال المستخدم |  | أخطاء الأسطر |
+| 10 | `RESULT_REF` | معرف | `NUMBER(19)` |  |  |  |  | إدخال المستخدم |  | الناتج (رقم الكشف...) |
+| 11 | `STATUS_CODE` | رمز | `VARCHAR2(30 CHAR)` | ✔ | 'RUNNING' |  | RUNNING, COMPLETED, PARTIAL, FAILED | النظام/الحزمة |  | الحالة ضمن دورة الحياة المعتمدة |
+| 12 | `ROW_VERSION` | عدد صحيح | `NUMBER(10)` | ✔ | 1 |  |  | Trigger |  | رقم الإصدار للتحكم في التزامن المتفائل |
+| 13 | `CREATED_BY` | اسم مستخدم | `VARCHAR2(128 CHAR)` | ✔ |  |  |  | Trigger |  | منشئ السجل |
+| 14 | `CREATED_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` | ✔ | SYSTIMESTAMP |  |  | Trigger |  | وقت الإنشاء |
+| 15 | `UPDATED_BY` | اسم مستخدم | `VARCHAR2(128 CHAR)` |  |  |  |  | Trigger |  | آخر من عدل السجل |
+| 16 | `UPDATED_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` |  |  |  |  | Trigger |  | وقت آخر تعديل |
 

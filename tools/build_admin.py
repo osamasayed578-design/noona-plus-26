@@ -1067,5 +1067,10 @@ app.nav_item('أنواع أسعار الصرف', 51, 'fa-exchange', 62, parent=r
 app.nav_item('شروط الدفع', 52, 'fa-calendar-check-o', 63, parent=ref, scheme=ADMIN)
 app.nav_item('تسلسلات المستندات', 53, 'fa-sort-numeric-asc', 64, parent=ref, scheme=ADMIN)
 app.nav_item('سجل التدقيق', 60, 'fa-shield', 70, scheme=ADMIN)
+def url(page_no, items='', values='', clear=''):
+    return f'f?p=&APP_ID.:{page_no}:&SESSION.::&DEBUG.:{clear}:{items}:{values}'
+
+from api_pages import build_admin as api_pages
+api_pages(app, url)
 app.finalize()
 print('NOONA_ADMIN built:', len(app.pages), 'pages')

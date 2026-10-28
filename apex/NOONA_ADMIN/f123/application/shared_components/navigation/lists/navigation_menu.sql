@@ -210,6 +210,94 @@ wwv_flow_imp_shared.create_list_item(
 ,p_security_scheme=>wwv_flow_imp.id(17758617306442989)
 ,p_list_item_current_type=>'TARGET_PAGE'
 );
+wwv_flow_imp_shared.create_list_item(
+ p_id=>wwv_flow_imp.id(91820262000000788)
+,p_list_item_display_sequence=>65
+,p_list_item_link_text=>'التكاملات وواجهات API'
+,p_list_item_link_target=>''
+,p_list_item_icon=>'fa-plug'
+,p_security_scheme=>wwv_flow_imp.id(91820262000000683)
+);
+wwv_flow_imp_shared.create_list_item(
+ p_id=>wwv_flow_imp.id(91820262000000789)
+,p_list_item_display_sequence=>651
+,p_list_item_link_text=>'لوحة التكاملات'
+,p_list_item_link_target=>'f?p=&APP_ID.:70:&APP_SESSION.::&DEBUG.:::'
+,p_list_item_icon=>'fa-dashboard'
+,p_parent_list_item_id=>wwv_flow_imp.id(91820262000000788)
+,p_security_scheme=>wwv_flow_imp.id(91820262000000683)
+,p_list_item_current_type=>'TARGET_PAGE'
+);
+wwv_flow_imp_shared.create_list_item(
+ p_id=>wwv_flow_imp.id(91820262000000790)
+,p_list_item_display_sequence=>652
+,p_list_item_link_text=>'عملاء API'
+,p_list_item_link_target=>'f?p=&APP_ID.:71:&APP_SESSION.::&DEBUG.:::'
+,p_list_item_icon=>'fa-key'
+,p_parent_list_item_id=>wwv_flow_imp.id(91820262000000788)
+,p_security_scheme=>wwv_flow_imp.id(91820262000000683)
+,p_list_item_current_type=>'TARGET_PAGE'
+);
+wwv_flow_imp_shared.create_list_item(
+ p_id=>wwv_flow_imp.id(91820262000000791)
+,p_list_item_display_sequence=>653
+,p_list_item_link_text=>'Webhooks'
+,p_list_item_link_target=>'f?p=&APP_ID.:73:&APP_SESSION.::&DEBUG.:::'
+,p_list_item_icon=>'fa-bolt'
+,p_parent_list_item_id=>wwv_flow_imp.id(91820262000000788)
+,p_security_scheme=>wwv_flow_imp.id(91820262000000683)
+,p_list_item_current_type=>'TARGET_PAGE'
+);
+wwv_flow_imp_shared.create_list_item(
+ p_id=>wwv_flow_imp.id(91820262000000792)
+,p_list_item_display_sequence=>654
+,p_list_item_link_text=>'الأحداث الصادرة'
+,p_list_item_link_target=>'f?p=&APP_ID.:74:&APP_SESSION.::&DEBUG.:::'
+,p_list_item_icon=>'fa-paper-plane'
+,p_parent_list_item_id=>wwv_flow_imp.id(91820262000000788)
+,p_security_scheme=>wwv_flow_imp.id(91820262000000683)
+,p_list_item_current_type=>'TARGET_PAGE'
+);
+wwv_flow_imp_shared.create_list_item(
+ p_id=>wwv_flow_imp.id(91820262000000793)
+,p_list_item_display_sequence=>655
+,p_list_item_link_text=>'الرسائل SMS / واتساب'
+,p_list_item_link_target=>'f?p=&APP_ID.:75:&APP_SESSION.::&DEBUG.:::'
+,p_list_item_icon=>'fa-comments'
+,p_parent_list_item_id=>wwv_flow_imp.id(91820262000000788)
+,p_security_scheme=>wwv_flow_imp.id(91820262000000683)
+,p_list_item_current_type=>'TARGET_PAGE'
+);
+wwv_flow_imp_shared.create_list_item(
+ p_id=>wwv_flow_imp.id(91820262000000794)
+,p_list_item_display_sequence=>656
+,p_list_item_link_text=>'استيراد البيانات'
+,p_list_item_link_target=>'f?p=&APP_ID.:76:&APP_SESSION.::&DEBUG.:::'
+,p_list_item_icon=>'fa-upload'
+,p_parent_list_item_id=>wwv_flow_imp.id(91820262000000788)
+,p_security_scheme=>wwv_flow_imp.id(91820262000000683)
+,p_list_item_current_type=>'TARGET_PAGE'
+);
+wwv_flow_imp_shared.create_list_item(
+ p_id=>wwv_flow_imp.id(91820262000000795)
+,p_list_item_display_sequence=>657
+,p_list_item_link_text=>'سجل الطلبات'
+,p_list_item_link_target=>'f?p=&APP_ID.:72:&APP_SESSION.::&DEBUG.:::'
+,p_list_item_icon=>'fa-list'
+,p_parent_list_item_id=>wwv_flow_imp.id(91820262000000788)
+,p_security_scheme=>wwv_flow_imp.id(91820262000000683)
+,p_list_item_current_type=>'TARGET_PAGE'
+);
+wwv_flow_imp_shared.create_list_item(
+ p_id=>wwv_flow_imp.id(91820262000000796)
+,p_list_item_display_sequence=>658
+,p_list_item_link_text=>'نقاط النهاية والتوثيق'
+,p_list_item_link_target=>'f?p=&APP_ID.:77:&APP_SESSION.::&DEBUG.:::'
+,p_list_item_icon=>'fa-book'
+,p_parent_list_item_id=>wwv_flow_imp.id(91820262000000788)
+,p_security_scheme=>wwv_flow_imp.id(91820262000000683)
+,p_list_item_current_type=>'TARGET_PAGE'
+);
 wwv_flow_imp.component_end;
 end;
 /
