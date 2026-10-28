@@ -77,6 +77,8 @@ CREATE OR REPLACE PACKAGE NOONA_PRJ_PKG AUTHID DEFINER AS
   FUNCTION contract_status(p_contract_id IN NUMBER) RETURN VARCHAR2;
   FUNCTION claim_status(p_claim_id IN NUMBER) RETURN VARCHAR2;
   FUNCTION has_property(p_project_id IN NUMBER) RETURN VARCHAR2;
+  -- التكلفة الفعلية المرحلة على المشروع (تستخدمها رسملة تكاليف التطوير العقاري)
+  FUNCTION actual_cost(p_project_id IN NUMBER) RETURN NUMBER;
   FUNCTION draft_variations(p_contract_id IN NUMBER) RETURN NUMBER;
   FUNCTION can_advance(p_contract_id IN NUMBER) RETURN VARCHAR2;
 
@@ -1303,7 +1305,7 @@ CREATE OR REPLACE PACKAGE BODY NOONA_PRJ_PKG AS
   END link_property;
 
   -- ================================================================ الأرقام المجمعة
-  FUNCTION actual_cost(p_project_id NUMBER) RETURN NUMBER IS
+  FUNCTION actual_cost(p_project_id IN NUMBER) RETURN NUMBER IS
     l NUMBER;
   BEGIN
     SELECT NVL(SUM(amount_func), 0) INTO l FROM prj_cost_line WHERE project_id = p_project_id AND status_code = 'POSTED' AND is_commitment = 'N';

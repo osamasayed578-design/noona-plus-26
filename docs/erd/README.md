@@ -149,6 +149,7 @@ flowchart LR
   PRJ --> WF
   PRP --> AR
   PRP --> DMS
+  PRP --> GL
   PRP --> RE
   PRP --> REF
   PRP --> SAL
@@ -161,6 +162,7 @@ flowchart LR
   PUR --> WF
   RE --> AR
   RE --> DMS
+  RE --> GL
   RE --> PRJ
   RE --> REF
   RE --> WF

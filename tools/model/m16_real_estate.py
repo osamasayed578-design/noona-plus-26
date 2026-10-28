@@ -122,6 +122,10 @@ DISCOUNT_AMOUNT AMT  NN D=0      | الخصم (بموافقة حسب الحد)
 DEPOSIT_AMOUNT  AMT  NN D=0      | العربون
 DEPOSIT_RECEIPT_ID ID >AR_RECEIPT | إيصال العربون
 EXPIRES_AT      TS   NN          | انتهاء الحجز
+DEPOSIT_PLACE   V30              | مكان استلام العربون (BOX:n / BANK:n)
+DEPOSIT_EVENT_ID ID  >ACE_ACCOUNTING_EVENT | قيد العربون
+REFUND_AMOUNT   AMT              | المردود عند الإلغاء
+NOTES           V1000            | ملاحظات
 ''', ix=[('TENANT_ID', 'UNIT_ID', 'STATUS_CODE')], area='sales', purpose='يمنع حجزين نشطين لنفس الوحدة (يفحص في الحزمة مع قفل الوحدة)')
 
 table('RE_SALE_CONTRACT', 'عقود بيع الوحدات', 'Unit Sale Contracts', scope='C', mix='pub doc cur wf status',
@@ -142,6 +146,12 @@ EXPECTED_HANDOVER DATE           | التسليم المتوقع
 REVENUE_METHOD  CODE IN:POINT_IN_TIME,OVER_TIME | الاعتراف بالإيراد
 SIGNED_DOCUMENT_ID ID >DMS_DOCUMENT | العقد الموقع
 CANCEL_REASON   V1000            | سبب الإلغاء
+UNIT_COST       AMT              | تكلفة الوحدة المحملة عند الاعتراف
+REVENUE_RECOGNIZED YN NN D='N'   | تم الاعتراف بالإيراد
+REVENUE_EVENT_ID ID  >ACE_ACCOUNTING_EVENT | قيد الاعتراف بالإيراد والتكلفة
+FORFEITED_AMOUNT AMT             | المصادر عند الفسخ
+REFUNDED_AMOUNT AMT              | المردود للمشتري عند الفسخ
+TERMINATION_EVENT_ID ID >ACE_ACCOUNTING_EVENT | قيد الفسخ
 ''', ix=[('TENANT_ID', 'UNIT_ID')], area='sales')
 
 table('RE_SALE_INSTALLMENT', 'أقساط عقود البيع', 'Sale Installments', scope='C', mix='status', status='SCHEDULED DUE INVOICED PARTIALLY_PAID PAID OVERDUE WAIVED CANCELLED', cols='''
@@ -152,6 +162,9 @@ AMOUNT          AMT  NN          | المبلغ
 PAID_AMOUNT     AMT  NN D=0 @SYS | المحصل
 AR_OPEN_ITEM_ID ID   >AR_OPEN_ITEM | الذمة الناتجة
 MILESTONE_ID    ID   >PRJ_MILESTONE | المعلم المرتبط
+LABEL           V200             | الوصف (دفعة أولى، قسط، عند التسليم)
+TAX_AMOUNT      AMT  NN D=0      | الضريبة
+SALES_INVOICE_ID ID  >SAL_INVOICE | فاتورة القسط
 ''', uk=[('CONTRACT_ID', 'INSTALLMENT_NO')], ix=[('TENANT_ID', 'DUE_DATE', 'STATUS_CODE')], area='sales')
 
 table('RE_HANDOVER', 'تسليم الوحدات', 'Unit Handovers', scope='C', mix='doc status', status='SCHEDULED INSPECTION SNAGS_OPEN ACCEPTED HANDED_OVER', cols='''
@@ -163,6 +176,7 @@ SNAG_LIST       JSON             | الملاحظات والعيوب
 METER_READINGS  JSON             | قراءات العدادات
 KEYS_COUNT      INT              | عدد المفاتيح
 ACCEPTANCE_DOCUMENT_ID ID >DMS_DOCUMENT | محضر الاستلام الموقع
+NOTES           V1000            | ملاحظات
 ''', area='sales')
 
 table('RE_TITLE_TRANSFER', 'إفراغ الملكية', 'Title Transfers', scope='C', mix='status', status='PENDING SUBMITTED COMPLETED REJECTED', cols='''
@@ -181,6 +195,10 @@ COMMISSION_PCT  PCT              | النسبة
 COMMISSION_AMOUNT AMT NN         | المبلغ
 ELIGIBILITY_RULE V500            | شرط الاستحقاق (نسبة تحصيل...)
 AP_INVOICE_ID   ID   >AP_INVOICE | فاتورة الوسيط
+ELIGIBLE_PCT    PCT              | نسبة التحصيل المطلوبة للاستحقاق
+ACCRUAL_EVENT_ID ID  >ACE_ACCOUNTING_EVENT | قيد الاستحقاق
+PAYMENT_EVENT_ID ID  >ACE_ACCOUNTING_EVENT | قيد السداد
+PAID_DATE       DATE             | تاريخ السداد
 ''', area='sales')
 
 table('RE_COST_ALLOCATION', 'توزيع تكاليف التطوير', 'Development Cost Allocation', scope='C', mix='posted status', status='DRAFT CALCULATED POSTED', cols='''

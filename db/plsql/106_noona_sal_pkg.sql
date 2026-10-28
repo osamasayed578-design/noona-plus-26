@@ -19,6 +19,8 @@ CREATE OR REPLACE PACKAGE NOONA_SAL_PKG AUTHID DEFINER AS
   FUNCTION customers_json(p_term IN VARCHAR2 DEFAULT NULL) RETURN CLOB;
   FUNCTION customer_label(p_account_id IN NUMBER) RETURN VARCHAR2;
   FUNCTION customer_party(p_account_id IN NUMBER) RETURN NUMBER;
+  -- حساب العميل في الشركة لطرف قائم (مشتري وحدة، مستأجر...)؛ ينشأ إن لم يوجد
+  FUNCTION party_account(p_party_id IN NUMBER) RETURN NUMBER;
   FUNCTION customer_balance(p_account_id IN NUMBER, p_as_of IN DATE DEFAULT NULL) RETURN NUMBER;
   FUNCTION credit_limit(p_account_id IN NUMBER) RETURN NUMBER;
   -- يتحقق من حد الائتمان عند إضافة مبلغ آجل
@@ -238,6 +240,30 @@ CREATE OR REPLACE PACKAGE BODY NOONA_SAL_PKG AS
     RETURNING id INTO l_id;
     RETURN l_id;
   END create_account;
+
+  FUNCTION party_account(p_party_id IN NUMBER) RETURN NUMBER IS
+    l_id  NUMBER;
+    l_term NUMBER;
+    l_cus NUMBER;
+    l_no  VARCHAR2(50);
+  BEGIN
+    SELECT MIN(a.id) INTO l_id FROM ar_customer_account a JOIN ar_customer c ON c.id = a.customer_id
+     WHERE a.company_id = company AND c.party_id = p_party_id AND c.is_walk_in = 'N';
+    IF l_id IS NOT NULL THEN
+      RETURN l_id;
+    END IF;
+    SELECT MIN(id) INTO l_cus FROM ar_customer WHERE party_id = p_party_id AND is_walk_in = 'N';
+    IF l_cus IS NULL THEN
+      RETURN create_account(p_party_id, 'N', term_id('NET30'), 'ACTIVE');
+    END IF;
+    SELECT customer_no INTO l_no FROM ar_customer WHERE id = l_cus;
+    l_term := term_id('NET30');
+    INSERT INTO ar_customer_account (company_id, customer_id, account_no, currency_code, payment_term_id, receivable_account_id,
+                                     default_tax_code_id, status_code)
+    VALUES (company, l_cus, l_no, NOONA_GL_PKG.ledger_currency, l_term, NOONA_INV_PKG.acc_id('1103'), NOONA_INV_PKG.tax_id('VAT15'), 'ACTIVE')
+    RETURNING id INTO l_id;
+    RETURN l_id;
+  END party_account;
 
   FUNCTION walk_in_customer RETURN NUMBER IS
     l     NUMBER;

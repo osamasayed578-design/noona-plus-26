@@ -40,6 +40,7 @@ MOVE_IN_DATE    DATE             | تاريخ الاستلام
 MOVE_OUT_DATE   DATE             | تاريخ الإخلاء
 SIGNED_DOCUMENT_ID ID >DMS_DOCUMENT | العقد الموقع
 TERMINATION_REASON V1000         | سبب الإنهاء
+NOTES           V1000            | ملاحظات
 ''', chk=['END_DATE > START_DATE'], ix=[('TENANT_ID', 'COMPANY_ID', 'STATUS_CODE', 'END_DATE')], area='leasing')
 
 table('PRP_LEASE_UNIT', 'وحدات عقد الإيجار', 'Lease Units', scope='C', mix='eff', cols='''
@@ -69,6 +70,7 @@ AMOUNT          AMT  NN          | المبلغ
 TAX_AMOUNT      AMT  NN D=0      | الضريبة
 SALES_INVOICE_ID ID  >SAL_INVOICE | الفاتورة
 AR_OPEN_ITEM_ID ID   >AR_OPEN_ITEM | الذمة
+DESCRIPTION     V200             | الوصف
 ''', ix=[('TENANT_ID', 'LEASE_ID'), ('TENANT_ID', 'DUE_DATE', 'STATUS_CODE')], area='leasing')
 
 table('PRP_LEASE_EVENT', 'أحداث عقد الإيجار', 'Lease Events', scope='C', mix='wf status', status='DRAFT APPROVED EFFECTIVE CANCELLED', cols='''
@@ -88,6 +90,9 @@ REFUNDED_AMOUNT AMT  NN D=0      | المردود
 RECEIPT_ID      ID   >AR_RECEIPT | إيصال الاستلام
 REFUND_ID       ID   >AR_REFUND  | الرد
 DEDUCTION_DETAILS JSON           | تفاصيل الخصومات
+PLACE           V30              | مكان الاستلام
+RECEIPT_EVENT_ID ID  >ACE_ACCOUNTING_EVENT | قيد الاستلام
+REFUND_EVENT_ID ID   >ACE_ACCOUNTING_EVENT | قيد الرد والخصومات
 ''', area='leasing')
 
 table('PRP_INSPECTION', 'معاينات الوحدات', 'Unit Inspections', scope='C', mix='status', status='SCHEDULED DONE DISPUTED CLOSED', cols='''
@@ -106,6 +111,7 @@ PROPERTY_ID     ID   >RE_PROPERTY | أو العقار (عداد مشترك)
 METER_TYPE      CODE NN IN:ELECTRICITY,WATER,GAS,CHILLED_WATER | النوع
 METER_NO        V100 NN          | رقم العداد
 UTILITY_ACCOUNT_NO V100          | رقم حساب المرفق
+RATE_PER_UNIT   AMT              | سعر وحدة الاستهلاك للفوترة
 ''', uk=[('TENANT_ID', 'METER_TYPE', 'METER_NO')], area='utilities')
 
 table('PRP_METER_READING', 'قراءات العدادات', 'Meter Readings', scope='C', cols='''
@@ -127,6 +133,9 @@ MANAGEMENT_FEE  AMT  NN D=0      | الأتعاب
 NET_TO_OWNER    AMT  NN D=0      | الصافي للمالك
 AP_PAYMENT_ID   ID   >AP_PAYMENT | التحويل للمالك
 DOCUMENT_ID     ID   >DMS_DOCUMENT | الكشف
+FEE_EVENT_ID    ID   >ACE_ACCOUNTING_EVENT | قيد الأتعاب
+PAYMENT_EVENT_ID ID  >ACE_ACCOUNTING_EVENT | قيد التحويل للمالك
+PAID_DATE       DATE             | تاريخ التحويل
 ''', area='leasing')
 
 # =============================================================== Hospitality
