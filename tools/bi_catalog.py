@@ -51,6 +51,15 @@ CATALOG = [
      'البيع والتخريد بالمتحصلات والقيمة الدفترية والربح أو الخسارة'),
     ('FA_DISPOSED', 'FA', O, 'NOONA_FIN', 'ASSET-REPORTS', 66, 'P66_REPORT', 'DISPOSED', FA_, 'fa-archive', 'الأصول المستبعدة', 'Disposed assets',
      'الأصول التي خرجت من الخدمة وتاريخ وسبب استبعادها'),
+    # ---------------------------------------------------------------- الضرائب والفوترة الإلكترونية (NOONA_FIN)
+    ('TAX_REGISTER', 'LOC', R, 'NOONA_FIN', 'TAX-REGISTER', 74, None, None, 'LOC_TAX_RETURN.VIEW', 'fa-list', 'السجل الضريبي', 'Tax register',
+     'كل المستندات الضريبية من الوحدات (مبيعات، نقاط بيع، مشتريات، مستشفى، فنادق، مستخلصات، أصول) بالأساس والضريبة والطبيعة'),
+    ('TAX_RETURNS', 'LOC', R, 'NOONA_FIN', 'TAX-RETURNS', None, None, None, 'LOC_TAX_RETURN.VIEW', 'fa-file-text-o', 'الإقرارات الضريبية', 'Tax returns',
+     'إقرارات ضريبة القيمة المضافة والاستقطاع بخاناتها وحالاتها (اعتماد، تقديم، سداد)'),
+    ('TAX_WHT', 'LOC', R, 'NOONA_FIN', 'TAX-WHT', 75, None, None, 'LOC_WITHHOLDING_CERT.VIEW', 'fa-scissors', 'ضريبة الاستقطاع وشهاداتها', 'Withholding tax',
+     'شهادات الاستقطاع للفترة ومدفوعات الموردين غير المقيمين دون شهادة'),
+    ('TAX_EINV', 'LOC', M, 'NOONA_FIN', 'EINVOICING', None, None, None, 'LOC_EINVOICE_SUBMISSION.VIEW', 'fa-qrcode', 'الفوترة الإلكترونية', 'E-invoicing',
+     'إرسالات الفواتير للهيئة: المعتمدة والمبلغة والمرفوضة والمعلقة وأسبابها'),
     # ---------------------------------------------------------------- المخزون (NOONA_SCM)
     ('INV_STOCK', 'INV', O, 'NOONA_SCM', 'REPORTS', 50, 'P50_REPORT', 'STOCK', 'INV_ITEM.VIEW', 'fa-cubes', 'أرصدة المخزون وقيمته', 'Stock on hand & value',
      'الكمية والتكلفة والقيمة لكل صنف ومستودع وفئة'),

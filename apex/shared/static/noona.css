@@ -1325,6 +1325,7 @@ html[dir="rtl"] .nn-rst-kpi b { text-align: right; }
 .nn-rh-mod-hr, .nn-rh-mod-pay { --c: #6b3fa0; --c50: #f2ecfa; }
 .nn-rh-mod-prp, .nn-rh-mod-mnt, .nn-rh-mod-re { --c: #00777a; --c50: #e3f5f5; }
 .nn-rh-mod-prj { --c: #5b4b00; --c50: #fbf5d9; }
+.nn-rh-mod-loc { --c: #00695c; --c50: #e0f2f1; }
 .nn-rh-mod-mfg { --c: #a34a00; --c50: #fdf0e6; }
 .nn-rh-mod-his { --c: #c42b1c; --c50: #fdecea; }
 .nn-rh-mod-dms { --c: #4b5563; --c50: #eef0f3; }
@@ -1368,6 +1369,14 @@ html[dir="rtl"] .nn-rst-kpi b { text-align: right; }
 .nn-prj-t tfoot td { font-weight: 700; background: #f7f9fc; }
 .nn-prj-t tr.is-void td { color: var(--nn-muted); text-decoration: line-through; }
 .nn-prj-t .is-over, .nn-prj-t td.is-over { color: var(--nn-danger); font-weight: 700; }
+/* الضرائب: خانات الإقرار والفوترة الإلكترونية */
+.nn-loc-ret tr.is-sub td { font-weight: 700; background: #f7f9fc; }
+.nn-loc-ret tr.is-total td { font-weight: 800; background: #eef4fb; border-top: 2px solid var(--nn-head-border); }
+.nn-einv-info td code { font-size: .8rem; word-break: break-all; }
+.nn-einv-err { color: var(--nn-danger); margin: 0 0 1rem; }
+pre.nn-einv-xml { direction: ltr; text-align: left; max-height: 480px; overflow: auto; background: #f7f9fc; border: 1px solid var(--nn-border);
+  border-radius: 8px; padding: 10px 12px; font-size: .75rem; line-height: 1.45; white-space: pre-wrap; word-break: break-all; }
+.nn-empty.is-warning { color: #8a5a00; background: #fff7e6; border-color: #ffd591; }
 .nn-prj-bar { display: inline-block; width: 90px; height: 8px; background: #e8edf3; border-radius: 4px; overflow: hidden; vertical-align: middle; }
 .nn-prj-bar i { display: block; height: 100%; background: var(--nn-primary); border-radius: 4px; }
 .nn-prj-card { background: var(--nn-surface); border: 1px solid var(--nn-border); border-radius: var(--nn-radius); padding: 16px; margin-bottom: 12px; }

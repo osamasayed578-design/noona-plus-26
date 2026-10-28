@@ -382,6 +382,74 @@ wwv_flow_imp_shared.create_list_item(
 ,p_security_scheme=>wwv_flow_imp.id(91820266000000501)
 ,p_list_item_current_type=>'TARGET_PAGE'
 );
+wwv_flow_imp_shared.create_list_item(
+ p_id=>wwv_flow_imp.id(91820266000000859)
+,p_list_item_display_sequence=>67
+,p_list_item_link_text=>'الضرائب'
+,p_list_item_link_target=>''
+,p_list_item_icon=>'fa-percent'
+,p_security_scheme=>wwv_flow_imp.id(91820266000000718)
+);
+wwv_flow_imp_shared.create_list_item(
+ p_id=>wwv_flow_imp.id(91820266000000860)
+,p_list_item_display_sequence=>1
+,p_list_item_link_text=>'لوحة الضرائب'
+,p_list_item_link_target=>'f?p=&APP_ID.:70:&APP_SESSION.::&DEBUG.:::'
+,p_list_item_icon=>'fa-dashboard'
+,p_parent_list_item_id=>wwv_flow_imp.id(91820266000000859)
+,p_security_scheme=>wwv_flow_imp.id(91820266000000718)
+,p_list_item_current_type=>'TARGET_PAGE'
+);
+wwv_flow_imp_shared.create_list_item(
+ p_id=>wwv_flow_imp.id(91820266000000861)
+,p_list_item_display_sequence=>2
+,p_list_item_link_text=>'الإقرارات الضريبية'
+,p_list_item_link_target=>'f?p=&APP_ID.:72:&APP_SESSION.::&DEBUG.:::'
+,p_list_item_icon=>'fa-file-text-o'
+,p_parent_list_item_id=>wwv_flow_imp.id(91820266000000859)
+,p_security_scheme=>wwv_flow_imp.id(91820266000000718)
+,p_list_item_current_type=>'TARGET_PAGE'
+);
+wwv_flow_imp_shared.create_list_item(
+ p_id=>wwv_flow_imp.id(91820266000000862)
+,p_list_item_display_sequence=>3
+,p_list_item_link_text=>'السجل الضريبي'
+,p_list_item_link_target=>'f?p=&APP_ID.:74:&APP_SESSION.::&DEBUG.:::'
+,p_list_item_icon=>'fa-list'
+,p_parent_list_item_id=>wwv_flow_imp.id(91820266000000859)
+,p_security_scheme=>wwv_flow_imp.id(91820266000000718)
+,p_list_item_current_type=>'TARGET_PAGE'
+);
+wwv_flow_imp_shared.create_list_item(
+ p_id=>wwv_flow_imp.id(91820266000000863)
+,p_list_item_display_sequence=>4
+,p_list_item_link_text=>'ضريبة الاستقطاع'
+,p_list_item_link_target=>'f?p=&APP_ID.:75:&APP_SESSION.::&DEBUG.:::'
+,p_list_item_icon=>'fa-scissors'
+,p_parent_list_item_id=>wwv_flow_imp.id(91820266000000859)
+,p_security_scheme=>wwv_flow_imp.id(91820266000000718)
+,p_list_item_current_type=>'TARGET_PAGE'
+);
+wwv_flow_imp_shared.create_list_item(
+ p_id=>wwv_flow_imp.id(91820266000000864)
+,p_list_item_display_sequence=>5
+,p_list_item_link_text=>'الفوترة الإلكترونية'
+,p_list_item_link_target=>'f?p=&APP_ID.:77:&APP_SESSION.::&DEBUG.:::'
+,p_list_item_icon=>'fa-qrcode'
+,p_parent_list_item_id=>wwv_flow_imp.id(91820266000000859)
+,p_security_scheme=>wwv_flow_imp.id(91820266000000718)
+,p_list_item_current_type=>'TARGET_PAGE'
+);
+wwv_flow_imp_shared.create_list_item(
+ p_id=>wwv_flow_imp.id(91820266000000865)
+,p_list_item_display_sequence=>6
+,p_list_item_link_text=>'التسجيلات القانونية'
+,p_list_item_link_target=>'f?p=&APP_ID.:71:&APP_SESSION.::&DEBUG.:::'
+,p_list_item_icon=>'fa-id-card-o'
+,p_parent_list_item_id=>wwv_flow_imp.id(91820266000000859)
+,p_security_scheme=>wwv_flow_imp.id(91820266000000718)
+,p_list_item_current_type=>'TARGET_PAGE'
+);
 wwv_flow_imp.component_end;
 end;
 /

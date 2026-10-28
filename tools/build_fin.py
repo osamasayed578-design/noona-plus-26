@@ -759,5 +759,7 @@ app.nav_item('سجل التدقيق المالي', 47, 'fa-history', 72, parent=
 
 from fa_pages import build as fa_pages
 fa_pages(app, url)
+from loc_pages import build as loc_pages
+loc_pages(app, url)
 app.finalize()
 print('NOONA_FIN built:', len(app.pages), 'pages')
