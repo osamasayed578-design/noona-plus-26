@@ -80,6 +80,8 @@ PROMPT ========== 4/7 Core PL/SQL services
 @@plsql/124_noona_prj_pkg.sql
 @@plsql/125_noona_loc_pkg.sql
 @@plsql/126_noona_einv_pkg.sql
+@@plsql/127_noona_res_pkg.sql
+@@plsql/128_noona_prp_pkg.sql
 
 PROMPT ========== 5/7 Seed: registry & reference data
 @@seed/01_registry_seed.sql
@@ -97,6 +99,7 @@ PROMPT ========== 5/7 Seed: registry & reference data
 @@seed/13_healthcare.sql
 @@seed/15_projects.sql
 @@seed/16_country_packs.sql
+@@seed/17_real_estate.sql
 @@seed/14_reports_catalog.sql
 
 PROMPT ========== 6/7 Row-Level Security (VPD)

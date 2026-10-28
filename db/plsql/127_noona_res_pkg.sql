@@ -446,17 +446,14 @@ CREATE OR REPLACE PACKAGE BODY NOONA_RES_PKG AS
     NOONA_CORE_PKG.assert(l_f BETWEEN 0 AND r.deposit_amount, 'NOONA-RES-029', 'المبلغ المصادر بين صفر وقيمة العربون', 'Forfeit must be within the deposit');
     SELECT display_name_ar INTO l_bname FROM pty_party WHERE id = r.buyer_party_id;
     IF r.deposit_amount > 0 THEN
-      -- عكس العربون كاملاً ثم إثبات الجزء المصادر إيراداً (المتبقي هو المردود فعلياً من نفس المكان)
+      -- عكس العربون كاملاً (يرد كامل المبلغ من نفس المكان) ثم إثبات الجزء المصادر إيراداً محتفظاً به في الصندوق
       l_j := NOONA_ACE_PKG.reverse_source(c_res, r.id, TRUNC(SYSDATE), 'إلغاء الحجز: ' || p_reason);
       IF l_f > 0 THEN
         add_line(l_lines, NOONA_CSH_PKG.place_account(r.deposit_place), l_f, 0, NULL, 'الجزء المصادر من عربون ' || r.doc_no);
         add_line(l_lines, acc('FORFEIT'), 0, l_f, r.buyer_party_id, 'مصادرة عربون حجز ملغى ' || r.doc_no || ' - ' || p_reason);
         l_ev := post('RE_RESERVATION_FORFEIT', c_res, r.id, TRUNC(SYSDATE), 'مصادرة عربون ' || r.doc_no, l_lines, r.doc_no);
-      END IF;
-      IF r.deposit_amount - l_f > 0 THEN
-        SELECT accounting_event_id INTO l_ev FROM gl_journal WHERE id = l_j;
-        l_x := NOONA_CSH_PKG.record_settlement('PAYMENT', r.deposit_place, TRUNC(SYSDATE), r.deposit_amount - l_f, r.buyer_party_id, l_bname,
-                                               c_res, r.id, r.doc_no || '-R', 'رد عربون حجز ملغى', l_ev);
+        l_x := NOONA_CSH_PKG.record_settlement('RECEIPT', r.deposit_place, TRUNC(SYSDATE), l_f, r.buyer_party_id, l_bname,
+                                               c_res, r.id, r.doc_no || '-F', 'الجزء المصادر من عربون حجز ملغى', l_ev);
       END IF;
     END IF;
     UPDATE re_reservation SET status_code = CASE WHEN r.deposit_amount - l_f > 0 THEN 'REFUNDED' ELSE 'CANCELLED' END,
@@ -864,7 +861,7 @@ CREATE OR REPLACE PACKAGE BODY NOONA_RES_PKG AS
     l_ev    NUMBER;
     l_date  DATE := NVL(p_date, TRUNC(SYSDATE));
   BEGIN
-    guard('RE_HANDOVER.APPROVE');
+    guard('RE_HANDOVER.UPDATE');
     SELECT * INTO h FROM re_handover WHERE id = p_handover_id AND company_id = company FOR UPDATE;
     NOONA_CORE_PKG.assert(h.status_code IN ('SCHEDULED', 'INSPECTION', 'ACCEPTED'), 'NOONA-RES-062',
                           CASE WHEN h.status_code = 'SNAGS_OPEN' THEN 'توجد ملاحظات معاينة مفتوحة؛ أغلقها أولاً' ELSE 'التسليم مكتمل' END,
@@ -983,8 +980,9 @@ CREATE OR REPLACE PACKAGE BODY NOONA_RES_PKG AS
     l_ev    NUMBER;
     l_per   NUMBER := NOONA_GL_PKG.period_for(TRUNC(SYSDATE));
     l_pname VARCHAR2(400) := NOONA_RE_PKG.property_name(p_property_id);
+    l_det   CLOB;
   BEGIN
-    guard('RE_COST_ALLOCATION.CREATE');
+    guard('RE_COST_ALLOCATION.POST');
     SELECT MAX(project_id) INTO l_prj FROM re_property WHERE id = p_property_id AND company_id = company;
     NOONA_CORE_PKG.assert(l_prj IS NOT NULL, 'NOONA-RES-080', 'العقار غير مرتبط بمشروع تطوير', 'Property is not linked to a development project');
     NOONA_CORE_PKG.assert(l_basis IN ('AREA', 'SALE_VALUE', 'UNIT_COUNT'), 'NOONA-RES-081', 'أساس التوزيع غير صحيح', 'Invalid basis');
@@ -1010,8 +1008,9 @@ CREATE OR REPLACE PACKAGE BODY NOONA_RES_PKG AS
       l_o.put('unit', u.id); l_o.put('cost', l_share);
       l_arr.append(l_o);
     END LOOP;
+    l_det := l_arr.to_clob;
     INSERT INTO re_cost_allocation (company_id, property_id, period_id, allocation_basis, total_cost, details, status_code)
-    VALUES (company, p_property_id, l_per, l_basis, l_amt, l_arr.to_clob, 'CALCULATED')
+    VALUES (company, p_property_id, l_per, l_basis, l_amt, l_det, 'CALCULATED')
     RETURNING id INTO l_id;
     add_line(l_lines, acc('UNITS'), l_amt, 0, NULL, 'رسملة تكاليف تطوير ' || l_pname || ' على الوحدات');
     add_line(l_lines, acc('DEV_COST'), 0, l_amt, NULL, 'نقل تكاليف مشروع التطوير إلى الوحدات المعدة للبيع - ' || l_pname);

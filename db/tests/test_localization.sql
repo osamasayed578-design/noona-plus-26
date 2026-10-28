@@ -111,6 +111,8 @@ BEGIN
   DELETE FROM loc_einvoice_submission WHERE company_id = NOONA_LOC_PKG.company;
   UPDATE sal_invoice SET einvoice_submission_id = NULL WHERE company_id = NOONA_LOC_PKG.company AND einvoice_submission_id IS NOT NULL;
   DELETE FROM loc_einvoice_profile WHERE company_id = NOONA_LOC_PKG.company;
+  -- شهادات استقطاع سابقة لليوم (من بيانات تجريبية) لا تدخل في حساب إقرار الاختبار
+  UPDATE loc_withholding_cert SET status_code = 'CANCELLED' WHERE company_id = NOONA_LOC_PKG.company AND payment_date >= TRUNC(SYSDATE) - 1;
 
   -- ======================================================== حزمة الدولة
   ok('company is Saudi', NOONA_LOC_PKG.company_country = 'SA', NOONA_LOC_PKG.company_country);
