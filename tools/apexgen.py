@@ -522,6 +522,15 @@ wwv_flow_imp_page.create_worksheet(
         return self._item(name, region, seq, prompt, 'NATIVE_SELECT_LIST', lov + "\n,p_cHeight=>1\n,p_lov_display_extra=>'NO'",
                           required, attrs(page_action_on_selection='SUBMIT' if submit else 'NONE'))
 
+    def checkboxes(self, name, region, seq, prompt, lov_sql, columns=4, cascade=None):
+        """مجموعة خانات اختيار متعددة؛ القيم مفصولة بـ : (apex_string.split)"""
+        lov = f"\n,p_lov=>'{q(lov_sql)}'"
+        if cascade:
+            lov += (f"\n,p_lov_cascade_parent_items=>'{cascade}'\n,p_ajax_items_to_submit=>'{cascade}'"
+                    "\n,p_ajax_optimize_refresh=>'Y'")
+        return self._item(name, region, seq, prompt, 'NATIVE_CHECKBOX', lov + f"\n,p_lov_columns=>{columns}", False,
+                          None, full=True)
+
     def date(self, name, region, seq, prompt, required=False):
         return self._item(name, region, seq, prompt, 'NATIVE_DATE_PICKER_APEX', "\n,p_cSize=>20\n,p_format_mask=>'YYYY-MM-DD'",
                           required, attrs(display_as='POPUP', max_date='NONE', min_date='NONE', multiple_months='N',

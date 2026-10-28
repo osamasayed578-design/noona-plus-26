@@ -967,5 +967,7 @@ PRJ = app.add_scheme('noona_prj_view', app.id(), 'NOONA - Projects',
                      'صفحات المشروعات تتطلب صلاحية عرض المشروعات / Projects access required')
 import prj_pages
 prj_pages.build(app, url, link, PRJ)
+import res_pages
+res_pages.build(app, url, link, get_url)
 app.finalize()
 print('NOONA_PRJ built:', len(app.pages), 'pages')

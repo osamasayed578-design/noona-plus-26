@@ -1369,6 +1369,22 @@ html[dir="rtl"] .nn-rst-kpi b { text-align: right; }
 .nn-prj-t tfoot td { font-weight: 700; background: #f7f9fc; }
 .nn-prj-t tr.is-void td { color: var(--nn-muted); text-decoration: line-through; }
 .nn-prj-t .is-over, .nn-prj-t td.is-over { color: var(--nn-danger); font-weight: 700; }
+/* بيع الوحدات: شبكة توفر الوحدات وملاحظات التسليم */
+.nn-res-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
+.nn-res-unit { display: flex; flex-direction: column; gap: 2px; padding: 10px 12px; border-radius: 10px; border: 1px solid var(--nn-border);
+  background: #fff; color: inherit; text-decoration: none; border-inline-start: 4px solid #9aa5b1; }
+.nn-res-unit b { font-size: 1.05rem; }
+.nn-res-unit small { color: var(--nn-muted); }
+.nn-res-unit span { font-weight: 700; font-variant-numeric: tabular-nums; }
+.nn-res-unit em { font-style: normal; font-size: .78rem; color: var(--nn-muted); }
+a.nn-res-unit:hover { box-shadow: 0 2px 10px rgba(0, 0, 0, .08); transform: translateY(-1px); }
+.nn-res-unit.is-available { border-inline-start-color: #1e8e3e; }
+.nn-res-unit.is-reserved { border-inline-start-color: #e37400; background: #fff8ec; }
+.nn-res-unit.is-sold, .nn-res-unit.is-handed_over { border-inline-start-color: #1a73e8; background: #f1f6fe; }
+.nn-res-unit.is-blocked, .nn-res-unit.is-under_construction, .nn-res-unit.is-planned { opacity: .7; }
+.nn-res-snags { margin: 0 0 1rem; }
+.nn-res-snags li.is-open { color: var(--nn-danger); }
+.nn-res-snags li.is-fixed { color: #1e8e3e; }
 /* الضرائب: خانات الإقرار والفوترة الإلكترونية */
 .nn-loc-ret tr.is-sub td { font-weight: 700; background: #f7f9fc; }
 .nn-loc-ret tr.is-total td { font-weight: 800; background: #eef4fb; border-top: 2px solid var(--nn-head-border); }

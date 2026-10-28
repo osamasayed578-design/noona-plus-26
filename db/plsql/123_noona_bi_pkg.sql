@@ -118,9 +118,9 @@ CREATE OR REPLACE PACKAGE BODY NOONA_BI_PKG AS
     RETURN CASE p_module_code
       WHEN 'GL' THEN 'المحاسبة والقوائم المالية' WHEN 'CSH' THEN 'النقدية والبنوك' WHEN 'FA' THEN 'الأصول الثابتة'
       WHEN 'INV' THEN 'المخزون' WHEN 'PUR' THEN 'المشتريات والموردون' WHEN 'SAL' THEN 'المبيعات ونقاط البيع والمطاعم'
-      WHEN 'HR' THEN 'الموارد البشرية' WHEN 'PAY' THEN 'الرواتب' WHEN 'PRP' THEN 'الفنادق والضيافة'
+      WHEN 'HR' THEN 'الموارد البشرية' WHEN 'PAY' THEN 'الرواتب' WHEN 'PRP' THEN 'الإيجارات والضيافة'
       WHEN 'MNT' THEN 'الصيانة' WHEN 'MFG' THEN 'التصنيع' WHEN 'HIS' THEN 'المستشفى والمراكز الطبية'
-      WHEN 'DMS' THEN 'المستندات والأرشيف' WHEN 'RE' THEN 'العقارات' WHEN 'PRJ' THEN 'المشروعات والمقاولات'
+      WHEN 'DMS' THEN 'المستندات والأرشيف' WHEN 'RE' THEN 'العقارات وبيع الوحدات' WHEN 'PRJ' THEN 'المشروعات والمقاولات'
       WHEN 'LOC' THEN 'الضرائب والفوترة الإلكترونية'
       ELSE p_module_code END;
   END module_label;

@@ -233,6 +233,130 @@ wwv_flow_imp_shared.create_list_item(
 ,p_security_scheme=>wwv_flow_imp.id(91820273000000563)
 ,p_list_item_current_type=>'TARGET_PAGE'
 );
+wwv_flow_imp_shared.create_list_item(
+ p_id=>wwv_flow_imp.id(91820273000001054)
+,p_list_item_display_sequence=>25
+,p_list_item_link_text=>'بيع الوحدات'
+,p_list_item_link_target=>''
+,p_list_item_icon=>'fa-key'
+,p_security_scheme=>wwv_flow_imp.id(91820273000000753)
+);
+wwv_flow_imp_shared.create_list_item(
+ p_id=>wwv_flow_imp.id(91820273000001055)
+,p_list_item_display_sequence=>1
+,p_list_item_link_text=>'لوحة المبيعات'
+,p_list_item_link_target=>'f?p=&APP_ID.:30:&APP_SESSION.::&DEBUG.:::'
+,p_list_item_icon=>'fa-th-large'
+,p_parent_list_item_id=>wwv_flow_imp.id(91820273000001054)
+,p_security_scheme=>wwv_flow_imp.id(91820273000000753)
+,p_list_item_current_type=>'TARGET_PAGE'
+);
+wwv_flow_imp_shared.create_list_item(
+ p_id=>wwv_flow_imp.id(91820273000001056)
+,p_list_item_display_sequence=>2
+,p_list_item_link_text=>'حجز / عقد جديد'
+,p_list_item_link_target=>'f?p=&APP_ID.:31:&SESSION.::&DEBUG.:RP,31::'
+,p_list_item_icon=>'fa-plus'
+,p_parent_list_item_id=>wwv_flow_imp.id(91820273000001054)
+,p_security_scheme=>wwv_flow_imp.id(91820273000000753)
+);
+wwv_flow_imp_shared.create_list_item(
+ p_id=>wwv_flow_imp.id(91820273000001057)
+,p_list_item_display_sequence=>3
+,p_list_item_link_text=>'الحجوزات والعقود'
+,p_list_item_link_target=>'f?p=&APP_ID.:32:&APP_SESSION.::&DEBUG.:::'
+,p_list_item_icon=>'fa-file-text-o'
+,p_parent_list_item_id=>wwv_flow_imp.id(91820273000001054)
+,p_security_scheme=>wwv_flow_imp.id(91820273000000753)
+,p_list_item_current_type=>'TARGET_PAGE'
+);
+wwv_flow_imp_shared.create_list_item(
+ p_id=>wwv_flow_imp.id(91820273000001058)
+,p_list_item_display_sequence=>4
+,p_list_item_link_text=>'التحصيل والعمولات'
+,p_list_item_link_target=>'f?p=&APP_ID.:34:&APP_SESSION.::&DEBUG.:::'
+,p_list_item_icon=>'fa-money'
+,p_parent_list_item_id=>wwv_flow_imp.id(91820273000001054)
+,p_security_scheme=>wwv_flow_imp.id(91820273000000753)
+,p_list_item_current_type=>'TARGET_PAGE'
+);
+wwv_flow_imp_shared.create_list_item(
+ p_id=>wwv_flow_imp.id(91820273000001059)
+,p_list_item_display_sequence=>5
+,p_list_item_link_text=>'الأسعار وخطط السداد'
+,p_list_item_link_target=>'f?p=&APP_ID.:35:&APP_SESSION.::&DEBUG.:::'
+,p_list_item_icon=>'fa-tags'
+,p_parent_list_item_id=>wwv_flow_imp.id(91820273000001054)
+,p_security_scheme=>wwv_flow_imp.id(91820273000000753)
+,p_list_item_current_type=>'TARGET_PAGE'
+);
+wwv_flow_imp_shared.create_list_item(
+ p_id=>wwv_flow_imp.id(91820273000001060)
+,p_list_item_display_sequence=>6
+,p_list_item_link_text=>'التقارير والتسليم'
+,p_list_item_link_target=>'f?p=&APP_ID.:36:&APP_SESSION.::&DEBUG.:::'
+,p_list_item_icon=>'fa-bar-chart'
+,p_parent_list_item_id=>wwv_flow_imp.id(91820273000001054)
+,p_security_scheme=>wwv_flow_imp.id(91820273000000753)
+,p_list_item_current_type=>'TARGET_PAGE'
+);
+wwv_flow_imp_shared.create_list_item(
+ p_id=>wwv_flow_imp.id(91820273000001061)
+,p_list_item_display_sequence=>27
+,p_list_item_link_text=>'الإيجارات وإدارة الأملاك'
+,p_list_item_link_target=>''
+,p_list_item_icon=>'fa-building-o'
+,p_security_scheme=>wwv_flow_imp.id(91820273000000754)
+);
+wwv_flow_imp_shared.create_list_item(
+ p_id=>wwv_flow_imp.id(91820273000001062)
+,p_list_item_display_sequence=>1
+,p_list_item_link_text=>'لوحة الإيجارات'
+,p_list_item_link_target=>'f?p=&APP_ID.:40:&APP_SESSION.::&DEBUG.:::'
+,p_list_item_icon=>'fa-th-large'
+,p_parent_list_item_id=>wwv_flow_imp.id(91820273000001061)
+,p_security_scheme=>wwv_flow_imp.id(91820273000000754)
+,p_list_item_current_type=>'TARGET_PAGE'
+);
+wwv_flow_imp_shared.create_list_item(
+ p_id=>wwv_flow_imp.id(91820273000001063)
+,p_list_item_display_sequence=>2
+,p_list_item_link_text=>'عقد إيجار جديد'
+,p_list_item_link_target=>'f?p=&APP_ID.:41:&SESSION.::&DEBUG.:RP,41::'
+,p_list_item_icon=>'fa-plus'
+,p_parent_list_item_id=>wwv_flow_imp.id(91820273000001061)
+,p_security_scheme=>wwv_flow_imp.id(91820273000000754)
+);
+wwv_flow_imp_shared.create_list_item(
+ p_id=>wwv_flow_imp.id(91820273000001064)
+,p_list_item_display_sequence=>3
+,p_list_item_link_text=>'العقود وقائمة الإيجارات'
+,p_list_item_link_target=>'f?p=&APP_ID.:43:&APP_SESSION.::&DEBUG.:::'
+,p_list_item_icon=>'fa-list'
+,p_parent_list_item_id=>wwv_flow_imp.id(91820273000001061)
+,p_security_scheme=>wwv_flow_imp.id(91820273000000754)
+,p_list_item_current_type=>'TARGET_PAGE'
+);
+wwv_flow_imp_shared.create_list_item(
+ p_id=>wwv_flow_imp.id(91820273000001065)
+,p_list_item_display_sequence=>4
+,p_list_item_link_text=>'إدارة أملاك الغير'
+,p_list_item_link_target=>'f?p=&APP_ID.:44:&APP_SESSION.::&DEBUG.:::'
+,p_list_item_icon=>'fa-handshake-o'
+,p_parent_list_item_id=>wwv_flow_imp.id(91820273000001061)
+,p_security_scheme=>wwv_flow_imp.id(91820273000000754)
+,p_list_item_current_type=>'TARGET_PAGE'
+);
+wwv_flow_imp_shared.create_list_item(
+ p_id=>wwv_flow_imp.id(91820273000001066)
+,p_list_item_display_sequence=>5
+,p_list_item_link_text=>'العدادات'
+,p_list_item_link_target=>'f?p=&APP_ID.:46:&APP_SESSION.::&DEBUG.:::'
+,p_list_item_icon=>'fa-tachometer'
+,p_parent_list_item_id=>wwv_flow_imp.id(91820273000001061)
+,p_security_scheme=>wwv_flow_imp.id(91820273000000754)
+,p_list_item_current_type=>'TARGET_PAGE'
+);
 wwv_flow_imp.component_end;
 end;
 /
