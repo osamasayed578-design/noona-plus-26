@@ -67,6 +67,8 @@ BEGIN
   UPDATE dms_archive_rule SET is_active = 'N';
   l_led := NOONA_GL_PKG.quick_setup;
   l_box := NOONA_CSH_PKG.quick_setup;
+  -- صندوق مستقل للاختبار (لا يتأثر برصيد الصندوق الرئيسي في قاعدة العميل)
+  l_box := NOONA_CSH_PKG.create_cash_box('TB' || SUBSTR(l_sfx, 1, 6), 'صندوق اختبار');
   l_user := 'RPA' || l_sfx;
   l_mem := NOONA_SEC_ADMIN_PKG.create_user(l_user, 'معتمد مالي', LOWER(l_user) || '@x.local', TO_NUMBER(SYS_CONTEXT('NOONA_CTX', 'COMPANY_ID')));
   l_role := NOONA_SEC_ADMIN_PKG.create_role('RPR' || l_sfx, 'معتمد مالي');

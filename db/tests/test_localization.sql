@@ -108,9 +108,10 @@ BEGIN
   NOONA_APEX_PKG.post_auth('ADMIN', TRUNC(DBMS_RANDOM.VALUE(1e12, 9e12)));
   UPDATE dms_archive_rule SET is_active = 'N';
   -- بيئة نظيفة لليوم: لا إقرارات سابقة تغطيه، ولا فوترة إلكترونية مفعلة من قبل
-  DELETE FROM loc_einvoice_submission WHERE company_id = NOONA_LOC_PKG.company;
-  UPDATE sal_invoice SET einvoice_submission_id = NULL WHERE company_id = NOONA_LOC_PKG.company AND einvoice_submission_id IS NOT NULL;
-  DELETE FROM loc_einvoice_profile WHERE company_id = NOONA_LOC_PKG.company;
+  -- (تعدل داخل المعاملة فقط ويتراجع عنها الاختبار؛ لا تحذف لأن فواتير العميل مرتبطة بها)
+  UPDATE loc_einvoice_profile SET status_code = 'SUSPENDED' WHERE company_id = NOONA_LOC_PKG.company;
+  UPDATE loc_einvoice_submission SET status_code = 'CANCELLED'
+   WHERE company_id = NOONA_LOC_PKG.company AND status_code IN ('DRAFT', 'READY_TO_SUBMIT', 'PENDING_RETRY', 'VALIDATION_FAILED', 'SUBMISSION_FAILED');
   -- شهادات استقطاع سابقة لليوم (من بيانات تجريبية) لا تدخل في حساب إقرار الاختبار
   UPDATE loc_withholding_cert SET status_code = 'CANCELLED' WHERE company_id = NOONA_LOC_PKG.company AND payment_date >= TRUNC(SYSDATE) - 1;
 

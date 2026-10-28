@@ -58,6 +58,8 @@ BEGIN
   login('ADMIN');
   l_n := NOONA_GL_PKG.quick_setup;
   l_box := NOONA_CSH_PKG.quick_setup;
+  -- صندوق مستقل للاختبار (لا يتأثر برصيد الصندوق الرئيسي في قاعدة العميل)
+  l_box := NOONA_CSH_PKG.create_cash_box('TB' || SUBSTR(l_sfx, 1, 6), 'صندوق اختبار');
   DELETE FROM dms_archive_rule;                                   -- حالة نظيفة داخل المعاملة
   DELETE FROM dms_storage_profile;                                -- الحفظ داخل قاعدة البيانات في بداية الاختبار
   l_user := 'DMA' || l_sfx;
