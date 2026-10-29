@@ -198,8 +198,11 @@ p.process(10, 'BEFORE_HEADER', 'Load Branch', [
     "      from org_branch where id = :P13_ID and noona_sec_admin_pkg.can_admin_company(company_id) = 'Y';",
     "elsif :P13_IS_HEAD_OFFICE is null then",
     "    :P13_IS_HEAD_OFFICE := 'N';",
-    "    select case when count(*) = 1 then min(id) end into :P13_COMPANY_ID from org_company",
-    "     where status_code not in ('CLOSED', 'ARCHIVED') and noona_sec_admin_pkg.can_admin_company(id) = 'Y';",
+    "    -- الشركة الممررة من بطاقة الشركة تبقى؛ وإلا تختار تلقائياً إن كانت شركة واحدة فقط",
+    "    if :P13_COMPANY_ID is null then",
+    "        select case when count(*) = 1 then min(id) end into :P13_COMPANY_ID from org_company",
+    "         where status_code not in ('CLOSED', 'ARCHIVED') and noona_sec_admin_pkg.can_admin_company(id) = 'Y';",
+    "    end if;",
     'end if;'])
 p.process(10, 'AFTER_SUBMIT', 'Create Branch', [
     ':P13_ID := noona_platform_pkg.create_branch(',
