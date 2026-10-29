@@ -280,7 +280,24 @@ class App:
         return nid
 
     # ------------------------------------------------------------------ الحفظ
+    # رسائل تشغيل APEX التي لا تُترجم للعربية تلقائياً (تظهر للمستخدم بالإنجليزية): تُعرَّف رسالة تطبيق بنفس الاسم
+    RUNTIME_MESSAGES = {
+        'LINK': 'فتح',   # رأس عمود رابط فتح السجل في التقارير التفاعلية
+    }
+
+    def write_messages(self):
+        body = ''.join(f"""wwv_flow_imp_shared.create_message(
+ p_id=>wwv_flow_imp.id({self.id()})
+,p_name=>'{q(k)}'
+,p_message_language=>'ar'
+,p_message_text=>'{q(v)}'
+);
+""" for k, v in self.RUNTIME_MESSAGES.items())
+        rel = 'shared_components/globalization/messages'
+        self.write(rel + '.sql', self.comp(rel, f'MESSAGES: {len(self.RUNTIME_MESSAGES)}', body))
+
     def finalize(self):
+        self.write_messages()
         # الصفحة الرئيسية في القالب تُستبدل بالصفحات المولدة
         for pid, p in self.pages.items():
             self.write(f'pages/page_{pid:05d}.sql', self.comp(f'pages/page_{pid:05d}', f'PAGE: {pid:05d}', p.render()))

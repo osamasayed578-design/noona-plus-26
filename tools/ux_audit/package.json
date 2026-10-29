@@ -1,0 +1,6 @@
+{
+  "name": "noona-ux-audit",
+  "private": true,
+  "description": "فحص تجربة المستخدم الآلي لكل شاشات نونا بلس",
+  "dependencies": { "axe-core": "4.10.2" }
+}
