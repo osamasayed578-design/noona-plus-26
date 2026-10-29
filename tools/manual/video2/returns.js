@@ -2,29 +2,44 @@
    كل مشهد يأخذ (v, screen, tools) ويُستدعى بدلاً من العرض العادي لشاشته. */
 'use strict';
 
-// يفتح أول فاتورة مرحّلة (ليست مرتجعاً) من قائمة الفواتير
-async function openPostedInvoice(v, listAlias, note) {
+// يختار فاتورة مرحّلة لها سطر قابل للإرجاع: الفحص في صفحة خفية غير مسجلة، ثم يعيد رقم الفاتورة ورقم السطر
+async function findReturnable(v, listAlias) {
   const { page } = v;
-  await v.go(listAlias);
-  const href = await page.evaluate(() => {
-    const rows = [...document.querySelectorAll('.a-IRR-table tr')].filter((r) => r.querySelector('td a'));
-    // فاتورة آجلة أولاً: المرتجع يخفض رصيد الطرف دون صرف نقدي
-    const ok = (x) => !/مرتجع|ملغ|مسودة/.test(x.textContent);
-    const r = rows.find((x) => ok(x) && /آجل/.test(x.textContent)) || rows.find(ok) || rows[0];
-    if (!r) return null;
-    const a = r.querySelector('td a'); a.classList.add('nnv-hl'); a.scrollIntoView({ block: 'center' }); return a.href;
-  });
-  if (!href) return false;
-  await v.say(note, 3800);
-  await page.goto(href); await v.settle();
-  return true;
+  const p2 = await page.context().newPage();
+  p2.on('dialog', (d) => d.accept());
+  try {
+    await p2.goto(page.url().replace(/\/[^/?]+\?.*$/, '/' + listAlias.toLowerCase() + '?session=' + v.sess)); await p2.waitForLoadState('networkidle');
+    const cands = await p2.evaluate(() => [...document.querySelectorAll('.a-IRR-table tr')].filter((r) => r.querySelector('td a'))
+      .filter((r) => !/مرتجع|ملغ|مسودة/.test(r.textContent)).sort((a, b) => (/آجل/.test(b.textContent) ? 1 : 0) - (/آجل/.test(a.textContent) ? 1 : 0))
+      .slice(0, 8).map((r) => ({ href: r.querySelector('td a').href, no: ([...r.children].map((td) => td.textContent.trim()).find((t) => /^[A-Z]{2,4}-\d/.test(t)) || '') })));
+    for (const c of cands) {
+      await p2.goto(c.href); await p2.waitForLoadState('networkidle');
+      const b = p2.getByRole('button', { name: 'مرتجع من الفاتورة' }).or(p2.getByRole('link', { name: 'مرتجع من الفاتورة' })).first();
+      if (!await b.count()) continue;
+      await b.click(); await p2.waitForLoadState('networkidle'); await p2.waitForTimeout(1200);
+      const line = await p2.evaluate(() => {
+        const ins = [...document.querySelectorAll('input[data-c="q"]')];
+        for (const i of ins) { const td = [...i.closest('tr').children]; const k = td.indexOf(i.closest('td'));
+          const sold = parseFloat(td[k - 2].textContent.replace(/,/g, '')), done = parseFloat(td[k - 1].textContent.replace(/,/g, ''));
+          if (sold - done >= 1) return +i.dataset.l; }
+        return null; });
+      if (line !== null) return { ...c, line };
+    }
+    return null;
+  } finally { await p2.close(); }
 }
 
 async function tradeReturn(v, s, t, o) {
   const { page } = v;
   await v.say(`<b>${s.title}</b>: ${s.purpose}`);
   await v.say(o.why, 4500);
-  if (!await openPostedInvoice(v, o.list, `من <b>${o.listName}</b> نفتح فاتورة مرحّلة`)) { await t.open(s); await t.explain(s); return; }
+  const f = await findReturnable(v, o.list);
+  console.log('  invoice: ' + (f && f.no) + ' line ' + (f && f.line));
+  if (!f) { await t.open(s); await t.explain(s); return; }
+  await v.go(o.list);
+  await page.evaluate((h) => { const a = [...document.querySelectorAll('.a-IRR-table td a')].find((x) => x.href === h); if (a) { a.classList.add('nnv-hl'); a.scrollIntoView({ block: 'center' }); } }, f.href);
+  await v.say(`من <b>${o.listName}</b> نفتح الفاتورة المرحّلة <b>${f.no || ''}</b>`, 3800);
+  await page.goto(f.href); await v.settle();
   await v.say('الفاتورة الأصلية للقراءة فقط بعد الترحيل؛ المرتجع يتم بمستند مستقل مرتبط بها', 3800);
   const btn = page.getByRole('button', { name: 'مرتجع من الفاتورة' }).or(page.getByRole('link', { name: 'مرتجع من الفاتورة' })).first();
   if (!await btn.count()) { await v.say('هذه الفاتورة ليس لها كمية قابلة للإرجاع؛ نعرض شاشة المرتجع', 3000); await t.open(s); await t.explain(s); return; }
@@ -33,9 +48,9 @@ async function tradeReturn(v, s, t, o) {
   await v.say('لكل سطر: <b>الكمية المباعة</b>، و<b>المرتجع سابقاً</b>، و<b>كمية المرتجع الآن</b> (لا تتجاوز المتبقي)، والسعر من الفاتورة', 5000);
   const reason = page.locator('[data-k="reason"]').first();
   if (await reason.count()) await v.type(reason, o.reason, '<b>سبب المرتجع</b> إلزامي ويظهر في المستند والقيد');
-  const q = page.locator('input[data-c="q"]').first();
+  const q = page.locator(`input[data-c="q"][data-l="${f.line}"]`).first();
   if (await q.count()) {
-    await v.type(q, '1', 'نرجع <b>وحدة واحدة</b> من السطر الأول');
+    await v.type(q, '1', 'نرجع <b>وحدة واحدة</b> من سطر ما زال له كمية قابلة للإرجاع');
     await page.keyboard.press('Tab'); await v.wait(1200);
     await v.say('الإجماليات والضريبة تحسب فوراً بنفس سعر وضريبة الفاتورة الأصلية', 3800);
   }
