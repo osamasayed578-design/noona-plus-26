@@ -34,3 +34,32 @@ python3 tools/manual/build_manual.py --no-capture     # إعادة الإخرا�
 كل شاشة في ملف الموديول قاموس: `app` و`alias` (اسم الصفحة المستعار) و`shot` (اسم فريد للصورة)، والشرح: `purpose`، `steps`،
 `notes`، `alt` (الشاشات البديلة)، `fields` (وصف حقل باسمه)، `buttons` (وصف زر بنصه)، `doc_fields` (للشاشات المخصصة بلا حقول APEX).
 للوصول لشاشة تحتاج سجلاً: `via` (افتح قائمة وانقر أول رابط)، أو `actions` (نقر أو انتقال عبر القائمة الجانبية `nav('...')`).
+
+## فيديوهات الشرح (إدخال حقيقي بشرح عربي على الشاشة)
+
+`video/vlib.js` يسجل المتصفح (1280×720) مع شريط الشرح العربي، شارة الخطوة، مؤشر الفأرة وإبراز الحقل الحالي، وبطاقات البداية والنهاية.
+كل فيديو يكمل المؤسسة التي أنشأها الفيديو الأول (مجموعة النور):
+
+| السكربت | الفيديو |
+|---|---|
+| `video/v00_foundation.js` | 1 التأسيس: المؤسسة والشركة الأم، فرع، شركة ثانية، مستخدم ودوره (يطبع `USERS <المسؤول> <المحاسبة>`) |
+| `video/prep_finance_role.sql` | خارج التسجيل: دور «المدير المالي» للمحاسبة |
+| `video/v01_finance.js` | 2 المالية: التجهيز، السنة المالية وفتح التالية، السندات والقيد، الاعتماد، التقارير |
+| `video/v02_supply_chain.js` | 3 سلسلة الإمداد: صنف، مورد، فاتورة مشتريات، سداد، التقارير |
+| `video/v03_sales_pos.js` | 4 المبيعات ونقاط البيع: عميل، فاتورة، تحصيل، بيع سريع، إقفال الوردية |
+| `video/prep_mfg.js` + `video/v04_manufacturing.js` | 5 التصنيع: مركز عمل، قائمة مواد، مسار، أمر إنتاج حتى الإقفال |
+| `video/v05_hr_payroll.js` | 6 الموارد البشرية والرواتب |
+| `video/v06_documents.js` | 7 المستندات والمراسلات |
+| `video/v07_real_estate.js` | 8 العقارات والإيجارات |
+| `video/v08_hospitality.js` | 9 الضيافة والفنادق |
+| `video/v09_healthcare.js` | 10 المستشفيات والمراكز الطبية |
+| `video/v10_auto_service.js` | 11 مراكز خدمة السيارات |
+| `video/v11_reports_integrations.js` | 12 مركز التقارير والتكاملات |
+
+```bash
+export PW_PATH=/path/to/node_modules/playwright
+NOONA_PWD_PLATFORM='...' node tools/manual/video/v00_foundation.js out/v00     # يطبع USERS
+sqlplus NOONA_APP@... @tools/manual/video/prep_finance_role.sql <المسؤول> <المحاسبة>
+NOONA_VADMIN=<المسؤول> NOONA_VACC=<المحاسبة> NOONA_VPWD='...' node tools/manual/video/v01_finance.js out/v01
+ffmpeg -i out/v01/v01_finance.webm -c:v libx264 -crf 26 -pix_fmt yuv420p -movflags +faststart 02_المالية.mp4
+```
