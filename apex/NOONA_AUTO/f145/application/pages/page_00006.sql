@@ -1,0 +1,276 @@
+prompt --application/pages/page_00006
+begin
+--   Manifest
+--     PAGE: 00006
+--   Manifest End
+wwv_flow_imp.component_begin (
+ p_version_yyyy_mm_dd=>'2024.11.30'
+,p_release=>'24.2.0'
+,p_default_workspace_id=>17663301221950901
+,p_default_application_id=>145
+,p_default_id_offset=>0
+,p_default_owner=>'NOONA_APP'
+);
+wwv_flow_imp_page.create_page(
+ p_id=>6
+,p_name=>'Vehicles'
+,p_alias=>'VEHICLES'
+,p_step_title=>'المركبات'
+,p_autocomplete_on_off=>'OFF'
+,p_page_template_options=>'#DEFAULT#'
+,p_required_role=>wwv_flow_imp.id(91820280000000009)
+,p_protection_level=>'C'
+);
+wwv_flow_imp_page.create_page_plug(
+ p_id=>wwv_flow_imp.id(91820280000000109)
+,p_plug_name=>'إجراءات'
+,p_region_template_options=>'#DEFAULT#:t-Region--removeHeader js-removeLandmark'
+,p_plug_template=>4072358936313175081
+,p_plug_display_sequence=>5
+,p_attributes=>wwv_flow_t_plugin_attributes(wwv_flow_t_varchar2(
+  'expand_shortcuts', 'N',
+  'output_as', 'HTML',
+  'show_line_breaks', 'Y')).to_clob
+);
+wwv_flow_imp_page.create_page_button(
+ p_id=>wwv_flow_imp.id(91820280000000110)
+,p_button_sequence=>10
+,p_button_plug_id=>wwv_flow_imp.id(91820280000000109)
+,p_button_name=>'NEW'
+,p_button_action=>'REDIRECT_URL'
+,p_button_template_options=>'#DEFAULT#'
+,p_button_template_id=>4072362960822175091
+,p_button_is_hot=>'Y'
+,p_button_image_alt=>'مركبة جديدة'
+,p_button_position=>'NEXT'
+,p_button_redirect_url=>'f?p=&APP_ID.:7:&SESSION.::&DEBUG.:RP,7::'
+);
+wwv_flow_imp_page.create_page_plug(
+ p_id=>wwv_flow_imp.id(91820280000000111)
+,p_plug_name=>'المركبات'
+,p_region_template_options=>'#DEFAULT#:t-Region--scrollBody'
+,p_component_template_options=>'#DEFAULT#'
+,p_plug_template=>4072358936313175081
+,p_plug_display_sequence=>10
+,p_query_type=>'SQL'
+,p_plug_source=>wwv_flow_string.join(wwv_flow_t_varchar2(
+'select v.id, noona_aut_pkg.plate_label(v.plate_no) as plate_no, v.make, v.model, v.model_year, v.color, v.vin, v.owner_name, v.owner_phone, v.odometer,',
+'       (select name_ar from aut_insurer where id = v.insurer_id) as insurer, v.policy_expiry, v.registration_expiry,',
+'       v.next_service_date, v.next_service_km, to_char(v.last_visit_at, ''YYYY-MM-DD'') as last_visit,',
+'       (select count(*) from aut_job_card j where j.vehicle_id = v.id and j.status_code <> ''CANCELLED'') as visits,',
+'       (select nvl(sum(total_amount), 0) from aut_job_card j where j.vehicle_id = v.id and j.status_code in (''INVOICED'', ''DELIVERED'')) as spent',
+'  from aut_vehicle v where v.company_id = noona_aut_pkg.company order by v.last_visit_at desc nulls last, v.id desc'))
+,p_plug_source_type=>'NATIVE_IR'
+,p_prn_page_header=>'المركبات'
+);
+wwv_flow_imp_page.create_worksheet(
+ p_id=>wwv_flow_imp.id(91820280000000112)
+,p_max_row_count=>'1000000'
+,p_no_data_found_message=>'لا توجد بيانات'
+,p_pagination_type=>'ROWS_X_TO_Y'
+,p_pagination_display_pos=>'BOTTOM_RIGHT'
+,p_report_list_mode=>'TABS'
+,p_lazy_loading=>false
+,p_show_detail_link=>'C'
+,p_show_notify=>'N'
+,p_download_formats=>'CSV:HTML:XLSX:PDF'
+,p_enable_mail_download=>'N'
+,p_detail_link=>'f?p=&APP_ID.:7:&SESSION.::&DEBUG.:RP,7:P7_ID:#ID#'
+,p_detail_link_text=>'<span role="img" aria-label="تعديل" class="fa fa-edit" title="فتح"></span>'
+,p_owner=>'NOONA'
+,p_internal_uid=>91820280000000112
+);
+wwv_flow_imp_page.create_worksheet_column(
+ p_id=>wwv_flow_imp.id(91820280000000114)
+,p_db_column_name=>'ID'
+,p_display_order=>10
+,p_column_identifier=>'A'
+,p_column_label=>'#'
+,p_column_type=>'NUMBER'
+,p_display_text_as=>'HIDDEN'
+,p_heading_alignment=>'CENTER'
+,p_use_as_row_header=>'N'
+);
+wwv_flow_imp_page.create_worksheet_column(
+ p_id=>wwv_flow_imp.id(91820280000000115)
+,p_db_column_name=>'PLATE_NO'
+,p_display_order=>20
+,p_column_identifier=>'B'
+,p_column_label=>'اللوحة'
+,p_column_type=>'STRING'
+,p_heading_alignment=>'CENTER'
+,p_use_as_row_header=>'N'
+);
+wwv_flow_imp_page.create_worksheet_column(
+ p_id=>wwv_flow_imp.id(91820280000000116)
+,p_db_column_name=>'MAKE'
+,p_display_order=>30
+,p_column_identifier=>'C'
+,p_column_label=>'الشركة'
+,p_column_type=>'STRING'
+,p_heading_alignment=>'CENTER'
+,p_use_as_row_header=>'N'
+);
+wwv_flow_imp_page.create_worksheet_column(
+ p_id=>wwv_flow_imp.id(91820280000000117)
+,p_db_column_name=>'MODEL'
+,p_display_order=>40
+,p_column_identifier=>'D'
+,p_column_label=>'الطراز'
+,p_column_type=>'STRING'
+,p_heading_alignment=>'CENTER'
+,p_use_as_row_header=>'N'
+);
+wwv_flow_imp_page.create_worksheet_column(
+ p_id=>wwv_flow_imp.id(91820280000000118)
+,p_db_column_name=>'MODEL_YEAR'
+,p_display_order=>50
+,p_column_identifier=>'E'
+,p_column_label=>'السنة'
+,p_column_type=>'NUMBER'
+,p_heading_alignment=>'CENTER'
+,p_use_as_row_header=>'N'
+);
+wwv_flow_imp_page.create_worksheet_column(
+ p_id=>wwv_flow_imp.id(91820280000000119)
+,p_db_column_name=>'COLOR'
+,p_display_order=>60
+,p_column_identifier=>'F'
+,p_column_label=>'اللون'
+,p_column_type=>'STRING'
+,p_heading_alignment=>'CENTER'
+,p_use_as_row_header=>'N'
+);
+wwv_flow_imp_page.create_worksheet_column(
+ p_id=>wwv_flow_imp.id(91820280000000120)
+,p_db_column_name=>'VIN'
+,p_display_order=>70
+,p_column_identifier=>'G'
+,p_column_label=>'رقم الهيكل'
+,p_column_type=>'STRING'
+,p_heading_alignment=>'CENTER'
+,p_use_as_row_header=>'N'
+);
+wwv_flow_imp_page.create_worksheet_column(
+ p_id=>wwv_flow_imp.id(91820280000000121)
+,p_db_column_name=>'OWNER_NAME'
+,p_display_order=>80
+,p_column_identifier=>'H'
+,p_column_label=>'المالك'
+,p_column_type=>'STRING'
+,p_heading_alignment=>'CENTER'
+,p_use_as_row_header=>'N'
+);
+wwv_flow_imp_page.create_worksheet_column(
+ p_id=>wwv_flow_imp.id(91820280000000122)
+,p_db_column_name=>'OWNER_PHONE'
+,p_display_order=>90
+,p_column_identifier=>'I'
+,p_column_label=>'الجوال'
+,p_column_type=>'STRING'
+,p_heading_alignment=>'CENTER'
+,p_use_as_row_header=>'N'
+);
+wwv_flow_imp_page.create_worksheet_column(
+ p_id=>wwv_flow_imp.id(91820280000000123)
+,p_db_column_name=>'ODOMETER'
+,p_display_order=>100
+,p_column_identifier=>'J'
+,p_column_label=>'العداد'
+,p_column_type=>'NUMBER'
+,p_heading_alignment=>'CENTER'
+,p_use_as_row_header=>'N'
+);
+wwv_flow_imp_page.create_worksheet_column(
+ p_id=>wwv_flow_imp.id(91820280000000124)
+,p_db_column_name=>'INSURER'
+,p_display_order=>110
+,p_column_identifier=>'K'
+,p_column_label=>'التأمين'
+,p_column_type=>'STRING'
+,p_heading_alignment=>'CENTER'
+,p_use_as_row_header=>'N'
+);
+wwv_flow_imp_page.create_worksheet_column(
+ p_id=>wwv_flow_imp.id(91820280000000125)
+,p_db_column_name=>'POLICY_EXPIRY'
+,p_display_order=>120
+,p_column_identifier=>'L'
+,p_column_label=>'انتهاء التأمين'
+,p_column_type=>'DATE'
+,p_heading_alignment=>'CENTER'
+,p_use_as_row_header=>'N'
+);
+wwv_flow_imp_page.create_worksheet_column(
+ p_id=>wwv_flow_imp.id(91820280000000126)
+,p_db_column_name=>'REGISTRATION_EXPIRY'
+,p_display_order=>130
+,p_column_identifier=>'M'
+,p_column_label=>'انتهاء الاستمارة'
+,p_column_type=>'DATE'
+,p_heading_alignment=>'CENTER'
+,p_use_as_row_header=>'N'
+);
+wwv_flow_imp_page.create_worksheet_column(
+ p_id=>wwv_flow_imp.id(91820280000000127)
+,p_db_column_name=>'NEXT_SERVICE_DATE'
+,p_display_order=>140
+,p_column_identifier=>'N'
+,p_column_label=>'الخدمة التالية'
+,p_column_type=>'DATE'
+,p_heading_alignment=>'CENTER'
+,p_use_as_row_header=>'N'
+);
+wwv_flow_imp_page.create_worksheet_column(
+ p_id=>wwv_flow_imp.id(91820280000000128)
+,p_db_column_name=>'NEXT_SERVICE_KM'
+,p_display_order=>150
+,p_column_identifier=>'O'
+,p_column_label=>'عند (كم)'
+,p_column_type=>'NUMBER'
+,p_heading_alignment=>'CENTER'
+,p_use_as_row_header=>'N'
+);
+wwv_flow_imp_page.create_worksheet_column(
+ p_id=>wwv_flow_imp.id(91820280000000129)
+,p_db_column_name=>'LAST_VISIT'
+,p_display_order=>160
+,p_column_identifier=>'P'
+,p_column_label=>'آخر زيارة'
+,p_column_type=>'STRING'
+,p_heading_alignment=>'CENTER'
+,p_use_as_row_header=>'N'
+);
+wwv_flow_imp_page.create_worksheet_column(
+ p_id=>wwv_flow_imp.id(91820280000000130)
+,p_db_column_name=>'VISITS'
+,p_display_order=>170
+,p_column_identifier=>'Q'
+,p_column_label=>'الزيارات'
+,p_column_type=>'NUMBER'
+,p_heading_alignment=>'CENTER'
+,p_use_as_row_header=>'N'
+);
+wwv_flow_imp_page.create_worksheet_column(
+ p_id=>wwv_flow_imp.id(91820280000000131)
+,p_db_column_name=>'SPENT'
+,p_display_order=>180
+,p_column_identifier=>'R'
+,p_column_label=>'الإنفاق'
+,p_column_type=>'NUMBER'
+,p_heading_alignment=>'CENTER'
+,p_use_as_row_header=>'N'
+);
+wwv_flow_imp_page.create_worksheet_rpt(
+ p_id=>wwv_flow_imp.id(91820280000000113)
+,p_application_user=>'APXWS_DEFAULT'
+,p_report_seq=>10
+,p_report_alias=>'113'
+,p_status=>'PUBLIC'
+,p_is_default=>'Y'
+,p_report_columns=>'PLATE_NO:MAKE:MODEL:MODEL_YEAR:COLOR:VIN:OWNER_NAME:OWNER_PHONE:ODOMETER:INSURER:POLICY_EXPIRY:REGISTRATION_EXPIRY:NEXT_SERVICE_DATE:NEXT_SERVICE_KM:LAST_VISIT:VISITS:SPENT'
+);
+
+wwv_flow_imp.component_end;
+end;
+/

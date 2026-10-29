@@ -1,7 +1,7 @@
 @echo off
 REM ===========================================================================
-REM  NOONA PLUS ERP - Demo data for finance, inventory, purchases, sales, POS, manufacturing, correspondence, HR, payroll, fixed assets, real estate, hospitality, maintenance, restaurants and hospital
-REM  Run AFTER update_windows.bat (upgrade 25). Loads once per organisation;
+REM  NOONA PLUS ERP - Demo data for finance, inventory, purchases, sales, POS, manufacturing, correspondence, HR, payroll, fixed assets, real estate, hospitality, maintenance, restaurants, hospital and auto service centers
+REM  Run AFTER update_windows.bat (upgrade 35). Loads once per organisation;
 REM  running it again adds nothing.
 REM ===========================================================================
 setlocal
@@ -58,6 +58,9 @@ sqlplus -S -L NOONA_APP/"%APP_PWD%"@%CONN% @demo/demo_localization.sql %ADMIN_US
 if errorlevel 1 goto fail
 echo.
 sqlplus -S -L NOONA_APP/"%APP_PWD%"@%CONN% @demo/demo_real_estate.sql %ADMIN_USER% < nul
+if errorlevel 1 goto fail
+echo.
+sqlplus -S -L NOONA_APP/"%APP_PWD%"@%CONN% @demo/demo_auto_service.sql %ADMIN_USER% < nul
 if errorlevel 1 goto fail
 echo.
 echo ===== Demo data loaded. Open Finance (incl. Fixed Assets), Supply Chain, Sales/POS, Manufacturing, Documents, HR and Real Estate and Hospitality, Projects and Tax to review it. Restaurants are in Sales and POS. Hospital data is in Hospital and Clinics.

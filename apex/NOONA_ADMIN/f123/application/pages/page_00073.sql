@@ -52,7 +52,7 @@ wwv_flow_imp_page.create_page_item(
 ,p_item_plug_id=>wwv_flow_imp.id(91820262000000727)
 ,p_prompt=>'الحدث'
 ,p_display_as=>'NATIVE_SELECT_LIST'
-,p_lov=>'STATIC2:كل الأحداث;*,فاتورة مبيعات مرحلة;SAL_INVOICE.POSTED,تحصيل من عميل;AR_RECEIPT.CREATED,فاتورة مورد مرحلة;AP_INVOICE.POSTED,توقيع عقد بيع وحدة;RE_SALE_CONTRACT.SIGNED,تفعيل عقد إيجار;PRP_LEASE.ACTIVATED,طلب متجر إلكتروني;ORDER.CREATED'
+,p_lov=>'STATIC2:كل الأحداث;*,فاتورة مبيعات مرحلة;SAL_INVOICE.POSTED,تحصيل من عميل;AR_RECEIPT.CREATED,فاتورة مورد مرحلة;AP_INVOICE.POSTED,توقيع عقد بيع وحدة;RE_SALE_CONTRACT.SIGNED,تفعيل عقد إيجار;PRP_LEASE.ACTIVATED,سيارة جاهزة للاستلام;AUT_JOB_CARD.READY,طلب متجر إلكتروني;ORDER.CREATED'
 ,p_cHeight=>1
 ,p_lov_display_extra=>'NO'
 ,p_field_template=>1609121967514267634

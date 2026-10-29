@@ -24,6 +24,8 @@ CREATE OR REPLACE PACKAGE NOONA_AUT_PKG AUTHID DEFINER AS
   FUNCTION payer_label(p_code IN VARCHAR2) RETURN VARCHAR2;
   FUNCTION line_type_label(p_code IN VARCHAR2) RETURN VARCHAR2;
   FUNCTION plate_key(p_plate IN VARCHAR2) RETURN VARCHAR2 DETERMINISTIC;
+  -- عرض اللوحة: الحروف مفصولة ثم الأرقام (أ ب ج 1234)
+  FUNCTION plate_label(p_plate IN VARCHAR2) RETURN VARCHAR2 DETERMINISTIC;
 
   -- ---------------------------------------------------------- الإعداد
   -- {"id","code","name","icon","color","sort","active"}
@@ -163,6 +165,21 @@ CREATE OR REPLACE PACKAGE BODY NOONA_AUT_PKG AS
     -- توحيد اللوحة: بلا مسافات وشرطات، حروف كبيرة، أرقام لاتينية
     RETURN UPPER(TRANSLATE(REGEXP_REPLACE(p_plate, '[[:space:]-]', ''), '٠١٢٣٤٥٦٧٨٩', '0123456789'));
   END plate_key;
+
+  FUNCTION plate_label(p_plate IN VARCHAR2) RETURN VARCHAR2 DETERMINISTIC IS
+    l_l VARCHAR2(100);
+    l_d VARCHAR2(100);
+    ch  VARCHAR2(4);
+  BEGIN
+    IF p_plate IS NULL THEN RETURN NULL; END IF;
+    FOR i IN 1 .. LENGTH(p_plate) LOOP
+      ch := SUBSTR(p_plate, i, 1);
+      IF ch BETWEEN '0' AND '9' THEN l_d := l_d || ch;
+      ELSIF ch <> ' ' THEN l_l := l_l || CASE WHEN l_l IS NOT NULL THEN ' ' END || ch;
+      END IF;
+    END LOOP;
+    RETURN TRIM(l_l || ' ' || l_d);
+  END plate_label;
 
   FUNCTION status_label(p_code IN VARCHAR2) RETURN VARCHAR2 IS
   BEGIN
@@ -397,7 +414,7 @@ CREATE OR REPLACE PACKAGE BODY NOONA_AUT_PKG AS
   FUNCTION vehicle_label(p_vehicle_id IN NUMBER) RETURN VARCHAR2 IS
     l VARCHAR2(400);
   BEGIN
-    SELECT plate_no || ' - ' || make || NVL2(model, ' ' || model, '') || NVL2(model_year, ' ' || model_year, '') INTO l
+    SELECT plate_label(plate_no) || ' - ' || make || NVL2(model, ' ' || model, '') || NVL2(model_year, ' ' || model_year, '') INTO l
       FROM aut_vehicle WHERE id = p_vehicle_id;
     RETURN l;
   EXCEPTION WHEN NO_DATA_FOUND THEN
@@ -472,7 +489,7 @@ CREATE OR REPLACE PACKAGE BODY NOONA_AUT_PKG AS
     l CLOB;
   BEGIN
     guard('AUT_VEHICLE.VIEW');
-    SELECT JSON_OBJECT('id' VALUE v.id, 'plate' VALUE v.plate_no, 'plateType' VALUE v.plate_type, 'vin' VALUE v.vin, 'make' VALUE v.make,
+    SELECT JSON_OBJECT('id' VALUE v.id, 'plate' VALUE plate_label(v.plate_no), 'plateType' VALUE v.plate_type, 'vin' VALUE v.vin, 'make' VALUE v.make,
                        'model' VALUE v.model, 'year' VALUE v.model_year, 'color' VALUE v.color, 'engine' VALUE v.engine, 'fuel' VALUE v.fuel_type,
                        'trans' VALUE v.transmission, 'odometer' VALUE v.odometer, 'cust' VALUE v.customer_account_id, 'ownerName' VALUE v.owner_name,
                        'ownerPhone' VALUE v.owner_phone, 'driverName' VALUE v.driver_name, 'driverPhone' VALUE v.driver_phone, 'insurer' VALUE v.insurer_id,
@@ -495,7 +512,7 @@ CREATE OR REPLACE PACKAGE BODY NOONA_AUT_PKG AS
   BEGIN
     guard('AUT_VEHICLE.VIEW');
     IF l_q IS NULL THEN RETURN '[]'; END IF;
-    SELECT JSON_ARRAYAGG(JSON_OBJECT('id' VALUE id, 'plate' VALUE plate_no, 'label' VALUE lbl, 'owner' VALUE owner_name, 'phone' VALUE owner_phone)
+    SELECT JSON_ARRAYAGG(JSON_OBJECT('id' VALUE id, 'plate' VALUE plate_label(plate_no), 'label' VALUE lbl, 'owner' VALUE owner_name, 'phone' VALUE owner_phone)
                          ORDER BY rk, plate_no RETURNING CLOB)
       INTO l
       FROM (SELECT v.id, v.plate_no, v.make || NVL2(v.model, ' ' || v.model, '') || NVL2(v.model_year, ' ' || v.model_year, '') lbl,
@@ -808,7 +825,7 @@ CREATE OR REPLACE PACKAGE BODY NOONA_AUT_PKG AS
     SELECT * INTO v FROM aut_vehicle WHERE id = l_veh AND company_id = company;
     -- لا يفتح أمران للمركبة نفسها
     SELECT COUNT(*) INTO l_n FROM aut_job_card WHERE vehicle_id = l_veh AND status_code IN ('OPEN', 'IN_PROGRESS', 'WAITING_PARTS', 'COMPLETED');
-    NOONA_CORE_PKG.assert(l_n = 0, 'NOONA-AUT-042', 'للمركبة ' || v.plate_no || ' أمر إصلاح مفتوح', 'Vehicle already has an open job card');
+    NOONA_CORE_PKG.assert(l_n = 0, 'NOONA-AUT-042', 'للمركبة ' || plate_label(v.plate_no) || ' أمر إصلاح مفتوح', 'Vehicle already has an open job card');
     NOONA_CORE_PKG.assert(l_odo IS NULL OR v.odometer IS NULL OR l_odo >= v.odometer, 'NOONA-AUT-043',
                           'قراءة العداد أقل من آخر قراءة مسجلة (' || v.odometer || ')', 'Odometer is lower than the last reading');
     NOONA_CORE_PKG.assert(l_payer <> 'INSURANCE' OR NVL(l_ins, v.insurer_id) IS NOT NULL, 'NOONA-AUT-044', 'حدد شركة التأمين', 'Insurer is required');
@@ -982,7 +999,7 @@ CREATE OR REPLACE PACKAGE BODY NOONA_AUT_PKG AS
     NOONA_CORE_PKG.assert(j.status_code = 'COMPLETED', 'NOONA-AUT-050', 'أنه العمل أولاً (جاهزة للتسليم) ثم افتر', 'Complete the job before invoicing');
     recalc(j.id);
     j := get_job(j.id);
-    SELECT plate_no INTO l_plate FROM aut_vehicle WHERE id = j.vehicle_id;
+    SELECT plate_label(plate_no) INTO l_plate FROM aut_vehicle WHERE id = j.vehicle_id;
     -- تكلفة القطع وقت البيع (لتقارير الربحية)
     UPDATE aut_job_line SET unit_cost = NOONA_INV_PKG.avg_cost(item_id)
      WHERE job_card_id = j.id AND line_type = 'PART' AND line_status <> 'CANCELLED';
@@ -1165,6 +1182,8 @@ CREATE OR REPLACE PACKAGE BODY NOONA_AUT_PKG AS
     IF a.vehicle_id IS NOT NULL THEN l_o.put('vehicle', a.vehicle_id);
     ELSIF NOT l_o.has('plate') THEN l_o.put('plate', a.plate_no);
     END IF;
+    -- مركبة جديدة من الحجز: الشركة المصنعة إلزامية للتسجيل؛ تستكمل لاحقاً من بطاقة المركبة
+    IF a.vehicle_id IS NULL AND js(l_o, 'make') IS NULL THEN l_o.put('make', 'غير محدد'); END IF;
     IF NOT l_o.has('ownerName') AND a.customer_name IS NOT NULL THEN l_o.put('ownerName', a.customer_name); END IF;
     IF NOT l_o.has('ownerPhone') AND a.phone IS NOT NULL THEN l_o.put('ownerPhone', a.phone); END IF;
     IF NOT l_o.has('bay') AND a.bay_id IS NOT NULL THEN l_o.put('bay', a.bay_id); END IF;
@@ -1201,7 +1220,8 @@ CREATE OR REPLACE PACKAGE BODY NOONA_AUT_PKG AS
       INTO l_bay FROM aut_bay WHERE company_id = company AND is_active = 'Y';
     SELECT JSON_ARRAYAGG(JSON_OBJECT('id' VALUE id, 'name' VALUE name_ar) ORDER BY name_ar RETURNING CLOB)
       INTO l_ins FROM aut_insurer WHERE company_id = company AND status_code = 'ACTIVE';
-    RETURN '{"cats":' || NVL(l_cat, '[]') || ',"techs":' || NVL(l_tech, '[]') || ',"bays":' || NVL(l_bay, '[]') || ',"insurers":' || NVL(l_ins, '[]') || '}';
+    RETURN '{"cats":' || NVL(l_cat, '[]') || ',"techs":' || NVL(l_tech, '[]') || ',"bays":' || NVL(l_bay, '[]') || ',"insurers":' || NVL(l_ins, '[]')
+        || ',"places":' || NOONA_CSH_PKG.places_json || ',"methods":' || NOONA_PUR_PKG.payment_methods_json || '}';
   END boot_json;
 
   FUNCTION job_json(p_job_id IN NUMBER) RETURN CLOB IS
@@ -1327,7 +1347,7 @@ CREATE OR REPLACE PACKAGE BODY NOONA_AUT_PKG AS
     SELECT * INTO v FROM aut_vehicle WHERE id = j.vehicle_id;
     SELECT MAX(name_ar) INTO l_ins FROM aut_insurer WHERE id = j.insurer_id;
     l_h := '<div class="nn-aut-print"><div class="nn-aut-ph"><div><h2>' || esc(NOONA_APEX_PKG.company_name) || '</h2><div>أمر إصلاح <b>'
-        || esc(j.doc_no) || '</b></div></div><div class="nn-aut-plate">' || esc(v.plate_no) || '</div></div>'
+        || esc(j.doc_no) || '</b></div></div><div class="nn-aut-plate">' || esc(plate_label(v.plate_no)) || '</div></div>'
         || '<table class="nn-aut-kv"><tr><th>المركبة</th><td>' || esc(v.make || ' ' || v.model || ' ' || v.model_year || ' ' || v.color) || '</td>'
         || '<th>رقم الهيكل</th><td dir="ltr">' || esc(v.vin) || '</td></tr><tr><th>العميل</th><td>' || esc(j.customer_name) || '</td><th>الجوال</th><td dir="ltr">'
         || esc(j.customer_phone) || '</td></tr><tr><th>الاستلام</th><td>' || ts(j.checkin_at) || '</td><th>التسليم المتوقع</th><td>' || ts(j.promised_at)
@@ -1372,7 +1392,7 @@ CREATE OR REPLACE PACKAGE BODY NOONA_AUT_PKG AS
                ORDER BY a.start_at, b.sort_order) LOOP
       l_n := l_n + 1;
       l_h := l_h || '<tr data-appt="' || a.id || '"><td>' || TO_CHAR(a.start_at, 'HH24:MI') || ' - ' || TO_CHAR(a.end_at, 'HH24:MI') || '</td><td>'
-          || esc(a.bay) || '</td><td dir="ltr"><b>' || esc(a.plate_no) || '</b></td><td>' || esc(a.customer_name) || '</td><td dir="ltr">' || esc(a.phone)
+          || esc(a.bay) || '</td><td><b>' || esc(plate_label(a.plate_no)) || '</b></td><td>' || esc(a.customer_name) || '</td><td dir="ltr">' || esc(a.phone)
           || '</td><td><small>' || esc(a.svcs) || CASE WHEN a.complaint IS NOT NULL THEN '<br>' || esc(a.complaint) END || '</small></td><td>'
           || badge(a.status_code) || CASE WHEN a.job_no IS NOT NULL THEN ' <small>' || esc(a.job_no) || '</small>' END || '</td><td class="nn-aut-act">'
           || CASE WHEN a.status_code IN ('BOOKED', 'CONFIRMED') THEN
@@ -1395,8 +1415,8 @@ CREATE OR REPLACE PACKAGE BODY NOONA_AUT_PKG AS
     guard('AUT_VEHICLE.VIEW');
     SELECT * INTO v FROM aut_vehicle WHERE id = p_vehicle_id AND company_id = company;
     SELECT NVL(SUM(total_amount), 0) INTO l_spent FROM aut_job_card WHERE vehicle_id = v.id AND status_code IN ('INVOICED', 'DELIVERED');
-    l_h := '<div class="nn-prj-chips"><span class="nn-aut-plate">' || esc(v.plate_no) || '</span><span>' || esc(v.make || ' ' || v.model || ' ' || v.model_year)
-        || '</span><span>' || esc(v.color) || '</span><span>' || esc(v.owner_name) || ' ' || esc(v.owner_phone) || '</span><span>العداد ' || NVL(TO_CHAR(v.odometer), '-')
+    l_h := '<div class="nn-prj-chips"><span class="nn-aut-plate">' || esc(plate_label(v.plate_no)) || '</span><span>' || esc(v.make || ' ' || v.model || ' ' || v.model_year)
+        || '</span>' || CASE WHEN v.color IS NOT NULL THEN '<span>' || esc(v.color) || '</span>' END || '<span>' || esc(v.owner_name) || ' ' || esc(v.owner_phone) || '</span><span>العداد ' || NVL(TO_CHAR(v.odometer), '-')
         || '</span><span>إجمالي الإنفاق ' || fmt(l_spent) || '</span>'
         || CASE WHEN v.next_service_date IS NOT NULL OR v.next_service_km IS NOT NULL THEN '<span class="' || CASE WHEN v.next_service_date <= TRUNC(SYSDATE)
              THEN 'is-danger' ELSE 'is-info' END || '">الخدمة التالية ' || TO_CHAR(v.next_service_date, 'YYYY-MM-DD')
@@ -1472,7 +1492,7 @@ CREATE OR REPLACE PACKAGE BODY NOONA_AUT_PKG AS
                  WHERE j.company_id = company AND j.status_code = c.st ORDER BY j.promised_at NULLS LAST, j.checkin_at) LOOP
         l_n := l_n + 1;
         l_h := l_h || '<a class="nn-aut-job' || CASE WHEN j.promised_at < SYSTIMESTAMP THEN ' is-late' END || '" data-job="' || j.id
-            || '" href="javascript:void(0)"><div class="nn-aut-plate">' || esc(j.plate_no) || '</div><div><b>' || esc(j.doc_no) || '</b> '
+            || '" href="javascript:void(0)"><div class="nn-aut-plate">' || esc(plate_label(j.plate_no)) || '</div><div><b>' || esc(j.doc_no) || '</b> '
             || esc(j.make || ' ' || j.model) || '</div><div><small>' || esc(j.customer_name) || '</small></div>'
             || '<div class="nn-aut-meta"><span class="fa fa-clock-o"></span> ' || TO_CHAR(j.promised_at, 'MM-DD HH24:MI')
             || CASE WHEN j.bay IS NOT NULL THEN ' · ' || esc(j.bay) END || CASE WHEN j.svc > 0 THEN ' · ' || j.done || '/' || j.svc END || '</div>'
@@ -1552,7 +1572,7 @@ CREATE OR REPLACE PACKAGE BODY NOONA_AUT_PKG AS
                    AND l.line_type IN ('SERVICE', 'SUBLET') AND l.line_status <> 'CANCELLED'
                    AND (p_param IS NULL OR l.service_id = TO_NUMBER(p_param))
                  ORDER BY j.completed_at, l.line_no) LOOP
-        r(c(ts(x.completed_at)) || c(x.doc_no) || c(x.plate_no) || c(x.description) || c(x.tech) || q(x.work_minutes) || c(payer_label(x.payer)) || n(x.net_amount));
+        r(c(ts(x.completed_at)) || c(x.doc_no) || c(plate_label(x.plate_no)) || c(x.description) || c(x.tech) || q(x.work_minutes) || c(payer_label(x.payer)) || n(x.net_amount));
         s1 := s1 + NVL(x.work_minutes, 0); s2 := s2 + NVL(x.net_amount, 0);
       END LOOP;
       RETURN foot('<th colspan="5">الإجمالي</th>' || q(s1) || '<td></td>' || n(s2));
@@ -1565,7 +1585,7 @@ CREATE OR REPLACE PACKAGE BODY NOONA_AUT_PKG AS
                  WHERE j.company_id = l_co AND j.status_code IN ('INVOICED', 'DELIVERED') AND j.completed_at >= l_f AND j.completed_at < l_t
                    AND l.line_type = 'PART' AND l.line_status <> 'CANCELLED' AND (p_param IS NULL OR l.item_id = TO_NUMBER(p_param))
                  ORDER BY j.completed_at, l.line_no) LOOP
-        r(c(ts(x.completed_at)) || c(x.doc_no) || c(x.plate_no) || c(x.description) || c(x.item_no) || q(x.quantity) || n(x.unit_price) || n(x.net_amount)
+        r(c(ts(x.completed_at)) || c(x.doc_no) || c(plate_label(x.plate_no)) || c(x.description) || c(x.item_no) || q(x.quantity) || n(x.unit_price) || n(x.net_amount)
           || n(x.cost) || n(x.net_amount - x.cost));
         s1 := s1 + x.quantity; s2 := s2 + NVL(x.net_amount, 0); s3 := s3 + x.cost;
       END LOOP;
@@ -1622,7 +1642,7 @@ CREATE OR REPLACE PACKAGE BODY NOONA_AUT_PKG AS
                   FROM aut_job_card j JOIN aut_vehicle v ON v.id = j.vehicle_id
                  WHERE j.company_id = l_co AND j.checkin_at >= l_f AND j.checkin_at < l_t AND j.status_code <> 'CANCELLED'
                  ORDER BY hrs DESC) LOOP
-        r(c(x.doc_no) || c(x.plate_no) || c(x.veh) || c(ts(x.checkin_at)) || c(ts(x.promised_at)) || c(ts(x.delivered_at)) || q(x.hrs) || q(x.whrs)
+        r(c(x.doc_no) || c(plate_label(x.plate_no)) || c(x.veh) || c(ts(x.checkin_at)) || c(ts(x.promised_at)) || c(ts(x.delivered_at)) || q(x.hrs) || q(x.whrs)
           || '<td>' || CASE WHEN x.late > 0 THEN '<span class="nn-badge is-danger">' || x.late || ' س</span>' ELSE '<span class="nn-badge is-success">في الموعد</span>' END
           || '</td><td>' || badge(x.status_code) || '</td>');
         s1 := s1 + x.hrs; s2 := s2 + CASE WHEN x.late > 0 THEN 1 ELSE 0 END;
@@ -1668,7 +1688,7 @@ CREATE OR REPLACE PACKAGE BODY NOONA_AUT_PKG AS
                   SELECT v.plate_no, v.make || ' ' || v.model, v.owner_name, v.owner_phone, 'انتهاء الاستمارة', v.registration_expiry, NULL
                     FROM aut_vehicle v WHERE v.company_id = l_co AND v.status_code = 'ACTIVE' AND v.registration_expiry < l_t)
                 ORDER BY d) LOOP
-        r(c(x.plate_no) || c(x.veh) || c(x.owner_name) || '<td dir="ltr">' || esc(x.owner_phone) || '</td>' || c(x.what)
+        r(c(plate_label(x.plate_no)) || c(x.veh) || c(x.owner_name) || '<td dir="ltr">' || esc(x.owner_phone) || '</td>' || c(x.what)
           || '<td>' || CASE WHEN x.d < TRUNC(SYSDATE) THEN '<span class="nn-badge is-danger">' ELSE '<span class="nn-badge is-warning">' END
           || TO_CHAR(x.d, 'YYYY-MM-DD') || '</span></td>' || q(x.km));
       END LOOP;
@@ -1690,7 +1710,7 @@ CREATE OR REPLACE PACKAGE BODY NOONA_AUT_PKG AS
                   FROM aut_job_card j JOIN aut_vehicle v ON v.id = j.vehicle_id
                  WHERE j.company_id = l_co AND j.status_code IN ('INVOICED', 'DELIVERED') AND j.completed_at >= l_f AND j.completed_at < l_t
                  GROUP BY v.plate_no, v.make || ' ' || v.model, NVL(j.customer_name, v.owner_name) ORDER BY tot DESC FETCH FIRST 30 ROWS ONLY) LOOP
-        r('<td>' || (l_n + 1) || '</td>' || c(x.plate_no) || c(x.veh) || c(x.cust) || q(x.visits) || n(x.svc) || n(x.prt) || n(x.tot) || c(ts(x.last_at)));
+        r('<td>' || (l_n + 1) || '</td>' || c(plate_label(x.plate_no)) || c(x.veh) || c(x.cust) || q(x.visits) || n(x.svc) || n(x.prt) || n(x.tot) || c(ts(x.last_at)));
       END LOOP;
       RETURN foot(NULL);
     END IF;
@@ -1713,7 +1733,7 @@ CREATE OR REPLACE PACKAGE BODY NOONA_AUT_PKG AS
                  AND (p_status IS NULL OR j.claim_status = p_status OR (p_status = 'OPEN' AND NVL(j.claim_status, 'NOT_SUBMITTED') NOT IN ('PAID', 'REJECTED')))
                ORDER BY j.checkin_at DESC) LOOP
       l_n := l_n + 1;
-      l_h := l_h || '<tr data-job="' || x.id || '"><td><b>' || esc(x.doc_no) || '</b></td><td>' || esc(x.plate_no) || '</td><td>' || esc(x.ins) || '</td><td dir="ltr">'
+      l_h := l_h || '<tr data-job="' || x.id || '"><td><b>' || esc(x.doc_no) || '</b></td><td>' || esc(plate_label(x.plate_no)) || '</td><td>' || esc(x.ins) || '</td><td dir="ltr">'
           || esc(x.claim_no) || '</td><td dir="ltr">' || esc(x.accident_report_no) || '</td><td class="n">' || fmt(x.claimed) || '</td><td class="n">'
           || fmt(x.approved_amount) || '</td><td class="n">' || fmt(x.deductible_amount) || '</td><td>' || esc(x.inv_no)
           || CASE WHEN x.due_date IS NOT NULL THEN ' <small>' || TO_CHAR(x.due_date, 'YYYY-MM-DD') || '</small>' END || '</td><td>'

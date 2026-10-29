@@ -6,7 +6,7 @@
 """
 
 EVENTS = ('STATIC2:كل الأحداث;*,فاتورة مبيعات مرحلة;SAL_INVOICE.POSTED,تحصيل من عميل;AR_RECEIPT.CREATED,'
-          'فاتورة مورد مرحلة;AP_INVOICE.POSTED,توقيع عقد بيع وحدة;RE_SALE_CONTRACT.SIGNED,تفعيل عقد إيجار;PRP_LEASE.ACTIVATED,'
+          'فاتورة مورد مرحلة;AP_INVOICE.POSTED,توقيع عقد بيع وحدة;RE_SALE_CONTRACT.SIGNED,تفعيل عقد إيجار;PRP_LEASE.ACTIVATED,سيارة جاهزة للاستلام;AUT_JOB_CARD.READY,'
           'طلب متجر إلكتروني;ORDER.CREATED')
 
 # قراءة ملف مرفوع (APEX_APPLICATION_TEMP_FILES) نصاً UTF-8

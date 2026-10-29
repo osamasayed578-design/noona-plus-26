@@ -282,6 +282,8 @@ SELECT app_alias, sort_order, app_name_ar, app_name_en, icon_class,
                'السجل العقاري والفنادق والشقق الفندقية والصيانة والمشروعات' FROM dual UNION ALL
         SELECT 'NOONA_HIS', 65, 'المستشفيات والمراكز الطبية', 'Hospital & Clinics', 'fa-hospital-o', 'HIS',
                'المواعيد والزيارات والمعامل والأشعة والتأمين' FROM dual UNION ALL
+        SELECT 'NOONA_AUTO', 67, 'مراكز خدمة السيارات', 'Auto Service Centers', 'fa-car', 'AUT',
+               'الحجوزات وأوامر الإصلاح والخدمات وقطع الغيار والتأمين' FROM dual UNION ALL
         SELECT 'NOONA_MFG', 70, 'التصنيع', 'Manufacturing', 'fa-industry', 'MFG,QA',
                'أوامر الإنتاج والجودة' FROM dual UNION ALL
         SELECT 'NOONA_DOC', 80, 'المستندات والمراسلات', 'Documents & Correspondence', 'fa-folder-open', 'DMS,COR',

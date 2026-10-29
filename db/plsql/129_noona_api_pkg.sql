@@ -181,7 +181,7 @@ CREATE OR REPLACE PACKAGE BODY NOONA_API_PKG AS
   BEGIN
     l := CASE p_event WHEN 'SAL_INVOICE.POSTED' THEN 'فاتورة مبيعات مرحلة' WHEN 'AR_RECEIPT.CREATED' THEN 'تحصيل من عميل'
       WHEN 'AP_INVOICE.POSTED' THEN 'فاتورة مورد مرحلة' WHEN 'RE_SALE_CONTRACT.SIGNED' THEN 'توقيع عقد بيع وحدة'
-      WHEN 'PRP_LEASE.ACTIVATED' THEN 'تفعيل عقد إيجار' WHEN 'ORDER.CREATED' THEN 'طلب متجر إلكتروني' WHEN 'PING' THEN 'اختبار'
+      WHEN 'PRP_LEASE.ACTIVATED' THEN 'تفعيل عقد إيجار' WHEN 'AUT_JOB_CARD.READY' THEN 'سيارة جاهزة للاستلام' WHEN 'ORDER.CREATED' THEN 'طلب متجر إلكتروني' WHEN 'PING' THEN 'اختبار'
       WHEN '*' THEN 'كل الأحداث' END;
     RETURN NVL(l, p_event);
   END event_label;
@@ -870,6 +870,13 @@ CREATE OR REPLACE PACKAGE BODY NOONA_API_PKG AS
              (SELECT MAX(mobile) FROM ref_contact x WHERE x.party_id = l.lessee_party_id), p.display_name_ar, l.doc_no, l.annual_rent
         INTO l_data, l_mobile, l_name, l_no, l_total
         FROM prp_lease l JOIN pty_party p ON p.id = l.lessee_party_id WHERE l.id = p_id;
+    ELSIF p_entity = 'AUT_JOB_CARD' THEN
+      SELECT JSON_OBJECT('id' VALUE j.id, 'number' VALUE j.doc_no, 'plate' VALUE v.plate_no, 'vehicle' VALUE v.make || ' ' || v.model,
+                         'customer' VALUE j.customer_name, 'total' VALUE j.total_amount,
+                         'completed' VALUE TO_CHAR(j.completed_at, 'YYYY-MM-DD"T"HH24:MI:SS')),
+             j.customer_phone, j.customer_name, j.doc_no || ' / ' || v.plate_no, j.total_amount
+        INTO l_data, l_mobile, l_name, l_no, l_total
+        FROM aut_job_card j JOIN aut_vehicle v ON v.id = j.vehicle_id WHERE j.id = p_id;
     END IF;
     l_key := random_key(10);
     SELECT JSON_OBJECT('event' VALUE p_event, 'id' VALUE l_key, 'occurredAt' VALUE TO_CHAR(SYS_EXTRACT_UTC(SYSTIMESTAMP), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'),
@@ -939,7 +946,7 @@ CREATE OR REPLACE PACKAGE BODY NOONA_API_PKG AS
     guard('API_WEBHOOK_SUBSCRIPTION.' || CASE WHEN l_id IS NULL THEN 'CREATE' ELSE 'UPDATE' END);
     NOONA_CORE_PKG.assert(REGEXP_LIKE(l_url, '^(https?|test)://'), 'NOONA-API-010', 'عنوان الاستقبال يبدأ بـ https://', 'Target URL must start with https://');
     NOONA_CORE_PKG.assert(l_ev = '*' OR l_ev IN ('SAL_INVOICE.POSTED', 'AR_RECEIPT.CREATED', 'AP_INVOICE.POSTED', 'RE_SALE_CONTRACT.SIGNED',
-                                                 'PRP_LEASE.ACTIVATED', 'ORDER.CREATED', 'PING'), 'NOONA-API-011', 'حدث غير معروف: ' || l_ev, 'Unknown event');
+                                                 'PRP_LEASE.ACTIVATED', 'AUT_JOB_CARD.READY', 'ORDER.CREATED', 'PING'), 'NOONA-API-011', 'حدث غير معروف: ' || l_ev, 'Unknown event');
     IF l_id IS NULL THEN
       l_secret := 'whsec_' || random_key(20);
       l_enc := encrypt(l_secret);
