@@ -304,6 +304,32 @@ CREATE OR REPLACE PACKAGE BODY NOONA_UI_PKG AS
       WHEN 'TRIAL' THEN 'تجريبي' WHEN 'PENDING_ACTIVATION' THEN 'بانتظار التفعيل' WHEN 'READ_ONLY' THEN 'قراءة فقط' WHEN 'GRACE_PERIOD' THEN 'فترة سماح'
       WHEN 'POSTED' THEN 'مرحل' WHEN 'SETTLED' THEN 'مرحل' WHEN 'REVERSED' THEN 'معكوس'
       WHEN 'OPEN' THEN 'مفتوحة' WHEN 'FUTURE' THEN 'مستقبلية' WHEN 'PERMANENTLY_CLOSED' THEN 'مقفلة نهائياً'
+      -- الدفع والتحصيل والمستندات التجارية
+      WHEN 'PAID' THEN 'مدفوع' WHEN 'PARTIALLY_PAID' THEN 'مدفوع جزئياً' WHEN 'OVERDUE' THEN 'متأخر' WHEN 'APPLIED' THEN 'مخصص'
+      WHEN 'CONFIRMED' THEN 'مؤكد' WHEN 'REFUNDED' THEN 'مسترد' WHEN 'PARTIALLY_RETURNED' THEN 'مرتجع جزئياً' WHEN 'RETURNED' THEN 'معاد'
+      WHEN 'RECEIVED' THEN 'مستلم' WHEN 'PARTIALLY_RECEIVED' THEN 'مستلم جزئياً' WHEN 'INVOICED' THEN 'مفوتر' WHEN 'BILLED' THEN 'مفوتر'
+      WHEN 'CHARGED' THEN 'محمل على الغرفة' WHEN 'DEDUCTED' THEN 'مخصوم' WHEN 'ACCRUED' THEN 'مستحق' WHEN 'HELD' THEN 'محتجز'
+      WHEN 'PAYMENT_CONFIRMED' THEN 'تم تأكيد الدفع' WHEN 'TRANSFERRED' THEN 'محول'
+      -- المطابقة والتكامل والفاتورة الإلكترونية
+      WHEN 'RECONCILED' THEN 'مطابق' WHEN 'RECONCILING' THEN 'قيد المطابقة' WHEN 'UNMATCHED' THEN 'غير مطابق' WHEN 'IGNORED' THEN 'متجاهل'
+      WHEN 'ACCEPTED' THEN 'مقبول' WHEN 'CLEARED' THEN 'معتمد من الهيئة' WHEN 'SENT' THEN 'مرسل' WHEN 'DELIVERED' THEN 'مسلم'
+      WHEN 'PARTIAL' THEN 'جزئي' WHEN 'CREATED' THEN 'منشأ' WHEN 'READ' THEN 'مقروء' WHEN 'VIEWED' THEN 'تمت المشاهدة'
+      WHEN 'PROCESSED' THEN 'معالج' WHEN 'DONE' THEN 'منجز' WHEN 'STORED' THEN 'محفوظ' WHEN 'CURRENT' THEN 'الحالي'
+      WHEN 'ISSUED' THEN 'صادر' WHEN 'DISTRIBUTED' THEN 'موزع' WHEN 'ASSIGNED' THEN 'مسند'
+      -- التشغيل والإنتاج والصيانة
+      WHEN 'NEW' THEN 'جديد' WHEN 'IN_PROGRESS' THEN 'قيد التنفيذ' WHEN 'ON_HOLD' THEN 'متوقف مؤقتاً' WHEN 'RELEASED' THEN 'مطلق'
+      WHEN 'CONDITIONAL' THEN 'مقبول بشرط' WHEN 'WAITING_PARTS' THEN 'بانتظار قطع' WHEN 'INSPECTED' THEN 'تم الفحص'
+      WHEN 'IN_SERVICE' THEN 'في الخدمة' WHEN 'OUT_OF_SERVICE' THEN 'خارج الخدمة' WHEN 'OUT_OF_ORDER' THEN 'معطل'
+      WHEN 'DISPOSED' THEN 'مستبعد' WHEN 'OPERATIONAL' THEN 'تشغيلي' WHEN 'BASELINE' THEN 'أساسية' WHEN 'AVAILABLE' THEN 'متاح'
+      -- العقارات والضيافة
+      WHEN 'RESERVED' THEN 'محجوز' WHEN 'SOLD' THEN 'مباع' WHEN 'LEASED' THEN 'مؤجر' WHEN 'UNDER_MAINTENANCE' THEN 'تحت الصيانة'
+      WHEN 'CONVERTED' THEN 'محول لعقد' WHEN 'SIGNED' THEN 'موقع' WHEN 'REGISTERED' THEN 'مسجل' WHEN 'READY_FOR_HANDOVER' THEN 'جاهز للتسليم'
+      WHEN 'SNAGS_OPEN' THEN 'ملاحظات مفتوحة' WHEN 'GUARANTEED' THEN 'مضمون' WHEN 'CHECKED_IN' THEN 'تم الوصول' WHEN 'CHECKED_OUT' THEN 'غادر'
+      WHEN 'IN_HOUSE' THEN 'مقيم'
+      -- المستشفيات والمواعيد والموارد البشرية
+      WHEN 'BOOKED' THEN 'محجوز' WHEN 'ARRIVED' THEN 'حضر' WHEN 'ADMITTED' THEN 'منوم' WHEN 'ORDERED' THEN 'مطلوب'
+      WHEN 'APPROVAL_PENDING' THEN 'بانتظار الموافقة' WHEN 'DISPENSED' THEN 'مصروف' WHEN 'EXTERNAL' THEN 'خارجي'
+      WHEN 'GIVEN' THEN 'أعطيت' WHEN 'MISSED' THEN 'فائتة' WHEN 'NOTICE_PERIOD' THEN 'فترة إنذار' WHEN 'SETTLEMENT_CALCULATED' THEN 'تمت تسوية المستحقات'
       ELSE p_code END;
   END status_label;
 
@@ -312,12 +338,17 @@ CREATE OR REPLACE PACKAGE BODY NOONA_UI_PKG AS
   BEGIN
     l_class := CASE
       WHEN p_code IN ('ACTIVE', 'PASSED', 'APPROVED', 'EFFECTIVE', 'COMPLETED', 'OCCUPIED', 'SUCCESS', 'PUBLISHED',
-                      'POSTED', 'SETTLED', 'OPEN') THEN 'is-success'
+                      'POSTED', 'SETTLED', 'OPEN', 'PAID', 'CONFIRMED', 'RECEIVED', 'RECONCILED', 'ACCEPTED', 'CLEARED', 'DELIVERED',
+                      'DONE', 'ISSUED', 'IN_SERVICE', 'AVAILABLE', 'SIGNED', 'REGISTERED', 'CHECKED_IN', 'IN_HOUSE', 'DISPENSED', 'GIVEN',
+                      'OPERATIONAL', 'APPLIED', 'INVOICED', 'BILLED') THEN 'is-success'
       WHEN p_code IN ('FAILED', 'DENIED', 'REJECTED', 'SUSPENDED', 'CLOSED', 'REVOKED', 'CANCELLED', 'LOCKED', 'TRANSACTIONS_BLOCKED',
-                      'REVERSED') THEN 'is-danger'
+                      'REVERSED', 'OVERDUE', 'OUT_OF_SERVICE', 'OUT_OF_ORDER', 'MISSED', 'UNMATCHED', 'DISPOSED') THEN 'is-danger'
       WHEN p_code IN ('PENDING', 'SUBMITTED', 'UNDER_CONFIGURATION', 'READY_FOR_REVIEW', 'WAIVED', 'CLOSING', 'WAITING',
-                      'UNDER_REVIEW', 'GRACE_PERIOD', 'READ_ONLY', 'VACANT') THEN 'is-warning'
-      WHEN p_code IN ('DRAFT', 'SCHEDULED', 'RUNNING', 'TRIAL', 'PLANNED', 'INVITED') THEN 'is-info'
+                      'UNDER_REVIEW', 'GRACE_PERIOD', 'READ_ONLY', 'VACANT', 'PARTIALLY_PAID', 'PARTIALLY_RECEIVED', 'PARTIALLY_RETURNED',
+                      'PARTIAL', 'ON_HOLD', 'WAITING_PARTS', 'APPROVAL_PENDING', 'RECONCILING', 'CONDITIONAL', 'UNDER_MAINTENANCE',
+                      'SNAGS_OPEN', 'NOTICE_PERIOD', 'RESERVED', 'HELD') THEN 'is-warning'
+      WHEN p_code IN ('DRAFT', 'SCHEDULED', 'RUNNING', 'TRIAL', 'PLANNED', 'INVITED', 'NEW', 'IN_PROGRESS', 'RELEASED', 'BOOKED', 'ARRIVED',
+                      'ADMITTED', 'ORDERED', 'ASSIGNED', 'SENT', 'READY_FOR_HANDOVER', 'GUARANTEED', 'LEASED', 'SOLD') THEN 'is-info'
       ELSE 'is-muted' END;
     RETURN '<span class="nn-badge ' || l_class || '">' || esc(status_label(p_code)) || '</span>';
   END status_badge;

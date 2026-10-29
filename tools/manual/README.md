@@ -63,3 +63,16 @@ sqlplus NOONA_APP@... @tools/manual/video/prep_finance_role.sql <المسؤول>
 NOONA_VADMIN=<المسؤول> NOONA_VACC=<المحاسبة> NOONA_VPWD='...' node tools/manual/video/v01_finance.js out/v01
 ffmpeg -i out/v01/v01_finance.webm -c:v libx264 -crf 26 -pix_fmt yuv420p -movflags +faststart 02_المالية.mp4
 ```
+
+## السلسلة الثانية: الفيديوهات الشاملة (كل الشاشات + المرتجعات)
+
+`video2/tour.js` يجول على كل شاشات الموديول من الكتالوج نفسه: لكل شاشة الغرض منها، ثم إبراز الحقول (الإلزامي ونوعه وقيمه)
+والأعمدة والأزرار واحداً واحداً بشرحها، ثم خطوات الإدخال والملاحظات والبدائل. `video2/returns.js` مشاهد إدخال حقيقي داخل الجولة:
+مرتجع المشتريات، مرتجع المبيعات (إشعار دائن)، مرتجع نقطة البيع (F8) بعد بيع حقيقي، وإرجاع خامات أمر الإنتاج.
+لا يعدل فيديوهات السلسلة الأولى؛ المخرجات في `apex/_manual/out/video2/`.
+
+```bash
+python3 tools/manual/video2/export_specs.py /tmp/specs.json
+PW_PATH=... NOONA_PWD_ADMIN=... NOONA_PWD_PLATFORM=... node tools/manual/video2/tour.js /tmp/specs.json m02 <outDir> 3
+ONLY=scm-preturn,pos-return node tools/manual/video2/tour.js ...     # شاشات محددة للتجربة
+```
