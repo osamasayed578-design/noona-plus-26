@@ -42,6 +42,19 @@ CREATE OR REPLACE PACKAGE BODY NOONA_REFERENCE_PKG AS
     l_seq     ref_doc_sequence%ROWTYPE;
     l_no      VARCHAR2(80);
   BEGIN
+    -- سنة بلا تسلسل وللمستند تسلسل سنوي في سنة أخرى: ينشأ تسلسل السنة من إعداداته ويبدأ من 1
+    INSERT INTO ref_doc_sequence (company_id, branch_id, doc_type_code, fiscal_year, prefix, suffix, next_number, padding,
+                                  is_gapless, reset_policy, is_active)
+    SELECT s.company_id, s.branch_id, s.doc_type_code, l_year, s.prefix, s.suffix, 1, s.padding, s.is_gapless, s.reset_policy, 'Y'
+      FROM (SELECT x.* FROM ref_doc_sequence x
+             WHERE x.company_id = l_company AND x.doc_type_code = p_doc_type AND x.is_active = 'Y'
+               AND x.reset_policy = 'YEARLY' AND x.fiscal_year IS NOT NULL AND x.branch_id IS NULL
+             ORDER BY x.fiscal_year DESC) s
+     WHERE ROWNUM = 1
+       AND NOT EXISTS (SELECT 1 FROM ref_doc_sequence y
+                        WHERE y.company_id = l_company AND y.doc_type_code = p_doc_type AND y.is_active = 'Y'
+                          AND (y.fiscal_year = l_year OR y.fiscal_year IS NULL)
+                          AND (y.branch_id = p_branch_id OR y.branch_id IS NULL));
     -- أولوية: تسلسل الفرع والسنة، ثم الفرع، ثم الشركة والسنة، ثم الشركة
     SELECT * INTO l_seq
       FROM (SELECT s.*

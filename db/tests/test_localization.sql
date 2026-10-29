@@ -250,6 +250,12 @@ BEGIN
   ok('filed with authority reference', ret(l_ret).status_code = 'FILED' AND ret(l_ret).gov_reference = 'ZATCA-' || l_sfx, ret(l_ret).status_code);
   BEGIN NOONA_LOC_PKG.reopen_return(l_ret, 'x'); ok('filed return cannot reopen', FALSE);
   EXCEPTION WHEN OTHERS THEN expect('filed return cannot reopen', 'NOONA-LOC-044', SQLERRM); END;
+  -- تغذية صندوق الاختبار: صافي الإقرار يشمل ضريبة كل حركات الفترة في الشركة (يتراكم مع إعادة تشغيل الاختبارات)
+  r := ret(l_ret);
+  IF NOONA_CSH_PKG.balance(l_box, NULL) < r.net_payable + 1000 THEN
+    l_n := NOONA_SAL_PKG.save_invoice('{"date":"' || l_d || '","mode":"CASH","place":"BOX:' || l_box || '","action":"POST","lines":[{"i":'
+                                      || l_item || ',"q":1,"p":' || CEIL(r.net_payable + 1000) || '}]}');
+  END IF;
   l_n := NOONA_CSH_PKG.balance(l_box, NULL);
   NOONA_LOC_PKG.pay_return(l_ret, 'BOX:' || l_box);
   r := ret(l_ret);

@@ -541,7 +541,8 @@ CREATE OR REPLACE PACKAGE BODY NOONA_DMS_PKG AS
     IF l_hasfile THEN
       l_content := store_content(l_type, p_file_name, p_mime, p_content);
     END IF;
-    l_no := NOONA_REFERENCE_PKG.next_doc_no('DMS_ARCHIVE', company, NULL, NVL(p_doc_date, TRUNC(SYSDATE)), 'DMS_DOCUMENT', NULL);
+    -- رقم الأرشيف بسنة الأرشفة لا بتاريخ المستند (مستند قديم كسجل صادر العام الماضي يؤرشف اليوم)
+    l_no := NOONA_REFERENCE_PKG.next_doc_no('DMS_ARCHIVE', company, NULL, TRUNC(SYSDATE), 'DMS_DOCUMENT', NULL);
     INSERT INTO dms_document (company_id, branch_id, document_type_id, reference_no, external_ref, physical_location, title, description,
                               origin_type, owner_member_id, document_date, valid_from, valid_to, status_code, confidentiality_level)
     VALUES (company, TO_NUMBER(SYS_CONTEXT('NOONA_CTX', 'BRANCH_ID')), l_type.id, l_no, TRIM(p_external_ref), TRIM(p_location),

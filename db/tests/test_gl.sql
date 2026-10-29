@@ -139,6 +139,9 @@ BEGIN
   SELECT COUNT(*) INTO l_n FROM ref_doc_sequence WHERE company_id = NOONA_GL_PKG.company AND doc_type_code = 'GL_JOURNAL'
      AND fiscal_year = (SELECT EXTRACT(YEAR FROM MAX(start_date)) FROM gl_fiscal_year WHERE company_id = NOONA_GL_PKG.company);
   ok('journal numbering exists for the latest year', l_n >= 1, l_n);
+  -- سنة بلا تسلسل (مستند بتاريخ قديم): ينشأ تسلسلها تلقائياً من إعدادات التسلسل السنوي ويبدأ من 1
+  l_s := NOONA_REFERENCE_PKG.next_doc_no('GL_JOURNAL', NOONA_GL_PKG.company, NULL, DATE '2019-06-01');
+  ok('missing year gets its own yearly numbering', l_s LIKE 'JV-2019-%1', l_s);
 
   ROLLBACK;
   NOONA_APEX_PKG.cleanup_request;
