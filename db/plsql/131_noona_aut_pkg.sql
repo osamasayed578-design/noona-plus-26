@@ -252,6 +252,45 @@ CREATE OR REPLACE PACKAGE BODY NOONA_AUT_PKG AS
       INSERT INTO aut_bay (company_id, code, name_ar, bay_type, sort_order) VALUES (company, 'L1', 'رافعة 1', 'LIFT', 1);
       INSERT INTO aut_bay (company_id, code, name_ar, bay_type, sort_order) VALUES (company, 'L2', 'رافعة 2', 'LIFT', 2);
     END IF;
+    -- فئات وخدمات افتراضية لمركز جديد (تعدل أسعارها وتضاف قطعها من «الخدمات وقطعها»)
+    SELECT COUNT(*) INTO l_n FROM aut_service_category WHERE company_id = company;
+    IF l_n = 0 THEN
+      DECLARE
+        TYPE t_ids IS TABLE OF NUMBER INDEX BY VARCHAR2(10);
+        c t_ids;
+        PROCEDURE cat(k VARCHAR2, n VARCHAR2, i VARCHAR2, col VARCHAR2, srt NUMBER) IS
+        BEGIN
+          c(k) := save_category('{"code":"' || k || '","name":"' || n || '","icon":"' || i || '","color":"' || col || '","sort":' || srt || '}');
+        END cat;
+        PROCEDURE svc(k VARCHAR2, ck VARCHAR2, n VARCHAR2, pr NUMBER, mins NUMBER, i VARCHAR2, nd NUMBER DEFAULT NULL, nk NUMBER DEFAULT NULL,
+                      w NUMBER DEFAULT 30) IS
+        BEGIN
+          l_x := save_service('{"code":"' || k || '","name":"' || n || '","cat":' || c(ck) || ',"price":' || pr || ',"minutes":' || mins
+                 || ',"icon":"' || i || '","warrantyDays":' || w || CASE WHEN nd IS NOT NULL THEN ',"nextDays":' || nd END
+                 || CASE WHEN nk IS NOT NULL THEN ',"nextKm":' || nk END || '}');
+        END svc;
+      BEGIN
+        cat('OIL', 'زيوت وفلاتر', 'fa-tint', '#e65100', 1);
+        cat('MECH', 'ميكانيكا وفرامل', 'fa-cogs', '#1565c0', 2);
+        cat('ELEC', 'كهرباء وبطاريات', 'fa-bolt', '#f9a825', 3);
+        cat('DIAG', 'فحص وكمبيوتر', 'fa-laptop', '#6a1b9a', 4);
+        cat('TIRE', 'إطارات وميزان', 'fa-circle-o-notch', '#37474f', 5);
+        cat('AC', 'تكييف', 'fa-snowflake-o', '#0288d1', 6);
+        cat('BODY', 'سمكرة ودهان', 'fa-paint-brush', '#c62828', 7);
+        cat('WASH', 'غسيل وتلميع', 'fa-shower', '#2e7d32', 8);
+        svc('OIL-CHG', 'OIL', 'تغيير زيت مع الفلتر', 50, 30, 'fa-tint', 90, 5000);
+        svc('ATF', 'OIL', 'تغيير زيت القير', 120, 45, 'fa-exchange', 365, 40000);
+        svc('BRK-F', 'MECH', 'تغيير فحمات أمامية', 150, 60, 'fa-stop-circle');
+        svc('SPARK', 'MECH', 'تغيير البواجي', 120, 45, 'fa-fire', 730, 60000);
+        svc('BATT', 'ELEC', 'تركيب بطارية وفحص الشحن', 30, 15, 'fa-battery-full');
+        svc('DIAG', 'DIAG', 'فحص كمبيوتر شامل', 150, 30, 'fa-laptop');
+        svc('ALIGN', 'TIRE', 'ميزان أذرعة', 120, 40, 'fa-arrows-h', 180, 10000);
+        svc('BAL', 'TIRE', 'ترصيص الإطارات (4)', 60, 30, 'fa-circle-o-notch');
+        svc('AC-GAS', 'AC', 'تعبئة غاز المكيف وفحص التسريب', 180, 60, 'fa-snowflake-o', 365);
+        svc('BODY-P', 'BODY', 'سمكرة ودهان قطعة', 650, 480, 'fa-paint-brush', NULL, NULL, 180);
+        svc('WASH', 'WASH', 'غسيل داخلي وخارجي', 70, 45, 'fa-shower', NULL, NULL, 0);
+      END;
+    END IF;
     RETURN 1;
   END quick_setup;
 
