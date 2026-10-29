@@ -81,6 +81,16 @@ BEGIN
   NOONA_VPD_PKG.add_shared_policy('AUD_ALERT_RULE');
   NOONA_VPD_PKG.add_shared_policy('AUD_EVENT');
   NOONA_VPD_PKG.add_shared_policy('AUD_HASH_ANCHOR');
+  NOONA_VPD_PKG.add_tenant_policy('AUT_APPOINTMENT');
+  NOONA_VPD_PKG.add_tenant_policy('AUT_BAY');
+  NOONA_VPD_PKG.add_tenant_policy('AUT_INSURER');
+  NOONA_VPD_PKG.add_tenant_policy('AUT_JOB_CARD');
+  NOONA_VPD_PKG.add_tenant_policy('AUT_JOB_LINE');
+  NOONA_VPD_PKG.add_tenant_policy('AUT_SERVICE');
+  NOONA_VPD_PKG.add_tenant_policy('AUT_SERVICE_CATEGORY');
+  NOONA_VPD_PKG.add_tenant_policy('AUT_SERVICE_PART');
+  NOONA_VPD_PKG.add_tenant_policy('AUT_TECHNICIAN');
+  NOONA_VPD_PKG.add_tenant_policy('AUT_VEHICLE');
   NOONA_VPD_PKG.add_shared_policy('BI_DASHBOARD');
   NOONA_VPD_PKG.add_shared_policy('BI_DASHBOARD_WIDGET');
   NOONA_VPD_PKG.add_tenant_policy('BI_EXPORT_LOG');

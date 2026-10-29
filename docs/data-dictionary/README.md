@@ -52,6 +52,7 @@
 | 29 | النشر الإنتاجي والإصدارات | Deployment & Release Management | `NOONA_DEPLOYMENT_PKG` | 6 | [p29_dep](p29_dep.md) |
 | 30 | التشغيل والدعم والتطوير المستمر | Operations, Support & Continuous Improvement | `NOONA_OPERATIONS_PKG` | 12 | [p30_ops](p30_ops.md) |
 | 31 | المستشفيات والمراكز الطبية | Hospital & Clinics | `NOONA_HIS_PKG` | 40 | [p31_his](p31_his.md) |
+| 32 | مراكز خدمة السيارات | Auto Service Centers | `NOONA_AUT_PKG` | 10 | [p32_aut](p32_aut.md) |
 
-**الإجمالي:** 621 جدول · 10898 عمود.
+**الإجمالي:** 631 جدول · 11138 عمود.
 

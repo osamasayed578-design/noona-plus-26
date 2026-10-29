@@ -37,8 +37,9 @@
 | 29 | النشر الإنتاجي والإصدارات | Deployment & Release Management | 6 | [p29_dep](p29_dep.md) |
 | 30 | التشغيل والدعم والتطوير المستمر | Operations, Support & Continuous Improvement | 12 | [p30_ops](p30_ops.md) |
 | 31 | المستشفيات والمراكز الطبية | Hospital & Clinics | 40 | [p31_his](p31_his.md) |
+| 32 | مراكز خدمة السيارات | Auto Service Centers | 10 | [p32_aut](p32_aut.md) |
 
-**الإجمالي: 621 جدول.**
+**الإجمالي: 631 جدول.**
 
 ## خريطة اعتماديات الحزم
 
@@ -77,6 +78,7 @@ flowchart LR
   DEP["29 DEP<br/>Deployment & Release Management"]
   OPS["30 OPS<br/>Operations, Support & Continuous Improvement"]
   HIS["31 HIS<br/>Hospital & Clinics"]
+  AUT["32 AUT<br/>Auto Service Centers"]
   AI --> DMS
   AI --> SEC
   AP --> CSH
@@ -92,6 +94,8 @@ flowchart LR
   AR --> GL
   AR --> REF
   AR --> WF
+  AUT --> AR
+  AUT --> INV
   BI --> SEC
   COR --> REF
   COR --> SEC

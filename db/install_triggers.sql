@@ -30,6 +30,7 @@ WHENEVER SQLERROR EXIT SQL.SQLCODE
 @@triggers/p20_pay_trg.sql
 @@triggers/p21_mfg_trg.sql
 @@triggers/p31_his_trg.sql
+@@triggers/p32_aut_trg.sql
 @@triggers/p22_bi_trg.sql
 @@triggers/p23_api_trg.sql
 @@triggers/p24_ai_trg.sql
