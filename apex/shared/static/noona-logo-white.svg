@@ -1,7 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120">
-<rect x="4" y="4" width="112" height="112" rx="26" fill="#fff"/>
-<rect x="20" y="24" width="80" height="54" rx="8" fill="#0067c0"/><path d="M50 78 l-4 14 h28 l-4 -14z" fill="#9fd0ff"/><rect x="40" y="90" width="40" height="6" rx="3" fill="#0067c0"/>
-<g stroke="#3d8fd6" stroke-width="2"><path d="M28 38h64M28 50h64M28 62h64"/><path d="M58 30v42"/></g>
-<rect x="30" y="54" width="7" height="16" rx="1.5" fill="#fff"/><rect x="40" y="46" width="7" height="24" rx="1.5" fill="#fff"/>
-<path d="M64 64 l8 -8 l7 5 l10 -14" fill="none" stroke="#ffb900" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M60 7 105.9 33.5v53L60 113 14.1 86.5v-53z" fill="none" stroke="#fff" stroke-width="5" stroke-linejoin="round"/>
+<path d="M60 19 95.5 39.5v41L60 101 24.5 80.5v-41z" fill="#fff" fill-opacity=".14"/>
+<g fill="#fff"><path d="M30 86V44h8l10 24V44h8v42h-8L38 62v24z"/><path fill-rule="evenodd" d="M62 86V44h17a12.5 12.5 0 0 1 0 25H70v17zm8-35v11h8.5a5.5 5.5 0 0 0 0-11z"/>
+<path d="M50 33.5 60 28l10 5.5-10 5.5z"/></g>
 </svg>

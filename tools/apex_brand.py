@@ -7,6 +7,10 @@ STATIC_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'ape
 FILES = [('noona.css', 'text/css'), ('noona.js', 'application/javascript'), ('cairo-arabic.woff2', 'font/woff2'), ('cairo-latin.woff2', 'font/woff2'),
          ('noona-logo.svg', 'image/svg+xml'), ('noona-logo-white.svg', 'image/svg+xml')]
 # صورة خلفية صفحة الدخول: أرقام ثابتة بعيدة عن ملفات التطبيقات الإضافية (aut.js, mfg.js...) التي تلحق بـ FILES
+# أيقونات التطبيق (المفضلة وأيقونة الجوال): أيقونة NP نفسها في كل الأنظمة، مولدة من noona-logo.svg
+APP_ICONS = [('icon_32.png', 'icons_app_icon_32_png'), ('icon_144_r.png', 'icons_app_icon_144_rounded_png'),
+             ('icon_192.png', 'icons_app_icon_192_png'), ('icon_256_r.png', 'icons_app_icon_256_rounded_png'),
+             ('icon_512.png', 'icons_app_icon_512_png')]
 SLOT_FILES = [(21, 'noona-login-bg.jpg', 'image/jpeg'), (22, 'noona-login-bg-sm.jpg', 'image/jpeg')]
 LOGIN_LABELS = [(",p_button_image_alt=>'Sign In'", ",p_button_image_alt=>'تسجيل الدخول'"),
                 (",p_prompt=>'Username'", ",p_prompt=>'اسم المستخدم'"),
@@ -85,6 +89,18 @@ def brand(app_dir):
         os.makedirs(os.path.dirname(path), exist_ok=True)
         open(path, 'w', encoding='utf-8').write(text)
         paths.append(rel)
+    for src, name in APP_ICONS:
+        path = a + 'shared_components/files/' + name + '.sql'
+        if not os.path.exists(path):
+            continue
+        hexd = open(os.path.join(STATIC_DIR, 'icons', src), 'rb').read().hex().upper()
+        table = "wwv_flow_imp.g_varchar2_table := wwv_flow_imp.empty_varchar2_table;\n" + ''.join(
+            f"wwv_flow_imp.g_varchar2_table({i}) := '{hexd[j:j + 200]}';\n" for i, j in enumerate(range(0, len(hexd), 200), 1))
+        old = open(path, encoding='utf-8').read()
+        new = re.sub(r"wwv_flow_imp\.g_varchar2_table := wwv_flow_imp\.empty_varchar2_table;\n(?:wwv_flow_imp\.g_varchar2_table\(\d+\) := '[0-9A-F]*';\n)+",
+                     lambda m: table, old, count=1)
+        assert new != old or table in old, path
+        open(path, 'w', encoding='utf-8').write(new)
     # install.sql: إدراج الملفات بعد أيقونات التطبيق
     inst = os.path.join(app_dir, 'install.sql')
     s = open(inst, encoding='utf-8').read()
