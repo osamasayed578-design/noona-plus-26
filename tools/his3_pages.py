@@ -87,7 +87,7 @@ def build(app, url, link, scheme, L):
     f = p.static('إصدار تقرير أو إجازة', 10)
     p.select('P36_VISIT', f, 10, 'الزيارة', lov_sql=VISIT_LOV, required=True)
     p.select('P36_TYPE', f, 20, 'النوع', lov_sql='STATIC2:إجازة مرضية;SICK_LEAVE,تقرير طبي;MEDICAL_REPORT,خطاب تحويل;REFERRAL,'
-             'Fitness certificate;FITNESS,Companion certificate;COMPANION', null_text=None)
+             'شهادة لياقة;FITNESS,شهادة مرافق;COMPANION', null_text=None)
     p.date('P36_FROM', f, 30, 'من')
     p.date('P36_TO', f, 40, 'إلى')
     p.text('P36_REF', f, 50, 'محول إلى (مستشفى / تخصص)', maxlen=200)

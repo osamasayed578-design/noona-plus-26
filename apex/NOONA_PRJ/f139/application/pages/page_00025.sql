@@ -310,7 +310,7 @@ wwv_flow_imp_page.create_page_item(
 ,p_item_plug_id=>wwv_flow_imp.id(91820273000000276)
 ,p_prompt=>'المهمة'
 ,p_display_as=>'NATIVE_SELECT_LIST'
-,p_lov=>'select r.room_no || '' - '' || t.task_type d, t.id r from hsp_housekeeping_task t join hsp_room r on r.id = t.room_id where r.property_id = :P25_PROPERTY and t.status_code in (''PENDING'', ''ASSIGNED'') order by r.room_no'
+,p_lov=>'select r.room_no || '' - '' || case t.task_type when ''DEPARTURE_CLEAN'' then ''تنظيف مغادرة'' when ''STAYOVER'' then ''تنظيف يومي'' when ''DEEP_CLEAN'' then ''تنظيف عميق'' when ''TURNDOWN'' then ''تجهيز مسائي'' else ''فحص'' end d, t.id r from hsp_housekeeping_task t join hsp_room r on r.id = t.room_id where r.property_id = :P25_PROPERTY and t.status_code in (''PENDING'', ''ASSIGNED'') order by r.room_no'
 ,p_lov_display_null=>'YES'
 ,p_lov_null_text=>'- اختر -'
 ,p_cHeight=>1

@@ -51,6 +51,7 @@ PROMPT ========== قوائم HTML الطويلة: إلحاق آمن بالـ CLO
 @@plsql/118_noona_his_care_pkg.sql
 @@plsql/119_noona_his_claim_pkg.sql
 @@plsql/121_noona_his_clin_pkg.sql
+@@plsql/120_noona_his_link_pkg.sql
 @@plsql/122_noona_his_nurse_pkg.sql
 @@plsql/123_noona_bi_pkg.sql
 PROMPT ========== المدن

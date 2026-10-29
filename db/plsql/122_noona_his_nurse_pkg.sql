@@ -476,7 +476,7 @@ CREATE OR REPLACE PACKAGE BODY NOONA_HIS_NURSE_PKG AS
     l_n PLS_INTEGER := 0;
   BEGIN
     guard('HIS_VISIT.VIEW');
-    l_h := '<table class="nn-rst-cred nn-his-lab" dir="ltr"><thead><tr><th>Due</th><th>Bed</th><th>Patient</th><th>What</th><th>Status</th></tr></thead><tbody>';
+    l_h := '<table class="nn-rst-cred nn-his-lab"><thead><tr><th>الموعد</th><th>السرير</th><th>المريض</th><th>المهمة</th><th>الحالة</th></tr></thead><tbody>';
     FOR r IN (SELECT * FROM (
                 SELECT m.due_at, b.bed_no, p.name_ar pname, NVL(i.name_en, i.name_ar) || ' ' || m.dose || ' ' || m.route what, 'D' k, m.id
                   FROM his_med_schedule m JOIN his_prescription_line l ON l.id = m.line_id JOIN inv_item i ON i.id = l.item_id

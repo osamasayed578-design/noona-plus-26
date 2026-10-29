@@ -228,7 +228,7 @@ CREATE OR REPLACE PACKAGE BODY NOONA_HIS_CLAIM_PKG AS
     l_h := '<div class="nn-his-inv"><div class="nn-his-inv-h"><div><b>' || esc(NOONA_SAL_PKG.seller_name) || '</b><br>' || esc(l_py) || ' · عقد ' || esc(l_cn)
         || '</div><div><h2>دفعة مطالبات ' || esc(l.doc_no) || '</h2>' || status_label(l.status_code) || ' · ' || TO_CHAR(l.period_from, 'YYYY-MM-DD') || ' إلى '
         || TO_CHAR(l.period_to, 'YYYY-MM-DD') || CASE WHEN l.reference_no IS NOT NULL THEN '<br>مرجع الجهة: ' || esc(l.reference_no) END || '</div></div>'
-        || '<table class="nn-rst-cred"><thead><tr><th>الفاتورة</th><th>التاريخ</th><th>المريض</th><th>العضوية</th><th>Diagnosis</th><th>Services</th>'
+        || '<table class="nn-rst-cred"><thead><tr><th>الفاتورة</th><th>التاريخ</th><th>المريض</th><th>العضوية</th><th>التشخيص</th><th>الخدمات</th>'
         || '<th class="n">المطالب</th><th class="n">المقبول</th><th class="n">المرفوض</th><th>السبب</th><th class="n">المتبقي</th></tr></thead><tbody>';
     FOR r IN (SELECT cl.*, i.doc_no, i.doc_date, p.name_ar, p.member_no, v.diagnosis, v.icd10,
                      (SELECT LISTAGG(NOONA_HIS_PKG.service_name(o.service_id) || NVL2(o.approval_no, ' [' || o.approval_no || ']', ''), '، ')

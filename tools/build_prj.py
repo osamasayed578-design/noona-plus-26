@@ -600,7 +600,8 @@ p.ir('مهام التنظيف المفتوحة', 30, [
      ('STATUS', 'الحالة', {}), ('WORKER', 'العامل', {})], titled=True, rows=50)
 a = p.static('إسناد مهمة لعامل', 40)
 p.select('P25_TASK', a, 10, 'المهمة', lov_sql=(
-    "select r.room_no || ' - ' || t.task_type d, t.id r from hsp_housekeeping_task t join hsp_room r on r.id = t.room_id"
+    "select r.room_no || ' - ' || case t.task_type when 'DEPARTURE_CLEAN' then 'تنظيف مغادرة' when 'STAYOVER' then 'تنظيف يومي' when 'DEEP_CLEAN' then 'تنظيف عميق' "
+    "when 'TURNDOWN' then 'تجهيز مسائي' else 'فحص' end d, t.id r from hsp_housekeeping_task t join hsp_room r on r.id = t.room_id"
     " where r.property_id = :P25_PROPERTY and t.status_code in ('PENDING', 'ASSIGNED') order by r.room_no"))
 p.select('P25_EMP', a, 20, 'العامل', lov_sql=EMP_LOV.replace('noona_mnt_pkg', 'noona_hsp_pkg'))
 b = p.button(a, 10, 'ASSIGN', 'إسناد')

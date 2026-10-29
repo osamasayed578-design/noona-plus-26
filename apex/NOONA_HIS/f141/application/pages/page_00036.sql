@@ -58,7 +58,7 @@ wwv_flow_imp_page.create_page_item(
 ,p_item_plug_id=>wwv_flow_imp.id(91820275000000896)
 ,p_prompt=>'النوع'
 ,p_display_as=>'NATIVE_SELECT_LIST'
-,p_lov=>'STATIC2:إجازة مرضية;SICK_LEAVE,تقرير طبي;MEDICAL_REPORT,خطاب تحويل;REFERRAL,Fitness certificate;FITNESS,Companion certificate;COMPANION'
+,p_lov=>'STATIC2:إجازة مرضية;SICK_LEAVE,تقرير طبي;MEDICAL_REPORT,خطاب تحويل;REFERRAL,شهادة لياقة;FITNESS,شهادة مرافق;COMPANION'
 ,p_cHeight=>1
 ,p_lov_display_extra=>'NO'
 ,p_begin_on_new_line=>'N'

@@ -301,7 +301,7 @@ CREATE OR REPLACE PACKAGE BODY NOONA_UI_PKG AS
       WHEN 'VACANT' THEN 'شاغر' WHEN 'OCCUPIED' THEN 'مشغول' WHEN 'FROZEN' THEN 'مجمد' WHEN 'PLANNED' THEN 'مخطط'
       WHEN 'EFFECTIVE' THEN 'ساري' WHEN 'COMPLETED' THEN 'مكتمل' WHEN 'RUNNING' THEN 'قيد التشغيل' WHEN 'WAITING' THEN 'بانتظار إجراء'
       WHEN 'INVITED' THEN 'مدعو' WHEN 'ENDED' THEN 'منتهي' WHEN 'LOCKED' THEN 'مقفل'
-      WHEN 'TRIAL' THEN 'تجريبي' WHEN 'READ_ONLY' THEN 'قراءة فقط' WHEN 'GRACE_PERIOD' THEN 'فترة سماح'
+      WHEN 'TRIAL' THEN 'تجريبي' WHEN 'PENDING_ACTIVATION' THEN 'بانتظار التفعيل' WHEN 'READ_ONLY' THEN 'قراءة فقط' WHEN 'GRACE_PERIOD' THEN 'فترة سماح'
       WHEN 'POSTED' THEN 'مرحل' WHEN 'SETTLED' THEN 'مرحل' WHEN 'REVERSED' THEN 'معكوس'
       WHEN 'OPEN' THEN 'مفتوحة' WHEN 'FUTURE' THEN 'مستقبلية' WHEN 'PERMANENTLY_CLOSED' THEN 'مقفلة نهائياً'
       ELSE p_code END;

@@ -734,8 +734,8 @@ CREATE OR REPLACE PACKAGE BODY NOONA_HIS_LINK_PKG AS
           || NVL2(m.payer, ' · ' || esc(m.payer), '') || ' · ' || TO_CHAR(m.sent_at, 'YYYY-MM-DD HH24:MI:SS') || NVL2(m.http_status, ' · HTTP ' || m.http_status, '')
           || ' · ' || m.attempts || ' محاولة' || NVL2(m.external_ref, ' · مرجع الجهة ' || esc(m.external_ref), '') || '</small>'
           || NVL2(m.outcome, '<br><span>' || esc(m.outcome) || '</span>', '') || '</div></div>'
-          || '<div class="nn-his-json"><section><h4>Request</h4><pre dir="ltr">' || esc(DBMS_LOB.SUBSTR(pretty(m.request_body), 12000, 1)) || '</pre></section>'
-          || '<section><h4>Response</h4><pre dir="ltr">' || esc(DBMS_LOB.SUBSTR(pretty(m.response_body), 12000, 1)) || '</pre></section></div></div>';
+          || '<div class="nn-his-json"><section><h4>الطلب (Request)</h4><pre dir="ltr">' || esc(DBMS_LOB.SUBSTR(pretty(m.request_body), 12000, 1)) || '</pre></section>'
+          || '<section><h4>الرد (Response)</h4><pre dir="ltr">' || esc(DBMS_LOB.SUBSTR(pretty(m.response_body), 12000, 1)) || '</pre></section></div></div>';
     END LOOP;
     RETURN l_h;
   END message_html;
