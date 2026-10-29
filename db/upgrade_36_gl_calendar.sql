@@ -76,10 +76,12 @@ PROMPT ========== مراكز خدمة السيارات
 PROMPT ========== المخزون
 @@plsql/104_noona_inv_pkg.sql
 PROMPT ---- أسماء أجهزة العرض التجريبي بالعربية (لا تمس الأجهزة التي أدخلها المستخدم)
+EXEC NOONA_CTX_PKG.enable_system_mode
 UPDATE his_device SET name_ar = CASE code WHEN 'DEMO-CT1' THEN 'جهاز الأشعة المقطعية 128 شريحة' WHEN 'DEMO-MRI1' THEN 'جهاز الرنين المغناطيسي 1.5 تسلا'
                                           WHEN 'DEMO-US1' THEN 'جهاز الموجات فوق الصوتية Logiq P9' WHEN 'DEMO-HEM1' THEN 'محلل الدم XN-550' END
  WHERE (code, name_ar) IN (('DEMO-CT1', 'CT Scanner 128-slice'), ('DEMO-MRI1', 'MRI 1.5T'), ('DEMO-US1', 'Ultrasound Logiq P9'), ('DEMO-HEM1', 'Hematology Analyzer XN-550'));
 COMMIT;
+EXEC NOONA_CTX_PKG.disable_system_mode
 
 EXEC DBMS_UTILITY.COMPILE_SCHEMA(USER, FALSE)
 SELECT object_type, object_name FROM user_objects WHERE status <> 'VALID';

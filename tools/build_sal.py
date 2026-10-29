@@ -236,7 +236,7 @@ p.ir('اختر نقطة البيع', 10, [
     "       (select max(s.id) from pos_shift s where s.terminal_id = t.id and s.status_code = 'OPEN') as open_shift,",
     "       (select max(u.display_name) from pos_shift s join sec_user_membership m on m.id = s.cashier_member_id join sec_user u on u.id = m.user_id",
     "         where s.terminal_id = t.id and s.status_code = 'OPEN') as cashier,",
-    "       '<span class=\"t-Button t-Button--hot t-Button--small\">بدء البيع</span>' as go",
+    "       '<span class=\"t-Button t-Button--primary t-Button--small\">بدء البيع</span>' as go",
     '  from pos_terminal t join inv_warehouse w on w.id = t.warehouse_id',
     " where t.company_id = noona_pos_pkg.company and t.status_code = 'ACTIVE' order by t.code"],
     [('ID', '#', {'hidden': True, 'type': 'NUMBER'}), ('CODE', 'الرمز', {}), ('NAME_AR', 'نقطة البيع', {}), ('WAREHOUSE', 'المستودع', {}),
