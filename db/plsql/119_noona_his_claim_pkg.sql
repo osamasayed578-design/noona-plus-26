@@ -237,14 +237,14 @@ CREATE OR REPLACE PACKAGE BODY NOONA_HIS_CLAIM_PKG AS
                        WHERE a.source_entity_type = c_inv AND a.source_entity_id = i.id AND a.item_type = 'INVOICE') open_amt
                 FROM his_claim_line cl JOIN his_invoice i ON i.id = cl.invoice_id JOIN his_visit v ON v.id = i.visit_id JOIN his_patient p ON p.id = i.patient_id
                WHERE cl.batch_id = p_batch_id ORDER BY i.doc_date, i.doc_no) LOOP
-      l_h := l_h || '<tr><td>' || esc(r.doc_no) || '</td><td>' || TO_CHAR(r.doc_date, 'YYYY-MM-DD') || '</td><td>' || esc(r.name_ar) || '</td><td>'
+      l_h := l_h || ('<tr><td>' || esc(r.doc_no) || '</td><td>' || TO_CHAR(r.doc_date, 'YYYY-MM-DD') || '</td><td>' || esc(r.name_ar) || '</td><td>'
           || esc(r.member_no) || '</td><td dir="ltr">' || esc(r.icd10) || ' ' || esc(r.diagnosis) || '</td><td dir="ltr">' || esc(r.srv) || '</td><td class="n">'
           || fmt0(r.claimed_amount) || '</td><td class="n">' || CASE WHEN r.approved_amount IS NOT NULL THEN fmt0(r.approved_amount) END || '</td><td class="n">'
           || CASE WHEN r.rejected_amount > 0 THEN '<b class="nn-neg">' || fmt0(r.rejected_amount) || '</b>' END || '</td><td>' || esc(r.reject_reason)
-          || '</td><td class="n">' || fmt0(r.open_amt) || '</td></tr>';
+          || '</td><td class="n">' || fmt0(r.open_amt) || '</td></tr>');
     END LOOP;
-    RETURN l_h || '</tbody><tfoot><tr><td colspan="6">الإجمالي</td><td class="n">' || fmt0(l.claimed_amount) || '</td><td class="n">' || fmt0(l.approved_amount)
-        || '</td><td class="n">' || fmt0(l.rejected_amount) || '</td><td colspan="2"></td></tr></tfoot></table></div>';
+    RETURN l_h || ('</tbody><tfoot><tr><td colspan="6">الإجمالي</td><td class="n">' || fmt0(l.claimed_amount) || '</td><td class="n">' || fmt0(l.approved_amount)
+        || '</td><td class="n">' || fmt0(l.rejected_amount) || '</td><td colspan="2"></td></tr></tfoot></table></div>');
   EXCEPTION WHEN NO_DATA_FOUND THEN
     RETURN '<p class="nn-hint">الدفعة غير موجودة</p>';
   END batch_html;

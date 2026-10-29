@@ -281,7 +281,7 @@ wwv_flow_imp_page.create_page_item(
 ,p_name=>'P72_REASON'
 ,p_item_sequence=>30
 ,p_item_plug_id=>wwv_flow_imp.id(91820275000000827)
-,p_prompt=>'Rejection reason'
+,p_prompt=>'سبب الرفض'
 ,p_display_as=>'NATIVE_TEXT_FIELD'
 ,p_cSize=>40
 ,p_cMaxlength=>500

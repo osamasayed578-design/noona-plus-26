@@ -554,7 +554,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_db_column_name=>'NAME_EN'
 ,p_display_order=>40
 ,p_column_identifier=>'D'
-,p_column_label=>'English'
+,p_column_label=>'الاسم بالإنجليزية'
 ,p_column_type=>'STRING'
 ,p_heading_alignment=>'CENTER'
 ,p_use_as_row_header=>'N'

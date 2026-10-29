@@ -734,20 +734,20 @@ CREATE OR REPLACE PACKAGE BODY NOONA_POS_PKG AS
            || '</div><table class="nn-rc-lines"><thead><tr><th>الصنف</th><th>الكمية</th><th>الإجمالي</th></tr></thead><tbody>';
     FOR r IN (SELECT i.name_ar, l.quantity, l.unit_price, l.line_total, l.discount_amount FROM pos_sale_line l JOIN inv_item i ON i.id = l.item_id
                WHERE l.sale_id = p_sale_id ORDER BY l.line_no) LOOP
-      l_html := l_html || ('<tr><td>' || esc(r.name_ar) || CASE WHEN r.discount_amount > 0 THEN ' <small>خصم ' || fmt(r.discount_amount) || '</small>' END
-             || '</td><td>' || fqty(r.quantity) || ' × ' || fmt0(r.unit_price) || '</td><td>' || fmt0(r.line_total) || '</td></tr>');
+      l_html := l_html || (('<tr><td>' || esc(r.name_ar) || CASE WHEN r.discount_amount > 0 THEN ' <small>خصم ' || fmt(r.discount_amount) || '</small>' END
+             || '</td><td>' || fqty(r.quantity) || ' × ' || fmt0(r.unit_price) || '</td><td>' || fmt0(r.line_total) || '</td></tr>'));
     END LOOP;
-    l_html := l_html || ('</tbody></table><table class="nn-rc-tot"><tr><td>الإجمالي قبل الضريبة</td><td>' || fmt0(l_s.subtotal)
+    l_html := l_html || (('</tbody></table><table class="nn-rc-tot"><tr><td>الإجمالي قبل الضريبة</td><td>' || fmt0(l_s.subtotal)
            || '</td></tr><tr><td>ضريبة القيمة المضافة</td><td>' || fmt0(l_s.tax_amount) || '</td></tr><tr class="nn-rc-grand"><td>الإجمالي</td><td>'
-           || fmt0(l_s.total_amount) || '</td></tr>');
+           || fmt0(l_s.total_amount) || '</td></tr>'));
     FOR r IN (SELECT m.name_ar, p.amount FROM pos_payment p JOIN ref_payment_method m ON m.id = p.payment_method_id WHERE p.sale_id = p_sale_id) LOOP
-      l_html := l_html || ('<tr><td>' || esc(r.name_ar) || '</td><td>' || fmt0(r.amount) || '</td></tr>');
+      l_html := l_html || (('<tr><td>' || esc(r.name_ar) || '</td><td>' || fmt0(r.amount) || '</td></tr>'));
     END LOOP;
     IF l_s.change_amount > 0 THEN
-      l_html := l_html || ('<tr><td>الباقي</td><td>' || fmt0(l_s.change_amount) || '</td></tr>');
+      l_html := l_html || (('<tr><td>الباقي</td><td>' || fmt0(l_s.change_amount) || '</td></tr>'));
     END IF;
-    RETURN l_html || ('</table><div class="nn-qr" data-qr="' || NOONA_SAL_PKG.zatca_qr(l_s.sale_at, l_s.total_amount, l_s.tax_amount)
-        || '"></div><div class="nn-rc-foot">شكراً لزيارتكم</div></div>');
+    RETURN l_html || (('</table><div class="nn-qr" data-qr="' || NOONA_SAL_PKG.zatca_qr(l_s.sale_at, l_s.total_amount, l_s.tax_amount)
+        || '"></div><div class="nn-rc-foot">شكراً لزيارتكم</div></div>'));
   EXCEPTION WHEN NO_DATA_FOUND THEN
     NOONA_CORE_PKG.raise_error('NOONA-POS-030', 'الإيصال غير موجود', 'Receipt not found');
   END receipt_html;
@@ -773,18 +773,18 @@ CREATE OR REPLACE PACKAGE BODY NOONA_POS_PKG AS
                      THEN 0 ELSE 0 END) sal, SUM(CASE WHEN s.sale_type = 'RETURN' THEN p.amount ELSE 0 END) ret
                 FROM pos_payment p JOIN pos_sale s ON s.id = p.sale_id JOIN ref_payment_method m ON m.id = p.payment_method_id
                WHERE s.shift_id = p_shift_id AND s.status_code <> 'OPEN' GROUP BY m.name_ar, m.sort_order ORDER BY m.sort_order) LOOP
-      l_html := l_html || ('<tr><td class="nn-rpt-text">' || esc(r.name_ar) || '</td><td>' || fmt(r.sal) || '</td><td>' || fmt(r.ret) || '</td><td>'
-             || fmt0(r.sal - r.ret) || '</td></tr>');
+      l_html := l_html || (('<tr><td class="nn-rpt-text">' || esc(r.name_ar) || '</td><td>' || fmt(r.sal) || '</td><td>' || fmt(r.ret) || '</td><td>'
+             || fmt0(r.sal - r.ret) || '</td></tr>'));
     END LOOP;
-    l_html := l_html || ('</tbody></table><table class="nn-rpt nn-rpt-meta"><tbody><tr><th>رصيد الافتتاح</th><td>' || fmt0(l_s.opening_float)
+    l_html := l_html || (('</tbody></table><table class="nn-rpt nn-rpt-meta"><tbody><tr><th>رصيد الافتتاح</th><td>' || fmt0(l_s.opening_float)
            || '</td><th>النقد المتوقع في الدرج</th><td>' || fmt0(CASE WHEN l_s.status_code = 'OPEN' THEN expected_cash(p_shift_id) ELSE l_s.expected_cash END)
            || '</td></tr>' || CASE WHEN l_s.status_code <> 'OPEN' THEN '<tr><th>النقد المعدود</th><td>' || fmt0(l_s.counted_cash)
            || '</td><th>الفرق</th><td' || CASE WHEN l_s.variance_amount <> 0 THEN ' class="nn-rpt-bad"' END || '>' || fmt0(l_s.variance_amount)
-           || '</td></tr>' END || '</tbody></table><table class="nn-rpt"><thead><tr><th>الأكثر مبيعاً</th><th>الكمية</th><th>القيمة</th></tr></thead><tbody>');
+           || '</td></tr>' END || '</tbody></table><table class="nn-rpt"><thead><tr><th>الأكثر مبيعاً</th><th>الكمية</th><th>القيمة</th></tr></thead><tbody>'));
     FOR r IN (SELECT * FROM (SELECT i.name_ar, SUM(l.quantity) q, SUM(l.line_total) v FROM pos_sale_line l JOIN pos_sale s ON s.id = l.sale_id
                                JOIN inv_item i ON i.id = l.item_id WHERE s.shift_id = p_shift_id AND s.sale_type = 'SALE' AND s.status_code <> 'OPEN'
                               GROUP BY i.name_ar ORDER BY 3 DESC) WHERE ROWNUM <= 10) LOOP
-      l_html := l_html || ('<tr><td class="nn-rpt-text">' || esc(r.name_ar) || '</td><td>' || fqty(r.q) || '</td><td>' || fmt0(r.v) || '</td></tr>');
+      l_html := l_html || (('<tr><td class="nn-rpt-text">' || esc(r.name_ar) || '</td><td>' || fqty(r.q) || '</td><td>' || fmt0(r.v) || '</td></tr>'));
     END LOOP;
     RETURN l_html || ('</tbody></table>' || NOONA_GL_PKG.report_footer);
   END x_report;
@@ -808,13 +808,13 @@ CREATE OR REPLACE PACKAGE BODY NOONA_POS_PKG AS
                GROUP BY TRUNC(h.opened_at), t.name_ar, h.id, h.status_code, h.variance_amount, h.cashier_member_id
                ORDER BY 1, 3) LOOP
       s1 := s1 + r.net; s2 := s2 + r.tax; s3 := s3 + NVL(r.variance_amount, 0);
-      l_html := l_html || ('<tr><td>' || TO_CHAR(r.d, 'YYYY-MM-DD') || '</td><td>' || esc(r.term) || '</td><td>' || r.shift || '</td><td>' || esc(r.cashier)
+      l_html := l_html || (('<tr><td>' || TO_CHAR(r.d, 'YYYY-MM-DD') || '</td><td>' || esc(r.term) || '</td><td>' || r.shift || '</td><td>' || esc(r.cashier)
              || '</td><td>' || r.cnt || '</td><td>' || r.ret || '</td><td>' || fmt(r.net) || '</td><td>' || fmt(r.tax) || '</td><td>' || fmt(r.net + r.tax)
              || '</td><td' || CASE WHEN NVL(r.variance_amount, 0) <> 0 THEN ' class="nn-rpt-bad"' END || '>' || fmt(r.variance_amount) || '</td><td>'
-             || CASE r.status_code WHEN 'OPEN' THEN 'مفتوحة' ELSE 'مقفلة' END || '</td></tr>');
+             || CASE r.status_code WHEN 'OPEN' THEN 'مفتوحة' ELSE 'مقفلة' END || '</td></tr>'));
     END LOOP;
-    RETURN l_html || ('</tbody><tfoot><tr><td colspan="6">الإجمالي</td><td>' || fmt0(s1) || '</td><td>' || fmt0(s2) || '</td><td>' || fmt0(s1 + s2)
-        || '</td><td>' || fmt0(s3) || '</td><td></td></tr></tfoot></table>' || NOONA_GL_PKG.report_footer('الورديات المقفلة مرحلة بقيد واحد لكل وردية'));
+    RETURN l_html || (('</tbody><tfoot><tr><td colspan="6">الإجمالي</td><td>' || fmt0(s1) || '</td><td>' || fmt0(s2) || '</td><td>' || fmt0(s1 + s2)
+        || '</td><td>' || fmt0(s3) || '</td><td></td></tr></tfoot></table>' || NOONA_GL_PKG.report_footer('الورديات المقفلة مرحلة بقيد واحد لكل وردية')));
   END pos_sales_report;
 
   FUNCTION pos_summary RETURN CLOB IS

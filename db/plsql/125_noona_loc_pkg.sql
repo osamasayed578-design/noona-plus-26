@@ -808,21 +808,21 @@ CREATE OR REPLACE PACKAGE BODY NOONA_LOC_PKG AS
                      || TO_CHAR(effective_from, 'YYYY-MM-DD') || NVL2(effective_to, ' إلى ' || TO_CHAR(effective_to, 'YYYY-MM-DD'), ''), ' · ')
              WITHIN GROUP (ORDER BY version_no)
         INTO l_hist FROM loc_tax_rate WHERE tax_code_id = c.id;
-      l_h := l_h || '<tr><td>' || esc(c.tname) || '</td><td><b>' || esc(c.code) || '</b><br><small>' || esc(c.name_ar) || '</small></td><td>'
+      l_h := l_h || ('<tr><td>' || esc(c.tname) || '</td><td><b>' || esc(c.code) || '</b><br><small>' || esc(c.name_ar) || '</small></td><td>'
           || esc(nature_label(c.tax_nature)) || '</td><td class="n">' || pct(rate_on(c.id)) || '</td><td><small>' || esc(l_hist) || '</small></td><td>'
-          || esc(c.einvoice_category) || '</td></tr>';
+          || esc(c.einvoice_category) || '</td></tr>');
     END LOOP;
-    l_h := l_h || '</tbody></table><h4 class="nn-prj-h">التسجيلات القانونية</h4><table class="nn-prj-t"><thead><tr><th>التسجيل</th><th>ضريبي</th>'
-        || '<th>صيغة الرقم</th><th>تنبيه قبل الانتهاء</th></tr></thead><tbody>';
+    l_h := l_h || ('</tbody></table><h4 class="nn-prj-h">التسجيلات القانونية</h4><table class="nn-prj-t"><thead><tr><th>التسجيل</th><th>ضريبي</th>'
+        || '<th>صيغة الرقم</th><th>تنبيه قبل الانتهاء</th></tr></thead><tbody>');
     FOR r IN (SELECT * FROM loc_registration_type WHERE country_pack_id = l_pk.id AND is_active = 'Y' ORDER BY is_tax_registration DESC, code) LOOP
-      l_h := l_h || '<tr><td>' || esc(r.name_ar) || '</td><td>' || CASE WHEN r.is_tax_registration = 'Y' THEN 'نعم' END || '</td><td dir="ltr">'
-          || esc(r.validation_regex) || '</td><td>' || CASE WHEN r.expiry_alert_days IS NOT NULL THEN r.expiry_alert_days || ' يوم' END || '</td></tr>';
+      l_h := l_h || ('<tr><td>' || esc(r.name_ar) || '</td><td>' || CASE WHEN r.is_tax_registration = 'Y' THEN 'نعم' END || '</td><td dir="ltr">'
+          || esc(r.validation_regex) || '</td><td>' || CASE WHEN r.expiry_alert_days IS NOT NULL THEN r.expiry_alert_days || ' يوم' END || '</td></tr>');
     END LOOP;
-    l_h := l_h || '</tbody></table><h4 class="nn-prj-h">الأشكال القانونية</h4><p>';
+    l_h := l_h || ('</tbody></table><h4 class="nn-prj-h">الأشكال القانونية</h4><p>');
     FOR f IN (SELECT name_ar FROM loc_legal_form WHERE country_pack_id = l_pk.id AND is_active = 'Y' ORDER BY code) LOOP
-      l_h := l_h || '<span class="nn-badge is-muted">' || esc(f.name_ar) || '</span> ';
+      l_h := l_h || ('<span class="nn-badge is-muted">' || esc(f.name_ar) || '</span> ');
     END LOOP;
-    RETURN l_h || '</p>';
+    RETURN l_h || ('</p>');
   END pack_html;
 
   FUNCTION registrations_html RETURN CLOB IS
@@ -834,14 +834,16 @@ CREATE OR REPLACE PACKAGE BODY NOONA_LOC_PKG AS
     FOR r IN (SELECT g.*, t.name_ar tname, t.expiry_alert_days FROM org_legal_registration g JOIN loc_registration_type t ON t.id = g.reg_type_id
                WHERE g.company_id = company AND g.status_code <> 'CANCELLED' ORDER BY t.is_tax_registration DESC, t.code) LOOP
       l_n := l_n + 1;
-      l_h := l_h || '<tr><td>' || esc(r.tname) || '</td><td dir="ltr"><b>' || esc(r.reg_number) || '</b></td><td>' || esc(r.issuing_authority) || '</td><td>'
+      l_h := l_h || ('<tr><td>' || esc(r.tname) || '</td><td dir="ltr"><b>' || esc(r.reg_number) || '</b></td><td>' || esc(r.issuing_authority) || '</td><td>'
           || ds(r.issue_date) || '</td><td' || CASE WHEN r.expiry_date < TRUNC(SYSDATE) + NVL(r.expiry_alert_days, 30) THEN ' class="is-over"' END || '>'
           || ds(r.expiry_date) || '</td><td>' || CASE WHEN r.is_primary = 'Y' THEN 'نعم' END || '</td><td>'
           || CASE WHEN r.expiry_date < TRUNC(SYSDATE) THEN '<span class="nn-badge is-danger">منتهي</span>'
                   WHEN r.expiry_date < TRUNC(SYSDATE) + NVL(r.expiry_alert_days, 30) THEN '<span class="nn-badge is-warning">قريب الانتهاء</span>'
-                  ELSE '<span class="nn-badge is-success">ساري</span>' END || '</td></tr>';
+                  ELSE '<span class="nn-badge is-success">ساري</span>' END || '</td></tr>');
     END LOOP;
-    RETURN CASE WHEN l_n = 0 THEN '<div class="nn-empty">لا توجد تسجيلات؛ أضف السجل التجاري والرقم الضريبي للشركة</div>' ELSE l_h || '</tbody></table>' END;
+    IF l_n = 0 THEN RETURN TO_CLOB('<div class="nn-empty">لا توجد تسجيلات؛ أضف السجل التجاري والرقم الضريبي للشركة</div>'); END IF;
+    -- CASE لا يرجع أكثر من 32 ألف حرف حتى لو كانت فروعه CLOB
+    RETURN l_h || ('</tbody></table>');
   END registrations_html;
 
   FUNCTION return_html(p_return_id IN NUMBER) RETURN CLOB IS
@@ -863,33 +865,33 @@ CREATE OR REPLACE PACKAGE BODY NOONA_LOC_PKG AS
     IF l_kind = 'WITHHOLDING' THEN
       FOR b IN (SELECT l.*, c.name_ar FROM loc_tax_return_line l LEFT JOIN loc_tax_code c ON c.code = l.box_code AND c.tenant_id IS NULL
                  WHERE l.tax_return_id = p_return_id AND l.box_code <> 'PAID' ORDER BY l.box_code) LOOP
-        l_h := l_h || '<tr><td>' || esc(NVL(b.name_ar, b.box_code)) || '</td><td class="n">' || fmt(b.base_amount) || '</td><td class="n"></td><td class="n">'
-            || fmt(b.tax_amount) || '</td></tr>';
+        l_h := l_h || ('<tr><td>' || esc(NVL(b.name_ar, b.box_code)) || '</td><td class="n">' || fmt(b.base_amount) || '</td><td class="n"></td><td class="n">'
+            || fmt(b.tax_amount) || '</td></tr>');
       END LOOP;
-      l_h := l_h || '<tr class="is-total"><td>إجمالي الاستقطاع المستحق للتوريد</td><td></td><td></td><td class="n">' || fmt(r.net_payable) || '</td></tr>';
+      l_h := l_h || ('<tr class="is-total"><td>إجمالي الاستقطاع المستحق للتوريد</td><td></td><td></td><td class="n">' || fmt(r.net_payable) || '</td></tr>');
     ELSE
       FOR b IN (SELECT column_value box FROM TABLE(sys.odcivarchar2list('1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', '13', '14', '15', '16'))) LOOP
         CONTINUE WHEN l_cc <> 'SA' AND b.box IN ('2', '4', '5', '8', '10', '11');
         FOR x IN (SELECT NVL(MAX(base_amount), 0) base, NVL(MAX(tax_amount), 0) tax, NVL(MAX(adjustment_amount), 0) adj FROM loc_tax_return_line
                    WHERE tax_return_id = p_return_id AND box_code = b.box) LOOP
-          l_h := l_h || '<tr' || CASE WHEN b.box IN ('6', '12') THEN ' class="is-sub"' WHEN b.box IN ('13', '16') THEN ' class="is-total"' END || '><td>'
+          l_h := l_h || ('<tr' || CASE WHEN b.box IN ('6', '12') THEN ' class="is-sub"' WHEN b.box IN ('13', '16') THEN ' class="is-total"' END || '><td>'
               || esc(box_label(l_cc, b.box)) || '</td><td class="n">' || CASE WHEN TO_NUMBER(b.box) <= 12 THEN fmt(x.base) END || '</td><td class="n">'
-              || CASE WHEN b.box = '14' THEN fmt(x.adj) END || '</td><td class="n">' || fmt(x.tax) || '</td></tr>';
+              || CASE WHEN b.box = '14' THEN fmt(x.adj) END || '</td><td class="n">' || fmt(x.tax) || '</td></tr>');
         END LOOP;
       END LOOP;
     END IF;
-    l_h := l_h || '</tbody></table>';
+    l_h := l_h || ('</tbody></table>');
     IF l_kind = 'VAT' AND r.status_code IN ('APPROVED', 'FILED', 'PAID', 'CLOSED') THEN
       -- مستندات أضيفت أو عدلت للفترة بعد الاعتماد: تصحح في الإقرار التالي
       SELECT NVL(SUM(CASE WHEN direction = 'SALE' THEN tax_amount ELSE -tax_amount END), 0) INTO l_late FROM noona_v_tax_register
        WHERE company_id = l_co AND doc_date BETWEEN r.period_start AND r.period_end;
       IF ROUND(l_late - (r.output_tax - r.input_tax), 2) <> 0 THEN
-        l_h := l_h || '<div class="nn-empty is-warning">تغير صافي ضريبة الفترة في السجل بعد اعتماد الإقرار بمقدار '
-            || fmt(l_late - (r.output_tax - r.input_tax)) || ' (مستندات بتاريخ الفترة رحلت بعده): أدرجه في خانة التصحيحات في الإقرار التالي</div>';
+        l_h := l_h || ('<div class="nn-empty is-warning">تغير صافي ضريبة الفترة في السجل بعد اعتماد الإقرار بمقدار '
+            || fmt(l_late - (r.output_tax - r.input_tax)) || ' (مستندات بتاريخ الفترة رحلت بعده): أدرجه في خانة التصحيحات في الإقرار التالي</div>');
       END IF;
     END IF;
     IF r.notes IS NOT NULL THEN
-      l_h := l_h || '<p class="nn-hint">' || REPLACE(esc(r.notes), CHR(10), '<br>') || '</p>';
+      l_h := l_h || ('<p class="nn-hint">' || REPLACE(esc(r.notes), CHR(10), '<br>') || '</p>');
     END IF;
     RETURN l_h;
   END return_html;
@@ -904,12 +906,14 @@ CREATE OR REPLACE PACKAGE BODY NOONA_LOC_PKG AS
     FOR r IN (SELECT x.*, t.name_ar tname FROM loc_tax_return x JOIN loc_tax_type t ON t.id = x.tax_type_id
                WHERE x.company_id = company ORDER BY x.period_end DESC, x.id DESC) LOOP
       l_n := l_n + 1;
-      l_h := l_h || '<tr><td>' || CASE WHEN p_link IS NOT NULL THEN '<a href="' || REPLACE(p_link, '#ID#', r.id) || '">' || esc(r.tname) || '</a>' ELSE esc(r.tname) END
+      l_h := l_h || ('<tr><td>' || CASE WHEN p_link IS NOT NULL THEN '<a href="' || REPLACE(p_link, '#ID#', r.id) || '">' || esc(r.tname) || '</a>' ELSE esc(r.tname) END
           || '</td><td>' || ds(r.period_start) || ' &larr; ' || ds(r.period_end) || '</td><td class="n">' || fmt(r.output_tax) || '</td><td class="n">'
           || fmt(r.input_tax) || '</td><td class="n"><b>' || fmt(r.net_payable) || '</b></td><td>' || esc(r.gov_reference) || '</td><td>' || badge(r.status_code)
-          || '</td></tr>';
+          || '</td></tr>');
     END LOOP;
-    RETURN CASE WHEN l_n = 0 THEN '<div class="nn-empty">لا توجد إقرارات بعد</div>' ELSE l_h || '</tbody></table>' END;
+    IF l_n = 0 THEN RETURN TO_CLOB('<div class="nn-empty">لا توجد إقرارات بعد</div>'); END IF;
+    -- CASE لا يرجع أكثر من 32 ألف حرف حتى لو كانت فروعه CLOB
+    RETURN l_h || ('</tbody></table>');
   END returns_html;
 
   FUNCTION register_html(p_from IN DATE, p_to IN DATE, p_direction IN VARCHAR2 DEFAULT NULL, p_nature IN VARCHAR2 DEFAULT NULL) RETURN CLOB IS
@@ -929,15 +933,16 @@ CREATE OR REPLACE PACKAGE BODY NOONA_LOC_PKG AS
                ORDER BY doc_date, source_type, doc_no FETCH FIRST 2000 ROWS ONLY) LOOP
       l_n := l_n + 1;
       t_b := t_b + r.base; t_t := t_t + r.tax;
-      l_h := l_h || '<tr><td>' || ds(r.doc_date) || '</td><td>' || CASE r.source_type WHEN 'SAL_INVOICE' THEN 'فاتورة مبيعات' WHEN 'POS_SALE' THEN 'نقطة بيع'
+      l_h := l_h || ('<tr><td>' || ds(r.doc_date) || '</td><td>' || CASE r.source_type WHEN 'SAL_INVOICE' THEN 'فاتورة مبيعات' WHEN 'POS_SALE' THEN 'نقطة بيع'
              WHEN 'AP_INVOICE' THEN 'فاتورة مورد' WHEN 'HIS_INVOICE' THEN 'فاتورة طبية' WHEN 'HSP_FOLIO_LINE' THEN 'كشف نزيل'
              WHEN 'PRJ_PROGRESS_CLAIM' THEN 'مستخلص' WHEN 'FA_DISPOSAL' THEN 'بيع أصل' ELSE r.source_type END || '</td><td>' || esc(r.doc_no) || '</td><td>'
           || esc(r.party_name) || '</td><td dir="ltr">' || esc(r.party_tax_no) || '</td><td>' || CASE r.direction WHEN 'SALE' THEN 'مخرجات' ELSE 'مدخلات' END
-          || '</td><td>' || esc(nature_label(r.nature)) || '</td><td class="n">' || fmt(r.base) || '</td><td class="n">' || fmt(r.tax) || '</td></tr>';
+          || '</td><td>' || esc(nature_label(r.nature)) || '</td><td class="n">' || fmt(r.base) || '</td><td class="n">' || fmt(r.tax) || '</td></tr>');
     END LOOP;
-    RETURN CASE WHEN l_n = 0 THEN '<div class="nn-empty">لا توجد مستندات ضريبية في الفترة</div>'
-                ELSE l_h || '</tbody><tfoot><tr><td colspan="7">الإجمالي (' || l_n || ')</td><td class="n">' || fmt(t_b) || '</td><td class="n">' || fmt(t_t)
-                    || '</td></tr></tfoot></table>' END;
+    IF l_n = 0 THEN RETURN TO_CLOB('<div class="nn-empty">لا توجد مستندات ضريبية في الفترة</div>'); END IF;
+    -- CASE لا يرجع أكثر من 32 ألف حرف حتى لو كانت فروعه CLOB
+    RETURN l_h || ('</tbody><tfoot><tr><td colspan="7">الإجمالي (' || l_n || ')</td><td class="n">' || fmt(t_b) || '</td><td class="n">' || fmt(t_t)
+                    || '</td></tr></tfoot></table>');
   END register_html;
 
   FUNCTION withholding_html(p_from IN DATE, p_to IN DATE) RETURN CLOB IS
@@ -950,12 +955,14 @@ CREATE OR REPLACE PACKAGE BODY NOONA_LOC_PKG AS
     FOR r IN (SELECT w.*, p.display_name_ar pname, c.code tcode FROM loc_withholding_cert w JOIN pty_party p ON p.id = w.party_id JOIN loc_tax_code c ON c.id = w.tax_code_id
                WHERE w.company_id = company AND w.payment_date BETWEEN p_from AND p_to ORDER BY w.payment_date DESC, w.id DESC) LOOP
       l_n := l_n + 1;
-      l_h := l_h || '<tr' || CASE WHEN r.status_code = 'CANCELLED' THEN ' class="is-void"' END || '><td data-cert="' || r.id || '"><b>' || esc(r.certificate_no) || '</b></td><td>'
+      l_h := l_h || ('<tr' || CASE WHEN r.status_code = 'CANCELLED' THEN ' class="is-void"' END || '><td data-cert="' || r.id || '"><b>' || esc(r.certificate_no) || '</b></td><td>'
           || ds(r.payment_date) || '</td><td>' || esc(r.pname) || '</td><td>' || esc(r.tcode) || '</td><td>' || esc(r.service_desc) || '</td><td class="n">'
           || fmt(r.base_amount) || '</td><td class="n">' || pct(r.rate_pct) || '</td><td class="n">' || fmt(r.withheld_amount) || '</td><td>' || ds(r.due_date)
-          || '</td><td>' || badge(r.status_code) || CASE WHEN r.tax_return_id IS NOT NULL THEN ' <span class="nn-badge is-muted">ضمن إقرار</span>' END || '</td></tr>';
+          || '</td><td>' || badge(r.status_code) || CASE WHEN r.tax_return_id IS NOT NULL THEN ' <span class="nn-badge is-muted">ضمن إقرار</span>' END || '</td></tr>');
     END LOOP;
-    RETURN CASE WHEN l_n = 0 THEN '<div class="nn-empty">لا توجد شهادات استقطاع في الفترة</div>' ELSE l_h || '</tbody></table>' END;
+    IF l_n = 0 THEN RETURN TO_CLOB('<div class="nn-empty">لا توجد شهادات استقطاع في الفترة</div>'); END IF;
+    -- CASE لا يرجع أكثر من 32 ألف حرف حتى لو كانت فروعه CLOB
+    RETURN l_h || ('</tbody></table>');
   END withholding_html;
 
   FUNCTION certificate_html(p_cert_id IN NUMBER) RETURN CLOB IS
@@ -996,11 +1003,13 @@ CREATE OR REPLACE PACKAGE BODY NOONA_LOC_PKG AS
                WHERE y.company_id = company AND y.doc_date BETWEEN p_from AND p_to AND y.status_code NOT IN ('DRAFT', 'CANCELLED', 'REVERSED')
                  AND p.country_code IS NOT NULL AND p.country_code <> l_cc ORDER BY y.doc_date) LOOP
       l_n := l_n + 1;
-      l_h := l_h || '<tr><td>' || esc(r.doc_no) || '</td><td>' || ds(r.doc_date) || '</td><td>' || esc(r.pname) || '</td><td>' || esc(r.country_code) || '</td><td class="n">'
+      l_h := l_h || ('<tr><td>' || esc(r.doc_no) || '</td><td>' || ds(r.doc_date) || '</td><td>' || esc(r.pname) || '</td><td>' || esc(r.country_code) || '</td><td class="n">'
           || fmt(r.amount) || '</td><td>' || CASE WHEN r.certs > 0 THEN '<span class="nn-badge is-success">' || r.certs || ' شهادة</span>'
-                                                 ELSE '<span class="nn-badge is-warning">لا توجد شهادة</span>' END || '</td></tr>';
+                                                 ELSE '<span class="nn-badge is-warning">لا توجد شهادة</span>' END || '</td></tr>');
     END LOOP;
-    RETURN CASE WHEN l_n = 0 THEN '<div class="nn-empty">لا توجد مدفوعات لموردين غير مقيمين في الفترة</div>' ELSE l_h || '</tbody></table>' END;
+    IF l_n = 0 THEN RETURN TO_CLOB('<div class="nn-empty">لا توجد مدفوعات لموردين غير مقيمين في الفترة</div>'); END IF;
+    -- CASE لا يرجع أكثر من 32 ألف حرف حتى لو كانت فروعه CLOB
+    RETURN l_h || ('</tbody></table>');
   END wht_due_html;
 END NOONA_LOC_PKG;
 /

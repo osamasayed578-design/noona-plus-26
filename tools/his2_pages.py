@@ -40,20 +40,20 @@ def build(app, url, link, scheme, L):
     # =========================================================== 33) الوصفة الطبية
     p = app.page(33, 'Prescription', 'PRESCRIPTION', 'Prescription - الوصفة الطبية', scheme=scheme, protection='N')
     f = p.static('الوصفة الطبية', 10)
-    p.select('P33_VISIT', f, 5, 'Visit', lov_sql=OPEN_VISIT_LOV, required=True)
+    p.select('P33_VISIT', f, 5, 'الزيارة', lov_sql=OPEN_VISIT_LOV, required=True)
     for k in (1, 2, 3):
         p.select(f'P33_D{k}', f, 10 * k, f'Medicine {k}', lov_sql=MED_LOV, null_text='-')
         p.number(f'P33_Q{k}', f, 10 * k + 1, f'Qty {k}')
         p.text(f'P33_DOSE{k}', f, 10 * k + 2, f'Dose {k} (e.g. 500 mg)', maxlen=100, width=15)
         p.text(f'P33_FREQ{k}', f, 10 * k + 3, f'Frequency {k} (e.g. TID)', maxlen=100, width=15)
         p.number(f'P33_DAYS{k}', f, 10 * k + 4, f'Days {k}')
-        p.select(f'P33_ROUTE{k}', f, 10 * k + 5, f'Route {k}', lov_sql='STATIC2:Oral;ORAL,IV;IV,IM;IM,SC;SC,Inhaled;INHALED,Topical;TOPICAL,Rectal;RECTAL,Other;OTHER',
+        p.select(f'P33_ROUTE{k}', f, 10 * k + 5, f'Route {k}', lov_sql='STATIC2:فموي;ORAL,IV;IV,IM;IM,SC;SC,استنشاق;INHALED,موضعي;TOPICAL,شرجي;RECTAL,أخرى;OTHER',
                  null_text=None)
         p.text(f'P33_TIMES{k}', f, 10 * k + 6, f'Dose times {k} (inpatient, e.g. 08:00,20:00)', maxlen=100, width=15)
-    p.text('P33_INSTR', f, 50, 'Instructions (e.g. after meals)', maxlen=500)
-    p.number('P33_VALID', f, 55, 'Valid for (days, default 30)')
+    p.text('P33_INSTR', f, 50, 'التعليمات (مثلاً بعد الأكل)', maxlen=500)
+    p.number('P33_VALID', f, 55, 'الصلاحية بالأيام (الافتراضي 30)')
     p.hidden('P33_RX', f, 90, protected=False)
-    b = p.button(f, 10, 'PRESCRIBE', 'Prescribe', hot=True)
+    b = p.button(f, 10, 'PRESCRIBE', 'إصدار الوصفة', hot=True)
     lines = []
     for k in (1, 2, 3):
         lines.append(f"case when :P33_D{k} is not null then json_object('i' value to_number(:P33_D{k}), 'q' value to_number(:P33_Q{k}), "
@@ -72,10 +72,10 @@ def build(app, url, link, scheme, L):
         "       '<span class=\"fa fa-print\" aria-hidden=\"true\"></span> Print' as prn",
         "  from his_prescription x join his_prescription_line l on l.prescription_id = x.id join inv_item i on i.id = l.item_id",
         " where x.visit_id = :P33_VISIT order by x.id desc, l.line_no"],
-        [('ID', '#', {'hidden': True, 'type': 'NUMBER'}), ('RX_NO', 'Rx', {}), ('RX_AT', 'Date', {}), ('MEDICINE', 'Medicine', {}), ('DOSE', 'Dose', {}),
-         ('FREQUENCY', 'Frequency', {}), ('DURATION_DAYS', 'Days', {'type': 'NUMBER'}), ('QUANTITY', 'Qty', {'type': 'NUMBER'}),
-         ('DISPENSED_QTY', 'Dispensed', {'type': 'NUMBER'}), ('STATUS', 'Status', {}), ('ERX_NO', 'e-Rx', {}),
-         ('PRN', 'Print', {'html': True, 'link': ('f?p=&APP_ID.:38:&SESSION.::&DEBUG.:RP,38:P38_ID:#ID#', '#PRN#')})], titled=True, rows=20)
+        [('ID', '#', {'hidden': True, 'type': 'NUMBER'}), ('RX_NO', 'رقم الوصفة', {}), ('RX_AT', 'التاريخ', {}), ('MEDICINE', 'الدواء', {}), ('DOSE', 'الجرعة', {}),
+         ('FREQUENCY', 'التكرار', {}), ('DURATION_DAYS', 'الأيام', {'type': 'NUMBER'}), ('QUANTITY', 'الكمية', {'type': 'NUMBER'}),
+         ('DISPENSED_QTY', 'المصروف', {'type': 'NUMBER'}), ('STATUS', 'الحالة', {}), ('ERX_NO', 'الوصفة الإلكترونية', {}),
+         ('PRN', 'طباعة', {'html': True, 'link': ('f?p=&APP_ID.:38:&SESSION.::&DEBUG.:RP,38:P38_ID:#ID#', '#PRN#')})], titled=True, rows=20)
     p.button(f, 20, 'BACK', 'الزيارة', redirect="f?p=&APP_ID.:31:&SESSION.::&DEBUG.:RP,31:P31_ID:&P33_VISIT.")
     p.onload("$('#P33_INSTR,[id^=P33_DOSE],[id^=P33_FREQ],[id^=P33_TIMES]').attr('dir', 'ltr');")
     p.branch(10, url(33, 'P33_VISIT', '&P33_VISIT.') + '&success_msg=#SUCCESS_MSG#')
@@ -112,7 +112,7 @@ def build(app, url, link, scheme, L):
         f" where x.company_id = {CO} and x.status_code in ('ACTIVE', 'PARTIAL') and nvl(x.expires_on, trunc(cast(x.rx_at as date)) + 30) >= trunc(sysdate)",
         " order by x.rx_at desc, l.line_no"],
         [('ID', '#', {'hidden': True, 'type': 'NUMBER'}), ('RX_NO', 'الوصفة', {}), ('RX_AT', 'الوقت', {}), ('PATIENT', 'المريض', {}), ('MRN', 'الرقم الطبي', {}),
-         ('MEDICINE', 'Medicine', {}), ('SIG', 'Sig', {}), ('QUANTITY', 'الكمية', {'type': 'NUMBER'}), ('DISPENSED_QTY', 'المصروف', {'type': 'NUMBER'}),
+         ('MEDICINE', 'الدواء', {}), ('SIG', 'طريقة الاستعمال (Sig)', {}), ('QUANTITY', 'الكمية', {'type': 'NUMBER'}), ('DISPENSED_QTY', 'المصروف', {'type': 'NUMBER'}),
          ('STATE', 'الحالة', {}), ('STOCK', 'رصيد الصيدلية', {'type': 'NUMBER'}), ('EXPIRES_ON', 'صالحة حتى', {'type': 'DATE'}),
          ('ERX_NO', 'الوصفة الإلكترونية', {}), ('VISIT_STATE', 'الزيارة', {})], titled=True)
     p.branch(10, url(55) + '&success_msg=#SUCCESS_MSG#')
@@ -126,7 +126,7 @@ def build(app, url, link, scheme, L):
     p.select('P56_DOCTOR', fa, 30, 'الطبيب المعالج', lov_sql=L['DOCTOR_LOV'])
     p.select('P56_BILL', fa, 40, 'الدفع', lov_sql='STATIC2:حسب ملف المريض;,نقدي;CASH,على التأمين/الجهة;PAYER', null_text=None)
     p.text('P56_APPROVAL', fa, 50, 'رقم موافقة التنويم', maxlen=50, width=15)
-    p.text('P56_REASON', fa, 60, 'Admission reason (English)', maxlen=1000)
+    p.text('P56_REASON', fa, 60, 'سبب التنويم (بالإنجليزية)', maxlen=1000)
     b_adm = p.button(fa, 10, 'ADMIT', 'دخول', hot=True)
     b_chg = p.button(fa, 20, 'CHARGE', 'ترحيل أيام السرير حتى اليوم')
     p.process(10, 'AFTER_SUBMIT', 'Admit', ['declare l number; l_doc clob;', 'begin',
@@ -139,7 +139,7 @@ def build(app, url, link, scheme, L):
     p.select('P56_ADM', fm, 10, 'المريض المنوم', lov_sql=ADM_LOV)
     p.select('P56_NEWBED', fm, 20, 'النقل إلى سرير', lov_sql=BED_FREE_LOV)
     p.select('P56_DTYPE', fm, 30, 'نوع الخروج', lov_sql='STATIC2:إلى المنزل;HOME,تحويل لمستشفى آخر;TRANSFER,على مسؤوليته;AGAINST_ADVICE,وفاة;DECEASED')
-    p.textarea('P56_SUMMARY', fm, 40, 'Discharge summary / transfer reason (English)')
+    p.textarea('P56_SUMMARY', fm, 40, 'ملخص الخروج / سبب التحويل (بالإنجليزية)')
     b_tr = p.button(fm, 10, 'TRANSFER', 'نقل')
     b_dis = p.button(fm, 20, 'DISCHARGE', 'خروج', hot=True)
     p.process(20, 'AFTER_SUBMIT', 'Transfer', 'noona_his_care_pkg.transfer_bed(:P56_ADM, to_number(:P56_NEWBED), :P56_SUMMARY);', when_button=b_tr,
@@ -175,11 +175,11 @@ def build(app, url, link, scheme, L):
     p.dynamic('غرف العمليات', 8, "return noona_his_care_pkg.or_board_html(to_date(:P57_DATE, 'YYYY-MM-DD'));", hide_header=True)
     fs = p.static('جدولة عملية', 10)
     p.select('P57_VISIT', fs, 10, 'الزيارة (المنوم أو الإقامة اليومية)', lov_sql=OPEN_VISIT_LOV)
-    p.select('P57_SRV', fs, 20, 'Procedure', lov_sql=SURG_SRV_LOV)
+    p.select('P57_SRV', fs, 20, 'الإجراء', lov_sql=SURG_SRV_LOV)
     p.text('P57_THEATER', fs, 30, 'غرفة العمليات', maxlen=30, width=8)
     p.select('P57_SURGEON', fs, 40, 'الجراح', lov_sql=L['DOCTOR_LOV'])
     p.select('P57_ANES', fs, 50, 'طبيب التخدير', lov_sql=L['DOCTOR_LOV'])
-    p.select('P57_ANTYPE', fs, 60, 'التخدير', lov_sql='STATIC2:General;GENERAL,Spinal;SPINAL,Local;LOCAL,Sedation;SEDATION')
+    p.select('P57_ANTYPE', fs, 60, 'التخدير', lov_sql='STATIC2:عام;GENERAL,نصفي (Spinal);SPINAL,موضعي;LOCAL,تهدئة;SEDATION')
     p.date('P57_SDATE', fs, 70, 'التاريخ')
     p.text('P57_STIME', fs, 80, 'الوقت (HH24:MI)', maxlen=5, width=8)
     p.number('P57_DUR', fs, 90, 'المدة بالدقائق')
@@ -191,7 +191,7 @@ def build(app, url, link, scheme, L):
         '    l := noona_his_care_pkg.schedule_surgery(l_doc);', '    :P57_DATE := :P57_SDATE;', 'end;'], when_button=b_sc, success='جدولت العملية')
     fx = p.static('تنفيذ العملية', 20)
     p.select('P57_SURGERY', fx, 10, 'العملية', lov_sql=SURGERY_LOV)
-    p.textarea('P57_NOTES', fx, 20, 'Operative notes (English) / cancel reason', rows=4)
+    p.textarea('P57_NOTES', fx, 20, 'ملاحظات العملية (بالإنجليزية) / سبب الإلغاء', rows=4)
     b_st = p.button(fx, 10, 'START', 'بدء العملية')
     b_fin = p.button(fx, 20, 'FINISH', 'إنهاء وحفظ التقرير', hot=True)
     b_cn = p.button(fx, 30, 'CANCEL', 'إلغاء')
@@ -208,8 +208,8 @@ def build(app, url, link, scheme, L):
     p.select('P58_SRV', fc, 20, 'الجلسة', lov_sql=THER_SRV_LOV)
     p.number('P58_SESS', fc, 30, 'عدد الجلسات')
     p.select('P58_THER', fc, 40, 'المعالج', lov_sql=L['DOCTOR_LOV'])
-    p.text('P58_FREQ', fc, 50, 'Frequency (e.g. 3/week)', maxlen=100, width=15)
-    p.textarea('P58_GOALS', fc, 60, 'Treatment goals (English)')
+    p.text('P58_FREQ', fc, 50, 'التكرار (مثلاً 3 أسبوعياً)', maxlen=100, width=15)
+    p.textarea('P58_GOALS', fc, 60, 'أهداف العلاج (بالإنجليزية)')
     b_pl = p.button(fc, 10, 'PLAN', 'إنشاء الخطة', hot=True)
     p.process(10, 'AFTER_SUBMIT', 'Plan', ['declare l number; l_doc clob;', 'begin',
         "    select json_object('visit' value to_number(:P58_VISIT), 'service' value to_number(:P58_SRV), 'sessions' value to_number(:P58_SESS),",
@@ -218,7 +218,7 @@ def build(app, url, link, scheme, L):
     fs = p.static('تسجيل جلسة', 20)
     p.select('P58_PLAN', fs, 10, 'الخطة', lov_sql=PLAN_LOV)
     p.select('P58_STHER', fs, 20, 'المعالج', lov_sql=L['DOCTOR_LOV'], null_text='- معالج الخطة -')
-    p.textarea('P58_SNOTES', fs, 30, 'Session notes / progress (English)')
+    p.textarea('P58_SNOTES', fs, 30, 'ملاحظات الجلسة والتقدم (بالإنجليزية)')
     b_se = p.button(fs, 10, 'SESSION', 'تسجيل الجلسة', hot=True)
     p.process(20, 'AFTER_SUBMIT', 'Session', ['declare l number;', 'begin',
         '    l := noona_his_care_pkg.record_session(:P58_PLAN, to_number(:P58_STHER), :P58_SNOTES);',
@@ -240,19 +240,19 @@ def build(app, url, link, scheme, L):
     # =========================================================== 64) مكونات التحاليل والقوالب
     p = app.page(64, 'Lab Setup', 'LAB-SETUP', 'Lab parameters & report templates', scheme=scheme)
     fp = p.static('مكونات التحليل', 10)
-    p.select('P64_SRV', fp, 10, 'Test', lov_sql=LAB_SRV_LOV, submit=True)
-    p.text('P64_CODE', fp, 20, 'Code (e.g. HB)', maxlen=30, width=10)
-    p.text('P64_NAME_EN', fp, 30, 'Name (English)', maxlen=200)
+    p.select('P64_SRV', fp, 10, 'التحليل', lov_sql=LAB_SRV_LOV, submit=True)
+    p.text('P64_CODE', fp, 20, 'الرمز (مثلاً HB)', maxlen=30, width=10)
+    p.text('P64_NAME_EN', fp, 30, 'الاسم (بالإنجليزية)', maxlen=200)
     p.text('P64_NAME_AR', fp, 40, 'الاسم بالعربية', maxlen=200)
-    p.text('P64_UNIT', fp, 50, 'Unit', maxlen=30, width=10)
-    p.select('P64_GENDER', fp, 60, 'Sex', lov_sql='STATIC2:Male;M,Female;F', null_text='All')
-    p.number('P64_LOW', fp, 70, 'Reference low')
-    p.number('P64_HIGH', fp, 80, 'Reference high')
-    p.number('P64_CLOW', fp, 90, 'Critical below')
-    p.number('P64_CHIGH', fp, 100, 'Critical above')
-    p.text('P64_REF', fp, 110, 'Text reference (e.g. Negative)', maxlen=200)
-    b_pa = p.button(fp, 10, 'SAVE_PARAM', 'Save parameter', hot=True)
-    b_sd = p.button(fp, 20, 'SEED', 'Load default parameters, English names & templates')
+    p.text('P64_UNIT', fp, 50, 'الوحدة', maxlen=30, width=10)
+    p.select('P64_GENDER', fp, 60, 'الجنس', lov_sql='STATIC2:ذكر;M,أنثى;F', null_text='الكل')
+    p.number('P64_LOW', fp, 70, 'الحد المرجعي الأدنى')
+    p.number('P64_HIGH', fp, 80, 'الحد المرجعي الأعلى')
+    p.number('P64_CLOW', fp, 90, 'حرج أقل من')
+    p.number('P64_CHIGH', fp, 100, 'حرج أعلى من')
+    p.text('P64_REF', fp, 110, 'مرجع نصي (مثلاً Negative)', maxlen=200)
+    b_pa = p.button(fp, 10, 'SAVE_PARAM', 'حفظ المكون', hot=True)
+    b_sd = p.button(fp, 20, 'SEED', 'تحميل المكونات والقوالب الافتراضية')
     p.process(5, 'AFTER_SUBMIT', 'Seed', ['declare l number;', 'begin', '    l := noona_his_care_pkg.seed_defaults;',
         "    apex_application.g_print_success_message := 'Loaded: ' || l;", 'end;'], when_button=b_sd)
     p.process(10, 'AFTER_SUBMIT', 'Param', ['declare l number;', 'begin',
@@ -262,21 +262,21 @@ def build(app, url, link, scheme, L):
     p.ir('المكونات', 15, [
         "select p.id, p.code, p.name_en, p.name_ar, p.unit, decode(p.gender, 'M', 'Male', 'F', 'Female', 'All') as sex, p.ref_low, p.ref_high,",
         "       p.crit_low, p.crit_high, p.ref_text from his_lab_param p where p.service_id = :P64_SRV order by p.sort_order, p.gender"],
-        [('ID', '#', {'hidden': True, 'type': 'NUMBER'}), ('CODE', 'Code', {}), ('NAME_EN', 'Name', {}), ('NAME_AR', 'الاسم', {}), ('UNIT', 'Unit', {}),
-         ('SEX', 'Sex', {}), ('REF_LOW', 'Low', {'type': 'NUMBER'}), ('REF_HIGH', 'High', {'type': 'NUMBER'}), ('CRIT_LOW', 'Crit. low', {'type': 'NUMBER'}),
-         ('CRIT_HIGH', 'Crit. high', {'type': 'NUMBER'}), ('REF_TEXT', 'Text ref.', {})], titled=True, rows=40)
+        [('ID', '#', {'hidden': True, 'type': 'NUMBER'}), ('CODE', 'الرمز', {}), ('NAME_EN', 'الاسم', {}), ('NAME_AR', 'الاسم', {}), ('UNIT', 'الوحدة', {}),
+         ('SEX', 'الجنس', {}), ('REF_LOW', 'الحد الأدنى', {'type': 'NUMBER'}), ('REF_HIGH', 'الحد الأعلى', {'type': 'NUMBER'}), ('CRIT_LOW', 'حرج أدنى', {'type': 'NUMBER'}),
+         ('CRIT_HIGH', 'حرج أعلى', {'type': 'NUMBER'}), ('REF_TEXT', 'مرجع نصي', {})], titled=True, rows=40)
     ft = p.static('قوالب التقارير (الأشعة / القلب)', 20)
-    p.text('P64_TCODE', ft, 10, 'Template code', maxlen=30, width=12)
-    p.text('P64_TNAME', ft, 20, 'Name', maxlen=200)
-    p.select('P64_TMOD', ft, 30, 'Modality', lov_sql=MODALITY_LOV)
-    p.textarea('P64_TBODY', ft, 40, 'Template text (English)', rows=6)
-    b_tp = p.button(ft, 10, 'SAVE_TPL', 'Save template')
+    p.text('P64_TCODE', ft, 10, 'رمز القالب', maxlen=30, width=12)
+    p.text('P64_TNAME', ft, 20, 'الاسم', maxlen=200)
+    p.select('P64_TMOD', ft, 30, 'نوع الجهاز', lov_sql=MODALITY_LOV)
+    p.textarea('P64_TBODY', ft, 40, 'نص القالب (بالإنجليزية)', rows=6)
+    b_tp = p.button(ft, 10, 'SAVE_TPL', 'حفظ القالب')
     p.process(20, 'AFTER_SUBMIT', 'Template', ['declare l number;', 'begin',
         '    l := noona_his_care_pkg.save_template(null, :P64_TCODE, :P64_TNAME, null, :P64_TMOD, :P64_TBODY);', 'end;'], when_button=b_tp,
         success='Template saved')
     p.ir('القوالب', 25, [f"select t.id, t.code, t.name_ar, noona_his_pkg.modality_label(t.modality) as modality, substr(t.body, 1, 200) as body "
                            f"from his_report_template t where t.company_id = {CO} order by t.code"],
-         [('ID', '#', {'hidden': True, 'type': 'NUMBER'}), ('CODE', 'Code', {}), ('NAME_AR', 'Name', {}), ('MODALITY', 'Modality', {}), ('BODY', 'Text', {})],
+         [('ID', '#', {'hidden': True, 'type': 'NUMBER'}), ('CODE', 'الرمز', {}), ('NAME_AR', 'الاسم', {}), ('MODALITY', 'نوع الجهاز', {}), ('BODY', 'النص', {})],
          titled=True, rows=20)
     p.onload("$('#P64_TBODY,#P64_NAME_EN,#P64_REF').attr('dir', 'ltr');")
     p.branch(10, url(64, 'P64_SRV', '&P64_SRV.') + '&success_msg=#SUCCESS_MSG#')
@@ -286,12 +286,12 @@ def build(app, url, link, scheme, L):
     p.dynamic('المؤشرات', 5, 'return noona_his_care_pkg.devices_html;', hide_header=True)
     fd = p.static('جهاز', 10)
     p.text('P66_CODE', fd, 10, 'الرمز', maxlen=30, width=12)
-    p.text('P66_NAME', fd, 20, 'Device name')
+    p.text('P66_NAME', fd, 20, 'اسم الجهاز')
     p.select('P66_DEPT', fd, 30, 'القسم', lov_sql=L['DEPT_LOV'])
-    p.select('P66_MOD', fd, 40, 'Modality', lov_sql=MODALITY_LOV)
-    p.text('P66_MFR', fd, 50, 'Manufacturer', maxlen=100, width=15)
-    p.text('P66_MODEL', fd, 60, 'Model', maxlen=100, width=15)
-    p.text('P66_SN', fd, 70, 'Serial no.', maxlen=100, width=15)
+    p.select('P66_MOD', fd, 40, 'نوع الجهاز', lov_sql=MODALITY_LOV)
+    p.text('P66_MFR', fd, 50, 'الشركة المصنعة', maxlen=100, width=15)
+    p.text('P66_MODEL', fd, 60, 'الطراز', maxlen=100, width=15)
+    p.text('P66_SN', fd, 70, 'الرقم التسلسلي', maxlen=100, width=15)
     p.select('P66_ASSET', fd, 80, 'الأصل الثابت', lov_sql=f"select asset_no || ' - ' || name_ar d, id r from fa_asset where company_id = {CO} order by asset_no")
     p.date('P66_INST', fd, 90, 'تاريخ التركيب')
     p.date('P66_WARR', fd, 100, 'نهاية الضمان')
@@ -319,7 +319,7 @@ def build(app, url, link, scheme, L):
         "       then 'قريبة' end as due, case v.status_code when 'IN_SERVICE' then 'في الخدمة' when 'OUT_OF_SERVICE' then 'خارج الخدمة' else 'مستبعد' end as status,",
         "       (select nvl(sum(cost), 0) from his_device_log l where l.device_id = v.id) as service_cost",
         f"  from his_device v join his_department d on d.id = v.department_id where v.company_id = {CO} order by v.next_calibration nulls last"],
-        [('ID', '#', {'hidden': True, 'type': 'NUMBER'}), ('CODE', 'الرمز', {}), ('NAME_AR', 'Device', {}), ('DEPT', 'القسم', {}), ('MODALITY', 'الجهاز', {}),
+        [('ID', '#', {'hidden': True, 'type': 'NUMBER'}), ('CODE', 'الرمز', {}), ('NAME_AR', 'الجهاز', {}), ('DEPT', 'القسم', {}), ('MODALITY', 'الجهاز', {}),
          ('MANUFACTURER', 'المصنع', {}), ('MODEL', 'الطراز', {}), ('SERIAL_NO', 'الرقم التسلسلي', {}), ('LAST_CALIBRATION', 'آخر معايرة', {'type': 'DATE'}),
          ('NEXT_CALIBRATION', 'المعايرة القادمة', {'type': 'DATE'}), ('DUE', 'الاستحقاق', {}), ('STATUS', 'الحالة', {}),
          ('SERVICE_COST', 'تكلفة الصيانة', {'type': 'NUMBER'})], titled=True)
@@ -375,7 +375,7 @@ def build(app, url, link, scheme, L):
         "select i.doc_no || ' - ' || p.name_ar || ' (' || to_char(l.claimed_amount, 'FM999G990D00') || ')' d, i.id r from his_claim_line l "
         "join his_invoice i on i.id = l.invoice_id join his_patient p on p.id = i.patient_id where l.batch_id = :P72_ID order by i.doc_no"))
     p.number('P72_APPROVED', fr, 20, 'المبلغ المقبول')
-    p.text('P72_REASON', fr, 30, 'Rejection reason', maxlen=500)
+    p.text('P72_REASON', fr, 30, 'سبب الرفض', maxlen=500)
     b_ad = p.button(fr, 10, 'ADD_DECISION', 'إضافة للرد')
     b_rs = p.button(fr, 20, 'RECORD', 'تسجيل رد الجهة (الباقي مقبول بالكامل)', hot=True)
     p.process(40, 'AFTER_SUBMIT', 'Add Decision', ['begin',

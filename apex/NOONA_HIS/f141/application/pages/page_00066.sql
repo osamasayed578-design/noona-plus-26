@@ -65,7 +65,7 @@ wwv_flow_imp_page.create_page_item(
 ,p_name=>'P66_NAME'
 ,p_item_sequence=>20
 ,p_item_plug_id=>wwv_flow_imp.id(91820275000000747)
-,p_prompt=>'Device name'
+,p_prompt=>'اسم الجهاز'
 ,p_display_as=>'NATIVE_TEXT_FIELD'
 ,p_cSize=>40
 ,p_cMaxlength=>200
@@ -100,7 +100,7 @@ wwv_flow_imp_page.create_page_item(
 ,p_name=>'P66_MOD'
 ,p_item_sequence=>40
 ,p_item_plug_id=>wwv_flow_imp.id(91820275000000747)
-,p_prompt=>'Modality'
+,p_prompt=>'نوع الجهاز'
 ,p_display_as=>'NATIVE_SELECT_LIST'
 ,p_lov=>'STATIC2:أشعة سينية;XRAY,أشعة مقطعية;CT,رنين مغناطيسي;MRI,موجات صوتية;ULTRASOUND,دوبلر;DOPPLER,ماموجرام;MAMMOGRAPHY,أشعة بالصبغة;FLUOROSCOPY,هشاشة العظام;DEXA,طب نووي;NUCLEAR,مسح PET;PET,رسم قلب;ECG,إيكو القلب;ECHO,جهد;STRESS_TEST,هولتر;HOLTER,رسم مخ;EEG,رسم عصب وعضلات;EMG,مناظير;ENDOSCOPY'
 ,p_lov_display_null=>'YES'
@@ -118,7 +118,7 @@ wwv_flow_imp_page.create_page_item(
 ,p_name=>'P66_MFR'
 ,p_item_sequence=>50
 ,p_item_plug_id=>wwv_flow_imp.id(91820275000000747)
-,p_prompt=>'Manufacturer'
+,p_prompt=>'الشركة المصنعة'
 ,p_display_as=>'NATIVE_TEXT_FIELD'
 ,p_cSize=>15
 ,p_cMaxlength=>100
@@ -135,7 +135,7 @@ wwv_flow_imp_page.create_page_item(
 ,p_name=>'P66_MODEL'
 ,p_item_sequence=>60
 ,p_item_plug_id=>wwv_flow_imp.id(91820275000000747)
-,p_prompt=>'Model'
+,p_prompt=>'الطراز'
 ,p_display_as=>'NATIVE_TEXT_FIELD'
 ,p_cSize=>15
 ,p_cMaxlength=>100
@@ -153,7 +153,7 @@ wwv_flow_imp_page.create_page_item(
 ,p_name=>'P66_SN'
 ,p_item_sequence=>70
 ,p_item_plug_id=>wwv_flow_imp.id(91820275000000747)
-,p_prompt=>'Serial no.'
+,p_prompt=>'الرقم التسلسلي'
 ,p_display_as=>'NATIVE_TEXT_FIELD'
 ,p_cSize=>15
 ,p_cMaxlength=>100
@@ -464,7 +464,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_db_column_name=>'NAME_AR'
 ,p_display_order=>30
 ,p_column_identifier=>'C'
-,p_column_label=>'Device'
+,p_column_label=>'الجهاز'
 ,p_column_type=>'STRING'
 ,p_heading_alignment=>'CENTER'
 ,p_use_as_row_header=>'N'

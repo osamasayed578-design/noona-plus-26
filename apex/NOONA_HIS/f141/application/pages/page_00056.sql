@@ -139,7 +139,7 @@ wwv_flow_imp_page.create_page_item(
 ,p_name=>'P56_REASON'
 ,p_item_sequence=>60
 ,p_item_plug_id=>wwv_flow_imp.id(91820275000000612)
-,p_prompt=>'Admission reason (English)'
+,p_prompt=>'سبب التنويم (بالإنجليزية)'
 ,p_display_as=>'NATIVE_TEXT_FIELD'
 ,p_cSize=>40
 ,p_cMaxlength=>1000
@@ -279,7 +279,7 @@ wwv_flow_imp_page.create_page_item(
 ,p_name=>'P56_SUMMARY'
 ,p_item_sequence=>40
 ,p_item_plug_id=>wwv_flow_imp.id(91820275000000623)
-,p_prompt=>'Discharge summary / transfer reason (English)'
+,p_prompt=>'ملخص الخروج / سبب التحويل (بالإنجليزية)'
 ,p_display_as=>'NATIVE_TEXTAREA'
 ,p_cSize=>60
 ,p_cMaxlength=>1000

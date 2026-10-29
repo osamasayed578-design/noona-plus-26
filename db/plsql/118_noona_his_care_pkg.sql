@@ -166,13 +166,13 @@ CREATE OR REPLACE PACKAGE BODY NOONA_HIS_CARE_PKG AS
     FOR r IN (SELECT * FROM JSON_TABLE(l_j, '$[*]' COLUMNS (p NUMBER PATH '$.p', code VARCHAR2(30) PATH '$.code', n VARCHAR2(200) PATH '$.n',
                 unit VARCHAR2(30) PATH '$.unit', low NUMBER PATH '$.low', high NUMBER PATH '$.high', ref VARCHAR2(200) PATH '$.ref',
                 v NUMBER PATH '$.v', t VARCHAR2(200) PATH '$.t', f VARCHAR2(5) PATH '$.f'))) LOOP
-      l_h := l_h || '<tr class="lf-' || LOWER(NVL(r.f, 'n')) || '"><td><b>' || esc(r.n) || '</b> <small>' || esc(r.code) || '</small>'
+      l_h := l_h || ('<tr class="lf-' || LOWER(NVL(r.f, 'n')) || '"><td><b>' || esc(r.n) || '</b> <small>' || esc(r.code) || '</small>'
           || APEX_ITEM.HIDDEN(2, r.p) || '</td><td>' || APEX_ITEM.TEXT(1, NVL(r.t, RTRIM(RTRIM(TO_CHAR(r.v, 'FM9999990D999', 'NLS_NUMERIC_CHARACTERS=''.,'''), '0'), '.')),
              10, 30, 'class="nn-rst-in" style="max-width:140px" aria-label="' || esc(r.n) || '"') || '</td><td>' || esc(r.unit) || '</td><td>'
           || esc(NVL(r.ref, CASE WHEN r.low IS NOT NULL OR r.high IS NOT NULL THEN r.low || ' - ' || r.high END)) || '</td><td>'
-          || CASE r.f WHEN 'H' THEN 'High' WHEN 'L' THEN 'Low' WHEN 'HH' THEN 'Critical high' WHEN 'LL' THEN 'Critical low' WHEN 'N' THEN 'Normal' END || '</td></tr>';
+          || CASE r.f WHEN 'H' THEN 'High' WHEN 'L' THEN 'Low' WHEN 'HH' THEN 'Critical high' WHEN 'LL' THEN 'Critical low' WHEN 'N' THEN 'Normal' END || '</td></tr>');
     END LOOP;
-    RETURN l_h || '</tbody></table>';
+    RETURN l_h || ('</tbody></table>');
   END lab_grid_html;
 
   FUNCTION lab_params_json(p_order_id IN NUMBER) RETURN CLOB IS
@@ -493,14 +493,14 @@ CREATE OR REPLACE PACKAGE BODY NOONA_HIS_CARE_PKG AS
           || '</tr></thead><tbody>';
       FOR l IN (SELECT l.*, NVL(i.name_en, i.name_ar) med FROM his_prescription_line l JOIN inv_item i ON i.id = l.item_id
                  WHERE l.prescription_id = p_rx_id ORDER BY l.line_no) LOOP
-        l_h := l_h || '<tr><td>' || l.line_no || '</td><td><b>' || esc(l.med) || '</b></td><td>' || esc(l.dose) || '</td><td>' || esc(l.frequency) || '</td><td>'
+        l_h := l_h || ('<tr><td>' || l.line_no || '</td><td><b>' || esc(l.med) || '</b></td><td>' || esc(l.dose) || '</td><td>' || esc(l.frequency) || '</td><td>'
             || NVL2(l.duration_days, l.duration_days || ' days', '') || '</td><td>' || RTRIM(RTRIM(TO_CHAR(l.quantity, 'FM9999990D99', 'NLS_NUMERIC_CHARACTERS=''.,'''), '0'), '.')
-            || '</td><td>' || esc(l.instructions) || '</td></tr>';
+            || '</td><td>' || esc(l.instructions) || '</td></tr>');
       END LOOP;
-      l_h := l_h || '</tbody></table><p><small>Valid until ' || TO_CHAR(NVL(x.expires_on, TRUNC(CAST(x.rx_at AS DATE)) + 30), 'DD Mon YYYY', 'NLS_DATE_LANGUAGE=ENGLISH')
+      l_h := l_h || ('</tbody></table><p><small>Valid until ' || TO_CHAR(NVL(x.expires_on, TRUNC(CAST(x.rx_at AS DATE)) + 30), 'DD Mon YYYY', 'NLS_DATE_LANGUAGE=ENGLISH')
           || '. May be dispensed at the hospital pharmacy or any licensed pharmacy.</small></p>'
           || '<footer><div><b>' || esc(NVL(x.den, x.dn)) || '</b><br><small>' || esc(x.specialty) || NVL2(x.license_no, ' · License ' || esc(x.license_no), '')
-          || '</small></div><div class="r"><small>Signature</small><br><br>__________________</div></footer></div>';
+          || '</small></div><div class="r"><small>Signature</small><br><br>__________________</div></footer></div>');
     END LOOP;
     RETURN l_h;
   END rx_html;
@@ -653,22 +653,22 @@ CREATE OR REPLACE PACKAGE BODY NOONA_HIS_CARE_PKG AS
     guard('HIS_VISIT.VIEW');
     FOR w IN (SELECT d.id, d.name_ar, COUNT(b.id) n, SUM(CASE WHEN b.status_code = 'OCCUPIED' THEN 1 ELSE 0 END) occ
                 FROM his_department d JOIN his_bed b ON b.ward_id = d.id WHERE d.company_id = l_co GROUP BY d.id, d.name_ar ORDER BY d.name_ar) LOOP
-      l_h := l_h || '<section class="nn-his-ward"><h3>' || esc(w.name_ar) || ' <small>' || w.occ || ' / ' || w.n || ' مشغول</small></h3><div class="nn-his-bedgrid">';
+      l_h := l_h || ('<section class="nn-his-ward"><h3>' || esc(w.name_ar) || ' <small>' || w.occ || ' / ' || w.n || ' مشغول</small></h3><div class="nn-his-bedgrid">');
       FOR b IN (SELECT b.id, b.bed_no, b.room_no, b.bed_class, b.status_code, a.id adm, a.admission_no, p.name_ar, p.mrn,
                        TRUNC(SYSDATE) - TRUNC(CAST(a.admit_at AS DATE)) los, v.id vid
                   FROM his_bed b LEFT JOIN his_admission a ON a.bed_id = b.id AND a.status_code = 'ADMITTED'
                   LEFT JOIN his_visit v ON v.id = a.visit_id LEFT JOIN his_patient p ON p.id = v.patient_id
                  WHERE b.ward_id = w.id ORDER BY b.bed_no) LOOP
-        l_h := l_h || '<div class="nn-his-bed bs-' || LOWER(b.status_code) || '" data-bed="' || b.id || '" data-adm="' || b.adm || '" data-visit="' || b.vid
+        l_h := l_h || ('<div class="nn-his-bed bs-' || LOWER(b.status_code) || '" data-bed="' || b.id || '" data-adm="' || b.adm || '" data-visit="' || b.vid
             || '"><b>' || esc(b.bed_no) || '</b><small>' || esc(b.room_no) || ' · ' || esc(CASE b.bed_class WHEN 'PRIVATE' THEN 'خاص' WHEN 'SEMI_PRIVATE' THEN 'شبه خاص'
                WHEN 'SUITE' THEN 'جناح' WHEN 'ICU' THEN 'عناية مركزة' WHEN 'NICU' THEN 'حضانة' WHEN 'ISOLATION' THEN 'عزل' ELSE 'عام' END) || '</small>'
             || CASE WHEN b.adm IS NOT NULL THEN '<span>' || esc(b.name_ar) || '</span><small>' || esc(b.mrn) || ' · يوم ' || (b.los + 1) || '</small>'
                     ELSE '<span>' || CASE b.status_code WHEN 'AVAILABLE' THEN 'متاح' WHEN 'CLEANING' THEN 'تحت التنظيف' WHEN 'BLOCKED' THEN 'موقوف' END || '</span>' END
-            || '</div>';
+            || '</div>');
       END LOOP;
-      l_h := l_h || '</div></section>';
+      l_h := l_h || ('</div></section>');
     END LOOP;
-    RETURN l_h || '</div>';
+    RETURN l_h || ('</div>');
   END bed_board_html;
 
   -- ================================================================ العمليات
@@ -747,26 +747,26 @@ CREATE OR REPLACE PACKAGE BODY NOONA_HIS_CARE_PKG AS
     FOR t IN (SELECT DISTINCT theater FROM his_surgery WHERE company_id = company AND TRUNC(CAST(start_at AS DATE)) = l_d AND status_code <> 'CANCELLED'
               ORDER BY theater) LOOP
       l_n := l_n + 1;
-      l_h := l_h || '<section class="nn-his-col"><header><b>غرفة ' || esc(t.theater) || '</b></header>';
+      l_h := l_h || ('<section class="nn-his-col"><header><b>غرفة ' || esc(t.theater) || '</b></header>');
       FOR s IN (SELECT s.id, TO_CHAR(s.start_at, 'HH24:MI') st, TO_CHAR(s.start_at + NUMTODSINTERVAL(s.duration_min, 'MINUTE'), 'HH24:MI') en, s.status_code,
                        NOONA_HIS_PKG.service_name(sv.id) sname, p.name_ar pname, p.mrn, dr.name_ar sur, an.name_ar ane, s.anesthesia, o.status_code ost, o.invoice_id, v.visit_type
                   FROM his_surgery s JOIN his_service sv ON sv.id = s.service_id JOIN his_visit v ON v.id = s.visit_id JOIN his_patient p ON p.id = v.patient_id
                   JOIN his_doctor dr ON dr.id = s.surgeon_id LEFT JOIN his_doctor an ON an.id = s.anesthetist_id JOIN his_order o ON o.id = s.order_id
                  WHERE s.company_id = company AND s.theater = t.theater AND TRUNC(CAST(s.start_at AS DATE)) = l_d AND s.status_code <> 'CANCELLED'
                  ORDER BY s.start_at) LOOP
-        l_h := l_h || '<div class="nn-his-appt ap-' || CASE s.status_code WHEN 'DONE' THEN 'completed' WHEN 'IN_PROGRESS' THEN 'arrived' ELSE 'booked' END
+        l_h := l_h || ('<div class="nn-his-appt ap-' || CASE s.status_code WHEN 'DONE' THEN 'completed' WHEN 'IN_PROGRESS' THEN 'arrived' ELSE 'booked' END
             || '" data-surgery="' || s.id || '"><b>' || s.st || '-' || s.en || '</b> ' || esc(s.sname) || '<small>' || esc(s.pname) || ' (' || esc(s.mrn) || ') · '
             || esc(s.sur) || CASE WHEN s.ane IS NOT NULL THEN ' · تخدير: ' || esc(s.ane) END
             || CASE WHEN s.ost = 'APPROVAL_PENDING' THEN ' · بانتظار موافقة التأمين' WHEN s.invoice_id IS NULL AND s.visit_type NOT IN ('INPATIENT', 'DAY_CASE', 'EMERGENCY')
                     THEN ' · غير مسددة' END || '</small><span>'
-            || CASE s.status_code WHEN 'DONE' THEN 'منجزة' WHEN 'IN_PROGRESS' THEN 'جارية' ELSE 'مجدولة' END || '</span></div>';
+            || CASE s.status_code WHEN 'DONE' THEN 'منجزة' WHEN 'IN_PROGRESS' THEN 'جارية' ELSE 'مجدولة' END || '</span></div>');
       END LOOP;
-      l_h := l_h || '</section>';
+      l_h := l_h || ('</section>');
     END LOOP;
     IF l_n = 0 THEN
-      l_h := l_h || '<p class="nn-hint">لا توجد عمليات مجدولة في هذا اليوم</p>';
+      l_h := l_h || ('<p class="nn-hint">لا توجد عمليات مجدولة في هذا اليوم</p>');
     END IF;
-    RETURN l_h || '</div>';
+    RETURN l_h || ('</div>');
   END or_board_html;
 
   -- ================================================================ العلاج الطبيعي

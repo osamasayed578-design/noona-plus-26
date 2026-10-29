@@ -552,10 +552,10 @@ CREATE OR REPLACE PACKAGE BODY NOONA_SEC_ADMIN_PKG AS
       SELECT COUNT(*) INTO u FROM sec_user_membership WHERE status_code = 'ACTIVE';
       SELECT COUNT(*) INTO b FROM org_branch WHERE status_code <> 'CLOSED';
       SELECT COUNT(*) INTO c FROM org_company WHERE status_code NOT IN ('CLOSED', 'ARCHIVED', 'LEGALLY_CLOSED');
-      l_html := l_html || use_row('USERS', 'المستخدمون النشطون', u) || use_row('BRANCHES', 'الفروع', b) || use_row('COMPANIES', 'الشركات', c);
+      l_html := l_html || (use_row('USERS', 'المستخدمون النشطون', u) || use_row('BRANCHES', 'الفروع', b) || use_row('COMPANIES', 'الشركات', c));
       SELECT COUNT(*) INTO m FROM plt_module x WHERE x.is_active = 'Y' AND NOONA_PLATFORM_PKG.module_enabled(x.module_code) = 'Y';
-      l_html := l_html || ('</tbody></table><p class="nn-rpt-note">الوحدات المتاحة في الاشتراك: ' || m
-             || '. زيادة الحدود أو الوحدات وتجديد الاشتراك من مزود الخدمة (إدارة المنصة)؛ إضافة الفروع والمستخدمين ومنح الصلاحيات من هنا ضمن الحدود.</p>');
+      l_html := l_html || (('</tbody></table><p class="nn-rpt-note">الوحدات المتاحة في الاشتراك: ' || m
+             || '. زيادة الحدود أو الوحدات وتجديد الاشتراك من مزود الخدمة (إدارة المنصة)؛ إضافة الفروع والمستخدمين ومنح الصلاحيات من هنا ضمن الحدود.</p>'));
     END;
     RETURN l_html;
   END subscription_html;

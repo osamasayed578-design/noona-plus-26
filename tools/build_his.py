@@ -450,7 +450,7 @@ p.dynamic('الطلب', 5, [
     "      into l from his_order o join his_service s on s.id = o.service_id join his_visit v on v.id = o.visit_id join his_patient p on p.id = v.patient_id",
     f"     where o.id = :P51_ID and o.company_id = {CO};",
     '    return l;', 'exception when no_data_found then return null;', 'end;'], hide_header=True)
-p.textarea('P51_RESULT', f, 10, 'Result / Report (English)', rows=10)
+p.textarea('P51_RESULT', f, 10, 'النتيجة / التقرير (بالإنجليزية)', rows=10)
 p.onload("$('#P51_RESULT, input[name=f01]').attr('dir', 'ltr');")
 p.select('P51_FLAG', f, 20, 'التقييم', lov_sql='STATIC2:طبيعي (Normal);NORMAL,غير طبيعي (Abnormal);ABNORMAL,حرج (Critical);CRITICAL', null_text=None)
 p.select('P51_BY', f, 30, 'المنفذ/المعتمد', lov_sql=DOCTOR_LOV, null_text='- المستخدم الحالي -')
@@ -465,7 +465,7 @@ p.process(5, 'BEFORE_HEADER', 'Load', ['begin', '    select result_text, nvl(res
 # التحاليل ذات المكونات: جدول القيم بالمعدلات والتقييم الآلي
 LAB = "noona_his_care_pkg.has_params(:P51_ID) = 'Y'"
 fl = p.static('نتائج المختبر', 8, condition=LAB)
-p.dynamic('Parameters', 7, 'return noona_his_care_pkg.lab_grid_html(:P51_ID);', hide_header=True, condition=LAB)
+p.dynamic('المكونات', 7, 'return noona_his_care_pkg.lab_grid_html(:P51_ID);', hide_header=True, condition=LAB)
 b_lsave = p.button(fl, 10, 'LAB_SAVE', 'حفظ القيم')
 b_ldone = p.button(fl, 20, 'LAB_DONE', 'اعتماد النتائج وإصدارها', hot=True)
 LAB_JSON = ['declare l clob;', 'begin', "    l := '[';",
@@ -568,7 +568,7 @@ p.ir('الخدمات', 20, [
     "       (select count(*) from his_service_material m where m.service_id = s.id) as materials,",
     "       case s.status_code when 'ACTIVE' then 'نشط' else 'موقوف' end as status",
     f"  from his_service s left join his_department d on d.id = s.department_id where s.company_id = {CO} order by s.service_type, s.name_ar"],
-    [('ID', '#', {'hidden': True, 'type': 'NUMBER'}), ('CODE', 'الرمز', {}), ('NAME_AR', 'الخدمة', {}), ('NAME_EN', 'English', {}), ('STYPE', 'النوع', {}), ('MODALITY', 'الجهاز', {}),
+    [('ID', '#', {'hidden': True, 'type': 'NUMBER'}), ('CODE', 'الرمز', {}), ('NAME_AR', 'الخدمة', {}), ('NAME_EN', 'الاسم بالإنجليزية', {}), ('STYPE', 'النوع', {}), ('MODALITY', 'الجهاز', {}),
      ('DEPT', 'القسم', {}), ('PRICE', 'السعر', {'type': 'NUMBER'}), ('BILLING_CODE', 'رمز الفوترة', {}), ('TURNAROUND_HOURS', 'زمن النتيجة', {'type': 'NUMBER'}),
      ('APPROVAL', 'موافقة', {}), ('MATERIALS', 'المواد', {'type': 'NUMBER'}), ('STATUS', 'الحالة', {})], titled=True)
 p.branch(10, url(61, 'P61_MSRV', '&P61_MSRV.') + '&success_msg=#SUCCESS_MSG#')

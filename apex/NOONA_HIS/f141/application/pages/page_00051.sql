@@ -72,7 +72,7 @@ wwv_flow_imp_page.create_page_item(
 ,p_name=>'P51_RESULT'
 ,p_item_sequence=>10
 ,p_item_plug_id=>wwv_flow_imp.id(91820275000000293)
-,p_prompt=>'Result / Report (English)'
+,p_prompt=>'النتيجة / التقرير (بالإنجليزية)'
 ,p_display_as=>'NATIVE_TEXTAREA'
 ,p_cSize=>60
 ,p_cMaxlength=>1000
@@ -197,7 +197,7 @@ wwv_flow_imp_page.create_page_plug(
 );
 wwv_flow_imp_page.create_page_plug(
  p_id=>wwv_flow_imp.id(91820275000000305)
-,p_plug_name=>'Parameters'
+,p_plug_name=>'المكونات'
 ,p_region_template_options=>'#DEFAULT#:t-Region--scrollBody:t-Region--removeHeader js-removeLandmark:t-Region--noUI'
 ,p_plug_template=>4072358936313175081
 ,p_plug_display_sequence=>7

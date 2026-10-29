@@ -1769,18 +1769,18 @@ CREATE OR REPLACE PACKAGE BODY NOONA_MFG_PKG AS
                 inc(l_gross, c.ci, c.q * l_net / l_base(l_k) * (1 + NVL(c.s, 0) / 100));
               END LOOP;
             END IF;
-            l_out := l_out || (CASE WHEN l_first THEN '' ELSE ',' END
+            l_out := l_out || ((CASE WHEN l_first THEN '' ELSE ',' END
                   || '{"i":' || l_k || ',"n":' || jt(item_label(l_k)) || ',"t":"' || CASE WHEN l_bom.EXISTS(l_k) THEN 'MAKE' ELSE 'BUY' END
                   || '","lvl":' || lv || ',"oh":' || fnum(g(l_oh, l_k)) || ',"sup":' || fnum(g(l_sup, l_k)) || ',"gross":' || fnum(ROUND(g(l_gross, l_k), 3))
                   || ',"min":' || fnum(CASE WHEN l_min.EXISTS(l_k) THEN l_min(l_k) END) || ',"net":' || fnum(l_net)
-                  || ',"bom":' || fnum(CASE WHEN l_bom.EXISTS(l_k) THEN l_bom(l_k) END) || ',"c":' || fnum(comp_cost(l_k)) || '}');
+                  || ',"bom":' || fnum(CASE WHEN l_bom.EXISTS(l_k) THEN l_bom(l_k) END) || ',"c":' || fnum(comp_cost(l_k)) || '}'));
             l_first := FALSE;
           END IF;
         END IF;
         l_k := l_in.NEXT(l_k);
       END LOOP;
     END LOOP;
-    RETURN l_out || ']';
+    RETURN l_out || (']');
   END mrp_json;
 
   FUNCTION mrp_execute(p_doc IN CLOB) RETURN CLOB IS
@@ -1843,7 +1843,7 @@ CREATE OR REPLACE PACKAGE BODY NOONA_MFG_PKG AS
     FUNCTION want(p VARCHAR2) RETURN BOOLEAN IS BEGIN RETURN INSTR(',' || REPLACE(p_names, ' ') || ',', ',' || p || ',') > 0; END;
     PROCEDURE put(p_name VARCHAR2, p_json CLOB) IS
     BEGIN
-      l_out := l_out || (CASE WHEN l_first THEN '' ELSE ',' END || '"' || p_name || '":' || NVL(p_json, TO_CLOB('[]')));
+      l_out := l_out || ((CASE WHEN l_first THEN '' ELSE ',' END || '"' || p_name || '":' || NVL(p_json, TO_CLOB('[]'))));
       l_first := FALSE;
     END put;
   BEGIN
@@ -1878,7 +1878,7 @@ CREATE OR REPLACE PACKAGE BODY NOONA_MFG_PKG AS
         INTO l_c FROM gl_cost_center WHERE company_id = l_co;
       put('ccs', l_c);
     END IF;
-    RETURN l_out || '}';
+    RETURN l_out || ('}');
   END lists_json;
 
   -- ================================================================ التقارير
@@ -1961,10 +1961,10 @@ CREATE OR REPLACE PACKAGE BODY NOONA_MFG_PKG AS
                 LEFT JOIN mfg_wip_cost w ON w.order_id = p_order_id AND w.cost_element = e.el
                GROUP BY e.el, e.o ORDER BY e.o) LOOP
       s1 := s1 + r.su; s2 := s2 + r.ch; s3 := s3 + r.rl; s4 := s4 + r.vr;
-      l_html := l_html || ('<tr><td class="nn-rpt-text">' || element_label(r.el) || '</td><td>' || fmt(r.su) || '</td><td>' || fmt(r.ch)
-             || '</td><td>' || fmt(r.rl) || '</td><td>' || fmt(r.vr) || '</td><td>' || fmt(r.ch - r.rl - r.vr) || '</td></tr>');
+      l_html := l_html || (('<tr><td class="nn-rpt-text">' || element_label(r.el) || '</td><td>' || fmt(r.su) || '</td><td>' || fmt(r.ch)
+             || '</td><td>' || fmt(r.rl) || '</td><td>' || fmt(r.vr) || '</td><td>' || fmt(r.ch - r.rl - r.vr) || '</td></tr>'));
     END LOOP;
-    l_html := l_html || ('</tbody><tfoot><tr><td>الإجمالي</td><td>' || fmt0(s1) || '</td><td>' || fmt0(s2) || '</td><td>' || fmt0(s3)
+    l_html := l_html || (('</tbody><tfoot><tr><td>الإجمالي</td><td>' || fmt0(s1) || '</td><td>' || fmt0(s2) || '</td><td>' || fmt0(s3)
            || '</td><td>' || fmt0(s4) || '</td><td>' || fmt0(s2 - s3 - s4) || '</td></tr></tfoot></table>'
            || '<div class="nn-fields"><div class="nn-field"><div class="nn-field-label">تكلفة الوحدة الفعلية</div><div class="nn-field-value">'
            || CASE WHEN l_o.completed_qty > 0 THEN fmt0(s2 / l_o.completed_qty) ELSE '-' END || '</div></div>'
@@ -1972,48 +1972,48 @@ CREATE OR REPLACE PACKAGE BODY NOONA_MFG_PKG AS
            || fmt0(l_o.std_unit_cost * l_o.completed_qty) || '</div></div></div>'
            || '<h3 class="nn-rpt-title">الخامات: المعياري مقابل الفعلي</h3><table class="nn-rpt"><thead><tr><th>المادة</th><th>المطلوب للأمر</th>'
            || '<th>المعياري للمنتج</th><th>الصافي المصروف</th><th>فرق الكمية</th><th>السعر المعياري</th><th>التكلفة الفعلية</th>'
-           || '<th>انحراف السعر</th><th>انحراف الكمية</th></tr></thead><tbody>');
+           || '<th>انحراف السعر</th><th>انحراف الكمية</th></tr></thead><tbody>'));
     s1 := 0; s2 := 0;
     FOR m IN (SELECT * FROM mfg_order_material WHERE order_id = p_order_id ORDER BY operation_seq NULLS FIRST, id) LOOP
       l_x := m.required_qty * CASE WHEN l_o.planned_qty > 0 THEN l_out / l_o.planned_qty ELSE 0 END;
       s1 := s1 + (m.issued_cost - (m.issued_qty - m.returned_qty) * NVL(m.std_unit_cost, 0));
       s2 := s2 + ((m.issued_qty - m.returned_qty) - l_x) * NVL(m.std_unit_cost, 0);
-      l_html := l_html || ('<tr' || CASE WHEN ABS((m.issued_qty - m.returned_qty) - l_x) > 0.0005 THEN ' class="nn-rpt-warn"' END || '><td class="nn-rpt-text">'
+      l_html := l_html || (('<tr' || CASE WHEN ABS((m.issued_qty - m.returned_qty) - l_x) > 0.0005 THEN ' class="nn-rpt-warn"' END || '><td class="nn-rpt-text">'
              || esc(item_label(m.item_id)) || CASE WHEN m.is_substitute = 'Y' THEN ' <span class="nn-badge is-info">بديل</span>' END || '</td><td>'
              || fqty(m.required_qty) || '</td><td>' || fqty(ROUND(l_x, 3)) || '</td><td>' || fqty(m.issued_qty - m.returned_qty) || '</td><td>'
              || fqty(ROUND((m.issued_qty - m.returned_qty) - l_x, 3)) || '</td><td>' || fmt(m.std_unit_cost) || '</td><td>' || fmt(m.issued_cost)
              || '</td><td>' || fmt(m.issued_cost - (m.issued_qty - m.returned_qty) * NVL(m.std_unit_cost, 0)) || '</td><td>'
-             || fmt(((m.issued_qty - m.returned_qty) - l_x) * NVL(m.std_unit_cost, 0)) || '</td></tr>');
+             || fmt(((m.issued_qty - m.returned_qty) - l_x) * NVL(m.std_unit_cost, 0)) || '</td></tr>'));
     END LOOP;
-    l_html := l_html || ('</tbody><tfoot><tr><td colspan="7">الإجمالي</td><td>' || fmt0(s1) || '</td><td>' || fmt0(s2) || '</td></tr></tfoot></table>'
+    l_html := l_html || (('</tbody><tfoot><tr><td colspan="7">الإجمالي</td><td>' || fmt0(s1) || '</td><td>' || fmt0(s2) || '</td></tr></tfoot></table>'
            || '<h3 class="nn-rpt-title">العمليات: الزمن المعياري مقابل الفعلي</h3><table class="nn-rpt"><thead><tr><th>العملية</th><th>مركز العمل</th>'
            || '<th>المخطط (دقيقة)</th><th>المعياري للمنجز</th><th>الفعلي</th><th>الكفاءة</th><th>المقبول</th><th>الهالك</th><th>التكلفة المحملة</th>'
-           || '<th>الحالة</th></tr></thead><tbody>');
+           || '<th>الحالة</th></tr></thead><tbody>'));
     FOR p IN (SELECT p.*, (SELECT NVL(SUM(amount), 0) FROM mfg_wip_cost w WHERE w.order_id = p.order_id AND w.operation_seq = p.operation_seq
                               AND w.entry_type = 'CHARGE' AND w.cost_element IN ('LABOR', 'MACHINE', 'OVERHEAD')) cost
                 FROM mfg_order_operation p WHERE p.order_id = p_order_id ORDER BY p.operation_seq) LOOP
       l_x := p.setup_minutes + p.run_minutes_per_unit * (p.good_qty + p.scrap_qty);
       s5 := s5 + p.cost;
-      l_html := l_html || ('<tr><td class="nn-rpt-text">' || p.operation_seq || ' - ' || esc(p.description) || '</td><td class="nn-rpt-text">'
+      l_html := l_html || (('<tr><td class="nn-rpt-text">' || p.operation_seq || ' - ' || esc(p.description) || '</td><td class="nn-rpt-text">'
              || esc(wc_label(p.work_center_id)) || '</td><td>' || fqty(p.planned_minutes) || '</td><td>' || fqty(l_x) || '</td><td>'
              || fqty(p.actual_minutes) || '</td><td>' || CASE WHEN p.actual_minutes > 0 THEN ROUND(l_x / p.actual_minutes * 100) || '%' END
              || '</td><td>' || fqty(p.good_qty) || '</td><td>' || fqty(p.scrap_qty) || '</td><td>' || fmt(p.cost) || '</td><td>' || badge(p.status_code)
-             || '</td></tr>');
+             || '</td></tr>'));
     END LOOP;
-    l_html := l_html || ('</tbody><tfoot><tr><td colspan="8">الإجمالي</td><td>' || fmt0(s5) || '</td><td></td></tr></tfoot></table>');
+    l_html := l_html || (('</tbody><tfoot><tr><td colspan="8">الإجمالي</td><td>' || fmt0(s5) || '</td><td></td></tr></tfoot></table>'));
     -- الانحرافات المقفلة
     SELECT COUNT(*) INTO l_x FROM mfg_variance WHERE order_id = p_order_id;
     IF l_x > 0 THEN
       l_html := l_html || ('<h3 class="nn-rpt-title">تحليل الانحرافات</h3><table class="nn-rpt"><thead><tr><th>النوع</th><th>المعياري</th>'
              || '<th>الفعلي</th><th>الانحراف</th></tr></thead><tbody>');
       FOR v IN (SELECT * FROM mfg_variance WHERE order_id = p_order_id ORDER BY id) LOOP
-        l_html := l_html || ('<tr' || CASE WHEN v.variance_amount > 0 THEN ' class="nn-rpt-warn"' END || '><td class="nn-rpt-text">'
+        l_html := l_html || (('<tr' || CASE WHEN v.variance_amount > 0 THEN ' class="nn-rpt-warn"' END || '><td class="nn-rpt-text">'
                || element_label(v.variance_type) || '</td><td>' || fmt(v.standard_amount) || '</td><td>' || fmt(v.actual_amount) || '</td><td>'
-               || fmt(v.variance_amount) || '</td></tr>');
+               || fmt(v.variance_amount) || '</td></tr>'));
       END LOOP;
       l_html := l_html || ('</tbody></table>');
     END IF;
-    RETURN l_html || (NOONA_GL_PKG.report_footer('الانحراف الموجب = تكلفة فعلية أعلى من المعيارية (غير مرغوب)'));
+    RETURN l_html || ((NOONA_GL_PKG.report_footer('الانحراف الموجب = تكلفة فعلية أعلى من المعيارية (غير مرغوب)')));
   END order_cost_sheet;
 
   FUNCTION order_print(p_order_id IN NUMBER) RETURN CLOB IS
@@ -2026,17 +2026,17 @@ CREATE OR REPLACE PACKAGE BODY NOONA_MFG_PKG AS
            || '<h3 class="nn-rpt-title">الخامات المطلوبة</h3><table class="nn-rpt"><thead><tr><th>#</th><th>المادة</th><th>العملية</th>'
            || '<th>الكمية المطلوبة</th><th>المصروف</th><th>توقيع أمين المستودع</th></tr></thead><tbody>';
     FOR m IN (SELECT m.*, ROWNUM rn FROM (SELECT * FROM mfg_order_material WHERE order_id = p_order_id ORDER BY operation_seq NULLS FIRST, id) m) LOOP
-      l_html := l_html || ('<tr><td>' || m.rn || '</td><td class="nn-rpt-text">' || esc(item_label(m.item_id)) || '</td><td>' || m.operation_seq
-             || '</td><td>' || fqty(m.required_qty) || '</td><td>' || fqty(m.issued_qty - m.returned_qty) || '</td><td></td></tr>');
+      l_html := l_html || (('<tr><td>' || m.rn || '</td><td class="nn-rpt-text">' || esc(item_label(m.item_id)) || '</td><td>' || m.operation_seq
+             || '</td><td>' || fqty(m.required_qty) || '</td><td>' || fqty(m.issued_qty - m.returned_qty) || '</td><td></td></tr>'));
     END LOOP;
-    l_html := l_html || ('</tbody></table><h3 class="nn-rpt-title">مراحل التشغيل</h3><table class="nn-rpt"><thead><tr><th>التسلسل</th>'
+    l_html := l_html || (('</tbody></table><h3 class="nn-rpt-title">مراحل التشغيل</h3><table class="nn-rpt"><thead><tr><th>التسلسل</th>'
            || '<th>العملية</th><th>مركز العمل</th><th>الزمن المخطط (دقيقة)</th><th>فحص جودة</th><th>المقبول</th><th>الهالك</th><th>المنفذ / التوقيع</th>'
-           || '</tr></thead><tbody>');
+           || '</tr></thead><tbody>'));
     FOR p IN (SELECT * FROM mfg_order_operation WHERE order_id = p_order_id ORDER BY operation_seq) LOOP
-      l_html := l_html || ('<tr><td>' || p.operation_seq || '</td><td class="nn-rpt-text">' || esc(p.description) || '</td><td class="nn-rpt-text">'
+      l_html := l_html || (('<tr><td>' || p.operation_seq || '</td><td class="nn-rpt-text">' || esc(p.description) || '</td><td class="nn-rpt-text">'
              || esc(wc_label(p.work_center_id)) || '</td><td>' || fqty(p.planned_minutes) || '</td><td>'
              || CASE WHEN p.quality_check = 'Y' THEN '✔' END || '</td><td>' || CASE WHEN p.good_qty > 0 THEN fqty(p.good_qty) END
-             || '</td><td>' || CASE WHEN p.scrap_qty > 0 THEN fqty(p.scrap_qty) END || '</td><td></td></tr>');
+             || '</td><td>' || CASE WHEN p.scrap_qty > 0 THEN fqty(p.scrap_qty) END || '</td><td></td></tr>'));
     END LOOP;
     RETURN l_html || ('</tbody></table><div class="nn-sign"><div>مدير الإنتاج</div><div>مراقب الجودة</div><div>أمين المستودع</div></div>');
   END order_print;
@@ -2053,15 +2053,15 @@ CREATE OR REPLACE PACKAGE BODY NOONA_MFG_PKG AS
                  AND (p_status IS NULL OR status_code = p_status) ORDER BY doc_date, id) LOOP
       l_n := l_n + 1;
       s1 := s1 + NVL(r.estimated_cost, 0); s2 := s2 + NVL(r.actual_cost, 0); s3 := s3 + r.completed_qty;
-      l_html := l_html || ('<tr' || CASE WHEN r.planned_end < TRUNC(SYSDATE) AND r.status_code NOT IN ('COMPLETED', 'CLOSED', 'CANCELLED')
+      l_html := l_html || (('<tr' || CASE WHEN r.planned_end < TRUNC(SYSDATE) AND r.status_code NOT IN ('COMPLETED', 'CLOSED', 'CANCELLED')
                                        THEN ' class="nn-rpt-warn"' END || '><td>' || link(p_link, r.id, r.doc_no) || '</td><td>' || ds(r.doc_date)
              || '</td><td class="nn-rpt-text">' || esc(item_label(r.item_id)) || '</td><td>' || fqty(r.planned_qty) || '</td><td>' || fqty(r.completed_qty)
              || '</td><td>' || fqty(r.scrapped_qty) || '</td><td>' || order_progress(r.id) || '%</td><td>' || fmt(r.estimated_cost) || '</td><td>'
-             || fmt(r.actual_cost) || '</td><td>' || priority_label(r.priority) || '</td><td>' || badge(r.status_code) || '</td></tr>');
+             || fmt(r.actual_cost) || '</td><td>' || priority_label(r.priority) || '</td><td>' || badge(r.status_code) || '</td></tr>'));
     END LOOP;
-    RETURN l_html || ('</tbody><tfoot><tr><td colspan="4">' || l_n || ' أمر</td><td>' || fqty(s3) || '</td><td colspan="2"></td><td>' || fmt0(s1)
+    RETURN l_html || (('</tbody><tfoot><tr><td colspan="4">' || l_n || ' أمر</td><td>' || fqty(s3) || '</td><td colspan="2"></td><td>' || fmt0(s1)
         || '</td><td>' || fmt0(s2) || '</td><td colspan="2"></td></tr></tfoot></table>'
-        || NOONA_GL_PKG.report_footer('التكلفة الفعلية تظهر بعد إقفال الأمر؛ الأسطر الملونة أوامر تجاوزت تاريخ النهاية المخطط'));
+        || NOONA_GL_PKG.report_footer('التكلفة الفعلية تظهر بعد إقفال الأمر؛ الأسطر الملونة أوامر تجاوزت تاريخ النهاية المخطط')));
   END orders_register;
 
   FUNCTION wip_report(p_link IN VARCHAR2 DEFAULT NULL) RETURN CLOB IS
@@ -2085,17 +2085,17 @@ CREATE OR REPLACE PACKAGE BODY NOONA_MFG_PKG AS
               HAVING ROUND(SUM(CASE WHEN w.entry_type = 'CHARGE' THEN w.amount ELSE -w.amount END), 2) <> 0
                ORDER BY o.id) LOOP
       s := s + r.mat + r.lab + r.ovh - r.rel; s1 := s1 + r.mat; s2 := s2 + r.lab; s3 := s3 + r.ovh; s4 := s4 + r.rel;
-      l_html := l_html || ('<tr><td>' || link(p_link, r.id, r.doc_no) || '</td><td class="nn-rpt-text">' || esc(item_label(r.item_id)) || '</td><td>'
+      l_html := l_html || (('<tr><td>' || link(p_link, r.id, r.doc_no) || '</td><td class="nn-rpt-text">' || esc(item_label(r.item_id)) || '</td><td>'
              || badge(r.status_code) || '</td><td>' || order_progress(r.id) || '%</td><td>' || fmt(r.mat) || '</td><td>' || fmt(r.lab) || '</td><td>'
-             || fmt(r.ovh) || '</td><td>' || fmt(r.rel) || '</td><td>' || fmt(r.mat + r.lab + r.ovh - r.rel) || '</td></tr>');
+             || fmt(r.ovh) || '</td><td>' || fmt(r.rel) || '</td><td>' || fmt(r.mat + r.lab + r.ovh - r.rel) || '</td></tr>'));
     END LOOP;
     SELECT NVL(SUM(l.debit_func - l.credit_func), 0) INTO l_gl FROM gl_journal_line l JOIN gl_journal j ON j.id = l.journal_id
      WHERE l.account_id = l_wa AND j.ledger_id = l_ld AND j.status_code IN ('POSTED', 'REVERSED');
-    RETURN l_html || ('</tbody><tfoot><tr><td colspan="4">الإجمالي</td><td>' || fmt0(s1) || '</td><td>' || fmt0(s2) || '</td><td>' || fmt0(s3)
+    RETURN l_html || (('</tbody><tfoot><tr><td colspan="4">الإجمالي</td><td>' || fmt0(s1) || '</td><td>' || fmt0(s2) || '</td><td>' || fmt0(s3)
         || '</td><td>' || fmt0(s4) || '</td><td>' || fmt0(s) || '</td></tr></tfoot></table>'
         || '<div class="nn-check ' || CASE WHEN ROUND(l_gl - s, 2) = 0 THEN 'is-ok' ELSE 'is-bad' END || '">رصيد حساب الإنتاج تحت التشغيل 1110 في الأستاذ: '
         || fmt0(l_gl) || CASE WHEN ROUND(l_gl - s, 2) = 0 THEN ' — مطابق للأوامر' ELSE ' — الفرق ' || fmt0(l_gl - s) END || '</div>'
-        || NOONA_GL_PKG.report_footer('الأوامر التي عليها رصيد تحت التشغيل؛ يصفر الرصيد عند إقفال الأمر'));
+        || NOONA_GL_PKG.report_footer('الأوامر التي عليها رصيد تحت التشغيل؛ يصفر الرصيد عند إقفال الأمر')));
   END wip_report;
 
   FUNCTION variance_report(p_from IN DATE, p_to IN DATE, p_link IN VARCHAR2 DEFAULT NULL) RETURN CLOB IS
@@ -2123,19 +2123,19 @@ CREATE OR REPLACE PACKAGE BODY NOONA_MFG_PKG AS
       l_t('le') := CASE WHEN l_t.EXISTS('le') THEN l_t('le') ELSE 0 END + r.le;
       l_t('ov') := CASE WHEN l_t.EXISTS('ov') THEN l_t('ov') ELSE 0 END + r.ov;
       l_all := l_all + r.tot;
-      l_html := l_html || ('<tr' || CASE WHEN r.tot > 0 THEN ' class="nn-rpt-warn"' END || '><td>' || link(p_link, r.id, r.doc_no)
+      l_html := l_html || (('<tr' || CASE WHEN r.tot > 0 THEN ' class="nn-rpt-warn"' END || '><td>' || link(p_link, r.id, r.doc_no)
              || '</td><td class="nn-rpt-text">' || esc(item_label(r.item_id)) || '</td><td>' || fqty(r.completed_qty) || '</td><td>'
              || fmt(r.std_unit_cost * r.completed_qty) || '</td><td>' || fmt(r.actual_cost) || '</td><td>' || fmt(r.mp) || '</td><td>' || fmt(r.mu)
              || '</td><td>' || fmt(r.le) || '</td><td>' || fmt(r.ov) || '</td><td>' || fmt(r.tot) || '</td><td>'
              || CASE WHEN r.std_unit_cost * r.completed_qty > 0 THEN ROUND(r.tot / (r.std_unit_cost * r.completed_qty) * 100, 1) || '%' END
-             || '</td></tr>');
+             || '</td></tr>'));
     END LOOP;
     l_k := 'x';
-    RETURN l_html || ('</tbody><tfoot><tr><td colspan="5">الإجمالي</td><td>'
+    RETURN l_html || (('</tbody><tfoot><tr><td colspan="5">الإجمالي</td><td>'
         || fmt0(CASE WHEN l_t.EXISTS('mp') THEN l_t('mp') END) || '</td><td>' || fmt0(CASE WHEN l_t.EXISTS('mu') THEN l_t('mu') END) || '</td><td>'
         || fmt0(CASE WHEN l_t.EXISTS('le') THEN l_t('le') END) || '</td><td>' || fmt0(CASE WHEN l_t.EXISTS('ov') THEN l_t('ov') END) || '</td><td>'
         || fmt0(l_all) || '</td><td></td></tr></tfoot></table>'
-        || NOONA_GL_PKG.report_footer('الأوامر المقفلة في الفترة؛ الانحراف الموجب تكلفة فعلية أعلى من المعيارية ويرحل لحساب 5105'));
+        || NOONA_GL_PKG.report_footer('الأوامر المقفلة في الفترة؛ الانحراف الموجب تكلفة فعلية أعلى من المعيارية ويرحل لحساب 5105')));
   END variance_report;
 
   FUNCTION material_usage(p_from IN DATE, p_to IN DATE) RETURN CLOB IS
@@ -2154,12 +2154,12 @@ CREATE OR REPLACE PACKAGE BODY NOONA_MFG_PKG AS
                  AND w.cost_date BETWEEN p_from AND p_to
                GROUP BY w.item_id ORDER BY SUM(w.amount) DESC) LOOP
       s1 := s1 + r.amt;
-      l_html := l_html || ('<tr><td class="nn-rpt-text">' || esc(item_label(r.item_id)) || '</td><td>' || r.n || '</td><td>' || fqty(r.iss)
+      l_html := l_html || (('<tr><td class="nn-rpt-text">' || esc(item_label(r.item_id)) || '</td><td>' || r.n || '</td><td>' || fqty(r.iss)
              || '</td><td>' || fqty(r.ret) || '</td><td>' || fqty(r.iss - r.ret) || '</td><td>' || fmt(r.amt / NULLIF(r.iss - r.ret, 0))
-             || '</td><td>' || fmt(r.amt) || '</td></tr>');
+             || '</td><td>' || fmt(r.amt) || '</td></tr>'));
     END LOOP;
-    RETURN l_html || ('</tbody><tfoot><tr><td colspan="6">الإجمالي</td><td>' || fmt0(s1) || '</td></tr></tfoot></table>'
-        || NOONA_GL_PKG.report_footer('صرف وإرجاع الخامات على أوامر الإنتاج بالتكلفة الفعلية (المتوسط المرجح)'));
+    RETURN l_html || (('</tbody><tfoot><tr><td colspan="6">الإجمالي</td><td>' || fmt0(s1) || '</td></tr></tfoot></table>'
+        || NOONA_GL_PKG.report_footer('صرف وإرجاع الخامات على أوامر الإنتاج بالتكلفة الفعلية (المتوسط المرجح)')));
   END material_usage;
 
   FUNCTION production_summary(p_from IN DATE, p_to IN DATE) RETURN CLOB IS
@@ -2178,12 +2178,12 @@ CREATE OR REPLACE PACKAGE BODY NOONA_MFG_PKG AS
                WHERE t.company_id = company AND t.output_date BETWEEN p_from AND p_to AND t.status_code <> 'PENDING_QUALITY'
                GROUP BY o.item_id ORDER BY 3 DESC) LOOP
       s1 := s1 + r.good; s2 := s2 + r.cost;
-      l_html := l_html || ('<tr><td class="nn-rpt-text">' || esc(item_label(r.item_id)) || '</td><td>' || r.n || '</td><td>' || fqty(r.good)
+      l_html := l_html || (('<tr><td class="nn-rpt-text">' || esc(item_label(r.item_id)) || '</td><td>' || r.n || '</td><td>' || fqty(r.good)
              || '</td><td>' || fqty(r.bad) || '</td><td>' || CASE WHEN r.good + r.bad > 0 THEN ROUND(r.good / (r.good + r.bad) * 100, 1) || '%' END
-             || '</td><td>' || fmt(r.cost) || '</td><td>' || fmt(r.cost / NULLIF(r.good + r.bad, 0)) || '</td></tr>');
+             || '</td><td>' || fmt(r.cost) || '</td><td>' || fmt(r.cost / NULLIF(r.good + r.bad, 0)) || '</td></tr>'));
     END LOOP;
-    RETURN l_html || ('</tbody><tfoot><tr><td colspan="2">الإجمالي</td><td>' || fqty(s1) || '</td><td colspan="2"></td><td>' || fmt0(s2)
-        || '</td><td></td></tr></tfoot></table>' || NOONA_GL_PKG.report_footer('الإنتاج المستلم بعد فحص الجودة بالتكلفة المعيارية'));
+    RETURN l_html || (('</tbody><tfoot><tr><td colspan="2">الإجمالي</td><td>' || fqty(s1) || '</td><td colspan="2"></td><td>' || fmt0(s2)
+        || '</td><td></td></tr></tfoot></table>' || NOONA_GL_PKG.report_footer('الإنتاج المستلم بعد فحص الجودة بالتكلفة المعيارية')));
   END production_summary;
 
   FUNCTION wc_utilization(p_from IN DATE, p_to IN DATE) RETURN CLOB IS
@@ -2212,12 +2212,12 @@ CREATE OR REPLACE PACKAGE BODY NOONA_MFG_PKG AS
                              AND EXISTS (SELECT 1 FROM mfg_wip_cost w WHERE w.order_id = p.order_id AND w.operation_seq = p.operation_seq
                                             AND w.cost_date BETWEEN p_from AND p_to)), 0) down
                 FROM mfg_work_center c WHERE c.company_id = company AND c.is_active = 'Y' ORDER BY c.code) LOOP
-      l_html := l_html || ('<tr><td class="nn-rpt-text">' || esc(wc_label(r.id)) || '</td><td>' || fqty(r.cap * l_days) || '</td><td>'
+      l_html := l_html || (('<tr><td class="nn-rpt-text">' || esc(wc_label(r.id)) || '</td><td>' || fqty(r.cap * l_days) || '</td><td>'
              || fqty(ROUND(r.act / 60, 2)) || '</td><td>' || ROUND(r.act / 60 / NULLIF(r.cap * l_days, 0) * 100, 1) || '%</td><td>'
              || fqty(ROUND(r.std / 60, 2)) || '</td><td>' || CASE WHEN r.act > 0 THEN ROUND(r.std / r.act * 100) || '%' END || '</td><td>'
-             || fqty(ROUND(r.down / 60, 2)) || '</td><td>' || fmt(r.cost) || '</td></tr>');
+             || fqty(ROUND(r.down / 60, 2)) || '</td><td>' || fmt(r.cost) || '</td></tr>'));
     END LOOP;
-    RETURN l_html || ('</tbody></table>' || NOONA_GL_PKG.report_footer('الطاقة = ساعات اليوم × أيام العمل (عدا الجمعة)؛ الكفاءة = الزمن المعياري للمنجز ÷ الفعلي'));
+    RETURN l_html || (('</tbody></table>' || NOONA_GL_PKG.report_footer('الطاقة = ساعات اليوم × أيام العمل (عدا الجمعة)؛ الكفاءة = الزمن المعياري للمنجز ÷ الفعلي')));
   END wc_utilization;
 
   FUNCTION capacity_load(p_from IN DATE DEFAULT NULL, p_days IN NUMBER DEFAULT 14) RETURN CLOB IS
@@ -2231,11 +2231,11 @@ CREATE OR REPLACE PACKAGE BODY NOONA_MFG_PKG AS
     l_html := head('أحمال مراكز العمل' || period(l_from, l_from + l_days - 1))
            || '<div class="nn-rpt-scroll"><table class="nn-rpt nn-rpt-grid"><thead><tr><th>مركز العمل</th>';
     FOR i IN 0 .. l_days - 1 LOOP
-      l_html := l_html || ('<th>' || TO_CHAR(l_from + i, 'MM-DD') || '<br>' || TO_CHAR(l_from + i, 'DY', 'NLS_DATE_LANGUAGE=ARABIC') || '</th>');
+      l_html := l_html || (('<th>' || TO_CHAR(l_from + i, 'MM-DD') || '<br>' || TO_CHAR(l_from + i, 'DY', 'NLS_DATE_LANGUAGE=ARABIC') || '</th>'));
     END LOOP;
     l_html := l_html || ('</tr></thead><tbody>');
     FOR c IN (SELECT id, capacity_hours_day cap FROM mfg_work_center WHERE company_id = company AND is_active = 'Y' ORDER BY code) LOOP
-      l_html := l_html || ('<tr><td class="nn-rpt-text">' || esc(wc_label(c.id)) || '</td>');
+      l_html := l_html || (('<tr><td class="nn-rpt-text">' || esc(wc_label(c.id)) || '</td>'));
       FOR i IN 0 .. l_days - 1 LOOP
         -- المتبقي من زمن كل عملية مفتوحة يوزع بالتساوي على أيام الأمر المخططة (المتأخر يحمل على اليوم)
         SELECT NVL(SUM(GREATEST(p.planned_minutes - p.actual_minutes, 0)
@@ -2247,12 +2247,12 @@ CREATE OR REPLACE PACKAGE BODY NOONA_MFG_PKG AS
            AND l_from + i BETWEEN GREATEST(TRUNC(CAST(o.planned_start AS DATE)), TRUNC(SYSDATE))
                               AND GREATEST(TRUNC(CAST(o.planned_end AS DATE)), TRUNC(SYSDATE));
         l_pct := ROUND(l_load / NULLIF(c.cap * 60, 0) * 100);
-        l_html := l_html || ('<td class="' || CASE WHEN l_pct > 100 THEN 'nn-rpt-bad' WHEN l_pct >= 80 THEN 'nn-load-high' WHEN l_pct > 0 THEN 'nn-load' END
-               || '" title="' || fqty(ROUND(l_load / 60, 1)) || ' ساعة">' || CASE WHEN l_pct > 0 THEN l_pct || '%' END || '</td>');
+        l_html := l_html || (('<td class="' || CASE WHEN l_pct > 100 THEN 'nn-rpt-bad' WHEN l_pct >= 80 THEN 'nn-load-high' WHEN l_pct > 0 THEN 'nn-load' END
+               || '" title="' || fqty(ROUND(l_load / 60, 1)) || ' ساعة">' || CASE WHEN l_pct > 0 THEN l_pct || '%' END || '</td>'));
       END LOOP;
       l_html := l_html || ('</tr>');
     END LOOP;
-    RETURN l_html || ('</tbody></table></div>' || NOONA_GL_PKG.report_footer('الحمل = المتبقي من زمن العمليات المفتوحة ÷ الطاقة اليومية؛ الأحمر تجاوز الطاقة'));
+    RETURN l_html || (('</tbody></table></div>' || NOONA_GL_PKG.report_footer('الحمل = المتبقي من زمن العمليات المفتوحة ÷ الطاقة اليومية؛ الأحمر تجاوز الطاقة')));
   END capacity_load;
 
   FUNCTION bom_tree(p_item_id IN NUMBER, p_qty IN NUMBER DEFAULT 1) RETURN CLOB IS
@@ -2275,12 +2275,12 @@ CREATE OR REPLACE PACKAGE BODY NOONA_MFG_PKG AS
         IF p_lvl = 1 THEN
           l_total := l_total + CASE WHEN r.co = 'Y' THEN -1 ELSE 1 END * l_q * l_uc;
         END IF;
-        l_html := l_html || ('<tr' || CASE WHEN r.co = 'Y' THEN ' class="nn-rpt-warn"' WHEN p_lvl = 1 THEN ' class="nn-rpt-sub"' END || '><td>' || p_lvl
+        l_html := l_html || (('<tr' || CASE WHEN r.co = 'Y' THEN ' class="nn-rpt-warn"' WHEN p_lvl = 1 THEN ' class="nn-rpt-sub"' END || '><td>' || p_lvl
                || '</td><td class="nn-rpt-text" style="padding-inline-start:' || (p_lvl * 18) || 'px">' || esc(item_label(r.ci))
                || CASE WHEN r.co = 'Y' THEN ' <span class="nn-badge is-warning">منتج مشترك</span>' END
                || CASE WHEN default_bom(r.ci) IS NOT NULL THEN ' <span class="nn-badge is-info">مصنع</span>' END || '</td><td>' || r.op || '</td><td>'
                || fqty(ROUND(l_q, 4)) || '</td><td>' || fqty(r.s) || '%</td><td>' || fmt(l_uc) || '</td><td>' || fmt(l_q * l_uc) || '</td><td>'
-               || fqty(NOONA_INV_PKG.on_hand(r.ci)) || '</td></tr>');
+               || fqty(NOONA_INV_PKG.on_hand(r.ci)) || '</td></tr>'));
         IF r.co = 'N' THEN
           walk(r.ci, l_q, p_lvl + 1);
         END IF;
@@ -2293,11 +2293,11 @@ CREATE OR REPLACE PACKAGE BODY NOONA_MFG_PKG AS
            || '<th>التكلفة</th><th>الرصيد</th></tr></thead><tbody>';
     walk(p_item_id, l_qty, 1);
     std_cost(p_item_id, l_qty, NULL, NULL, m, a, b, c);
-    RETURN l_html || ('</tbody></table><table class="nn-rpt"><thead><tr><th>عناصر التكلفة المعيارية للوحدة</th><th>الخامات</th><th>العمالة</th>'
+    RETURN l_html || (('</tbody></table><table class="nn-rpt"><thead><tr><th>عناصر التكلفة المعيارية للوحدة</th><th>الخامات</th><th>العمالة</th>'
         || '<th>الآلات</th><th>التحميل</th><th>الإجمالي للوحدة</th><th>إجمالي الكمية</th></tr></thead><tbody><tr><td class="nn-rpt-text">'
         || esc(item_label(p_item_id)) || '</td><td>' || fmt0(m) || '</td><td>' || fmt0(a) || '</td><td>' || fmt0(b) || '</td><td>' || fmt0(c)
         || '</td><td><b>' || fmt0(m + a + b + c) || '</b></td><td>' || fmt0((m + a + b + c) * l_qty) || '</td></tr></tbody></table>'
-        || NOONA_GL_PKG.report_footer('المستوى 1 المكونات المباشرة؛ المكون المصنع يتفرع إلى مكوناته. تكلفة المكون = المتوسط المرجح أو التكلفة المجمعة'));
+        || NOONA_GL_PKG.report_footer('المستوى 1 المكونات المباشرة؛ المكون المصنع يتفرع إلى مكوناته. تكلفة المكون = المتوسط المرجح أو التكلفة المجمعة')));
   END bom_tree;
 
   FUNCTION where_used(p_item_id IN NUMBER) RETURN CLOB IS
@@ -2310,9 +2310,9 @@ CREATE OR REPLACE PACKAGE BODY NOONA_MFG_PKG AS
                   FROM mfg_bom_line l JOIN mfg_bom b ON b.id = l.bom_id
                  WHERE l.component_item_id = p_item AND b.company_id = company AND b.status_code <> 'OBSOLETE' ORDER BY b.item_id, b.version_no) LOOP
         l_n := l_n + 1;
-        l_html := l_html || ('<tr><td>' || p_lvl || '</td><td class="nn-rpt-text" style="padding-inline-start:' || (p_lvl * 18) || 'px">'
+        l_html := l_html || (('<tr><td>' || p_lvl || '</td><td class="nn-rpt-text" style="padding-inline-start:' || (p_lvl * 18) || 'px">'
                || esc(item_label(r.item_id)) || '</td><td>v' || r.version_no || CASE WHEN r.is_default = 'Y' THEN ' (الافتراضي)' END || '</td><td>'
-               || badge(r.status_code) || '</td><td>' || fqty(r.quantity) || ' لكل ' || fqty(r.base_quantity) || '</td></tr>');
+               || badge(r.status_code) || '</td><td>' || fqty(r.quantity) || ' لكل ' || fqty(r.base_quantity) || '</td></tr>'));
         IF r.is_default = 'Y' THEN up(r.item_id, p_lvl + 1); END IF;
       END LOOP;
     END up;
@@ -2341,16 +2341,16 @@ CREATE OR REPLACE PACKAGE BODY NOONA_MFG_PKG AS
                                                             gross NUMBER PATH '$.gross', mn NUMBER PATH '$.min', net NUMBER PATH '$.net',
                                                             c NUMBER PATH '$.c'))) LOOP
       l_n := l_n + 1; l_v := l_v + r.net * NVL(r.c, 0);
-      l_html := l_html || ('<tr><td>' || r.lvl || '</td><td class="nn-rpt-text">' || esc(r.n) || '</td><td>'
+      l_html := l_html || (('<tr><td>' || r.lvl || '</td><td class="nn-rpt-text">' || esc(r.n) || '</td><td>'
              || CASE WHEN r.t = 'MAKE' THEN '<span class="nn-badge is-info">تصنيع</span>' ELSE '<span class="nn-badge is-warning">شراء</span>' END
              || '</td><td>' || fqty(r.oh) || '</td><td>' || fqty(r.sup) || '</td><td>' || fqty(r.gross) || '</td><td>' || fqty(r.mn) || '</td><td><b>'
-             || fqty(r.net) || '</b></td><td>' || fmt(r.net * NVL(r.c, 0)) || '</td></tr>');
+             || fqty(r.net) || '</b></td><td>' || fmt(r.net * NVL(r.c, 0)) || '</td></tr>'));
     END LOOP;
     IF l_n = 0 THEN
       l_html := l_html || ('<tr><td colspan="9">لا توجد احتياجات: الأرصدة والوارد يغطيان الطلب</td></tr>');
     END IF;
-    RETURN l_html || ('</tbody><tfoot><tr><td colspan="8">' || l_n || ' مقترح</td><td>' || fmt0(l_v) || '</td></tr></tfoot></table>'
-        || NOONA_GL_PKG.report_footer('الطلب = أوامر البيع المفتوحة + احتياجات أوامر الإنتاج + الوصول لحد الطلب الأعلى؛ الوارد = أوامر الإنتاج والشراء وطلبات الشراء المفتوحة'));
+    RETURN l_html || (('</tbody><tfoot><tr><td colspan="8">' || l_n || ' مقترح</td><td>' || fmt0(l_v) || '</td></tr></tfoot></table>'
+        || NOONA_GL_PKG.report_footer('الطلب = أوامر البيع المفتوحة + احتياجات أوامر الإنتاج + الوصول لحد الطلب الأعلى؛ الوارد = أوامر الإنتاج والشراء وطلبات الشراء المفتوحة')));
   END mrp_report;
 
   FUNCTION quality_report(p_from IN DATE, p_to IN DATE) RETURN CLOB IS
@@ -2365,15 +2365,15 @@ CREATE OR REPLACE PACKAGE BODY NOONA_MFG_PKG AS
                 LEFT JOIN mfg_order_output t ON t.id = q.output_id
                WHERE q.company_id = company AND NVL(q.inspection_date, TRUNC(SYSDATE)) BETWEEN p_from AND p_to ORDER BY q.id) LOOP
       s1 := s1 + r.inspected_qty; s2 := s2 + r.passed_qty; s3 := s3 + r.failed_qty;
-      l_html := l_html || ('<tr' || CASE WHEN r.failed_qty > 0 THEN ' class="nn-rpt-warn"' END || '><td>' || ds(r.inspection_date) || '</td><td>'
+      l_html := l_html || (('<tr' || CASE WHEN r.failed_qty > 0 THEN ' class="nn-rpt-warn"' END || '><td>' || ds(r.inspection_date) || '</td><td>'
              || esc(r.doc_no) || '</td><td class="nn-rpt-text">' || esc(item_label(r.item_id)) || '</td><td>' || esc(r.lot_no) || '</td><td>'
              || fqty(r.inspected_qty) || '</td><td>' || fqty(r.passed_qty) || '</td><td>' || fqty(r.failed_qty) || '</td><td>'
              || CASE WHEN r.status_code <> 'PENDING' AND r.inspected_qty > 0 THEN ROUND(r.passed_qty / r.inspected_qty * 100, 1) || '%' END
-             || '</td><td>' || badge(r.status_code) || '</td><td class="nn-rpt-text">' || esc(r.notes) || '</td></tr>');
+             || '</td><td>' || badge(r.status_code) || '</td><td class="nn-rpt-text">' || esc(r.notes) || '</td></tr>'));
     END LOOP;
-    RETURN l_html || ('</tbody><tfoot><tr><td colspan="4">الإجمالي</td><td>' || fqty(s1) || '</td><td>' || fqty(s2) || '</td><td>' || fqty(s3)
+    RETURN l_html || (('</tbody><tfoot><tr><td colspan="4">الإجمالي</td><td>' || fqty(s1) || '</td><td>' || fqty(s2) || '</td><td>' || fqty(s3)
         || '</td><td>' || CASE WHEN s2 + s3 > 0 THEN ROUND(s2 / (s2 + s3) * 100, 1) || '%' END || '</td><td colspan="2"></td></tr></tfoot></table>'
-        || NOONA_GL_PKG.report_footer('المرفوض يحمل على حساب العجز والتلف 5213 بالتكلفة المعيارية'));
+        || NOONA_GL_PKG.report_footer('المرفوض يحمل على حساب العجز والتلف 5213 بالتكلفة المعيارية')));
   END quality_report;
 END NOONA_MFG_PKG;
 /

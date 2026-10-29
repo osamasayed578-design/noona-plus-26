@@ -811,7 +811,7 @@ CREATE OR REPLACE PACKAGE BODY NOONA_API_PKG AS
         || '"/token":{"post":{"summary":"Issue access token","security":[],"requestBody":{"content":{"application/json":{"schema":{"type":"object",'
         || '"properties":{"client_id":{"type":"string"},"client_secret":{"type":"string"}}}}}},"responses":{"200":{"description":"Token"}}}}';
     FOR p IN (SELECT DISTINCT path_template FROM api_endpoint WHERE api_version = c_version AND is_active = 'Y' ORDER BY 1) LOOP
-      l_c := l_c || ',"' || REPLACE(p.path_template, '{id}', '{id}') || '":{';
+      l_c := l_c || (',"' || REPLACE(p.path_template, '{id}', '{id}') || '":{');
       l_first := TRUE;
       FOR e IN (SELECT * FROM api_endpoint WHERE api_version = c_version AND is_active = 'Y' AND path_template = p.path_template ORDER BY http_method) LOOP
         l_m := CASE WHEN l_first THEN '' ELSE ',' END || '"' || LOWER(e.http_method) || '":{"summary":' || jt(e.module_code || ' ' || e.handler_api)
@@ -831,7 +831,7 @@ CREATE OR REPLACE PACKAGE BODY NOONA_API_PKG AS
       END LOOP;
       DBMS_LOB.append(l_c, '}');
     END LOOP;
-    RETURN l_c || '}}';
+    RETURN l_c || ('}}');
   END openapi;
 
   -- ================================================================ الأحداث
@@ -1226,12 +1226,14 @@ CREATE OR REPLACE PACKAGE BODY NOONA_API_PKG AS
                      (SELECT MAX(secret_hint) FROM api_client_secret s WHERE s.api_client_id = c.id AND s.status_code = 'ACTIVE') hint
                 FROM api_client c LEFT JOIN org_company o ON o.id = c.company_id LEFT JOIN sec_role r ON r.id = c.role_id ORDER BY c.id DESC) LOOP
       l_n := l_n + 1;
-      l_h := l_h || '<tr data-client="' || c.id || '"><td><b>' || esc(c.name_ar) || '</b><br><small>' || esc(c.description) || '</small></td><td dir="ltr"><code>'
+      l_h := l_h || ('<tr data-client="' || c.id || '"><td><b>' || esc(c.name_ar) || '</b><br><small>' || esc(c.description) || '</small></td><td dir="ltr"><code>'
           || esc(c.client_id) || '</code><br><small>سر ينتهي بـ …' || esc(c.hint) || '</small></td><td>' || esc(c.coname) || '</td><td>' || esc(c.rname)
           || '</td><td>' || c.rate_limit_per_min || '/دقيقة</td><td dir="ltr"><small>' || esc(NVL(c.ip_allowlist, 'الكل')) || '</small></td><td>' || ts(c.used)
-          || '</td><td>' || c.today || '</td><td>' || badge(c.status_code) || '</td></tr>';
+          || '</td><td>' || c.today || '</td><td>' || badge(c.status_code) || '</td></tr>');
     END LOOP;
-    RETURN CASE WHEN l_n = 0 THEN '<div class="nn-empty">لا يوجد عملاء API؛ أنشئ عميلاً لكل نظام يتكامل معكم</div>' ELSE l_h || '</tbody></table>' END;
+    IF l_n = 0 THEN RETURN TO_CLOB('<div class="nn-empty">لا يوجد عملاء API؛ أنشئ عميلاً لكل نظام يتكامل معكم</div>'); END IF;
+    -- CASE لا يرجع أكثر من 32 ألف حرف حتى لو كانت فروعه CLOB
+    RETURN l_h || ('</tbody></table>');
   END clients_html;
 
   FUNCTION requests_html(p_client_id IN NUMBER DEFAULT NULL) RETURN CLOB IS
@@ -1245,13 +1247,15 @@ CREATE OR REPLACE PACKAGE BODY NOONA_API_PKG AS
                 LEFT JOIN api_endpoint e ON e.id = g.endpoint_id
                WHERE (p_client_id IS NULL OR g.api_client_id = p_client_id) ORDER BY g.id DESC FETCH FIRST 200 ROWS ONLY) LOOP
       l_n := l_n + 1;
-      l_h := l_h || '<tr><td>' || TO_CHAR(r.created_at, 'YYYY-MM-DD HH24:MI:SS') || '</td><td>' || esc(r.cname) || '</td><td dir="ltr"><code>'
+      l_h := l_h || ('<tr><td>' || TO_CHAR(r.created_at, 'YYYY-MM-DD HH24:MI:SS') || '</td><td>' || esc(r.cname) || '</td><td dir="ltr"><code>'
           || esc(r.http_method || ' /' || c_version || r.path_template) || '</code></td><td><span class="nn-badge '
           || CASE WHEN r.http_status < 300 THEN 'is-success' WHEN r.http_status < 500 THEN 'is-warning' ELSE 'is-danger' END || '">' || r.http_status
           || '</span></td><td class="n">' || r.duration_ms || '</td><td dir="ltr">' || esc(r.client_ip) || '</td><td>' || esc(r.error_code) || '</td><td dir="ltr"><small>'
-          || esc(r.request_id) || '</small></td></tr>';
+          || esc(r.request_id) || '</small></td></tr>');
     END LOOP;
-    RETURN CASE WHEN l_n = 0 THEN '<div class="nn-empty">لا توجد طلبات بعد</div>' ELSE l_h || '</tbody></table>' END;
+    IF l_n = 0 THEN RETURN TO_CLOB('<div class="nn-empty">لا توجد طلبات بعد</div>'); END IF;
+    -- CASE لا يرجع أكثر من 32 ألف حرف حتى لو كانت فروعه CLOB
+    RETURN l_h || ('</tbody></table>');
   END requests_html;
 
   FUNCTION webhooks_html RETURN CLOB IS
@@ -1264,11 +1268,13 @@ CREATE OR REPLACE PACKAGE BODY NOONA_API_PKG AS
     FOR w IN (SELECT w.*, c.name_ar cname FROM api_webhook_subscription w LEFT JOIN api_client c ON c.id = w.api_client_id
                WHERE w.status_code <> 'DISABLED' ORDER BY w.id DESC) LOOP
       l_n := l_n + 1;
-      l_h := l_h || '<tr data-wh="' || w.id || '"><td>' || esc(event_label(w.event_type)) || '<br><small dir="ltr">' || esc(w.event_type) || '</small></td><td dir="ltr"><small>'
+      l_h := l_h || ('<tr data-wh="' || w.id || '"><td>' || esc(event_label(w.event_type)) || '<br><small dir="ltr">' || esc(w.event_type) || '</small></td><td dir="ltr"><small>'
           || esc(w.target_url) || '</small><br><small>' || esc(w.description) || '</small></td><td>' || esc(NVL(w.cname, 'من الشاشة')) || '</td><td>'
-          || ts(w.last_delivery_at) || '</td><td>' || w.last_http_status || '</td><td>' || w.failure_count || '</td><td>' || badge(w.status_code) || '</td></tr>';
+          || ts(w.last_delivery_at) || '</td><td>' || w.last_http_status || '</td><td>' || w.failure_count || '</td><td>' || badge(w.status_code) || '</td></tr>');
     END LOOP;
-    RETURN CASE WHEN l_n = 0 THEN '<div class="nn-empty">لا توجد اشتراكات Webhook</div>' ELSE l_h || '</tbody></table>' END;
+    IF l_n = 0 THEN RETURN TO_CLOB('<div class="nn-empty">لا توجد اشتراكات Webhook</div>'); END IF;
+    -- CASE لا يرجع أكثر من 32 ألف حرف حتى لو كانت فروعه CLOB
+    RETURN l_h || ('</tbody></table>');
   END webhooks_html;
 
   FUNCTION outbox_html(p_status IN VARCHAR2 DEFAULT NULL) RETURN CLOB IS
@@ -1281,11 +1287,13 @@ CREATE OR REPLACE PACKAGE BODY NOONA_API_PKG AS
     FOR o IN (SELECT * FROM api_outbox WHERE (p_status IS NULL OR status_code = p_status) AND (destination LIKE 'WEBHOOK:%' OR destination LIKE 'SMS:%' OR destination LIKE 'WHATSAPP:%')
                ORDER BY id DESC FETCH FIRST 200 ROWS ONLY) LOOP
       l_n := l_n + 1;
-      l_h := l_h || '<tr data-outbox="' || o.id || '"><td>' || o.id || '</td><td>' || TO_CHAR(o.created_at, 'YYYY-MM-DD HH24:MI') || '</td><td>' || esc(event_label(o.event_type)) || '</td><td dir="ltr">'
+      l_h := l_h || ('<tr data-outbox="' || o.id || '"><td>' || o.id || '</td><td>' || TO_CHAR(o.created_at, 'YYYY-MM-DD HH24:MI') || '</td><td>' || esc(event_label(o.event_type)) || '</td><td dir="ltr">'
           || esc(o.destination) || '</td><td>' || TO_CHAR(o.attempts) || '</td><td>' || CASE WHEN o.status_code IN ('PENDING', 'FAILED') THEN TO_CHAR(o.next_attempt_at, 'YYYY-MM-DD HH24:MI') END
-          || '</td><td><small>' || esc(SUBSTR(o.last_error, 1, 160)) || '</small></td><td>' || badge(o.status_code) || '</td></tr>';
+          || '</td><td><small>' || esc(SUBSTR(o.last_error, 1, 160)) || '</small></td><td>' || badge(o.status_code) || '</td></tr>');
     END LOOP;
-    RETURN CASE WHEN l_n = 0 THEN '<div class="nn-empty">لا توجد أحداث صادرة</div>' ELSE l_h || '</tbody></table>' END;
+    IF l_n = 0 THEN RETURN TO_CLOB('<div class="nn-empty">لا توجد أحداث صادرة</div>'); END IF;
+    -- CASE لا يرجع أكثر من 32 ألف حرف حتى لو كانت فروعه CLOB
+    RETURN l_h || ('</tbody></table>');
   END outbox_html;
 
   FUNCTION channels_html RETURN CLOB IS
@@ -1300,12 +1308,14 @@ CREATE OR REPLACE PACKAGE BODY NOONA_API_PKG AS
       l_n := l_n + 1;
       SELECT LISTAGG(event_label(ev) || ': ' || tpl, '<br>') WITHIN GROUP (ORDER BY ev) INTO l_r
         FROM JSON_TABLE(c.config_info, '$.rules[*]' COLUMNS (ev VARCHAR2(100) PATH '$.event', tpl VARCHAR2(300) PATH '$.template'));
-      l_h := l_h || '<tr><td>' || CASE c.integration_type WHEN 'SMS' THEN 'رسائل نصية' ELSE 'واتساب' END || '</td><td>'
+      l_h := l_h || ('<tr><td>' || CASE c.integration_type WHEN 'SMS' THEN 'رسائل نصية' ELSE 'واتساب' END || '</td><td>'
           || CASE JSON_VALUE(c.config_info, '$.adapter') WHEN 'REST' THEN 'مزود REST' ELSE 'المحاكي' END || '</td><td dir="ltr"><small>'
           || esc(JSON_VALUE(c.config_info, '$.url')) || '</small></td><td>' || esc(JSON_VALUE(c.config_info, '$.sender')) || '</td><td><small>' || l_r
-          || '</small></td><td>' || badge(c.status_code) || '</td></tr>';
+          || '</small></td><td>' || badge(c.status_code) || '</td></tr>');
     END LOOP;
-    RETURN CASE WHEN l_n = 0 THEN '<div class="nn-empty">لا توجد قنوات رسائل</div>' ELSE l_h || '</tbody></table>' END;
+    IF l_n = 0 THEN RETURN TO_CLOB('<div class="nn-empty">لا توجد قنوات رسائل</div>'); END IF;
+    -- CASE لا يرجع أكثر من 32 ألف حرف حتى لو كانت فروعه CLOB
+    RETURN l_h || ('</tbody></table>');
   END channels_html;
 
   FUNCTION endpoints_html RETURN CLOB IS
@@ -1315,11 +1325,11 @@ CREATE OR REPLACE PACKAGE BODY NOONA_API_PKG AS
     l_h := '<table class="nn-prj-t"><thead><tr><th>الطريقة</th><th>المسار</th><th>الوحدة</th><th>الصلاحية المطلوبة</th><th>Idempotency-Key</th></tr></thead><tbody>'
         || '<tr><td dir="ltr"><code>POST</code></td><td dir="ltr"><code>/' || c_version || '/token</code></td><td>دخول</td><td>-</td><td></td></tr>';
     FOR e IN (SELECT * FROM api_endpoint WHERE api_version = c_version AND is_active = 'Y' ORDER BY path_template, http_method) LOOP
-      l_h := l_h || '<tr><td dir="ltr"><code>' || e.http_method || '</code></td><td dir="ltr"><code>/' || c_version || esc(e.path_template) || '</code></td><td>'
+      l_h := l_h || ('<tr><td dir="ltr"><code>' || e.http_method || '</code></td><td dir="ltr"><code>/' || c_version || esc(e.path_template) || '</code></td><td>'
           || esc(e.module_code) || '</td><td dir="ltr"><small>' || esc(e.permission_code) || '</small></td><td>'
-          || CASE WHEN e.requires_idempotency = 'Y' THEN '<span class="nn-badge is-info">مطلوب</span>' END || '</td></tr>';
+          || CASE WHEN e.requires_idempotency = 'Y' THEN '<span class="nn-badge is-info">مطلوب</span>' END || '</td></tr>');
     END LOOP;
-    RETURN l_h || '</tbody></table>';
+    RETURN l_h || ('</tbody></table>');
   END endpoints_html;
 END NOONA_API_PKG;
 /

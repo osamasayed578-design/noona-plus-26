@@ -106,7 +106,7 @@ wwv_flow_imp_page.create_page_item(
 ,p_name=>'P58_FREQ'
 ,p_item_sequence=>50
 ,p_item_plug_id=>wwv_flow_imp.id(91820275000000671)
-,p_prompt=>'Frequency (e.g. 3/week)'
+,p_prompt=>'التكرار (مثلاً 3 أسبوعياً)'
 ,p_display_as=>'NATIVE_TEXT_FIELD'
 ,p_cSize=>15
 ,p_cMaxlength=>100
@@ -123,7 +123,7 @@ wwv_flow_imp_page.create_page_item(
 ,p_name=>'P58_GOALS'
 ,p_item_sequence=>60
 ,p_item_plug_id=>wwv_flow_imp.id(91820275000000671)
-,p_prompt=>'Treatment goals (English)'
+,p_prompt=>'أهداف العلاج (بالإنجليزية)'
 ,p_display_as=>'NATIVE_TEXTAREA'
 ,p_cSize=>60
 ,p_cMaxlength=>1000
@@ -218,7 +218,7 @@ wwv_flow_imp_page.create_page_item(
 ,p_name=>'P58_SNOTES'
 ,p_item_sequence=>30
 ,p_item_plug_id=>wwv_flow_imp.id(91820275000000680)
-,p_prompt=>'Session notes / progress (English)'
+,p_prompt=>'ملاحظات الجلسة والتقدم (بالإنجليزية)'
 ,p_display_as=>'NATIVE_TEXTAREA'
 ,p_cSize=>60
 ,p_cMaxlength=>1000

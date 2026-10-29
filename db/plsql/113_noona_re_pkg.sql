@@ -373,31 +373,31 @@ CREATE OR REPLACE PACKAGE BODY NOONA_RE_PKG AS
     FOR s IN (SELECT 'AVAILABLE' c FROM dual UNION ALL SELECT 'RESERVED' FROM dual UNION ALL SELECT 'LEASED' FROM dual
               UNION ALL SELECT 'OCCUPIED' FROM dual UNION ALL SELECT 'SOLD' FROM dual UNION ALL SELECT 'UNDER_MAINTENANCE' FROM dual
               UNION ALL SELECT 'BLOCKED' FROM dual) LOOP
-      l_out := l_out || '<span class="nn-u-' || LOWER(s.c) || '">' || unit_status_label(s.c) || '</span>';
+      l_out := l_out || ('<span class="nn-u-' || LOWER(s.c) || '">' || unit_status_label(s.c) || '</span>');
     END LOOP;
-    l_out := l_out || '</div>';
+    l_out := l_out || ('</div>');
     FOR b IN (SELECT id, code, name_ar FROM re_building WHERE property_id = p_property_id AND company_id = company ORDER BY code) LOOP
-      l_out := l_out || '<div class="nn-stack"><div class="nn-stack-h">' || esc(b.name_ar) || '</div>';
+      l_out := l_out || ('<div class="nn-stack"><div class="nn-stack-h">' || esc(b.name_ar) || '</div>');
       FOR f IN (SELECT id, floor_no, name_ar FROM re_floor WHERE building_id = b.id ORDER BY floor_no DESC) LOOP
-        l_out := l_out || '<div class="nn-stack-row"><span class="nn-stack-f">' || esc(f.name_ar) || '</span><div class="nn-stack-units">';
+        l_out := l_out || ('<div class="nn-stack-row"><span class="nn-stack-f">' || esc(f.name_ar) || '</span><div class="nn-stack-units">');
         FOR u IN (SELECT id, code, unit_type, status_code, bedrooms FROM re_unit WHERE floor_id = f.id ORDER BY code) LOOP
-          l_out := l_out || CASE WHEN p_link IS NOT NULL THEN '<a href="' || REPLACE(p_link, '#ID#', u.id) || '"' ELSE '<span' END
+          l_out := l_out || (CASE WHEN p_link IS NOT NULL THEN '<a href="' || REPLACE(p_link, '#ID#', u.id) || '"' ELSE '<span' END
                 || ' class="nn-u nn-u-' || LOWER(u.status_code) || '" title="' || unit_type_label(u.unit_type) || ' · '
                 || unit_status_label(u.status_code) || '"><b>' || esc(u.code) || '</b><small>' || unit_type_label(u.unit_type)
                 || CASE WHEN u.bedrooms IS NOT NULL THEN ' ' || u.bedrooms || 'غ' END || '</small>'
-                || CASE WHEN p_link IS NOT NULL THEN '</a>' ELSE '</span>' END;
+                || CASE WHEN p_link IS NOT NULL THEN '</a>' ELSE '</span>' END);
           l_n := l_n + 1;
         END LOOP;
-        l_out := l_out || '</div></div>';
+        l_out := l_out || ('</div></div>');
       END LOOP;
-      l_out := l_out || '</div>';
+      l_out := l_out || ('</div>');
     END LOOP;
     -- وحدات بلا مبنى (فلل، أراض)
     FOR u IN (SELECT id, code, unit_type, status_code FROM re_unit WHERE property_id = p_property_id AND building_id IS NULL ORDER BY code) LOOP
       IF l_n >= 0 AND u.id IS NOT NULL THEN
-        l_out := l_out || CASE WHEN p_link IS NOT NULL THEN '<a href="' || REPLACE(p_link, '#ID#', u.id) || '"' ELSE '<span' END
+        l_out := l_out || (CASE WHEN p_link IS NOT NULL THEN '<a href="' || REPLACE(p_link, '#ID#', u.id) || '"' ELSE '<span' END
               || ' class="nn-u nn-u-' || LOWER(u.status_code) || '"><b>' || esc(u.code) || '</b><small>' || unit_type_label(u.unit_type)
-              || '</small>' || CASE WHEN p_link IS NOT NULL THEN '</a>' ELSE '</span>' END;
+              || '</small>' || CASE WHEN p_link IS NOT NULL THEN '</a>' ELSE '</span>' END);
         l_n := l_n + 1;
       END IF;
     END LOOP;

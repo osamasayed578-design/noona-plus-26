@@ -189,8 +189,8 @@ CREATE OR REPLACE PACKAGE BODY NOONA_BI_PKG AS
       CONTINUE WHEN p_mode = 'SEARCH' AND NOT matches(p_search, r.name_ar, r.name_en, r.description, r.module_code);
       l_n := l_n + 1;
       EXIT WHEN l_n > p_limit;
-      l_html := l_html || card(r.id, r.name_ar, r.description, r.report_type, r.icon_class, r.module_code, r.fav,
-                               installed(p_apps, r.app_alias), p_session, TRUE);
+      l_html := l_html || (card(r.id, r.name_ar, r.description, r.report_type, r.icon_class, r.module_code, r.fav,
+                               installed(p_apps, r.app_alias), p_session, TRUE));
     END LOOP;
     RETURN l_html;
   END report_list;
@@ -226,7 +226,7 @@ CREATE OR REPLACE PACKAGE BODY NOONA_BI_PKG AS
       l_mods := l_mods + 1;
       l_total := l_total + m.cnt;
       l_cards := l_cards
-        || '<a class="nn-rh-mod nn-rh-mod-' || LOWER(m.module_code) || '" href="'
+        || ('<a class="nn-rh-mod nn-rh-mod-' || LOWER(m.module_code) || '" href="'
         || NOONA_UI_PKG.url(c_app, 'MODULE', p_session, 'P2_MODULE', m.module_code) || '">'
         || '<span class="nn-rh-mod-head"><span class="nn-rh-mod-icon fa ' || module_icon(m.module_code) || '" aria-hidden="true"></span>'
         || '<span class="nn-rh-mod-name">' || esc(module_label(m.module_code)) || '</span>'
@@ -236,7 +236,7 @@ CREATE OR REPLACE PACKAGE BODY NOONA_BI_PKG AS
         || '</span>'
         || '<span class="nn-rh-mod-foot">' || m.cnt || ' تقرير'
         || CASE WHEN m.favs > 0 THEN ' &middot; <span class="fa fa-star" aria-hidden="true"></span> ' || m.favs END
-        || '<span class="nn-rh-mod-go">عرض التقارير <span class="fa fa-angle-left" aria-hidden="true"></span></span></span></a>';
+        || '<span class="nn-rh-mod-go">عرض التقارير <span class="fa fa-angle-left" aria-hidden="true"></span></span></span></a>');
     END LOOP;
 
     l_html := '<div class="nn-rh-hero"><div><div class="nn-hello-title">مركز التقارير</div>'
@@ -245,25 +245,25 @@ CREATE OR REPLACE PACKAGE BODY NOONA_BI_PKG AS
            || '</div></div>' || search_box(p_session, NULL, p_search) || '</div>';
 
     IF l_mods = 0 THEN
-      RETURN l_html || '<div class="nn-launch-empty"><span class="fa fa-lock" aria-hidden="true"></span>'
-          || '<b>لا توجد تقارير متاحة لك</b><span>التقارير تظهر حسب الوحدات المشترك فيها وصلاحياتك؛ تواصل مع مسؤول المؤسسة</span></div>';
+      RETURN l_html || ('<div class="nn-launch-empty"><span class="fa fa-lock" aria-hidden="true"></span>'
+          || '<b>لا توجد تقارير متاحة لك</b><span>التقارير تظهر حسب الوحدات المشترك فيها وصلاحياتك؛ تواصل مع مسؤول المؤسسة</span></div>');
     END IF;
 
     IF TRIM(p_search) IS NOT NULL THEN
       l_list := report_list('SEARCH', p_session, p_apps, p_search, 200);
-      RETURN l_html || '<h3 class="nn-rh-h">نتائج البحث عن «' || esc(TRIM(p_search)) || '»</h3>'
-          || NVL(l_list, '<div class="nn-empty">لا توجد تقارير مطابقة</div>');
+      RETURN l_html || ('<h3 class="nn-rh-h">نتائج البحث عن «' || esc(TRIM(p_search)) || '»</h3>'
+          || NVL(l_list, '<div class="nn-empty">لا توجد تقارير مطابقة</div>'));
     END IF;
 
     l_list := report_list('FAV', p_session, p_apps, NULL, 12);
     IF l_list IS NOT NULL THEN
-      l_html := l_html || '<h3 class="nn-rh-h"><span class="fa fa-star" aria-hidden="true"></span> المفضلة</h3><div class="nn-rh-reps">' || l_list || '</div>';
+      l_html := l_html || ('<h3 class="nn-rh-h"><span class="fa fa-star" aria-hidden="true"></span> المفضلة</h3><div class="nn-rh-reps">' || l_list || '</div>');
     END IF;
     l_list := report_list('RECENT', p_session, p_apps, NULL, 6);
     IF l_list IS NOT NULL THEN
-      l_html := l_html || '<h3 class="nn-rh-h"><span class="fa fa-history" aria-hidden="true"></span> آخر ما فتحته</h3><div class="nn-rh-reps">' || l_list || '</div>';
+      l_html := l_html || ('<h3 class="nn-rh-h"><span class="fa fa-history" aria-hidden="true"></span> آخر ما فتحته</h3><div class="nn-rh-reps">' || l_list || '</div>');
     END IF;
-    RETURN l_html || '<h3 class="nn-rh-h"><span class="fa fa-th-large" aria-hidden="true"></span> الوحدات</h3><div class="nn-rh-mods">' || l_cards || '</div>';
+    RETURN l_html || ('<h3 class="nn-rh-h"><span class="fa fa-th-large" aria-hidden="true"></span> الوحدات</h3><div class="nn-rh-mods">' || l_cards || '</div>');
   END home_html;
 
   FUNCTION module_html(p_module_code IN VARCHAR2, p_session IN VARCHAR2, p_apps IN VARCHAR2,
@@ -304,8 +304,8 @@ CREATE OR REPLACE PACKAGE BODY NOONA_BI_PKG AS
                ORDER BY b.sort_order) LOOP
       CONTINUE WHEN NOT matches(p_search, r.name_ar, r.name_en, r.description, NULL);
       l_n := l_n + 1;
-      l_cards := l_cards || card(r.id, r.name_ar, r.description, r.report_type, r.icon_class, r.module_code, r.fav,
-                                 installed(p_apps, r.app_alias), p_session, FALSE);
+      l_cards := l_cards || (card(r.id, r.name_ar, r.description, r.report_type, r.icon_class, r.module_code, r.fav,
+                                 installed(p_apps, r.app_alias), p_session, FALSE));
     END LOOP;
 
     l_html := '<div class="nn-rh-hero"><div class="nn-rh-crumb"><a href="' || NOONA_UI_PKG.url(c_app, 'HOME', p_session) || '">'
@@ -313,8 +313,8 @@ CREATE OR REPLACE PACKAGE BODY NOONA_BI_PKG AS
            || '<div class="nn-hello-title"><span class="nn-rh-mod-icon fa ' || module_icon(p_module_code) || '" aria-hidden="true"></span> '
            || esc(module_label(p_module_code)) || '</div></div>' || search_box(p_session, p_module_code, p_search) || '</div>'
            || '<div class="nn-rh-chips">' || l_chips || '</div>';
-    RETURN l_html || CASE WHEN l_n = 0 THEN '<div class="nn-empty">لا توجد تقارير مطابقة</div>'
-                          ELSE '<div class="nn-rh-reps">' || l_cards || '</div>' END;
+    RETURN l_html || (CASE WHEN l_n = 0 THEN '<div class="nn-empty">لا توجد تقارير مطابقة</div>'
+                          ELSE '<div class="nn-rh-reps">' || l_cards || '</div>' END);
   END module_html;
 
   FUNCTION open_url(p_report_id IN NUMBER, p_session IN VARCHAR2) RETURN VARCHAR2 IS

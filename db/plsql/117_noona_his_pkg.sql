@@ -1404,7 +1404,7 @@ CREATE OR REPLACE PACKAGE BODY NOONA_HIS_PKG AS
                 FROM his_order o JOIN his_service s ON s.id = o.service_id JOIN his_department d ON d.id = o.department_id
                 LEFT JOIN his_invoice i ON i.id = o.invoice_id
                WHERE o.visit_id = p_visit_id ORDER BY o.line_no) LOOP
-      l_h := l_h || '<tr class="' || CASE WHEN r.status_code = 'CANCELLED' THEN 'is-void' END || '"><td>' || r.line_no || '</td><td>' || esc(r.sname)
+      l_h := l_h || ('<tr class="' || CASE WHEN r.status_code = 'CANCELLED' THEN 'is-void' END || '"><td>' || r.line_no || '</td><td>' || esc(r.sname)
           || CASE WHEN r.quantity <> 1 THEN ' × ' || r.quantity END || '<br><small>' || esc(type_label(r.service_type))
           || CASE WHEN r.covered = 'N' AND l_v.bill_to = 'PAYER' THEN ' · غير مغطاة' END || CASE WHEN r.approval_no IS NOT NULL THEN ' · موافقة ' || esc(r.approval_no) END
           || CASE WHEN r.status_code = 'APPROVAL_PENDING' AND r.preauth_status IN ('PENDING', 'REQUESTED') THEN ' · طلب إلكتروني قيد المراجعة '
@@ -1415,17 +1415,17 @@ CREATE OR REPLACE PACKAGE BODY NOONA_HIS_PKG AS
           || '</td><td>' || NVL(esc(r.inv_no), '<span class="nn-neg">غير مفوتر</span>') || '</td><td>'
           || CASE WHEN r.status_code = 'COMPLETED' THEN '<span class="nn-his-flag fl-' || LOWER(NVL(r.result_flag, 'NORMAL')) || '">'
                   || CASE r.result_flag WHEN 'CRITICAL' THEN 'حرجة' WHEN 'ABNORMAL' THEN 'غير طبيعية' ELSE 'طبيعية' END || '</span> '
-                  || esc(DBMS_LOB.SUBSTR(r.result_text, 120, 1)) END || '</td></tr>';
+                  || esc(DBMS_LOB.SUBSTR(r.result_text, 120, 1)) END || '</td></tr>');
     END LOOP;
-    l_h := l_h || '</tbody></table>';
+    l_h := l_h || ('</tbody></table>');
     IF l_v.diagnosis IS NOT NULL OR l_v.chief_complaint IS NOT NULL THEN
-      l_h := l_h || '<div class="nn-his-notes nn-ltr" dir="ltr"><b>Chief complaint:</b> ' || esc(l_v.chief_complaint)
+      l_h := l_h || ('<div class="nn-his-notes nn-ltr" dir="ltr"><b>Chief complaint:</b> ' || esc(l_v.chief_complaint)
           || CASE WHEN l_v.vitals IS NOT NULL THEN '<br><b>Vital signs:</b> ' || esc(l_v.vitals) END || '<br><b>Diagnosis:</b> ' || esc(l_v.diagnosis)
           || CASE WHEN l_v.icd10 IS NOT NULL THEN ' (ICD-10: ' || esc(l_v.icd10) || ')' END
           || CASE WHEN l_v.doctor_notes IS NOT NULL THEN '<br><b>Clinical notes / Plan:</b> ' || REPLACE(esc(DBMS_LOB.SUBSTR(l_v.doctor_notes, 3000, 1)), CHR(10), '<br>') END
-          || '</div>';
+          || '</div>');
     END IF;
-    RETURN l_h || '</div>';
+    RETURN l_h || ('</div>');
   END visit_html;
 
   FUNCTION invoice_html(p_invoice_id IN NUMBER) RETURN CLOB IS
@@ -1452,19 +1452,19 @@ CREATE OR REPLACE PACKAGE BODY NOONA_HIS_PKG AS
         || '<th class="n">على المريض</th><th class="n">على الجهة</th><th class="n">الضريبة</th></tr></thead><tbody>';
     FOR r IN (SELECT o.*, service_name(s.id) sname, s.billing_code FROM his_order o JOIN his_service s ON s.id = o.service_id
                WHERE o.invoice_id = p_invoice_id OR (l_i.status_code = 'CANCELLED' AND 1 = 0) ORDER BY o.line_no) LOOP
-      l_h := l_h || '<tr><td>' || esc(r.sname) || CASE WHEN r.billing_code IS NOT NULL THEN ' <small>' || esc(r.billing_code) || '</small>' END
+      l_h := l_h || ('<tr><td>' || esc(r.sname) || CASE WHEN r.billing_code IS NOT NULL THEN ' <small>' || esc(r.billing_code) || '</small>' END
           || CASE WHEN r.approval_no IS NOT NULL THEN '<br><small>موافقة ' || esc(r.approval_no) || '</small>' END || '</td><td class="n">' || r.quantity
           || '</td><td class="n">' || fmt0(r.unit_price) || '</td><td class="n">' || fmt0(r.gross_amount) || '</td><td class="n">' || fmt0(r.patient_net)
-          || '</td><td class="n">' || fmt0(r.payer_net) || '</td><td class="n">' || fmt0(r.patient_vat + r.payer_vat) || '</td></tr>';
+          || '</td><td class="n">' || fmt0(r.payer_net) || '</td><td class="n">' || fmt0(r.patient_vat + r.payer_vat) || '</td></tr>');
     END LOOP;
-    l_h := l_h || '</tbody></table><table class="nn-his-totals">'
+    l_h := l_h || ('</tbody></table><table class="nn-his-totals">'
         || '<tr><td>حصة المريض قبل الضريبة</td><td>' || fmt0(l_i.patient_net) || '</td></tr><tr><td>ضريبة القيمة المضافة على المريض</td><td>'
         || fmt0(l_i.patient_vat) || '</td></tr><tr class="g"><td>المطلوب من المريض</td><td>' || fmt0(l_i.patient_total) || '</td></tr>'
         || CASE WHEN l_i.payer_total > 0 THEN '<tr><td>حصة ' || esc(l_pay) || ' (شاملة الضريبة ' || fmt0(l_i.payer_vat) || ')</td><td>'
                 || fmt0(l_i.payer_total) || '</td></tr>' END
         || '<tr><td>المدفوع</td><td>' || fmt0(l_i.paid_amount) || CASE WHEN l_i.payment_method IS NOT NULL THEN ' (' || esc(l_i.payment_method) || ')' END
         || '</td></tr></table>'
-        || CASE WHEN l_p.nationality = 'SA' THEN '<p class="nn-hint">الخدمات الصحية للمواطن بنسبة ضريبة صفر.</p>' END || '</div>';
+        || CASE WHEN l_p.nationality = 'SA' THEN '<p class="nn-hint">الخدمات الصحية للمواطن بنسبة ضريبة صفر.</p>' END || '</div>');
     RETURN l_h;
   END invoice_html;
 
@@ -1476,10 +1476,10 @@ CREATE OR REPLACE PACKAGE BODY NOONA_HIS_PKG AS
                      NVL(p.ref_text, CASE WHEN p.ref_low IS NOT NULL OR p.ref_high IS NOT NULL
                                           THEN NVL(TO_CHAR(p.ref_low), '') || ' - ' || NVL(TO_CHAR(p.ref_high), '') END) rng
                 FROM his_lab_result r JOIN his_lab_param p ON p.id = r.param_id WHERE r.order_id = p_order_id ORDER BY p.sort_order, p.id) LOOP
-      l := l || '<tr class="lf-' || LOWER(NVL(r.flag, 'N')) || '"><td>' || esc(r.name_ar) || ' <small>' || esc(r.code) || '</small></td><td class="n"><b>'
+      l := l || ('<tr class="lf-' || LOWER(NVL(r.flag, 'N')) || '"><td>' || esc(r.name_ar) || ' <small>' || esc(r.code) || '</small></td><td class="n"><b>'
          || NVL(esc(r.value_text), RTRIM(RTRIM(TO_CHAR(r.value_num, 'FM9999990D999', 'NLS_NUMERIC_CHARACTERS=''.,'''), '0'), '.')) || '</b> '
          || CASE r.flag WHEN 'H' THEN 'H' WHEN 'L' THEN 'L' WHEN 'HH' THEN 'HH (critical)' WHEN 'LL' THEN 'LL (critical)' END || '</td><td>' || esc(r.unit) || '</td><td>'
-         || esc(r.rng) || '</td></tr>';
+         || esc(r.rng) || '</td></tr>');
     END LOOP;
     RETURN CASE WHEN l IS NOT NULL THEN '<table class="nn-rst-cred nn-his-lab"><thead><tr><th>Test</th><th class="n">Result</th><th>Unit</th>'
                 || '<th>Reference range</th></tr></thead><tbody>' || l || '</tbody></table>' END;
@@ -1531,21 +1531,21 @@ CREATE OR REPLACE PACKAGE BODY NOONA_HIS_PKG AS
                        OR EXISTS (SELECT 1 FROM his_appointment a WHERE a.doctor_id = d.id AND a.appt_date = l_d))
                 ORDER BY dp.sort_order, dp.name_ar, d.name_ar) LOOP
       l_n := l_n + 1;
-      l_h := l_h || '<section class="nn-his-col"><header><b>' || esc(dr.name_ar) || '</b><small>' || esc(dr.dname) || ' · ' || NVL(esc(dr.hours), 'خارج الدوام')
-          || '</small></header>';
+      l_h := l_h || ('<section class="nn-his-col"><header><b>' || esc(dr.name_ar) || '</b><small>' || esc(dr.dname) || ' · ' || NVL(esc(dr.hours), 'خارج الدوام')
+          || '</small></header>');
       FOR a IN (SELECT a.id, a.start_time, a.status_code, p.name_ar, p.mrn, p.mobile, s.name_ar sname, a.visit_id
                   FROM his_appointment a JOIN his_patient p ON p.id = a.patient_id LEFT JOIN his_service s ON s.id = a.service_id
                  WHERE a.doctor_id = dr.id AND a.appt_date = l_d AND a.status_code <> 'CANCELLED' ORDER BY a.start_time) LOOP
-        l_h := l_h || '<div class="nn-his-appt ap-' || LOWER(a.status_code) || '" data-appt="' || a.id || '" data-visit="' || a.visit_id || '"><b>' || a.start_time
+        l_h := l_h || ('<div class="nn-his-appt ap-' || LOWER(a.status_code) || '" data-appt="' || a.id || '" data-visit="' || a.visit_id || '"><b>' || a.start_time
             || '</b> ' || esc(a.name_ar) || '<small>' || esc(a.mrn) || ' · ' || esc(a.mobile) || ' · ' || esc(a.sname) || '</small><span>'
-            || appt_status_label(a.status_code) || '</span></div>';
+            || appt_status_label(a.status_code) || '</span></div>');
       END LOOP;
-      l_h := l_h || '<div class="nn-his-free">متاح: ' || REPLACE(REPLACE(REPLACE(free_slots(dr.id, l_d), '"'), '['), ']') || '</div></section>';
+      l_h := l_h || ('<div class="nn-his-free">متاح: ' || REPLACE(REPLACE(REPLACE(free_slots(dr.id, l_d), '"'), '['), ']') || '</div></section>');
     END LOOP;
     IF l_n = 0 THEN
-      l_h := l_h || '<p class="nn-hint">لا يوجد أطباء بدوام في هذا اليوم</p>';
+      l_h := l_h || ('<p class="nn-hint">لا يوجد أطباء بدوام في هذا اليوم</p>');
     END IF;
-    RETURN l_h || '</div>';
+    RETURN l_h || ('</div>');
   END day_board_html;
 
   FUNCTION revenue_html(p_from IN DATE, p_to IN DATE) RETURN CLOB IS
@@ -1560,14 +1560,14 @@ CREATE OR REPLACE PACKAGE BODY NOONA_HIS_PKG AS
                 FROM his_order o JOIN his_invoice i ON i.id = o.invoice_id JOIN his_department d ON d.id = o.department_id
                WHERE i.company_id = l_co AND i.status_code = 'POSTED' AND i.doc_date BETWEEN p_from AND p_to
                GROUP BY d.name_ar, d.dept_type ORDER BY SUM(o.patient_net + o.payer_net) DESC) LOOP
-      l_h := l_h || '<tr><td>' || esc(r.name_ar) || '</td><td>' || dept_type_label(r.dept_type) || '</td><td class="n">' || r.n || '</td><td class="n">'
-          || fmt0(r.pn) || '</td><td class="n">' || fmt0(r.yn) || '</td><td class="n"><b>' || fmt0(r.pn + r.yn) || '</b></td><td class="n">' || fmt0(r.mc) || '</td></tr>';
+      l_h := l_h || ('<tr><td>' || esc(r.name_ar) || '</td><td>' || dept_type_label(r.dept_type) || '</td><td class="n">' || r.n || '</td><td class="n">'
+          || fmt0(r.pn) || '</td><td class="n">' || fmt0(r.yn) || '</td><td class="n"><b>' || fmt0(r.pn + r.yn) || '</b></td><td class="n">' || fmt0(r.mc) || '</td></tr>');
       l_t1 := l_t1 + r.pn; l_t2 := l_t2 + r.yn; l_t3 := l_t3 + r.mc;
     END LOOP;
-    l_h := l_h || '</tbody><tfoot><tr><td colspan="3">الإجمالي</td><td class="n">' || fmt0(l_t1) || '</td><td class="n">' || fmt0(l_t2) || '</td><td class="n">'
-        || fmt0(l_t1 + l_t2) || '</td><td class="n">' || fmt0(l_t3) || '</td></tr></tfoot></table>';
-    l_h := l_h || '<h3>حسب الجهة</h3><table class="nn-rst-cred"><thead><tr><th>الجهة</th><th class="n">الفواتير</th><th class="n">المطالبات</th>'
-        || '<th class="n">المحصل من المطالبات</th><th class="n">المتبقي</th></tr></thead><tbody>';
+    l_h := l_h || ('</tbody><tfoot><tr><td colspan="3">الإجمالي</td><td class="n">' || fmt0(l_t1) || '</td><td class="n">' || fmt0(l_t2) || '</td><td class="n">'
+        || fmt0(l_t1 + l_t2) || '</td><td class="n">' || fmt0(l_t3) || '</td></tr></tfoot></table>');
+    l_h := l_h || ('<h3>حسب الجهة</h3><table class="nn-rst-cred"><thead><tr><th>الجهة</th><th class="n">الفواتير</th><th class="n">المطالبات</th>'
+        || '<th class="n">المحصل من المطالبات</th><th class="n">المتبقي</th></tr></thead><tbody>');
     l_t1 := 0; l_t2 := 0;
     FOR r IN (SELECT NVL(y.name_ar, 'نقدي') nm, COUNT(*) n, SUM(i.payer_total) cl,
                      SUM((SELECT NVL(SUM(original_amount - open_amount), 0) FROM ar_open_item a
@@ -1575,24 +1575,24 @@ CREATE OR REPLACE PACKAGE BODY NOONA_HIS_PKG AS
                 FROM his_invoice i LEFT JOIN his_payer y ON y.id = i.payer_id
                WHERE i.company_id = l_co AND i.status_code = 'POSTED' AND i.doc_date BETWEEN p_from AND p_to
                GROUP BY NVL(y.name_ar, 'نقدي') ORDER BY 3 DESC) LOOP
-      l_h := l_h || '<tr><td>' || esc(r.nm) || '</td><td class="n">' || r.n || '</td><td class="n">' || fmt0(r.cl) || '</td><td class="n">' || fmt0(r.paid)
-          || '</td><td class="n">' || fmt0(r.cl - r.paid) || '</td></tr>';
+      l_h := l_h || ('<tr><td>' || esc(r.nm) || '</td><td class="n">' || r.n || '</td><td class="n">' || fmt0(r.cl) || '</td><td class="n">' || fmt0(r.paid)
+          || '</td><td class="n">' || fmt0(r.cl - r.paid) || '</td></tr>');
       l_t1 := l_t1 + r.cl; l_t2 := l_t2 + r.paid;
     END LOOP;
-    l_h := l_h || '</tbody><tfoot><tr><td colspan="2">الإجمالي</td><td class="n">' || fmt0(l_t1) || '</td><td class="n">' || fmt0(l_t2) || '</td><td class="n">'
-        || fmt0(l_t1 - l_t2) || '</td></tr></tfoot></table>';
-    l_h := l_h || '<h3>حسب الطبيب</h3><table class="nn-rst-cred"><thead><tr><th>الطبيب</th><th class="n">الزيارات</th><th class="n">الخدمات المطلوبة</th>'
-        || '<th class="n">قيمة الخدمات</th><th class="n">النسبة المستحقة</th></tr></thead><tbody>';
+    l_h := l_h || ('</tbody><tfoot><tr><td colspan="2">الإجمالي</td><td class="n">' || fmt0(l_t1) || '</td><td class="n">' || fmt0(l_t2) || '</td><td class="n">'
+        || fmt0(l_t1 - l_t2) || '</td></tr></tfoot></table>');
+    l_h := l_h || ('<h3>حسب الطبيب</h3><table class="nn-rst-cred"><thead><tr><th>الطبيب</th><th class="n">الزيارات</th><th class="n">الخدمات المطلوبة</th>'
+        || '<th class="n">قيمة الخدمات</th><th class="n">النسبة المستحقة</th></tr></thead><tbody>');
     FOR r IN (SELECT dr.name_ar, COUNT(DISTINCT o.visit_id) v, COUNT(*) n, SUM(o.patient_net + o.payer_net) amt,
                      SUM(o.patient_net + o.payer_net) * NVL(MAX(dr.commission_pct), 0) / 100 com
                 FROM his_order o JOIN his_invoice i ON i.id = o.invoice_id JOIN his_doctor dr ON dr.id = o.ordered_by_id
                WHERE i.company_id = l_co AND i.status_code = 'POSTED' AND i.doc_date BETWEEN p_from AND p_to
                GROUP BY dr.name_ar ORDER BY 4 DESC) LOOP
-      l_h := l_h || '<tr><td>' || esc(r.name_ar) || '</td><td class="n">' || r.v || '</td><td class="n">' || r.n || '</td><td class="n">' || fmt0(r.amt)
-          || '</td><td class="n">' || fmt0(r.com) || '</td></tr>';
+      l_h := l_h || ('<tr><td>' || esc(r.name_ar) || '</td><td class="n">' || r.v || '</td><td class="n">' || r.n || '</td><td class="n">' || fmt0(r.amt)
+          || '</td><td class="n">' || fmt0(r.com) || '</td></tr>');
       l_t4 := l_t4 + r.com;
     END LOOP;
-    RETURN l_h || '</tbody></table>';
+    RETURN l_h || ('</tbody></table>');
   END revenue_html;
 
   FUNCTION claims_html(p_payer_id IN NUMBER, p_from IN DATE, p_to IN DATE) RETURN CLOB IS
@@ -1619,12 +1619,12 @@ CREATE OR REPLACE PACKAGE BODY NOONA_HIS_PKG AS
                ORDER BY i.doc_date, i.doc_no) LOOP
       l_n := l_n + 1;
       l_t := l_t + r.payer_total; l_o := l_o + r.open_amt;
-      l_h := l_h || '<tr><td>' || esc(r.doc_no) || '</td><td>' || TO_CHAR(r.doc_date, 'YYYY-MM-DD') || '</td><td>' || esc(r.name_ar) || '</td><td>'
+      l_h := l_h || ('<tr><td>' || esc(r.doc_no) || '</td><td>' || TO_CHAR(r.doc_date, 'YYYY-MM-DD') || '</td><td>' || esc(r.name_ar) || '</td><td>'
           || esc(r.member_no) || '</td><td>' || esc(r.srv) || '</td><td>' || esc(r.apr) || '</td><td class="n">' || fmt0(r.payer_total) || '</td><td class="n">'
-          || fmt0(r.open_amt) || '</td></tr>';
+          || fmt0(r.open_amt) || '</td></tr>');
     END LOOP;
-    RETURN l_h || '</tbody><tfoot><tr><td colspan="6">' || l_n || ' فاتورة</td><td class="n">' || fmt0(l_t) || '</td><td class="n">' || fmt0(l_o)
-        || '</td></tr></tfoot></table></div>';
+    RETURN l_h || ('</tbody><tfoot><tr><td colspan="6">' || l_n || ' فاتورة</td><td class="n">' || fmt0(l_t) || '</td><td class="n">' || fmt0(l_o)
+        || '</td></tr></tfoot></table></div>');
   EXCEPTION WHEN NO_DATA_FOUND THEN
     RETURN '<p class="nn-hint">اختر الجهة</p>';
   END claims_html;

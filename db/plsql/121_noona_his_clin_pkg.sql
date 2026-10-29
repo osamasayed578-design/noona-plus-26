@@ -113,17 +113,17 @@ CREATE OR REPLACE PACKAGE BODY NOONA_HIS_CLIN_PKG AS
                WHERE v.company_id = company AND v.status_code = 'OPEN' AND v.visit_type = 'EMERGENCY'
                ORDER BY CASE WHEN v.triage_level IS NULL THEN 0 ELSE TO_NUMBER(v.triage_level) END, v.visit_at) LOOP
       l_n := l_n + 1;
-      l_h := l_h || '<div class="nn-his-ercard tl-' || NVL(r.triage_level, '0') || '" data-visit="' || r.id || '"><header><b>' || esc(triage_label(r.triage_level))
+      l_h := l_h || ('<div class="nn-his-ercard tl-' || NVL(r.triage_level, '0') || '" data-visit="' || r.id || '"><header><b>' || esc(triage_label(r.triage_level))
           || '</b><span>' || r.mins || ' min</span></header><div><b>' || esc(r.name_ar) || '</b> <small>' || r.mrn || ' · '
           || CASE r.gender WHEN 'M' THEN 'M' ELSE 'F' END || ' · ' || age_of(r.birth_date) || '</small></div>'
           || '<div dir="ltr">' || esc(r.chief_complaint) || '</div>' || NVL2(r.vitals, '<small dir="ltr">' || esc(r.vitals) || '</small>', '')
           || NVL2(r.allergies, '<span class="nn-rst-chip is-cancelled">Allergy: ' || esc(r.allergies) || '</span>', '')
-          || '<footer><small>' || esc(NVL(r.doctor, '-')) || '</small><small>' || r.pend || ' طلب مفتوح</small></footer></div>';
+          || '<footer><small>' || esc(NVL(r.doctor, '-')) || '</small><small>' || r.pend || ' طلب مفتوح</small></footer></div>');
     END LOOP;
     IF l_n = 0 THEN
-      l_h := l_h || '<p class="nn-hint">لا يوجد مرضى في الطوارئ الآن.</p>';
+      l_h := l_h || ('<p class="nn-hint">لا يوجد مرضى في الطوارئ الآن.</p>');
     END IF;
-    RETURN l_h || '</div>';
+    RETURN l_h || ('</div>');
   END er_board_html;
 
   -- ================================================================ العلامات الحيوية والملاحظات
@@ -188,17 +188,17 @@ CREATE OR REPLACE PACKAGE BODY NOONA_HIS_CLIN_PKG AS
         || '<th>Pain</th><th>RBS</th><th>Notes</th><th>By</th></tr></thead><tbody>';
     FOR r IN (SELECT * FROM his_vital_sign WHERE visit_id = p_visit_id AND company_id = company ORDER BY taken_at DESC) LOOP
       l_n := l_n + 1;
-      l_h := l_h || '<tr><td>' || TO_CHAR(r.taken_at, 'MM-DD HH24:MI') || '</td><td' || CASE WHEN r.bp_sys >= 160 OR r.bp_sys < 90 THEN ' class="nn-neg"' END || '>'
+      l_h := l_h || ('<tr><td>' || TO_CHAR(r.taken_at, 'MM-DD HH24:MI') || '</td><td' || CASE WHEN r.bp_sys >= 160 OR r.bp_sys < 90 THEN ' class="nn-neg"' END || '>'
           || CASE WHEN r.bp_sys IS NOT NULL THEN r.bp_sys || '/' || r.bp_dia END || '</td><td' || CASE WHEN r.pulse > 120 OR r.pulse < 50 THEN ' class="nn-neg"' END
           || '>' || r.pulse || '</td><td' || CASE WHEN r.temperature >= 38 OR r.temperature < 35 THEN ' class="nn-neg"' END || '>' || num(r.temperature)
           || '</td><td>' || r.resp_rate || '</td><td' || CASE WHEN r.spo2 < 92 THEN ' class="nn-neg"' END || '>' || NVL2(r.spo2, r.spo2 || '%', '')
           || '</td><td>' || num(r.weight) || '</td><td>' || r.pain_score || '</td><td>' || num(r.glucose) || '</td><td>' || esc(r.notes) || '</td><td>'
-          || esc(r.created_by) || '</td></tr>';
+          || esc(r.created_by) || '</td></tr>');
     END LOOP;
     IF l_n = 0 THEN
-      l_h := l_h || '<tr><td colspan="11">No readings yet.</td></tr>';
+      l_h := l_h || ('<tr><td colspan="11">No readings yet.</td></tr>');
     END IF;
-    RETURN l_h || '</tbody></table>';
+    RETURN l_h || ('</tbody></table>');
   END vitals_html;
 
   FUNCTION add_note(p_visit_id IN NUMBER, p_type IN VARCHAR2, p_text IN VARCHAR2, p_author IN NUMBER DEFAULT NULL) RETURN NUMBER IS
@@ -223,10 +223,10 @@ CREATE OR REPLACE PACKAGE BODY NOONA_HIS_CLIN_PKG AS
     l_h := '<div class="nn-his-notes-list" dir="ltr">';
     FOR r IN (SELECT n.*, d.name_ar author FROM his_clinical_note n LEFT JOIN his_doctor d ON d.id = n.author_id
                WHERE n.visit_id = p_visit_id AND n.company_id = company ORDER BY n.note_at DESC) LOOP
-      l_h := l_h || '<article><header><b>' || INITCAP(r.note_type) || '</b> <small>' || TO_CHAR(r.note_at, 'YYYY-MM-DD HH24:MI') || ' · '
-          || esc(NVL(r.author, r.created_by)) || '</small></header><p>' || REPLACE(esc(r.note_text), CHR(10), '<br>') || '</p></article>';
+      l_h := l_h || ('<article><header><b>' || INITCAP(r.note_type) || '</b> <small>' || TO_CHAR(r.note_at, 'YYYY-MM-DD HH24:MI') || ' · '
+          || esc(NVL(r.author, r.created_by)) || '</small></header><p>' || REPLACE(esc(r.note_text), CHR(10), '<br>') || '</p></article>');
     END LOOP;
-    RETURN l_h || '</div>';
+    RETURN l_h || ('</div>');
   END notes_html;
 
   -- ================================================================ إعطاء الأدوية
@@ -275,14 +275,14 @@ CREATE OR REPLACE PACKAGE BODY NOONA_HIS_CLIN_PKG AS
                WHERE x.visit_id = p_visit_id AND x.company_id = company AND x.status_code NOT IN ('CANCELLED')
                ORDER BY x.rx_at, l.line_no) LOOP
       l_n := l_n + 1;
-      l_h := l_h || '<tr><td><b>' || esc(r.med) || '</b> <small>' || esc(r.rx_no) || '</small></td><td>' || esc(r.dose || ' ' || r.frequency)
+      l_h := l_h || ('<tr><td><b>' || esc(r.med) || '</b> <small>' || esc(r.rx_no) || '</small></td><td>' || esc(r.dose || ' ' || r.frequency)
           || NVL2(r.duration_days, ' x ' || r.duration_days || 'd', '') || '</td><td>' || r.g24 || '</td><td>' || TO_CHAR(r.last_at, 'MM-DD HH24:MI')
-          || '</td><td>' || esc(r.last_out) || '</td></tr>';
+          || '</td><td>' || esc(r.last_out) || '</td></tr>');
     END LOOP;
     IF l_n = 0 THEN
-      l_h := l_h || '<tr><td colspan="5">No medicines prescribed.</td></tr>';
+      l_h := l_h || ('<tr><td colspan="5">No medicines prescribed.</td></tr>');
     END IF;
-    RETURN l_h || '</tbody></table>';
+    RETURN l_h || ('</tbody></table>');
   END mar_html;
 
   -- ================================================================ التقارير الطبية
@@ -398,38 +398,38 @@ CREATE OR REPLACE PACKAGE BODY NOONA_HIS_CLIN_PKG AS
                 LEFT JOIN his_doctor dr ON dr.id = v.doctor_id
                WHERE v.patient_id = p_patient_id AND v.company_id = company AND v.status_code <> 'CANCELLED' ORDER BY v.visit_at DESC) LOOP
       l_n := l_n + 1;
-      l_h := l_h || '<section class="nn-his-emrv"><header><b>' || TO_CHAR(v.visit_at, 'YYYY-MM-DD') || '</b> · ' || INITCAP(REPLACE(v.visit_type, '_', ' '))
+      l_h := l_h || ('<section class="nn-his-emrv"><header><b>' || TO_CHAR(v.visit_at, 'YYYY-MM-DD') || '</b> · ' || INITCAP(REPLACE(v.visit_type, '_', ' '))
           || ' · ' || esc(v.dept) || NVL2(v.doctor, ' · ' || esc(v.doctor), '') || ' <small>' || esc(v.visit_no) || '</small>'
           || CASE WHEN v.visit_type IN ('INPATIENT', 'EMERGENCY', 'DAY_CASE') THEN ' <a href="f?p=' || SYS_CONTEXT('APEX$SESSION', 'APP_ID') || ':76:'
                   || SYS_CONTEXT('APEX$SESSION', 'APP_SESSION') || '::NO:RP,76:P76_VISIT:' || v.id || '">Inpatient chart</a>' END || '</header>'
           || NVL2(v.chief_complaint, '<div><small>Complaint</small> ' || esc(v.chief_complaint) || '</div>', '')
           || NVL2(v.vitals, '<div><small>Vitals</small> ' || esc(v.vitals) || '</div>', '')
           || NVL2(v.diagnosis, '<div><small>Diagnosis</small> <b>' || esc(v.diagnosis) || '</b>' || NVL2(v.icd10, ' (' || esc(v.icd10) || ')', '') || '</div>', '')
-          || NVL2(v.doctor_notes, '<div><small>Plan</small> ' || esc(v.doctor_notes) || '</div>', '');
+          || NVL2(v.doctor_notes, '<div><small>Plan</small> ' || esc(v.doctor_notes) || '</div>', ''));
       FOR o IN (SELECT o.id, NOONA_HIS_PKG.service_name(o.service_id) sname, o.result_flag, DBMS_LOB.SUBSTR(o.result_text, 300, 1) res
                   FROM his_order o JOIN his_service s ON s.id = o.service_id
                  WHERE o.visit_id = v.id AND o.status_code = 'COMPLETED' AND s.service_type IN ('LAB', 'RADIOLOGY', 'CARDIO_DIAG', 'PROCEDURE', 'MINOR_SURGERY', 'MAJOR_SURGERY')
                  ORDER BY o.line_no) LOOP
-        l_h := l_h || '<div class="nn-his-emro"><a href="f?p=' || SYS_CONTEXT('APEX$SESSION', 'APP_ID') || ':52:' || SYS_CONTEXT('APEX$SESSION', 'APP_SESSION') || '::NO:RP,52:P52_ID:' || o.id || '">'
+        l_h := l_h || ('<div class="nn-his-emro"><a href="f?p=' || SYS_CONTEXT('APEX$SESSION', 'APP_ID') || ':52:' || SYS_CONTEXT('APEX$SESSION', 'APP_SESSION') || '::NO:RP,52:P52_ID:' || o.id || '">'
             || esc(o.sname) || '</a>' || CASE WHEN o.result_flag IN ('ABNORMAL', 'CRITICAL') THEN ' <span class="nn-rst-chip is-cancelled">' || INITCAP(o.result_flag)
-            || '</span>' END || ' <small>' || esc(o.res) || '</small></div>';
+            || '</span>' END || ' <small>' || esc(o.res) || '</small></div>');
       END LOOP;
       FOR m IN (SELECT NVL(i.name_en, i.name_ar) med, l.dose, l.frequency, l.duration_days FROM his_prescription x
                   JOIN his_prescription_line l ON l.prescription_id = x.id JOIN inv_item i ON i.id = l.item_id
                  WHERE x.visit_id = v.id AND x.status_code <> 'CANCELLED' ORDER BY x.id, l.line_no) LOOP
-        l_h := l_h || '<div class="nn-his-emro"><small>Rx</small> ' || esc(m.med) || ' <small>' || esc(m.dose || ' ' || m.frequency)
-            || NVL2(m.duration_days, ' x ' || m.duration_days || 'd', '') || '</small></div>';
+        l_h := l_h || ('<div class="nn-his-emro"><small>Rx</small> ' || esc(m.med) || ' <small>' || esc(m.dose || ' ' || m.frequency)
+            || NVL2(m.duration_days, ' x ' || m.duration_days || 'd', '') || '</small></div>');
       END LOOP;
       FOR c IN (SELECT cert_no, cert_type, days FROM his_certificate WHERE visit_id = v.id AND status_code = 'ISSUED') LOOP
-        l_h := l_h || '<div class="nn-his-emro"><small>' || esc(cert_type_label(c.cert_type)) || '</small> ' || esc(c.cert_no)
-            || NVL2(c.days, ' (' || c.days || 'd)', '') || '</div>';
+        l_h := l_h || ('<div class="nn-his-emro"><small>' || esc(cert_type_label(c.cert_type)) || '</small> ' || esc(c.cert_no)
+            || NVL2(c.days, ' (' || c.days || 'd)', '') || '</div>');
       END LOOP;
-      l_h := l_h || '</section>';
+      l_h := l_h || ('</section>');
     END LOOP;
     IF l_n = 0 THEN
-      l_h := l_h || '<p class="nn-hint">No visits yet.</p>';
+      l_h := l_h || ('<p class="nn-hint">No visits yet.</p>');
     END IF;
-    RETURN l_h || '</div>';
+    RETURN l_h || ('</div>');
   END patient_history_html;
 
   -- ================================================================ عمولات الأطباء
@@ -445,11 +445,11 @@ CREATE OR REPLACE PACKAGE BODY NOONA_HIS_CLIN_PKG AS
                WHERE o.company_id = company AND i.status_code = 'POSTED' AND i.doc_date BETWEEN p_from AND p_to AND o.status_code <> 'CANCELLED'
                  AND o.commission_id IS NULL AND NVL(dr.commission_pct, 0) > 0
                GROUP BY dr.name_ar, dr.commission_pct ORDER BY 4 DESC) LOOP
-      l_h := l_h || '<tr><td>' || esc(r.name_ar) || '</td><td class="n">' || r.n || '</td><td class="n">' || fmt0(r.base) || '</td><td class="n">'
-          || num(r.commission_pct) || '%</td><td class="n">' || fmt0(ROUND(r.base * r.commission_pct / 100, 2)) || '</td></tr>';
+      l_h := l_h || ('<tr><td>' || esc(r.name_ar) || '</td><td class="n">' || r.n || '</td><td class="n">' || fmt0(r.base) || '</td><td class="n">'
+          || num(r.commission_pct) || '%</td><td class="n">' || fmt0(ROUND(r.base * r.commission_pct / 100, 2)) || '</td></tr>');
       l_t := l_t + ROUND(r.base * r.commission_pct / 100, 2);
     END LOOP;
-    RETURN l_h || '</tbody><tfoot><tr><td colspan="4">الإجمالي</td><td class="n">' || fmt0(l_t) || '</td></tr></tfoot></table>';
+    RETURN l_h || ('</tbody><tfoot><tr><td colspan="4">الإجمالي</td><td class="n">' || fmt0(l_t) || '</td></tr></tfoot></table>');
   END commission_preview_html;
 
   FUNCTION ensure_account(p_code VARCHAR2, p_name VARCHAR2, p_parent VARCHAR2, p_type VARCHAR2) RETURN NUMBER IS

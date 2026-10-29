@@ -1143,14 +1143,14 @@ CREATE OR REPLACE PACKAGE BODY NOONA_HSP_PKG AS
                    WHEN r.stay_id IS NOT NULL THEN 'OCCUPIED'
                    WHEN r.arr_res IS NOT NULL THEN 'DUE_IN'
                    ELSE 'VACANT' END;
-      l_out := l_out || l_sep || '{"id":' || r.id || ',"no":' || jt(r.room_no) || ',"floor":' || jt(r.floor_name) || ',"floor_no":' || r.floor_no
+      l_out := l_out || (l_sep || '{"id":' || r.id || ',"no":' || jt(r.room_no) || ',"floor":' || jt(r.floor_name) || ',"floor_no":' || r.floor_no
             || ',"type":' || jt(r.rtype) || ',"type_id":' || r.rtype_id || ',"fd":"' || l_fd || '","hk":"' || r.hk || '","notes":' || jt(r.notes)
             || ',"stay":' || jn(r.stay_id) || ',"res":' || jn(r.arr_res)
             || ',"guest":' || jt(guest_name(NVL(r.sg, r.ag))) || ',"dep":' || jd(NVL(r.expected_check_out, r.arr_dep))
-            || ',"since":' || jd(TRUNC(CAST(r.check_in_at AS DATE))) || ',"bal":' || jn(r.bal) || ',"mnt":' || r.mnt || '}';
+            || ',"since":' || jd(TRUNC(CAST(r.check_in_at AS DATE))) || ',"bal":' || jn(r.bal) || ',"mnt":' || r.mnt || '}');
       l_sep := ',';
     END LOOP;
-    RETURN l_out || ']}';
+    RETURN l_out || (']}');
   END rack_json;
 
   FUNCTION chart_json(p_property_id IN NUMBER, p_from IN DATE, p_days IN NUMBER DEFAULT 14) RETURN CLOB IS
@@ -1162,10 +1162,10 @@ CREATE OR REPLACE PACKAGE BODY NOONA_HSP_PKG AS
                 LEFT JOIN re_floor f ON f.id = r.floor_id
                WHERE r.property_id = p_property_id AND r.company_id = company AND r.status_code <> 'INACTIVE'
                ORDER BY NVL(f.floor_no, 0), r.room_no) LOOP
-      l_out := l_out || l_sep || '{"id":' || r.id || ',"no":' || jt(r.room_no) || ',"type":' || jt(r.rtype) || '}';
+      l_out := l_out || (l_sep || '{"id":' || r.id || ',"no":' || jt(r.room_no) || ',"type":' || jt(r.rtype) || '}');
       l_sep := ',';
     END LOOP;
-    l_out := l_out || '],"blocks":[';
+    l_out := l_out || ('],"blocks":[');
     l_sep := NULL;
     FOR b IN (SELECT b.room_id, b.stay_date - l_from d, b.block_type, NVL(rr.reservation_id, s.reservation_id) res, b.stay_id,
                      NVL(x.guest_party_id, xs.guest_party_id) gp, NVL(x.doc_no, xs.doc_no) doc_no
@@ -1174,11 +1174,11 @@ CREATE OR REPLACE PACKAGE BODY NOONA_HSP_PKG AS
                 LEFT JOIN hsp_stay s ON s.id = b.stay_id LEFT JOIN hsp_reservation xs ON xs.id = s.reservation_id
                WHERE r.property_id = p_property_id AND b.stay_date >= l_from AND b.stay_date < l_from + NVL(p_days, 14)
                ORDER BY b.room_id, b.stay_date) LOOP
-      l_out := l_out || l_sep || '{"room":' || b.room_id || ',"d":' || b.d || ',"t":"' || b.block_type || '","res":' || jn(b.res)
-            || ',"stay":' || jn(b.stay_id) || ',"g":' || jt(guest_name(b.gp)) || ',"no":' || jt(b.doc_no) || '}';
+      l_out := l_out || (l_sep || '{"room":' || b.room_id || ',"d":' || b.d || ',"t":"' || b.block_type || '","res":' || jn(b.res)
+            || ',"stay":' || jn(b.stay_id) || ',"g":' || jt(guest_name(b.gp)) || ',"no":' || jt(b.doc_no) || '}');
       l_sep := ',';
     END LOOP;
-    RETURN l_out || ']}';
+    RETURN l_out || (']}');
   END chart_json;
 
   FUNCTION stay_json(p_stay_id IN NUMBER) RETURN CLOB IS
@@ -1211,10 +1211,10 @@ CREATE OR REPLACE PACKAGE BODY NOONA_HSP_PKG AS
           || ',"status":"' || l_s.status_code || '","folio":' || jn(l_fol) || ',"folio_no":' || jt(l_fno) || ',"balance":'
           || jn(folio_balance(l_fol)) || ',"pending":' || jn(l_pend) || ',"lines":[';
     FOR l IN (SELECT business_date, line_type, description, amount FROM hsp_folio_line WHERE folio_id = l_fol ORDER BY business_date, id) LOOP
-      l_out := l_out || l_sep || '{"d":' || jd(l.business_date) || ',"t":"' || l.line_type || '","x":' || jt(l.description) || ',"a":' || jn(l.amount) || '}';
+      l_out := l_out || (l_sep || '{"d":' || jd(l.business_date) || ',"t":"' || l.line_type || '","x":' || jt(l.description) || ',"a":' || jn(l.amount) || '}');
       l_sep := ',';
     END LOOP;
-    RETURN l_out || ']}';
+    RETURN l_out || (']}');
   END stay_json;
 
   FUNCTION kpi(p_label VARCHAR2, p_value VARCHAR2, p_icon VARCHAR2, p_cls VARCHAR2 DEFAULT 'is-info') RETURN VARCHAR2 IS
@@ -1277,17 +1277,17 @@ CREATE OR REPLACE PACKAGE BODY NOONA_HSP_PKG AS
           || fd(NVL(TRUNC(CAST(l_s.check_out_at AS DATE)), l_r.departure_date)) || '</div><div><span>الحالة</span>' || res_status_label(l_f.status_code)
           || '</div></div><table class="nn-rpt"><thead><tr><th>التاريخ</th><th>البيان</th><th>مدين</th><th>دائن</th></tr></thead><tbody>';
     FOR l IN (SELECT business_date, line_type, description, amount FROM hsp_folio_line WHERE folio_id = p_folio_id ORDER BY business_date, id) LOOP
-      l_out := l_out || '<tr><td>' || fd(l.business_date) || '</td><td class="nn-rpt-text">' || esc(l.description) || '</td><td>'
-            || CASE WHEN l.amount > 0 THEN fnum(l.amount) END || '</td><td>' || CASE WHEN l.amount < 0 THEN fnum(-l.amount) END || '</td></tr>';
+      l_out := l_out || ('<tr><td>' || fd(l.business_date) || '</td><td class="nn-rpt-text">' || esc(l.description) || '</td><td>'
+            || CASE WHEN l.amount > 0 THEN fnum(l.amount) END || '</td><td>' || CASE WHEN l.amount < 0 THEN fnum(-l.amount) END || '</td></tr>');
       IF l.line_type = 'TAX' THEN l_tax := l_tax + l.amount;
       ELSIF l.line_type IN ('PAYMENT', 'TRANSFER') THEN l_pay := l_pay - l.amount;
       ELSE l_chg := l_chg + l.amount; END IF;
     END LOOP;
-    RETURN l_out || '</tbody></table><table class="nn-rpt nn-folio-tot"><tbody><tr><td class="nn-rpt-text">الإجمالي قبل الضريبة</td><td>'
+    RETURN l_out || ('</tbody></table><table class="nn-rpt nn-folio-tot"><tbody><tr><td class="nn-rpt-text">الإجمالي قبل الضريبة</td><td>'
         || fnum(l_chg) || '</td></tr><tr><td class="nn-rpt-text">ضريبة القيمة المضافة ' || c_vat || '%</td><td>' || fnum(l_tax)
         || '</td></tr><tr class="nn-rpt-total"><td class="nn-rpt-text">الإجمالي شامل الضريبة</td><td>' || fnum(l_chg + l_tax)
         || '</td></tr><tr><td class="nn-rpt-text">المدفوع والمحول</td><td>' || fnum(l_pay) || '</td></tr><tr class="nn-rpt-total"><td class="nn-rpt-text">الرصيد</td><td>'
-        || fnum(l_chg + l_tax - l_pay) || '</td></tr></tbody></table></div>';
+        || fnum(l_chg + l_tax - l_pay) || '</td></tr></tbody></table></div>');
   EXCEPTION WHEN NO_DATA_FOUND THEN
     RETURN '<div class="nn-empty">حساب النزيل غير موجود</div>';
   END folio_html;
@@ -1301,9 +1301,9 @@ CREATE OR REPLACE PACKAGE BODY NOONA_HSP_PKG AS
   BEGIN
     FOR a IN (SELECT business_date, occupancy_pct, room_revenue, adr, no_shows FROM hsp_night_audit
                WHERE property_id = p_property_id AND business_date BETWEEN p_from AND p_to AND status_code = 'COMPLETED' ORDER BY business_date) LOOP
-      l_out := l_out || '<tr><td>' || fd(a.business_date) || '</td><td>' || fnum(a.occupancy_pct) || '</td><td>' || fnum(a.room_revenue)
+      l_out := l_out || ('<tr><td>' || fd(a.business_date) || '</td><td>' || fnum(a.occupancy_pct) || '</td><td>' || fnum(a.room_revenue)
             || '</td><td>' || fnum(a.adr) || '</td><td>' || fnum(CASE WHEN a.occupancy_pct > 0 THEN a.adr * a.occupancy_pct / 100 ELSE 0 END)
-            || '</td><td>' || a.no_shows || '</td></tr>';
+            || '</td><td>' || a.no_shows || '</td></tr>');
       l_rev := l_rev + NVL(a.room_revenue, 0);
       l_occ := l_occ + NVL(a.occupancy_pct, 0);
       l_n := l_n + 1;
@@ -1311,8 +1311,8 @@ CREATE OR REPLACE PACKAGE BODY NOONA_HSP_PKG AS
     IF l_n = 0 THEN
       RETURN '<div class="nn-empty">لا توجد أيام مدققة في الفترة؛ يظهر التقرير بعد تشغيل التدقيق الليلي</div>';
     END IF;
-    RETURN l_out || '<tr class="nn-rpt-total"><td>الإجمالي / المتوسط (' || l_n || ' يوم)</td><td>' || fnum(l_occ / l_n) || '</td><td>'
-        || fnum(l_rev) || '</td><td></td><td></td><td></td></tr></tbody></table></div>';
+    RETURN l_out || ('<tr class="nn-rpt-total"><td>الإجمالي / المتوسط (' || l_n || ' يوم)</td><td>' || fnum(l_occ / l_n) || '</td><td>'
+        || fnum(l_rev) || '</td><td></td><td></td><td></td></tr></tbody></table></div>');
   END occupancy_html;
 
 END NOONA_HSP_PKG;

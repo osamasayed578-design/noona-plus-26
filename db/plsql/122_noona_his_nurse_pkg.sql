@@ -213,14 +213,14 @@ CREATE OR REPLACE PACKAGE BODY NOONA_HIS_NURSE_PKG AS
                  AND SYSDATE < r.duty_date + day_fraction(s.end_time) + CASE WHEN s.end_time <= s.start_time THEN 1 ELSE 0 END
                ORDER BY w.name_ar, DECODE(r.duty_role, 'CHARGE', 0, 1), d.name_ar) LOOP
       l_n := l_n + 1;
-      l_h := l_h || '<span class="nn-his-nurse' || CASE WHEN r.duty_role = 'CHARGE' THEN ' is-charge' END || '"><b>' || esc(r.nurse) || '</b><small>'
+      l_h := l_h || ('<span class="nn-his-nurse' || CASE WHEN r.duty_role = 'CHARGE' THEN ' is-charge' END || '"><b>' || esc(r.nurse) || '</b><small>'
           || esc(r.ward) || ' · ' || esc(r.shift) || ' ' || r.start_time || '-' || r.end_time || NVL2(r.rooms, ' · غرف ' || esc(r.rooms), '')
-          || CASE WHEN r.duty_role = 'CHARGE' THEN ' · مسؤول الوردية' END || NVL2(r.mobile, ' · ' || esc(r.mobile), '') || '</small></span>';
+          || CASE WHEN r.duty_role = 'CHARGE' THEN ' · مسؤول الوردية' END || NVL2(r.mobile, ' · ' || esc(r.mobile), '') || '</small></span>');
     END LOOP;
     IF l_n = 0 THEN
-      l_h := l_h || '<p class="nn-hint">لا يوجد ممرض مناوب مسجل لهذه الوردية؛ أضفه من «ورديات التمريض».</p>';
+      l_h := l_h || ('<p class="nn-hint">لا يوجد ممرض مناوب مسجل لهذه الوردية؛ أضفه من «ورديات التمريض».</p>');
     END IF;
-    RETURN l_h || '</div>';
+    RETURN l_h || ('</div>');
   END on_duty_html;
 
   -- ================================================================ جدول الجرعات
@@ -454,7 +454,7 @@ CREATE OR REPLACE PACKAGE BODY NOONA_HIS_NURSE_PKG AS
                 FROM his_bed b JOIN his_admission a ON a.bed_id = b.id AND a.status_code = 'ADMITTED' JOIN his_visit v ON v.id = a.visit_id
                 JOIN his_patient p ON p.id = v.patient_id LEFT JOIN his_doctor dr ON dr.id = NVL(a.doctor_id, v.doctor_id)
                WHERE b.ward_id = p_ward_id AND b.company_id = company ORDER BY b.bed_no) LOOP
-      l_h := l_h || '<article class="nn-his-pt' || CASE WHEN b.late_doses + b.late_tasks > 0 THEN ' is-late' END || '" data-visit="' || b.vid || '">'
+      l_h := l_h || ('<article class="nn-his-pt' || CASE WHEN b.late_doses + b.late_tasks > 0 THEN ' is-late' END || '" data-visit="' || b.vid || '">'
           || '<header><b>' || esc(b.bed_no) || '</b><small>' || esc(b.room_no) || ' · Day ' || b.los || '</small></header>'
           || '<div class="nm">' || esc(b.name_ar) || ' <small>' || esc(b.mrn) || '</small></div>'
           || NVL2(b.allergies, '<span class="nn-rst-chip is-cancelled">Allergy: ' || esc(b.allergies) || '</span>', '')
@@ -466,9 +466,9 @@ CREATE OR REPLACE PACKAGE BODY NOONA_HIS_NURSE_PKG AS
           || CASE WHEN b.late_doses > 0 THEN ' <span class="nn-rst-chip is-cancelled">' || b.late_doses || ' overdue</span>' END
           || CASE WHEN b.late_tasks > 0 THEN ' <span class="nn-rst-chip is-cancelled">' || b.late_tasks || ' task(s) due</span>' END || '</div>'
           || '<footer><small>' || esc(NVL(b.doctor, '-')) || '</small><small>' || esc(NVL(nurses_on_duty(p_ward_id, b.room_no), 'لا ممرض مناوب')) || '</small></footer>'
-          || '</article>';
+          || '</article>');
     END LOOP;
-    RETURN l_h || '</div>';
+    RETURN l_h || ('</div>');
   END station_html;
 
   FUNCTION due_html(p_ward_id IN NUMBER, p_hours IN NUMBER DEFAULT 2) RETURN CLOB IS
@@ -490,16 +490,16 @@ CREATE OR REPLACE PACKAGE BODY NOONA_HIS_NURSE_PKG AS
                  WHERE t.company_id = company AND b.ward_id = p_ward_id AND t.status_code = 'ACTIVE' AND t.next_due_at <= SYSTIMESTAMP + NUMTODSINTERVAL(p_hours, 'HOUR'))
                ORDER BY due_at) LOOP
       l_n := l_n + 1;
-      l_h := l_h || '<tr class="' || CASE WHEN r.due_at < SYSTIMESTAMP - INTERVAL '30' MINUTE THEN 'is-late' WHEN r.due_at <= SYSTIMESTAMP + INTERVAL '15' MINUTE THEN 'is-due' END
+      l_h := l_h || ('<tr class="' || CASE WHEN r.due_at < SYSTIMESTAMP - INTERVAL '30' MINUTE THEN 'is-late' WHEN r.due_at <= SYSTIMESTAMP + INTERVAL '15' MINUTE THEN 'is-due' END
           || '"><td>' || TO_CHAR(r.due_at, 'HH24:MI') || '</td><td>' || esc(r.bed_no) || '</td><td>' || esc(r.pname) || '</td><td>'
           || CASE r.k WHEN 'D' THEN '&#128138; ' ELSE '&#128203; ' END || esc(r.what) || '</td><td>'
           || CASE WHEN r.due_at < SYSTIMESTAMP - INTERVAL '30' MINUTE THEN 'Overdue' WHEN r.due_at <= SYSTIMESTAMP + INTERVAL '15' MINUTE THEN 'Due now' ELSE 'Upcoming' END
-          || '</td></tr>';
+          || '</td></tr>');
     END LOOP;
     IF l_n = 0 THEN
-      l_h := l_h || '<tr><td colspan="5">Nothing due in the next ' || p_hours || ' hours.</td></tr>';
+      l_h := l_h || ('<tr><td colspan="5">Nothing due in the next ' || p_hours || ' hours.</td></tr>');
     END IF;
-    RETURN l_h || '</tbody></table>';
+    RETURN l_h || ('</tbody></table>');
   END due_html;
 
   FUNCTION alerts_json(p_ward_id IN NUMBER) RETURN CLOB IS
@@ -558,33 +558,33 @@ CREATE OR REPLACE PACKAGE BODY NOONA_HIS_NURSE_PKG AS
           || CASE WHEN v.ast = 'DISCHARGED' THEN '<br><small>Discharged ' || TO_CHAR(v.discharge_at, 'YYYY-MM-DD HH24:MI') || ': ' || esc(v.discharge_summary) || '</small>' END
           || '</div></div></div>';
       -- جدول الجرعات: أمس واليوم والغد
-      l_h := l_h || '<h3>Medication schedule (MAR)</h3><table class="nn-rst-cred nn-his-lab nn-his-mar"><thead><tr><th>Medicine</th><th>Schedule</th></tr></thead><tbody>';
+      l_h := l_h || ('<h3>Medication schedule (MAR)</h3><table class="nn-rst-cred nn-his-lab nn-his-mar"><thead><tr><th>Medicine</th><th>Schedule</th></tr></thead><tbody>');
       FOR l IN (SELECT l.id, NVL(i.name_en, i.name_ar) med, l.dose, l.frequency, NVL(l.route, 'ORAL') route, x.status_code rxs,
                        NOONA_HIS_NURSE_PKG.times_for(l.frequency, l.dose_times) tms
                   FROM his_prescription x JOIN his_prescription_line l ON l.prescription_id = x.id JOIN inv_item i ON i.id = l.item_id
                  WHERE x.visit_id = p_visit_id AND x.status_code <> 'CANCELLED' ORDER BY x.rx_at, l.line_no) LOOP
-        l_h := l_h || '<tr><td><b>' || esc(l.med) || '</b><br><small>' || esc(l.dose || ' ' || l.frequency || ' ' || l.route)
-            || CASE WHEN l.tms IS NULL THEN ' · PRN' ELSE ' · ' || esc(l.tms) END || '</small></td><td>';
+        l_h := l_h || ('<tr><td><b>' || esc(l.med) || '</b><br><small>' || esc(l.dose || ' ' || l.frequency || ' ' || l.route)
+            || CASE WHEN l.tms IS NULL THEN ' · PRN' ELSE ' · ' || esc(l.tms) END || '</small></td><td>');
         FOR m IN (SELECT m.due_at, m.status_code, m.done_at FROM his_med_schedule m WHERE m.line_id = l.id
                    AND m.due_at BETWEEN SYSTIMESTAMP - INTERVAL '1' DAY AND SYSTIMESTAMP + INTERVAL '1' DAY ORDER BY m.due_at) LOOP
-          l_h := l_h || '<span class="nn-his-dose ds-' || LOWER(CASE WHEN m.status_code = 'DUE' AND m.due_at < SYSTIMESTAMP - INTERVAL '30' MINUTE THEN 'LATE'
+          l_h := l_h || ('<span class="nn-his-dose ds-' || LOWER(CASE WHEN m.status_code = 'DUE' AND m.due_at < SYSTIMESTAMP - INTERVAL '30' MINUTE THEN 'LATE'
                                                               ELSE m.status_code END) || '" title="' || m.status_code || NVL2(m.done_at, ' ' || TO_CHAR(m.done_at, 'HH24:MI'), '')
-              || '">' || TO_CHAR(m.due_at, 'DD HH24:MI') || '</span>';
+              || '">' || TO_CHAR(m.due_at, 'DD HH24:MI') || '</span>');
         END LOOP;
-        l_h := l_h || '</td></tr>';
+        l_h := l_h || ('</td></tr>');
       END LOOP;
-      l_h := l_h || '</tbody></table>';
+      l_h := l_h || ('</tbody></table>');
       -- مهام المتابعة
-      l_h := l_h || '<h3>Care plan</h3><table class="nn-rst-cred nn-his-lab"><thead><tr><th>Task</th><th>Every</th><th>Last</th><th>Next</th><th>Last value</th></tr></thead><tbody>';
+      l_h := l_h || ('<h3>Care plan</h3><table class="nn-rst-cred nn-his-lab"><thead><tr><th>Task</th><th>Every</th><th>Last</th><th>Next</th><th>Last value</th></tr></thead><tbody>');
       FOR t IN (SELECT t.*, (SELECT MAX(c.result_value) KEEP (DENSE_RANK LAST ORDER BY c.done_at) FROM his_care_log c WHERE c.task_id = t.id AND c.result_value IS NOT NULL) lastv
                   FROM his_care_task t WHERE t.visit_id = p_visit_id ORDER BY t.status_code, t.next_due_at) LOOP
-        l_h := l_h || '<tr class="' || CASE WHEN t.status_code = 'STOPPED' THEN 'is-void' WHEN t.next_due_at < SYSTIMESTAMP THEN 'is-late' END || '"><td>'
+        l_h := l_h || ('<tr class="' || CASE WHEN t.status_code = 'STOPPED' THEN 'is-void' WHEN t.next_due_at < SYSTIMESTAMP THEN 'is-late' END || '"><td>'
             || esc(task_label(t.task_type)) || NVL2(t.description, '<br><small>' || esc(t.description) || '</small>', '') || '</td><td>' || t.every_hours || ' h</td><td>'
             || TO_CHAR(t.last_done_at, 'MM-DD HH24:MI') || '</td><td>' || CASE WHEN t.status_code = 'ACTIVE' THEN TO_CHAR(t.next_due_at, 'MM-DD HH24:MI') ELSE 'Stopped' END
-            || '</td><td>' || esc(t.lastv) || '</td></tr>';
+            || '</td><td>' || esc(t.lastv) || '</td></tr>');
       END LOOP;
-      l_h := l_h || '</tbody></table><h3>Vital signs</h3>' || NOONA_HIS_CLIN_PKG.vitals_html(p_visit_id)
-          || '<h3>Clinical notes</h3>' || NOONA_HIS_CLIN_PKG.notes_html(p_visit_id) || '</div>';
+      l_h := l_h || ('</tbody></table><h3>Vital signs</h3>' || NOONA_HIS_CLIN_PKG.vitals_html(p_visit_id)
+          || '<h3>Clinical notes</h3>' || NOONA_HIS_CLIN_PKG.notes_html(p_visit_id) || '</div>');
     END LOOP;
     RETURN l_h;
   END inpatient_chart_html;

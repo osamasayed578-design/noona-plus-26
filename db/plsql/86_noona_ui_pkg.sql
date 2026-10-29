@@ -124,14 +124,14 @@ CREATE OR REPLACE PACKAGE BODY NOONA_UI_PKG AS
     FOR r IN (SELECT app_alias, app_name_ar, icon_class FROM noona_v_apps WHERE app_alias <> c_portal ORDER BY sort_order) LOOP
       l_ok := INSTR(',' || p_existing_aliases || ',', ',' || r.app_alias || ',') > 0;
       l_html := l_html
-        || CASE WHEN l_ok THEN '<a class="nn-app" href="' || url(r.app_alias, '1', p_session) || '">'
+        || (CASE WHEN l_ok THEN '<a class="nn-app" href="' || url(r.app_alias, '1', p_session) || '">'
                 ELSE '<div class="nn-app is-disabled" title="قيد الإنشاء">' END
         || '<span class="nn-app-icon fa ' || esc(r.icon_class) || '" aria-hidden="true"></span>'
         || '<span class="nn-app-name">' || esc(r.app_name_ar) || '</span>'
         || CASE WHEN NOT l_ok THEN '<span class="nn-badge is-muted">قيد الإنشاء</span>' END
-        || CASE WHEN l_ok THEN '</a>' ELSE '</div>' END;
+        || CASE WHEN l_ok THEN '</a>' ELSE '</div>' END);
     END LOOP;
-    RETURN l_html || '</div>';
+    RETURN l_html || ('</div>');
   END app_cards;
 
   FUNCTION launcher(p_session IN VARCHAR2, p_existing_aliases IN VARCHAR2) RETURN CLOB IS
@@ -151,7 +151,7 @@ CREATE OR REPLACE PACKAGE BODY NOONA_UI_PKG AS
       l_n := l_n + 1;
       l_ok := INSTR(',' || p_existing_aliases || ',', ',' || r.app_alias || ',') > 0;
       l_cards := l_cards
-        || CASE WHEN l_ok THEN '<a class="nn-sys" href="' || url(r.app_alias, '1', p_session) || '">'
+        || (CASE WHEN l_ok THEN '<a class="nn-sys" href="' || url(r.app_alias, '1', p_session) || '">'
                 ELSE '<div class="nn-sys is-disabled" title="قيد الإنشاء">' END
         || '<span class="nn-sys-icon fa ' || esc(r.icon_class) || '" aria-hidden="true"></span>'
         || '<span class="nn-sys-body"><span class="nn-sys-name">' || esc(r.app_name_ar) || '</span>'
@@ -159,7 +159,7 @@ CREATE OR REPLACE PACKAGE BODY NOONA_UI_PKG AS
         || CASE WHEN r.app_alias = c_portal AND l_tasks > 0
                 THEN '<span class="nn-sys-count" title="مهام بانتظارك">' || l_tasks || '</span>' END
         || CASE WHEN NOT l_ok THEN '<span class="nn-badge is-muted">قيد الإنشاء</span>' END
-        || CASE WHEN l_ok THEN '</a>' ELSE '</div>' END;
+        || CASE WHEN l_ok THEN '</a>' ELSE '</div>' END);
     END LOOP;
     l_html := '<div class="nn-hello nn-launch-hello"><div class="nn-hello-title">'
            || CASE WHEN l_hour < 12 THEN 'صباح الخير' ELSE 'مساء الخير' END || '، ' || esc(NOONA_APEX_PKG.display_name)
@@ -168,11 +168,11 @@ CREATE OR REPLACE PACKAGE BODY NOONA_UI_PKG AS
            || CASE WHEN NOONA_APEX_PKG.company_name IS NOT NULL THEN ' &middot; ' || esc(NOONA_APEX_PKG.company_name) END
            || '</div></div>';
     IF l_n = 0 THEN
-      RETURN l_html || '<div class="nn-launch-empty"><span class="fa fa-lock" aria-hidden="true"></span>'
-          || '<b>لم تُخصص لك أنظمة بعد</b><span>تواصل مع مسؤول المؤسسة لمنحك الأدوار المناسبة</span></div>';
+      RETURN l_html || ('<div class="nn-launch-empty"><span class="fa fa-lock" aria-hidden="true"></span>'
+          || '<b>لم تُخصص لك أنظمة بعد</b><span>تواصل مع مسؤول المؤسسة لمنحك الأدوار المناسبة</span></div>');
     END IF;
-    RETURN l_html || '<div class="nn-launch ' || CASE WHEN l_n <= 3 THEN 'is-few' WHEN l_n <= 6 THEN 'is-mid' ELSE 'is-many' END
-        || '" data-count="' || l_n || '">' || l_cards || '</div>';
+    RETURN l_html || ('<div class="nn-launch ' || CASE WHEN l_n <= 3 THEN 'is-few' WHEN l_n <= 6 THEN 'is-mid' ELSE 'is-many' END
+        || '" data-count="' || l_n || '">' || l_cards || '</div>');
   END launcher;
 
   FUNCTION task_cards(p_session IN VARCHAR2, p_limit IN PLS_INTEGER DEFAULT 20) RETURN CLOB IS
@@ -188,7 +188,7 @@ CREATE OR REPLACE PACKAGE BODY NOONA_UI_PKG AS
                FETCH FIRST p_limit ROWS ONLY) LOOP
       l_n := l_n + 1;
       l_html := l_html
-        || '<a class="nn-task ' || priority_class(r.priority_code) || '" href="'
+        || ('<a class="nn-task ' || priority_class(r.priority_code) || '" href="'
         || url(c_portal, 'TASK', p_session, 'P2_TASK_ID', r.task_id) || '">'
         || '<div class="nn-task-main"><div class="nn-task-title">' || esc(r.step_name_ar) || '</div>'
         || '<div class="nn-task-meta">' || esc(r.workflow_name_ar) || ' &middot; ' || esc(r.object_name_ar)
@@ -199,7 +199,7 @@ CREATE OR REPLACE PACKAGE BODY NOONA_UI_PKG AS
         || CASE WHEN r.is_overdue = 'Y' THEN '<span class="nn-badge is-danger">متأخرة</span>' END
         || CASE WHEN r.status_code = 'WAITING_INFO' THEN '<span class="nn-badge is-warning">بانتظار معلومات</span>' END
         || CASE WHEN r.on_behalf_of IS NOT NULL THEN '<span class="nn-badge is-info">نيابة عن ' || esc(r.on_behalf_of) || '</span>' END
-        || '</div><div class="nn-task-time">' || fmt_time(r.assigned_at) || '</div></div></a>';
+        || '</div><div class="nn-task-time">' || fmt_time(r.assigned_at) || '</div></div></a>');
     END LOOP;
     IF l_n = 0 THEN
       RETURN '<div class="nn-empty"><span class="fa fa-check-circle-o" aria-hidden="true"></span> لا توجد مهام بانتظارك</div>';
@@ -216,12 +216,12 @@ CREATE OR REPLACE PACKAGE BODY NOONA_UI_PKG AS
                ORDER BY created_at DESC
                FETCH FIRST p_limit ROWS ONLY) LOOP
       l_n := l_n + 1;
-      l_html := l_html || '<li class="nn-note' || CASE WHEN r.is_read = 'N' THEN ' is-unread' END || '">'
+      l_html := l_html || ('<li class="nn-note' || CASE WHEN r.is_read = 'N' THEN ' is-unread' END || '">'
         || '<span class="nn-note-dot" aria-hidden="true"></span><div class="nn-note-body">'
         || CASE WHEN r.source_entity_type = 'WF_TASK'
                 THEN '<a href="' || url(c_portal, 'TASK', p_session, 'P2_TASK_ID', r.source_entity_id) || '">' || esc(r.title) || '</a>'
                 ELSE esc(r.title) END
-        || '<div class="nn-note-time">' || fmt_time(r.created_at) || '</div></div></li>';
+        || '<div class="nn-note-time">' || fmt_time(r.created_at) || '</div></div></li>');
     END LOOP;
     IF l_n = 0 THEN
       RETURN '<div class="nn-empty"><span class="fa fa-bell-slash-o" aria-hidden="true"></span> لا توجد إشعارات</div>';
@@ -266,7 +266,7 @@ CREATE OR REPLACE PACKAGE BODY NOONA_UI_PKG AS
                WHERE h.instance_id = (SELECT t.instance_id FROM noona_v_my_tasks t WHERE t.task_id = p_task_id)
                ORDER BY h.action_at) LOOP
       l_n := l_n + 1;
-      l_html := l_html || '<li class="nn-tl-item ' ||
+      l_html := l_html || ('<li class="nn-tl-item ' ||
         CASE WHEN r.action_code IN ('APPROVE', 'APPROVE_WITH_CONDITIONS') THEN 'is-success'
              WHEN r.action_code IN ('REJECT', 'CANCEL') THEN 'is-danger'
              WHEN r.action_code IN ('RETURN', 'REQUEST_INFO') THEN 'is-warning' ELSE 'is-info' END || '">'
@@ -275,7 +275,7 @@ CREATE OR REPLACE PACKAGE BODY NOONA_UI_PKG AS
         || '<div class="nn-tl-by">' || esc(r.actor_name)
         || CASE WHEN r.on_behalf_of IS NOT NULL THEN ' (نيابة عن ' || esc(r.on_behalf_of) || ')' END || '</div>'
         || CASE WHEN r.comments IS NOT NULL THEN '<div class="nn-tl-comment">' || esc(r.comments) || '</div>' END
-        || '</li>';
+        || '</li>');
     END LOOP;
     IF l_n = 0 THEN
       RETURN '<div class="nn-empty"><span class="fa fa-history" aria-hidden="true"></span> لا توجد إجراءات سابقة على هذا الطلب</div>';
@@ -499,40 +499,40 @@ CREATE OR REPLACE PACKAGE BODY NOONA_UI_PKG AS
     END LOOP;
     l_html := '<div class="nn-flow">';
     FOR d IN 0 .. l_max LOOP
-      l_html := l_html || '<div class="nn-flow-row">';
+      l_html := l_html || ('<div class="nn-flow-row">');
       FOR s IN (SELECT * FROM wf_step_def WHERE version_id = p_version_id ORDER BY id) LOOP
         IF l_depth.EXISTS(s.id) AND l_depth(s.id) = d THEN
           l_cnt := l_cnt + 1;
-          l_html := l_html || '<div class="nn-flow-node is-' || LOWER(s.step_type) || '">'
+          l_html := l_html || ('<div class="nn-flow-node is-' || LOWER(s.step_type) || '">'
                  || CASE WHEN s.step_type NOT IN ('START', 'END')
                       THEN '<div class="nn-flow-type">' || esc(code_label(s.step_type)) || '</div>' END
                  || '<div class="nn-flow-name">' || esc(s.name_ar) || '</div>'
                  || CASE WHEN s.assignee_rule IS NOT NULL
                       THEN '<div class="nn-flow-who"><span class="fa fa-user" aria-hidden="true"></span> '
-                           || esc(assignee_label(s.assignee_rule, s.assignee_ref_id)) || '</div>' END;
+                           || esc(assignee_label(s.assignee_rule, s.assignee_ref_id)) || '</div>' END);
           FOR t IN (SELECT x.outcome_code, x.is_default, n.name_ar, r.name_ar AS rule_name
                       FROM wf_transition_def x JOIN wf_step_def n ON n.id = x.to_step_id
                       LEFT JOIN wf_rule r ON r.id = x.rule_id
                      WHERE x.from_step_id = s.id ORDER BY x.sort_order, x.id) LOOP
-            l_html := l_html || '<div class="nn-flow-out">&#8595; '
+            l_html := l_html || ('<div class="nn-flow-out">&#8595; '
                    || esc(NVL(code_label(t.outcome_code), 'التالي'))
                    || CASE WHEN t.rule_name IS NOT NULL THEN ' (إذا ' || esc(t.rule_name) || ')'
                            WHEN t.is_default = 'Y' THEN ' (افتراضي)' END
-                   || ' &larr; ' || esc(t.name_ar) || '</div>';
+                   || ' &larr; ' || esc(t.name_ar) || '</div>');
           END LOOP;
-          l_html := l_html || '</div>';
+          l_html := l_html || ('</div>');
         END IF;
       END LOOP;
-      l_html := l_html || '</div>';
+      l_html := l_html || ('</div>');
     END LOOP;
     -- خطوات غير متصلة بالبداية
     FOR s IN (SELECT * FROM wf_step_def WHERE version_id = p_version_id ORDER BY id) LOOP
       IF NOT l_depth.EXISTS(s.id) THEN
-        l_html := l_html || '<div class="nn-flow-row"><div class="nn-flow-node is-orphan"><div class="nn-flow-type">غير متصلة</div>'
-               || '<div class="nn-flow-name">' || esc(s.name_ar) || '</div></div></div>';
+        l_html := l_html || ('<div class="nn-flow-row"><div class="nn-flow-node is-orphan"><div class="nn-flow-type">غير متصلة</div>'
+               || '<div class="nn-flow-name">' || esc(s.name_ar) || '</div></div></div>');
       END IF;
     END LOOP;
-    RETURN l_html || '</div>';
+    RETURN l_html || ('</div>');
   END workflow_diagram;
 
   FUNCTION delegation_header(p_delegation_id IN NUMBER) RETURN CLOB IS

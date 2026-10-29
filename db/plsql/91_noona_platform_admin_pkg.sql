@@ -149,17 +149,17 @@ CREATE OR REPLACE PACKAGE BODY NOONA_PLATFORM_ADMIN_PKG AS
                        WHERE e.tenant_id = p_tenant_id AND e.module_id = md.id AND e.feature_id IS NULL
                          AND TRUNC(SYSDATE) BETWEEN e.effective_from AND NVL(e.effective_to, DATE '9999-12-31')) AS enabled
                 FROM plt_module md WHERE md.is_active = 'Y' ORDER BY md.package_no) LOOP
-      l_html := l_html || '<label class="nn-mod' || CASE WHEN m.is_core = 'Y' THEN ' is-core' END || '">'
+      l_html := l_html || ('<label class="nn-mod' || CASE WHEN m.is_core = 'Y' THEN ' is-core' END || '">'
              || '<input type="checkbox" class="nn-mod-cb" value="' || m.id || '"'
              || CASE WHEN m.is_core = 'Y' OR l_any = 0 OR m.enabled = 'Y' THEN ' checked' END
              || CASE WHEN m.is_core = 'Y' THEN ' disabled' END || '>'
              || '<span class="nn-mod-code">' || esc(m.module_code) || '</span><span class="nn-mod-name">' || esc(m.name_ar)
-             || CASE WHEN m.is_core = 'Y' THEN ' <small>(أساسية)</small>' END || '</span></label>';
+             || CASE WHEN m.is_core = 'Y' THEN ' <small>(أساسية)</small>' END || '</span></label>');
     END LOOP;
     NOONA_CORE_PKG.end_system;
-    RETURN l_html || '</div>'
+    RETURN l_html || ('</div>'
         || CASE WHEN l_any = 0 THEN '<div class="nn-empty is-warning">لم تحدد وحدات هذه المؤسسة بعد؛ كل الوحدات تعمل '
-                                    || 'حتى تحفظ الاشتراك أول مرة</div>' END;
+                                    || 'حتى تحفظ الاشتراك أول مرة</div>' END);
   EXCEPTION WHEN OTHERS THEN
     NOONA_CORE_PKG.end_system;
     RAISE;
@@ -267,14 +267,14 @@ CREATE OR REPLACE PACKAGE BODY NOONA_PLATFORM_ADMIN_PKG AS
                 FROM sec_user_membership m JOIN sec_user u ON u.id = m.user_id
                WHERE m.tenant_id = p_tenant_id AND m.is_tenant_admin = 'Y' ORDER BY u.username) LOOP
       l_n := l_n + 1;
-      l_html := l_html || '<tr><td>' || esc(u.username) || '</td><td>' || esc(u.display_name) || '</td><td>' || esc(u.email)
-             || '</td><td>' || TO_CHAR(u.last_login_at, 'YYYY-MM-DD HH24:MI') || '</td><td>' || NOONA_UI_PKG.status_badge(u.status_code) || '</td></tr>';
+      l_html := l_html || ('<tr><td>' || esc(u.username) || '</td><td>' || esc(u.display_name) || '</td><td>' || esc(u.email)
+             || '</td><td>' || TO_CHAR(u.last_login_at, 'YYYY-MM-DD HH24:MI') || '</td><td>' || NOONA_UI_PKG.status_badge(u.status_code) || '</td></tr>');
     END LOOP;
     NOONA_CORE_PKG.end_system;
     IF l_n = 0 THEN
       RETURN '<div class="nn-empty">لا يوجد مسؤول لهذه المؤسسة</div>';
     END IF;
-    RETURN l_html || '</tbody></table>';
+    RETURN l_html || ('</tbody></table>');
   EXCEPTION WHEN OTHERS THEN
     NOONA_CORE_PKG.end_system;
     RAISE;
@@ -308,7 +308,7 @@ CREATE OR REPLACE PACKAGE BODY NOONA_PLATFORM_ADMIN_PKG AS
       DBMS_LOB.APPEND(l_html, TO_CLOB(l_row));
     END LOOP;
     NOONA_CORE_PKG.end_system;
-    RETURN l_html || '</tbody></table>';
+    RETURN l_html || ('</tbody></table>');
   EXCEPTION WHEN OTHERS THEN
     NOONA_CORE_PKG.end_system;
     RAISE;
@@ -556,12 +556,12 @@ CREATE OR REPLACE PACKAGE BODY NOONA_PLATFORM_ADMIN_PKG AS
                        WHERE v.id = JSON_VALUE(n.snapshot_data, '$.plan_version' RETURNING NUMBER)) plan
                 FROM plt_subscription_snapshot n WHERE n.tenant_id = p_tenant_id ORDER BY n.id DESC) LOOP
       l_n := l_n + 1;
-      l_html := l_html || ('<tr><td>' || TO_CHAR(r.created_at, 'YYYY-MM-DD HH24:MI') || '</td><td>'
+      l_html := l_html || (('<tr><td>' || TO_CHAR(r.created_at, 'YYYY-MM-DD HH24:MI') || '</td><td>'
              || CASE r.snapshot_reason WHEN 'ACTIVATION' THEN 'تفعيل' WHEN 'RENEWAL' THEN 'تجديد' WHEN 'UPGRADE' THEN 'تغيير الباقة'
                                        WHEN 'AMENDMENT' THEN 'تعديل الفترة' ELSE r.snapshot_reason END
              || '</td><td>' || esc(r.plan) || '</td><td>' || esc(JSON_VALUE(r.snapshot_data, '$.start')) || '</td><td>'
              || esc(JSON_VALUE(r.snapshot_data, '$.end')) || '</td><td>' || esc(JSON_VALUE(r.snapshot_data, '$.by')) || '</td><td class="nn-rpt-text">'
-             || esc(JSON_VALUE(r.snapshot_data, '$.note')) || '</td></tr>');
+             || esc(JSON_VALUE(r.snapshot_data, '$.note')) || '</td></tr>'));
     END LOOP;
     NOONA_CORE_PKG.end_system;
     IF l_n = 0 THEN

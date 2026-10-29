@@ -14,64 +14,64 @@ def build(app, url, link, scheme, L):
     NURSE_LOV = (f"select name_ar d, id r from his_doctor where company_id = {CO} and status_code = 'ACTIVE' order by case title when 'NURSE' then 0 else 1 end, name_ar")
     CHANNEL_LOV = f"select code || ' - ' || name_ar d, id r from his_integration where company_id = {CO} order by code"
     INS_CHANNEL_LOV = f"select code || ' - ' || name_ar d, id r from his_integration where company_id = {CO} and kind = 'INSURANCE' order by code"
-    TRIAGE_LOV = 'STATIC2:1 - Resuscitation;1,2 - Emergent;2,3 - Urgent;3,4 - Less urgent;4,5 - Non urgent;5'
+    TRIAGE_LOV = 'STATIC2:1 - إنعاش;1,2 - طارئ جداً;2,3 - عاجل;3,4 - أقل إلحاحاً;4,5 - غير عاجل;5'
 
     # =========================================================== 12) الملف الطبي
     p = app.page(12, 'Patient Record', 'PATIENT-RECORD', 'Patient record - الملف الطبي', scheme=scheme, protection='N')
-    f = p.static('Patient', 5, hide_header=True, opts='#DEFAULT#:nn-rpt-filters')
+    f = p.static('المريض', 5, hide_header=True, opts='#DEFAULT#:nn-rpt-filters')
     p.select('P12_ID', f, 10, 'المريض', lov_sql=L['PATIENT_LOV'], submit=True)
-    p.dynamic('Record', 10, 'return noona_his_clin_pkg.patient_history_html(:P12_ID);', hide_header=True,
+    p.dynamic('السجل', 10, 'return noona_his_clin_pkg.patient_history_html(:P12_ID);', hide_header=True,
               opts='#DEFAULT#:t-Region--scrollBody:nn-print-area', condition=':P12_ID is not null')
     p.button(f, 10, 'PRINT', 'طباعة', redirect='javascript:window.print();')
     p.button(f, 20, 'EDIT', 'بيانات المريض', redirect="f?p=&APP_ID.:11:&SESSION.::&DEBUG.:RP,11:P11_ID:&P12_ID.")
 
     # =========================================================== 35) التمريض: الفرز والعلامات الحيوية والملاحظات وإعطاء الأدوية
     p = app.page(35, 'Nursing', 'NURSING', 'Nursing chart - التمريض', scheme=scheme, protection='N')
-    hd = p.static('Visit', 1, hide_header=True, opts='#DEFAULT#:nn-rpt-filters')
+    hd = p.static('الزيارة', 1, hide_header=True, opts='#DEFAULT#:nn-rpt-filters')
     p.select('P35_VISIT', hd, 10, 'الزيارة', lov_sql=VISIT_LOV.replace("v.status_code <> 'CANCELLED'", "v.status_code = 'OPEN'"), submit=True)
     p.button(hd, 10, 'VISIT', 'ملف الزيارة', redirect="f?p=&APP_ID.:31:&SESSION.::&DEBUG.:RP,31:P31_ID:&P35_VISIT.")
     OPEN = ':P35_VISIT is not null'
     p.dynamic('ملف الزيارة', 2, 'return noona_his_pkg.visit_html(:P35_VISIT);', hide_header=True, condition=OPEN)
     ft = p.static('Triage (Emergency) - الفرز', 5, condition=OPEN)
-    p.select('P35_TRIAGE', ft, 10, 'CTAS level', lov_sql=TRIAGE_LOV)
-    b_tr = p.button(ft, 10, 'TRIAGE', 'Save triage')
+    p.select('P35_TRIAGE', ft, 10, 'مستوى الفرز (CTAS)', lov_sql=TRIAGE_LOV)
+    b_tr = p.button(ft, 10, 'TRIAGE', 'حفظ الفرز')
     p.process(10, 'AFTER_SUBMIT', 'Triage', 'noona_his_clin_pkg.set_triage(:P35_VISIT, :P35_TRIAGE);', when_button=b_tr, success='Triage saved')
     fv = p.static('Vital signs - العلامات الحيوية', 10, condition=OPEN)
-    p.text('P35_BP', fv, 10, 'BP (e.g. 120/80)', maxlen=10, width=8)
-    p.number('P35_HR', fv, 20, 'Pulse (bpm)')
-    p.number('P35_TEMP', fv, 30, 'Temp (°C)')
-    p.number('P35_RR', fv, 40, 'Resp. rate')
-    p.number('P35_SPO2', fv, 50, 'SpO2 %')
-    p.number('P35_WT', fv, 60, 'Weight (kg)')
-    p.number('P35_HT', fv, 70, 'Height (cm)')
-    p.number('P35_PAIN', fv, 80, 'Pain (0-10)')
-    p.number('P35_GLU', fv, 90, 'RBS (mg/dL)')
-    p.text('P35_VNOTES', fv, 100, 'Notes', maxlen=500)
-    b_v = p.button(fv, 10, 'SAVE_VITALS', 'Save vital signs', hot=True)
+    p.text('P35_BP', fv, 10, 'ضغط الدم (مثلاً 120/80)', maxlen=10, width=8)
+    p.number('P35_HR', fv, 20, 'النبض (نبضة/دقيقة)')
+    p.number('P35_TEMP', fv, 30, 'الحرارة (°م)')
+    p.number('P35_RR', fv, 40, 'معدل التنفس')
+    p.number('P35_SPO2', fv, 50, 'تشبع الأكسجين SpO2 %')
+    p.number('P35_WT', fv, 60, 'الوزن (كجم)')
+    p.number('P35_HT', fv, 70, 'الطول (سم)')
+    p.number('P35_PAIN', fv, 80, 'الألم (0-10)')
+    p.number('P35_GLU', fv, 90, 'سكر عشوائي RBS (ملجم/دسل)')
+    p.text('P35_VNOTES', fv, 100, 'ملاحظات', maxlen=500)
+    b_v = p.button(fv, 10, 'SAVE_VITALS', 'حفظ العلامات الحيوية', hot=True)
     p.process(20, 'AFTER_SUBMIT', 'Vitals', ['declare l number; l_doc clob;', 'begin',
         "    select json_object('visit' value to_number(:P35_VISIT), 'bp' value :P35_BP, 'pulse' value to_number(:P35_HR), 'temp' value to_number(:P35_TEMP),",
         "           'rr' value to_number(:P35_RR), 'spo2' value to_number(:P35_SPO2), 'weight' value to_number(:P35_WT), 'height' value to_number(:P35_HT),",
         "           'pain' value to_number(:P35_PAIN), 'glucose' value to_number(:P35_GLU), 'notes' value :P35_VNOTES returning clob) into l_doc from dual;",
         '    l := noona_his_clin_pkg.record_vitals(l_doc);', 'end;'], when_button=b_v, success='Vital signs saved')
-    p.dynamic('Vitals chart', 12, 'return noona_his_clin_pkg.vitals_html(:P35_VISIT);', condition=OPEN)
+    p.dynamic('مخطط العلامات الحيوية', 12, 'return noona_his_clin_pkg.vitals_html(:P35_VISIT);', condition=OPEN)
     fn = p.static('Clinical notes - الملاحظات', 20, condition=OPEN)
-    p.select('P35_NTYPE', fn, 10, 'Type', lov_sql='STATIC2:Nursing;NURSING,Progress;PROGRESS,Consultation;CONSULTATION,Procedure;PROCEDURE,Discharge;DISCHARGE',
+    p.select('P35_NTYPE', fn, 10, 'النوع', lov_sql='STATIC2:تمريضية;NURSING,متابعة;PROGRESS,استشارة;CONSULTATION,إجراء;PROCEDURE,خروج;DISCHARGE',
              null_text=None)
-    p.select('P35_AUTHOR', fn, 20, 'Author', lov_sql=NURSE_LOV, null_text='- current user -')
-    p.textarea('P35_NOTE', fn, 30, 'Note (English)', rows=3)
-    b_n = p.button(fn, 10, 'ADD_NOTE', 'Add note')
+    p.select('P35_AUTHOR', fn, 20, 'الكاتب', lov_sql=NURSE_LOV, null_text='- المستخدم الحالي -')
+    p.textarea('P35_NOTE', fn, 30, 'الملاحظة (بالإنجليزية)', rows=3)
+    b_n = p.button(fn, 10, 'ADD_NOTE', 'إضافة ملاحظة')
     p.process(30, 'AFTER_SUBMIT', 'Note', ['declare l number;', 'begin',
         '    l := noona_his_clin_pkg.add_note(:P35_VISIT, :P35_NTYPE, :P35_NOTE, to_number(:P35_AUTHOR));', '    :P35_NOTE := null;', 'end;'],
         when_button=b_n, success='Note added')
-    p.dynamic('Notes', 22, 'return noona_his_clin_pkg.notes_html(:P35_VISIT);', condition=OPEN)
+    p.dynamic('ملاحظات', 22, 'return noona_his_clin_pkg.notes_html(:P35_VISIT);', condition=OPEN)
     fm = p.static('Medication administration (MAR) - إعطاء الأدوية', 30, condition=OPEN)
-    p.select('P35_LINE', fm, 10, 'Medicine', lov_sql=LINE_LOV)
-    p.select('P35_OUTCOME', fm, 20, 'Outcome', lov_sql='STATIC2:Given;GIVEN,Held;HELD,Refused;REFUSED,Missed;MISSED', null_text=None)
-    p.select('P35_ROUTE', fm, 30, 'Route', lov_sql='STATIC2:Oral;ORAL,IV;IV,IM;IM,SC;SC,Inhaled;INHALED,Topical;TOPICAL,Rectal;RECTAL,Other;OTHER', null_text=None)
-    p.text('P35_DOSE', fm, 40, 'Dose given', maxlen=100, width=12)
-    p.select('P35_NURSE', fm, 50, 'Nurse', lov_sql=NURSE_LOV, null_text='- current user -')
-    p.text('P35_MNOTES', fm, 60, 'Notes / reason', maxlen=500)
-    b_m = p.button(fm, 10, 'GIVE', 'Record administration')
+    p.select('P35_LINE', fm, 10, 'الدواء', lov_sql=LINE_LOV)
+    p.select('P35_OUTCOME', fm, 20, 'النتيجة', lov_sql='STATIC2:أُعطيت;GIVEN,أُجّلت;HELD,رفضها المريض;REFUSED,فاتت;MISSED', null_text=None)
+    p.select('P35_ROUTE', fm, 30, 'طريقة الإعطاء', lov_sql='STATIC2:فموي;ORAL,IV;IV,IM;IM,SC;SC,استنشاق;INHALED,موضعي;TOPICAL,شرجي;RECTAL,أخرى;OTHER', null_text=None)
+    p.text('P35_DOSE', fm, 40, 'الجرعة المعطاة', maxlen=100, width=12)
+    p.select('P35_NURSE', fm, 50, 'الممرض', lov_sql=NURSE_LOV, null_text='- المستخدم الحالي -')
+    p.text('P35_MNOTES', fm, 60, 'ملاحظات / سبب', maxlen=500)
+    b_m = p.button(fm, 10, 'GIVE', 'تسجيل إعطاء الجرعة')
     p.process(40, 'AFTER_SUBMIT', 'MAR', ['declare l number; l_doc clob;', 'begin',
         "    select json_object('line' value to_number(:P35_LINE), 'outcome' value :P35_OUTCOME, 'route' value :P35_ROUTE, 'dose' value :P35_DOSE,",
         "           'nurse' value to_number(:P35_NURSE), 'notes' value :P35_MNOTES returning clob) into l_doc from dual;",
@@ -86,25 +86,25 @@ def build(app, url, link, scheme, L):
     p = app.page(36, 'Medical Certificates', 'CERTIFICATES', 'Medical reports & sick leave - التقارير الطبية', scheme=scheme, protection='N')
     f = p.static('إصدار تقرير أو إجازة', 10)
     p.select('P36_VISIT', f, 10, 'الزيارة', lov_sql=VISIT_LOV, required=True)
-    p.select('P36_TYPE', f, 20, 'Type', lov_sql='STATIC2:Sick leave;SICK_LEAVE,Medical report;MEDICAL_REPORT,Referral letter;REFERRAL,'
+    p.select('P36_TYPE', f, 20, 'النوع', lov_sql='STATIC2:إجازة مرضية;SICK_LEAVE,تقرير طبي;MEDICAL_REPORT,خطاب تحويل;REFERRAL,'
              'Fitness certificate;FITNESS,Companion certificate;COMPANION', null_text=None)
-    p.date('P36_FROM', f, 30, 'From')
-    p.date('P36_TO', f, 40, 'To')
-    p.text('P36_REF', f, 50, 'Referred to (hospital / specialty)', maxlen=200)
-    p.select('P36_DOCTOR', f, 60, 'Doctor', lov_sql=L['DOCTOR_LOV'], null_text='- visit doctor -')
-    p.textarea('P36_BODY', f, 70, 'Text (English; empty = standard wording)', rows=4)
+    p.date('P36_FROM', f, 30, 'من')
+    p.date('P36_TO', f, 40, 'إلى')
+    p.text('P36_REF', f, 50, 'محول إلى (مستشفى / تخصص)', maxlen=200)
+    p.select('P36_DOCTOR', f, 60, 'الطبيب', lov_sql=L['DOCTOR_LOV'], null_text='- طبيب الزيارة -')
+    p.textarea('P36_BODY', f, 70, 'النص (بالإنجليزية؛ فارغ = الصيغة القياسية)', rows=4)
     p.hidden('P36_ID', f, 90, protected=False)
-    b_i = p.button(f, 10, 'ISSUE', 'Issue', hot=True)
+    b_i = p.button(f, 10, 'ISSUE', 'إصدار', hot=True)
     p.process(10, 'AFTER_SUBMIT', 'Issue', ['declare l_doc clob;', 'begin',
         "    select json_object('visit' value to_number(:P36_VISIT), 'type' value :P36_TYPE, 'from' value :P36_FROM, 'to' value :P36_TO,",
         "           'referral_to' value :P36_REF, 'doctor' value to_number(:P36_DOCTOR), 'body' value :P36_BODY returning clob) into l_doc from dual;",
         '    :P36_ID := noona_his_clin_pkg.issue_certificate(l_doc);', 'end;'], when_button=b_i, success='Issued')
     fc = p.static('إلغاء تقرير', 15)
-    p.select('P36_CERT', fc, 10, 'Certificate', lov_sql=(
+    p.select('P36_CERT', fc, 10, 'التقرير', lov_sql=(
         "select c.cert_no || ' - ' || noona_his_clin_pkg.cert_type_label(c.cert_type) d, c.id r from his_certificate c "
         f"where c.company_id = {CO} and c.status_code = 'ISSUED' and c.visit_id = :P36_VISIT order by c.id desc"))
-    p.text('P36_REASON', fc, 20, 'Reason', maxlen=200)
-    b_c = p.button(fc, 10, 'CANCEL_CERT', 'Cancel certificate')
+    p.text('P36_REASON', fc, 20, 'السبب', maxlen=200)
+    b_c = p.button(fc, 10, 'CANCEL_CERT', 'إلغاء التقرير')
     p.process(20, 'AFTER_SUBMIT', 'Cancel', 'noona_his_clin_pkg.cancel_certificate(:P36_CERT, :P36_REASON);', when_button=b_c, success='Cancelled')
     p.ir('التقارير والإجازات الصادرة', 20, [
         "select c.id, c.cert_no, noona_his_clin_pkg.cert_type_label(c.cert_type) as cert_type, c.issued_on, p.name_ar as patient, p.mrn,",
@@ -113,10 +113,10 @@ def build(app, url, link, scheme, L):
         "       '<span class=\"fa fa-print\" aria-hidden=\"true\"></span> Print' as prn",
         "  from his_certificate c join his_visit v on v.id = c.visit_id join his_patient p on p.id = v.patient_id left join his_doctor d on d.id = c.doctor_id",
         f" where c.company_id = {CO} and (:P36_VISIT is null or c.visit_id = :P36_VISIT) order by c.id desc"],
-        [('ID', '#', {'hidden': True, 'type': 'NUMBER'}), ('CERT_NO', 'No.', {}), ('CERT_TYPE', 'Type', {}), ('ISSUED_ON', 'Issued', {'type': 'DATE'}),
-         ('PATIENT', 'المريض', {}), ('MRN', 'MRN', {}), ('FROM_DATE', 'From', {'type': 'DATE'}), ('TO_DATE', 'To', {'type': 'DATE'}),
-         ('DAYS', 'Days', {'type': 'NUMBER'}), ('REFERRAL_TO', 'Referred to', {}), ('DOCTOR', 'Doctor', {}), ('VERIFY_CODE', 'Code', {}), ('STATUS', 'Status', {}),
-         ('PRN', 'Print', {'html': True, 'link': ('f?p=&APP_ID.:37:&SESSION.::&DEBUG.:RP,37:P37_ID:#ID#', '#PRN#')})], titled=True)
+        [('ID', '#', {'hidden': True, 'type': 'NUMBER'}), ('CERT_NO', 'الرقم', {}), ('CERT_TYPE', 'النوع', {}), ('ISSUED_ON', 'تاريخ الإصدار', {'type': 'DATE'}),
+         ('PATIENT', 'المريض', {}), ('MRN', 'MRN', {}), ('FROM_DATE', 'من', {'type': 'DATE'}), ('TO_DATE', 'إلى', {'type': 'DATE'}),
+         ('DAYS', 'الأيام', {'type': 'NUMBER'}), ('REFERRAL_TO', 'محول إلى', {}), ('DOCTOR', 'الطبيب', {}), ('VERIFY_CODE', 'الرمز', {}), ('STATUS', 'الحالة', {}),
+         ('PRN', 'طباعة', {'html': True, 'link': ('f?p=&APP_ID.:37:&SESSION.::&DEBUG.:RP,37:P37_ID:#ID#', '#PRN#')})], titled=True)
     p.onload("$('#P36_REF,#P36_BODY,#P36_REASON').attr('dir', 'ltr');")
     p.branch(5, url(37, 'P37_ID', '&P36_ID.'), when_button=b_i)
     p.branch(10, url(36, 'P36_VISIT', '&P36_VISIT.') + '&success_msg=#SUCCESS_MSG#')

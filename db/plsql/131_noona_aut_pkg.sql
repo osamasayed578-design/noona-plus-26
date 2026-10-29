@@ -175,7 +175,7 @@ CREATE OR REPLACE PACKAGE BODY NOONA_AUT_PKG AS
     FOR i IN 1 .. LENGTH(p_plate) LOOP
       ch := SUBSTR(p_plate, i, 1);
       IF ch BETWEEN '0' AND '9' THEN l_d := l_d || ch;
-      ELSIF ch <> ' ' THEN l_l := l_l || CASE WHEN l_l IS NOT NULL THEN ' ' END || ch;
+      ELSIF ch <> ' ' THEN l_l := l_l || (CASE WHEN l_l IS NOT NULL THEN ' ' END || ch);
       END IF;
     END LOOP;
     RETURN TRIM(l_l || ' ' || l_d);
@@ -1399,11 +1399,11 @@ CREATE OR REPLACE PACKAGE BODY NOONA_AUT_PKG AS
         || '<th class="n">الصافي</th><th>على</th></tr></thead><tbody>';
     FOR l IN (SELECT l.*, t.name_ar tech FROM aut_job_line l LEFT JOIN aut_technician t ON t.id = l.technician_id
                WHERE l.job_card_id = j.id AND l.line_status <> 'CANCELLED' ORDER BY NVL(l.parent_line_id, l.id), l.line_no) LOOP
-      l_h := l_h || '<tr><td>' || l.line_no || '</td><td>' || esc(line_type_label(l.line_type)) || '</td><td>' || esc(l.description) || '</td><td>'
+      l_h := l_h || ('<tr><td>' || l.line_no || '</td><td>' || esc(line_type_label(l.line_type)) || '</td><td>' || esc(l.description) || '</td><td>'
           || esc(l.tech) || '</td><td class="n">' || l.quantity || '</td><td class="n">' || fmt(l.unit_price) || '</td><td class="n">' || fmt(l.net_amount)
-          || '</td><td>' || esc(payer_label(l.payer)) || '</td></tr>';
+          || '</td><td>' || esc(payer_label(l.payer)) || '</td></tr>');
     END LOOP;
-    l_h := l_h || '</tbody><tfoot><tr><th colspan="6">الخدمات</th><th class="n">' || fmt(j.services_amount) || '</th><th></th></tr>'
+    l_h := l_h || ('</tbody><tfoot><tr><th colspan="6">الخدمات</th><th class="n">' || fmt(j.services_amount) || '</th><th></th></tr>'
         || '<tr><th colspan="6">القطع</th><th class="n">' || fmt(j.parts_amount) || '</th><th></th></tr>'
         || '<tr><th colspan="6">الضريبة</th><th class="n">' || fmt(j.tax_amount) || '</th><th></th></tr>'
         || '<tr><th colspan="6">الإجمالي</th><th class="n">' || fmt(j.total_amount) || '</th><th></th></tr></tfoot></table>'
@@ -1411,7 +1411,7 @@ CREATE OR REPLACE PACKAGE BODY NOONA_AUT_PKG AS
         || CASE WHEN j.next_service_date IS NOT NULL OR j.next_service_km IS NOT NULL THEN '<p><b>الخدمة التالية:</b> '
              || TO_CHAR(j.next_service_date, 'YYYY-MM-DD') || CASE WHEN j.next_service_km IS NOT NULL THEN ' أو عند ' || j.next_service_km || ' كم' END
              || '</p>' END
-        || '<div class="nn-aut-sign"><div>توقيع العميل</div><div>مستشار الخدمة: ' || esc(j.advisor_name) || '</div></div></div>';
+        || '<div class="nn-aut-sign"><div>توقيع العميل</div><div>مستشار الخدمة: ' || esc(j.advisor_name) || '</div></div></div>');
     RETURN l_h;
   END job_print;
 
@@ -1430,7 +1430,7 @@ CREATE OR REPLACE PACKAGE BODY NOONA_AUT_PKG AS
                WHERE a.company_id = company AND a.start_at >= CAST(p_date AS TIMESTAMP) AND a.start_at < CAST(p_date + 1 AS TIMESTAMP)
                ORDER BY a.start_at, b.sort_order) LOOP
       l_n := l_n + 1;
-      l_h := l_h || '<tr data-appt="' || a.id || '"><td>' || TO_CHAR(a.start_at, 'HH24:MI') || ' - ' || TO_CHAR(a.end_at, 'HH24:MI') || '</td><td>'
+      l_h := l_h || ('<tr data-appt="' || a.id || '"><td>' || TO_CHAR(a.start_at, 'HH24:MI') || ' - ' || TO_CHAR(a.end_at, 'HH24:MI') || '</td><td>'
           || esc(a.bay) || '</td><td><b>' || esc(plate_label(a.plate_no)) || '</b></td><td>' || esc(a.customer_name) || '</td><td dir="ltr">' || esc(a.phone)
           || '</td><td><small>' || esc(a.svcs) || CASE WHEN a.complaint IS NOT NULL THEN '<br>' || esc(a.complaint) END || '</small></td><td>'
           || badge(a.status_code) || CASE WHEN a.job_no IS NOT NULL THEN ' <small>' || esc(a.job_no) || '</small>' END || '</td><td class="nn-aut-act">'
@@ -1440,9 +1440,10 @@ CREATE OR REPLACE PACKAGE BODY NOONA_AUT_PKG AS
                        || '">تأكيد</button> ' END
                || '<button type="button" class="t-Button t-Button--small" data-act="NOSHOW" data-id="' || a.id || '">لم يحضر</button> '
                || '<button type="button" class="t-Button t-Button--small t-Button--danger" data-act="CANCEL" data-id="' || a.id || '">إلغاء</button>' END
-          || '</td></tr>';
+          || '</td></tr>');
     END LOOP;
-    RETURN CASE WHEN l_n = 0 THEN '<div class="nn-empty">لا توجد حجوزات في ' || TO_CHAR(p_date, 'YYYY-MM-DD') || '</div>' ELSE l_h || '</tbody></table>' END;
+    IF l_n = 0 THEN RETURN TO_CLOB('<div class="nn-empty">لا توجد حجوزات في ') || TO_CHAR(p_date, 'YYYY-MM-DD') || '</div>'; END IF;
+    RETURN l_h || ('</tbody></table>');
   END appointments_html;
 
   FUNCTION vehicle_html(p_vehicle_id IN NUMBER) RETURN CLOB IS
@@ -1469,11 +1470,11 @@ CREATE OR REPLACE PACKAGE BODY NOONA_AUT_PKG AS
                        WHERE l.job_card_id = j.id) techs
                 FROM aut_job_card j WHERE j.vehicle_id = v.id ORDER BY j.checkin_at DESC) LOOP
       l_n := l_n + 1;
-      l_h := l_h || '<tr data-job="' || j.id || '"><td><b>' || esc(j.doc_no) || '</b></td><td>' || ts(j.checkin_at) || '</td><td>' || j.odometer_in
+      l_h := l_h || ('<tr data-job="' || j.id || '"><td><b>' || esc(j.doc_no) || '</b></td><td>' || ts(j.checkin_at) || '</td><td>' || j.odometer_in
           || '</td><td><small>' || esc(SUBSTR(j.work, 1, 300)) || '</small></td><td>' || esc(j.techs) || '</td><td class="n">' || fmt(j.total_amount)
-          || '</td><td>' || badge(j.status_code) || '</td></tr>';
+          || '</td><td>' || badge(j.status_code) || '</td></tr>');
     END LOOP;
-    RETURN l_h || CASE WHEN l_n = 0 THEN '<tr><td colspan="7" class="nn-empty">لا زيارات بعد</td></tr>' END || '</tbody></table>';
+    RETURN l_h || (CASE WHEN l_n = 0 THEN '<tr><td colspan="7" class="nn-empty">لا زيارات بعد</td></tr>' END || '</tbody></table>');
   EXCEPTION WHEN NO_DATA_FOUND THEN
     RETURN '<div class="nn-empty">اختر مركبة</div>';
   END vehicle_html;
@@ -1520,7 +1521,7 @@ CREATE OR REPLACE PACKAGE BODY NOONA_AUT_PKG AS
     FOR c IN (SELECT 'OPEN' st, 'بانتظار البدء' t FROM dual UNION ALL SELECT 'IN_PROGRESS', 'قيد العمل' FROM dual
               UNION ALL SELECT 'WAITING_PARTS', 'بانتظار قطع' FROM dual UNION ALL SELECT 'COMPLETED', 'جاهزة للفوترة' FROM dual
               UNION ALL SELECT 'INVOICED', 'بانتظار التسليم' FROM dual) LOOP
-      l_h := l_h || '<div class="nn-aut-col" data-status="' || c.st || '"><div class="nn-aut-colh">' || esc(c.t) || '</div>';
+      l_h := l_h || ('<div class="nn-aut-col" data-status="' || c.st || '"><div class="nn-aut-colh">' || esc(c.t) || '</div>');
       l_n := 0;
       FOR j IN (SELECT j.*, v.plate_no, v.make, v.model, b.name_ar bay,
                        (SELECT LISTAGG(DISTINCT t.name_ar, '، ') WITHIN GROUP (ORDER BY t.name_ar) FROM aut_job_line l
@@ -1530,18 +1531,18 @@ CREATE OR REPLACE PACKAGE BODY NOONA_AUT_PKG AS
                   FROM aut_job_card j JOIN aut_vehicle v ON v.id = j.vehicle_id LEFT JOIN aut_bay b ON b.id = j.bay_id
                  WHERE j.company_id = company AND j.status_code = c.st ORDER BY j.promised_at NULLS LAST, j.checkin_at) LOOP
         l_n := l_n + 1;
-        l_h := l_h || '<a class="nn-aut-job' || CASE WHEN j.promised_at < SYSTIMESTAMP THEN ' is-late' END || '" data-job="' || j.id
+        l_h := l_h || ('<a class="nn-aut-job' || CASE WHEN j.promised_at < SYSTIMESTAMP THEN ' is-late' END || '" data-job="' || j.id
             || '" href="javascript:void(0)"><div class="nn-aut-plate">' || esc(plate_label(j.plate_no)) || '</div><div><b>' || esc(j.doc_no) || '</b> '
             || esc(j.make || ' ' || j.model) || '</div><div><small>' || esc(j.customer_name) || '</small></div>'
             || '<div class="nn-aut-meta"><span class="fa fa-clock-o"></span> ' || TO_CHAR(j.promised_at, 'MM-DD HH24:MI')
             || CASE WHEN j.bay IS NOT NULL THEN ' · ' || esc(j.bay) END || CASE WHEN j.svc > 0 THEN ' · ' || j.done || '/' || j.svc END || '</div>'
             || CASE WHEN j.techs IS NOT NULL THEN '<div class="nn-aut-meta"><span class="fa fa-user"></span> ' || esc(j.techs) || '</div>' END
-            || CASE WHEN j.payer_type = 'INSURANCE' THEN '<span class="nn-badge is-warning">تأمين</span>' END || '</a>';
+            || CASE WHEN j.payer_type = 'INSURANCE' THEN '<span class="nn-badge is-warning">تأمين</span>' END || '</a>');
       END LOOP;
-      IF l_n = 0 THEN l_h := l_h || '<div class="nn-empty">—</div>'; END IF;
-      l_h := l_h || '</div>';
+      IF l_n = 0 THEN l_h := l_h || ('<div class="nn-empty">—</div>'); END IF;
+      l_h := l_h || ('</div>');
     END LOOP;
-    RETURN l_h || '</div>';
+    RETURN l_h || ('</div>');
   END board_html;
 
   -- ================================================================ التقارير
@@ -1575,18 +1576,18 @@ CREATE OR REPLACE PACKAGE BODY NOONA_AUT_PKG AS
       l_h := '<div class="nn-rpt-h"><h3>' || esc(report_label(p_kind)) || '</h3><small>من ' || TO_CHAR(l_f, 'YYYY-MM-DD') || ' إلى '
           || TO_CHAR(l_t - 1, 'YYYY-MM-DD') || '</small></div><table class="nn-prj-t nn-aut-rpt"><thead><tr>';
       FOR c IN (SELECT column_value v FROM TABLE(apex_string.split(p_cols, '|'))) LOOP
-        l_h := l_h || CASE WHEN c.v LIKE '#%' THEN '<th class="n">' || esc(SUBSTR(c.v, 2)) ELSE '<th>' || esc(c.v) END || '</th>';
+        l_h := l_h || (CASE WHEN c.v LIKE '#%' THEN '<th class="n">' || esc(SUBSTR(c.v, 2)) ELSE '<th>' || esc(c.v) END || '</th>');
       END LOOP;
-      l_h := l_h || '</tr></thead><tbody>';
+      l_h := l_h || ('</tr></thead><tbody>');
     END head;
-    PROCEDURE r(p VARCHAR2) IS BEGIN l_n := l_n + 1; l_h := l_h || '<tr>' || p || '</tr>'; END r;
+    PROCEDURE r(p VARCHAR2) IS BEGIN l_n := l_n + 1; l_h := l_h || ('<tr>' || p || '</tr>'); END r;
     FUNCTION c(p VARCHAR2) RETURN VARCHAR2 IS BEGIN RETURN '<td>' || esc(p) || '</td>'; END c;
     FUNCTION n(p NUMBER) RETURN VARCHAR2 IS BEGIN RETURN '<td class="n">' || fmt(p) || '</td>'; END n;
     FUNCTION q(p NUMBER) RETURN VARCHAR2 IS BEGIN RETURN '<td class="n">' || RTRIM(RTRIM(TO_CHAR(p, 'FM999G999G990D99'), '0'), '.') || '</td>'; END q;
     FUNCTION foot(p VARCHAR2) RETURN CLOB IS
     BEGIN
-      RETURN l_h || CASE WHEN l_n = 0 THEN '<tr><td colspan="20" class="nn-empty">لا توجد بيانات في الفترة</td></tr>' END || '</tbody>'
-          || CASE WHEN l_n > 0 AND p IS NOT NULL THEN '<tfoot><tr>' || p || '</tr></tfoot>' END || '</table>';
+      RETURN l_h || (CASE WHEN l_n = 0 THEN '<tr><td colspan="20" class="nn-empty">لا توجد بيانات في الفترة</td></tr>' END || '</tbody>'
+          || CASE WHEN l_n > 0 AND p IS NOT NULL THEN '<tfoot><tr>' || p || '</tr></tfoot>' END || '</table>');
     END foot;
   BEGIN
     guard('AUT_JOB_CARD.EXPORT');
@@ -1772,14 +1773,14 @@ CREATE OR REPLACE PACKAGE BODY NOONA_AUT_PKG AS
                  AND (p_status IS NULL OR j.claim_status = p_status OR (p_status = 'OPEN' AND NVL(j.claim_status, 'NOT_SUBMITTED') NOT IN ('PAID', 'REJECTED')))
                ORDER BY j.checkin_at DESC) LOOP
       l_n := l_n + 1;
-      l_h := l_h || '<tr data-job="' || x.id || '"><td><b>' || esc(x.doc_no) || '</b></td><td>' || esc(plate_label(x.plate_no)) || '</td><td>' || esc(x.ins) || '</td><td dir="ltr">'
+      l_h := l_h || ('<tr data-job="' || x.id || '"><td><b>' || esc(x.doc_no) || '</b></td><td>' || esc(plate_label(x.plate_no)) || '</td><td>' || esc(x.ins) || '</td><td dir="ltr">'
           || esc(x.claim_no) || '</td><td dir="ltr">' || esc(x.accident_report_no) || '</td><td class="n">' || fmt(x.claimed) || '</td><td class="n">'
           || fmt(x.approved_amount) || '</td><td class="n">' || fmt(x.deductible_amount) || '</td><td>' || esc(x.inv_no)
           || CASE WHEN x.due_date IS NOT NULL THEN ' <small>' || TO_CHAR(x.due_date, 'YYYY-MM-DD') || '</small>' END || '</td><td>'
           || badge(NVL(x.claim_status, 'NOT_SUBMITTED')) || '</td><td><button type="button" class="t-Button t-Button--small" data-act="CLAIM" data-id="'
-          || x.id || '">تحديث</button></td></tr>';
+          || x.id || '">تحديث</button></td></tr>');
     END LOOP;
-    RETURN l_h || CASE WHEN l_n = 0 THEN '<tr><td colspan="11" class="nn-empty">لا مطالبات</td></tr>' END || '</tbody></table>';
+    RETURN l_h || (CASE WHEN l_n = 0 THEN '<tr><td colspan="11" class="nn-empty">لا مطالبات</td></tr>' END || '</tbody></table>');
   END claims_html;
 
 END NOONA_AUT_PKG;

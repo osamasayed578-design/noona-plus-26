@@ -1138,32 +1138,32 @@ CREATE OR REPLACE PACKAGE BODY NOONA_FA_PKG AS
                   THEN calc_book(l_b, LAST_DAY(ADD_MONTHS(NVL(l_b.depreciated_to, GREATEST(l_b.depr_start_date, TRUNC(SYSDATE)) - 1), 1))) END))
           || '</tbody></table></div>';
     -- الحركات
-    l_out := l_out || '<h3 class="nn-fa-h">الحركات</h3><div class="nn-rpt-wrap"><table class="nn-rpt"><thead><tr><th>المستند</th><th>التاريخ</th>'
-          || '<th>الحركة</th><th>المبلغ</th><th>البيان</th><th>الحالة</th></tr></thead><tbody>';
+    l_out := l_out || ('<h3 class="nn-fa-h">الحركات</h3><div class="nn-rpt-wrap"><table class="nn-rpt"><thead><tr><th>المستند</th><th>التاريخ</th>'
+          || '<th>الحركة</th><th>المبلغ</th><th>البيان</th><th>الحالة</th></tr></thead><tbody>');
     FOR t IN (SELECT doc_no, txn_date, txn_type, amount, reason, status_code FROM fa_transaction WHERE asset_id = p_asset_id
               ORDER BY txn_date, id) LOOP
-      l_out := l_out || '<tr><td>' || esc(t.doc_no) || '</td><td>' || fd(t.txn_date) || '</td><td class="nn-rpt-text">' || txn_label(t.txn_type)
+      l_out := l_out || ('<tr><td>' || esc(t.doc_no) || '</td><td>' || fd(t.txn_date) || '</td><td class="nn-rpt-text">' || txn_label(t.txn_type)
             || '</td><td>' || fnum(t.amount) || '</td><td class="nn-rpt-text">' || esc(t.reason) || '</td><td class="nn-rpt-text">'
-            || status_label(t.status_code) || '</td></tr>';
+            || status_label(t.status_code) || '</td></tr>');
     END LOOP;
     FOR d IN (SELECT doc_no, disposal_date, disposal_method, proceeds, nbv_at_disposal, gain_loss, status_code FROM fa_disposal
                WHERE asset_id = p_asset_id ORDER BY id) LOOP
-      l_out := l_out || '<tr><td>' || esc(d.doc_no) || '</td><td>' || fd(d.disposal_date) || '</td><td class="nn-rpt-text">'
+      l_out := l_out || ('<tr><td>' || esc(d.doc_no) || '</td><td>' || fd(d.disposal_date) || '</td><td class="nn-rpt-text">'
             || disposal_label(d.disposal_method) || '</td><td>' || fnum(d.proceeds) || '</td><td class="nn-rpt-text">صافي '
             || fnum(d.nbv_at_disposal) || ' · ' || CASE WHEN d.gain_loss >= 0 THEN 'ربح ' ELSE 'خسارة ' END || fnum(ABS(d.gain_loss))
-            || '</td><td class="nn-rpt-text">' || status_label(d.status_code) || '</td></tr>';
+            || '</td><td class="nn-rpt-text">' || status_label(d.status_code) || '</td></tr>');
     END LOOP;
-    l_out := l_out || '</tbody></table></div>';
+    l_out := l_out || ('</tbody></table></div>');
     -- الإهلاك المرحل
-    l_out := l_out || '<h3 class="nn-fa-h">الإهلاك المرحل</h3><div class="nn-rpt-wrap"><table class="nn-rpt"><thead><tr><th>الفترة</th>'
-          || '<th>إهلاك الفترة</th><th>المجمع بعد</th><th>الصافي بعد</th></tr></thead><tbody>';
+    l_out := l_out || ('<h3 class="nn-fa-h">الإهلاك المرحل</h3><div class="nn-rpt-wrap"><table class="nn-rpt"><thead><tr><th>الفترة</th>'
+          || '<th>إهلاك الفترة</th><th>المجمع بعد</th><th>الصافي بعد</th></tr></thead><tbody>');
     FOR l IN (SELECT p.period_code, l.depreciation_amount, l.accumulated_after, l.nbv_after FROM fa_depreciation_line l
                 JOIN gl_period p ON p.id = l.period_id JOIN fa_depreciation_run r ON r.id = l.run_id AND r.status_code = 'POSTED'
                WHERE l.asset_book_id = l_b.id ORDER BY p.start_date) LOOP
-      l_out := l_out || '<tr><td>' || l.period_code || '</td><td>' || fnum(l.depreciation_amount) || '</td><td>' || fnum(l.accumulated_after)
-            || '</td><td>' || fnum(l.nbv_after) || '</td></tr>';
+      l_out := l_out || ('<tr><td>' || l.period_code || '</td><td>' || fnum(l.depreciation_amount) || '</td><td>' || fnum(l.accumulated_after)
+            || '</td><td>' || fnum(l.nbv_after) || '</td></tr>');
     END LOOP;
-    RETURN l_out || '</tbody></table></div>';
+    RETURN l_out || ('</tbody></table></div>');
   END asset_card_html;
 
   FUNCTION schedule_html(p_asset_id IN NUMBER) RETURN CLOB IS
@@ -1189,16 +1189,16 @@ CREATE OR REPLACE PACKAGE BODY NOONA_FA_PKG AS
       l_b.depreciated_to := l_d;
       l_tot := l_tot + l_m;
       l_ysum := l_ysum + l_m;
-      l_out := l_out || '<tr><td>' || TO_CHAR(l_d, 'YYYY-MM') || '</td><td>' || fnum(l_m) || '</td><td>' || fnum(l_b.accumulated_depr)
-            || '</td><td>' || fnum(l_b.cost - l_b.accumulated_depr) || '</td></tr>';
+      l_out := l_out || ('<tr><td>' || TO_CHAR(l_d, 'YYYY-MM') || '</td><td>' || fnum(l_m) || '</td><td>' || fnum(l_b.accumulated_depr)
+            || '</td><td>' || fnum(l_b.cost - l_b.accumulated_depr) || '</td></tr>');
       l_d := LAST_DAY(l_d + 1);
       IF EXTRACT(YEAR FROM l_d) <> l_yr OR l_b.cost - l_b.accumulated_depr <= l_b.residual_value THEN
-        l_out := l_out || '<tr class="nn-rpt-sub"><td>إجمالي ' || l_yr || '</td><td>' || fnum(l_ysum) || '</td><td></td><td></td></tr>';
+        l_out := l_out || ('<tr class="nn-rpt-sub"><td>إجمالي ' || l_yr || '</td><td>' || fnum(l_ysum) || '</td><td></td><td></td></tr>');
         l_ysum := 0;
       END IF;
       l_n := l_n + 1;
     END LOOP;
-    RETURN l_out || '<tr class="nn-rpt-total"><td>إجمالي المتبقي</td><td>' || fnum(l_tot) || '</td><td></td><td></td></tr></tbody></table></div>';
+    RETURN l_out || ('<tr class="nn-rpt-total"><td>إجمالي المتبقي</td><td>' || fnum(l_tot) || '</td><td></td><td></td></tr></tbody></table></div>');
   END schedule_html;
 
   FUNCTION register_html(p_category_id IN NUMBER DEFAULT NULL, p_branch_id IN NUMBER DEFAULT NULL,
@@ -1221,14 +1221,14 @@ CREATE OR REPLACE PACKAGE BODY NOONA_FA_PKG AS
                  AND (NVL(p_show, 'ACTIVE') = 'ALL' OR (p_show = 'DISPOSED' AND a.status_code = 'DISPOSED')
                       OR (NVL(p_show, 'ACTIVE') = 'ACTIVE' AND a.status_code NOT IN ('DISPOSED', 'RETIRED', 'DRAFT')))
                ORDER BY c.code, a.asset_no) LOOP
-      l_out := l_out || '<tr><td>' || CASE WHEN p_link IS NOT NULL THEN '<a href="' || REPLACE(p_link, '#ID#', r.id) || '">' || esc(r.asset_no) || '</a>'
+      l_out := l_out || ('<tr><td>' || CASE WHEN p_link IS NOT NULL THEN '<a href="' || REPLACE(p_link, '#ID#', r.id) || '">' || esc(r.asset_no) || '</a>'
                                            ELSE esc(r.asset_no) END
             || '</td><td class="nn-rpt-text">' || esc(r.name_ar) || '</td><td class="nn-rpt-text">' || esc(r.cat) || '</td><td class="nn-rpt-text">'
             || esc(r.br) || '</td><td class="nn-rpt-text">' || esc(r.cc) || '</td><td>' || fd(r.in_service_date) || '</td><td>' || fnum(r.cost)
             || '</td><td>' || fnum(r.accumulated_depr) || '</td><td>' || fnum(CASE WHEN r.bst = 'DISPOSED' THEN 0 ELSE r.cost - r.accumulated_depr END)
             || '</td><td>' || CASE WHEN r.depreciation_method = 'NONE' THEN '-' ELSE TO_CHAR(ROUND(GREATEST(r.useful_life_months
                   - elapsed(r.depr_start_date, r.depreciated_to, r.useful_life_months), 0), 1)) || ' شهر' END
-            || '</td><td class="nn-rpt-text">' || status_label(r.status_code) || '</td></tr>';
+            || '</td><td class="nn-rpt-text">' || status_label(r.status_code) || '</td></tr>');
       IF r.bst <> 'DISPOSED' THEN
         l_c := l_c + r.cost;
         l_a := l_a + r.accumulated_depr;
@@ -1238,8 +1238,8 @@ CREATE OR REPLACE PACKAGE BODY NOONA_FA_PKG AS
     IF l_n = 0 THEN
       RETURN '<div class="nn-empty">لا توجد أصول مطابقة</div>';
     END IF;
-    RETURN l_out || '<tr class="nn-rpt-total"><td colspan="6" class="nn-rpt-text">الإجمالي (' || l_n || ' أصل)</td><td>' || fnum(l_c) || '</td><td>'
-        || fnum(l_a) || '</td><td>' || fnum(l_c - l_a) || '</td><td></td><td></td></tr></tbody></table></div>';
+    RETURN l_out || ('<tr class="nn-rpt-total"><td colspan="6" class="nn-rpt-text">الإجمالي (' || l_n || ' أصل)</td><td>' || fnum(l_c) || '</td><td>'
+        || fnum(l_a) || '</td><td>' || fnum(l_c - l_a) || '</td><td></td><td></td></tr></tbody></table></div>');
   END register_html;
 
   FUNCTION gl_balance(p_accounts VARCHAR2, p_to DATE) RETURN NUMBER IS
@@ -1291,30 +1291,30 @@ CREATE OR REPLACE PACKAGE BODY NOONA_FA_PKG AS
                WHERE c.company_id = NOONA_FA_PKG.company
                GROUP BY c.code, c.name_ar ORDER BY c.code) LOOP
       CONTINUE WHEN r.oc = 0 AND r.ad = 0 AND r.dc = 0 AND r.oa = 0 AND r.dp = 0 AND r.im = 0;
-      l_out := l_out || '<tr><td class="nn-rpt-text">' || esc(r.name_ar) || '</td><td>' || fnum(r.oc) || '</td><td>' || fnum(r.ad) || '</td><td>'
+      l_out := l_out || ('<tr><td class="nn-rpt-text">' || esc(r.name_ar) || '</td><td>' || fnum(r.oc) || '</td><td>' || fnum(r.ad) || '</td><td>'
             || fnum(r.dc) || '</td><td>' || fnum(r.oc + r.ad - r.dc) || '</td><td>' || fnum(r.oa) || '</td><td>' || fnum(r.dp) || '</td><td>'
             || fnum(r.im) || '</td><td>' || fnum(r.da) || '</td><td>' || fnum(r.oa + r.dp + r.im - r.da) || '</td><td>'
-            || fnum(r.oc + r.ad - r.dc - (r.oa + r.dp + r.im - r.da)) || '</td></tr>';
+            || fnum(r.oc + r.ad - r.dc - (r.oa + r.dp + r.im - r.da)) || '</td></tr>');
       t(1) := t(1) + r.oc; t(2) := t(2) + r.ad; t(3) := t(3) + r.dc; t(4) := t(4) + r.oc + r.ad - r.dc;
       t(5) := t(5) + r.oa; t(6) := t(6) + r.dp; t(7) := t(7) + r.im; t(8) := t(8) + r.da; t(9) := t(9) + r.oa + r.dp + r.im - r.da;
     END LOOP;
-    l_out := l_out || '<tr class="nn-rpt-total"><td class="nn-rpt-text">الإجمالي</td>';
+    l_out := l_out || ('<tr class="nn-rpt-total"><td class="nn-rpt-text">الإجمالي</td>');
     FOR i IN 1 .. 9 LOOP
-      l_out := l_out || '<td>' || fnum(t(i)) || '</td>';
+      l_out := l_out || ('<td>' || fnum(t(i)) || '</td>');
     END LOOP;
-    l_out := l_out || '<td>' || fnum(t(4) - t(9)) || '</td></tr></tbody></table></div>';
+    l_out := l_out || ('<td>' || fnum(t(4) - t(9)) || '</td></tr></tbody></table></div>');
     -- مطابقة مع الأستاذ العام
     SELECT LISTAGG(DISTINCT asset_account_id, ',') WITHIN GROUP (ORDER BY asset_account_id),
            LISTAGG(DISTINCT accum_depr_account_id, ',') WITHIN GROUP (ORDER BY accum_depr_account_id)
       INTO l_aacc, l_dacc FROM fa_category WHERE company_id = company;
     l_glc := CASE WHEN l_aacc IS NOT NULL THEN gl_balance(l_aacc, p_to) ELSE 0 END;
     l_gld := CASE WHEN l_dacc IS NOT NULL THEN -gl_balance(l_dacc, p_to) ELSE 0 END;
-    l_out := l_out || '<h3 class="nn-fa-h">المطابقة مع الأستاذ العام في ' || fd(p_to) || '</h3><div class="nn-rpt-wrap"><table class="nn-rpt"><thead><tr><th>البند</th>'
+    l_out := l_out || ('<h3 class="nn-fa-h">المطابقة مع الأستاذ العام في ' || fd(p_to) || '</h3><div class="nn-rpt-wrap"><table class="nn-rpt"><thead><tr><th>البند</th>'
           || '<th>سجل الأصول</th><th>الأستاذ العام</th><th>الفرق</th></tr></thead><tbody><tr><td class="nn-rpt-text">تكلفة الأصول</td><td>' || fnum(t(4))
           || '</td><td>' || fnum(l_glc) || '</td><td class="' || CASE WHEN ROUND(t(4) - l_glc, 2) <> 0 THEN 'nn-neg' END || '">' || fnum(t(4) - l_glc)
           || '</td></tr><tr><td class="nn-rpt-text">مجمع الإهلاك والانخفاض</td><td>' || fnum(t(9)) || '</td><td>' || fnum(l_gld) || '</td><td class="'
           || CASE WHEN ROUND(t(9) - l_gld, 2) <> 0 THEN 'nn-neg' END || '">' || fnum(t(9) - l_gld) || '</td></tr></tbody></table></div>'
-          || '<div class="nn-hint">الفرق ينتج عن قيود يدوية على حسابات الأصول أو أرصدة سابقة لم تسجل في سجل الأصول.</div>';
+          || '<div class="nn-hint">الفرق ينتج عن قيود يدوية على حسابات الأصول أو أرصدة سابقة لم تسجل في سجل الأصول.</div>');
     RETURN l_out;
   END rollforward_html;
 
@@ -1329,11 +1329,11 @@ CREATE OR REPLACE PACKAGE BODY NOONA_FA_PKG AS
                 FROM fa_disposal d JOIN fa_asset a ON a.id = d.asset_id LEFT JOIN pty_party p ON p.id = d.buyer_party_id
                WHERE d.company_id = company AND d.disposal_date BETWEEN p_from AND p_to
                ORDER BY d.disposal_date, d.id) LOOP
-      l_out := l_out || '<tr><td>' || esc(d.doc_no) || '</td><td>' || fd(d.disposal_date) || '</td><td class="nn-rpt-text">' || esc(d.asset)
+      l_out := l_out || ('<tr><td>' || esc(d.doc_no) || '</td><td>' || fd(d.disposal_date) || '</td><td class="nn-rpt-text">' || esc(d.asset)
             || '</td><td class="nn-rpt-text">' || disposal_label(d.disposal_method) || '</td><td class="nn-rpt-text">' || esc(d.party) || '</td><td>'
             || fnum(d.proceeds) || '</td><td>' || fnum(d.vat_amount) || '</td><td>' || fnum(d.nbv_at_disposal) || '</td><td class="'
             || CASE WHEN d.gain_loss < 0 THEN 'nn-neg' END || '">' || CASE WHEN d.gain_loss < 0 THEN '(' || fnum(-d.gain_loss) || ')' ELSE fnum(d.gain_loss) END
-            || '</td><td class="nn-rpt-text">' || status_label(d.status_code) || '</td></tr>';
+            || '</td><td class="nn-rpt-text">' || status_label(d.status_code) || '</td></tr>');
       IF d.status_code = 'POSTED' THEN
         t(1) := t(1) + d.proceeds; t(2) := t(2) + d.vat_amount; t(3) := t(3) + d.nbv_at_disposal; t(4) := t(4) + d.gain_loss;
       END IF;
@@ -1342,9 +1342,9 @@ CREATE OR REPLACE PACKAGE BODY NOONA_FA_PKG AS
     IF l_n = 0 THEN
       RETURN '<div class="nn-empty">لا توجد استبعادات في الفترة</div>';
     END IF;
-    RETURN l_out || '<tr class="nn-rpt-total"><td colspan="5" class="nn-rpt-text">الإجمالي (المرحل)</td><td>' || fnum(t(1)) || '</td><td>' || fnum(t(2))
+    RETURN l_out || ('<tr class="nn-rpt-total"><td colspan="5" class="nn-rpt-text">الإجمالي (المرحل)</td><td>' || fnum(t(1)) || '</td><td>' || fnum(t(2))
         || '</td><td>' || fnum(t(3)) || '</td><td>' || CASE WHEN t(4) < 0 THEN '(' || fnum(-t(4)) || ')' ELSE fnum(t(4)) END
-        || '</td><td></td></tr></tbody></table></div>';
+        || '</td><td></td></tr></tbody></table></div>');
   END disposals_html;
 
   FUNCTION run_html(p_run_id IN NUMBER) RETURN CLOB IS
@@ -1364,13 +1364,13 @@ CREATE OR REPLACE PACKAGE BODY NOONA_FA_PKG AS
                 FROM fa_depreciation_line l JOIN fa_asset_book b ON b.id = l.asset_book_id JOIN fa_asset a ON a.id = b.asset_id
                 LEFT JOIN gl_cost_center cc ON cc.id = l.cost_center_id
                WHERE l.run_id = p_run_id ORDER BY a.asset_no) LOOP
-      l_out := l_out || '<tr><td>' || esc(l.asset_no) || '</td><td class="nn-rpt-text">' || esc(l.name_ar) || '</td><td class="nn-rpt-text">'
+      l_out := l_out || ('<tr><td>' || esc(l.asset_no) || '</td><td class="nn-rpt-text">' || esc(l.name_ar) || '</td><td class="nn-rpt-text">'
             || esc(l.cc) || '</td><td>' || fnum(l.depreciation_amount) || '</td><td>' || fnum(l.accumulated_after) || '</td><td>'
-            || fnum(l.nbv_after) || '</td></tr>';
+            || fnum(l.nbv_after) || '</td></tr>');
       l_n := l_n + 1;
     END LOOP;
-    RETURN l_out || '<tr class="nn-rpt-total"><td colspan="3" class="nn-rpt-text">الإجمالي (' || l_n || ' أصل)</td><td>' || fnum(l_r.total_amount)
-        || '</td><td></td><td></td></tr></tbody></table></div>';
+    RETURN l_out || ('<tr class="nn-rpt-total"><td colspan="3" class="nn-rpt-text">الإجمالي (' || l_n || ' أصل)</td><td>' || fnum(l_r.total_amount)
+        || '</td><td></td><td></td></tr></tbody></table></div>');
   END run_html;
 
   FUNCTION preview_html(p_period_id IN NUMBER) RETURN CLOB IS
@@ -1389,17 +1389,17 @@ CREATE OR REPLACE PACKAGE BODY NOONA_FA_PKG AS
       l_d := calc(b.cost, b.residual_value, b.accumulated_depr, b.depreciation_method, b.useful_life_months, b.depr_start_date,
                   b.depreciated_to, l_p.end_date);
       CONTINUE WHEN l_d = 0;
-      l_out := l_out || '<tr><td>' || esc(b.asset_no) || '</td><td class="nn-rpt-text">' || esc(b.name_ar) || '</td><td class="nn-rpt-text">'
+      l_out := l_out || ('<tr><td>' || esc(b.asset_no) || '</td><td class="nn-rpt-text">' || esc(b.name_ar) || '</td><td class="nn-rpt-text">'
             || method_label(b.depreciation_method) || '</td><td>' || NVL(fd(b.depreciated_to), '-') || '</td><td>' || fnum(l_d) || '</td><td>'
-            || fnum(b.cost - b.accumulated_depr - l_d) || '</td></tr>';
+            || fnum(b.cost - b.accumulated_depr - l_d) || '</td></tr>');
       l_tot := l_tot + l_d;
       l_n := l_n + 1;
     END LOOP;
     IF l_n = 0 THEN
       RETURN '<div class="nn-empty">لا يوجد إهلاك مستحق لفترة ' || l_p.period_code || '</div>';
     END IF;
-    RETURN l_out || '<tr class="nn-rpt-total"><td colspan="4" class="nn-rpt-text">إجمالي إهلاك ' || l_p.period_code || ' (' || l_n || ' أصل)</td><td>'
-        || fnum(l_tot) || '</td><td></td></tr></tbody></table></div>';
+    RETURN l_out || ('<tr class="nn-rpt-total"><td colspan="4" class="nn-rpt-text">إجمالي إهلاك ' || l_p.period_code || ' (' || l_n || ' أصل)</td><td>'
+        || fnum(l_tot) || '</td><td></td></tr></tbody></table></div>');
   END preview_html;
 
 END NOONA_FA_PKG;

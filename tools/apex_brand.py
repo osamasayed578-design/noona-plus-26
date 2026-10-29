@@ -4,7 +4,7 @@
 import os, re, sys, zlib
 
 STATIC_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'apex', 'shared', 'static')
-FILES = [('noona.css', 'text/css'), ('cairo-arabic.woff2', 'font/woff2'), ('cairo-latin.woff2', 'font/woff2'),
+FILES = [('noona.css', 'text/css'), ('noona.js', 'application/javascript'), ('cairo-arabic.woff2', 'font/woff2'), ('cairo-latin.woff2', 'font/woff2'),
          ('noona-logo.svg', 'image/svg+xml'), ('noona-logo-white.svg', 'image/svg+xml')]
 LOGIN_LABELS = [(",p_button_image_alt=>'Sign In'", ",p_button_image_alt=>'تسجيل الدخول'"),
                 (",p_prompt=>'Username'", ",p_prompt=>'اسم المستخدم'"),
@@ -113,6 +113,11 @@ def brand(app_dir):
         ui = ui.replace(",p_nav_bar_template_options=>'#DEFAULT#'",
                         ",p_nav_bar_template_options=>'#DEFAULT#'\n,p_css_file_urls=>'#APP_FILES#noona.css'", 1)
         assert 'noona.css' in ui, 'user_interfaces anchor not found'
+        open(a + 'user_interfaces.sql', 'w', encoding='utf-8').write(ui)
+    # تحسينات الوصول العامة (noona.js) في كل صفحات التطبيق
+    if 'noona.js' not in ui:
+        ui = ui.replace(",p_css_file_urls=>'#APP_FILES#noona.css'", ",p_javascript_file_urls=>'#APP_FILES#noona.js'\n,p_css_file_urls=>'#APP_FILES#noona.css'", 1)
+        assert 'noona.js' in ui, 'user_interfaces css anchor not found'
         open(a + 'user_interfaces.sql', 'w', encoding='utf-8').write(ui)
     # الصفحة 0: شارة الشركة الحالية (شعار المشترك واسمها) في ترويسة كل الصفحات
     p = a + 'pages/page_00000.sql'

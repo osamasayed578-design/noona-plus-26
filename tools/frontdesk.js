@@ -58,7 +58,7 @@
     '</div><div class="nn-fd-search">' + icon('fa-search') + '<input type="search" placeholder="رقم الغرفة أو اسم النزيل" aria-label="بحث"></div>' +
     '<span class="nn-fd-bd"></span><button type="button" class="nn-fd-ib" data-a="refresh" title="تحديث">' + icon('fa-refresh') + '</button></div>' +
     '<div class="nn-fd-filters"></div><div class="nn-fd-main"></div>' +
-    '<aside class="nn-fd-drawer" aria-hidden="true"><div class="nn-fd-dh"><b></b><button type="button" class="nn-fd-ib" data-a="close" title="إغلاق">' +
+    '<aside class="nn-fd-drawer" aria-hidden="true" inert><div class="nn-fd-dh"><b></b><button type="button" class="nn-fd-ib" data-a="close" title="إغلاق">' +
     icon('fa-times') + '</button></div><div class="nn-fd-db"></div></aside><div class="nn-fd-toast" role="status" aria-live="polite"></div>';
   var main = root.querySelector('.nn-fd-main');
   var drawer = root.querySelector('.nn-fd-drawer');
@@ -174,9 +174,9 @@
   function show(title, html) {
     drawer.querySelector('.nn-fd-dh b').innerHTML = title;
     drawer.querySelector('.nn-fd-db').innerHTML = html;
-    drawer.classList.add('is-open'); drawer.setAttribute('aria-hidden', 'false');
+    drawer.classList.add('is-open'); drawer.setAttribute('aria-hidden', 'false'); drawer.inert = false;
   }
-  function close() { drawer.classList.remove('is-open'); drawer.setAttribute('aria-hidden', 'true'); S.sel = null; }
+  function close() { drawer.classList.remove('is-open'); drawer.setAttribute('aria-hidden', 'true'); drawer.inert = true; S.sel = null; }
   function sec(t, body) { return '<div class="nn-fd-sec"><h5>' + t + '</h5>' + body + '</div>'; }
   function hkButtons(r) {
     return sec('حالة النظافة: ' + esc(HK[r.hk] || r.hk), '<div class="nn-fd-acts">' +

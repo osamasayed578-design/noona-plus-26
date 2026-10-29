@@ -693,16 +693,18 @@ CREATE OR REPLACE PACKAGE BODY NOONA_EINV_PKG AS
                       OR (p_status = 'OPEN' AND s.status_code IN ('DRAFT', 'READY_TO_SUBMIT', 'SUBMITTED', 'PENDING_RETRY', 'REJECTED', 'VALIDATION_FAILED', 'SUBMISSION_FAILED')))
                ORDER BY s.id DESC FETCH FIRST 500 ROWS ONLY) LOOP
       l_n := l_n + 1;
-      l_h := l_h || '<tr data-sub="' || r.id || '"><td>' || CASE WHEN p_link IS NOT NULL THEN '<a href="' || REPLACE(p_link, '#ID#', r.id) || '"><b>' || esc(r.doc_no) || '</b></a>'
+      l_h := l_h || ('<tr data-sub="' || r.id || '"><td>' || CASE WHEN p_link IS NOT NULL THEN '<a href="' || REPLACE(p_link, '#ID#', r.id) || '"><b>' || esc(r.doc_no) || '</b></a>'
                                                                 ELSE '<b>' || esc(r.doc_no) || '</b>' END
           || '</td><td>' || ds(r.doc_date) || '</td><td>' || esc(r.cname) || '</td><td>' || r.invoice_type_code || ' / '
           || CASE r.invoice_subtype WHEN '0100000' THEN 'ضريبية' ELSE 'مبسطة' END || '</td><td>' || r.invoice_counter || '</td><td class="n">' || fmt(r.total_amount)
           || '</td><td>' || r.attempts || '</td><td dir="ltr">' || esc(r.gov_reference) || '</td><td>' || badge(r.status_code) || '</td><td>'
           || CASE WHEN r.status_code IN ('READY_TO_SUBMIT', 'PENDING_RETRY', 'VALIDATION_FAILED', 'SUBMISSION_FAILED') THEN '<button type="button" class="t-Button t-Button--small nn-einv-send" data-sub="' || r.id || '">إرسال</button>'
                   WHEN r.status_code = 'REJECTED' THEN '<button type="button" class="t-Button t-Button--small nn-einv-resend" data-sub="' || r.id || '">إعادة الإرسال</button>' END
-          || '</td></tr>';
+          || '</td></tr>');
     END LOOP;
-    RETURN CASE WHEN l_n = 0 THEN '<div class="nn-empty">لا توجد إرسالات</div>' ELSE l_h || '</tbody></table>' END;
+    IF l_n = 0 THEN RETURN TO_CLOB('<div class="nn-empty">لا توجد إرسالات</div>'); END IF;
+    -- CASE لا يرجع أكثر من 32 ألف حرف حتى لو كانت فروعه CLOB
+    RETURN l_h || ('</tbody></table>');
   END queue_html;
 
   FUNCTION submission_html(p_submission_id IN NUMBER) RETURN CLOB IS
@@ -722,24 +724,24 @@ CREATE OR REPLACE PACKAGE BODY NOONA_EINV_PKG AS
         || '</td></tr></table>'
         || '<div class="nn-qr" data-qr="' || s.qr_payload || '"></div>';
     IF s.error_info IS NOT NULL THEN
-      l_h := l_h || '<h4 class="nn-prj-h">الأخطاء</h4><ul class="nn-einv-err">';
+      l_h := l_h || ('<h4 class="nn-prj-h">الأخطاء</h4><ul class="nn-einv-err">');
       BEGIN
         FOR e IN (SELECT code, msg FROM JSON_TABLE(s.error_info, '$[*]' COLUMNS (code VARCHAR2(50) PATH '$.code', msg VARCHAR2(1000) PATH '$.message'))) LOOP
-          l_h := l_h || '<li><b>' || esc(e.code) || '</b> ' || esc(e.msg) || '</li>';
+          l_h := l_h || ('<li><b>' || esc(e.code) || '</b> ' || esc(e.msg) || '</li>');
         END LOOP;
         FOR e IN (SELECT code, msg FROM JSON_TABLE(s.error_info, '$.validationResults.errorMessages[*]' COLUMNS (code VARCHAR2(50) PATH '$.code', msg VARCHAR2(1000) PATH '$.message'))) LOOP
-          l_h := l_h || '<li><b>' || esc(e.code) || '</b> ' || esc(e.msg) || '</li>';
+          l_h := l_h || ('<li><b>' || esc(e.code) || '</b> ' || esc(e.msg) || '</li>');
         END LOOP;
         FOR e IN (SELECT msg FROM JSON_TABLE(s.error_info, '$' COLUMNS (msg VARCHAR2(4000) PATH '$.error')) WHERE msg IS NOT NULL) LOOP
-          l_h := l_h || '<li>' || esc(e.msg) || '</li>';
+          l_h := l_h || ('<li>' || esc(e.msg) || '</li>');
         END LOOP;
       EXCEPTION WHEN OTHERS THEN NULL;
       END;
-      l_h := l_h || '</ul>';
+      l_h := l_h || ('</ul>');
     END IF;
-    l_h := l_h || '<h4 class="nn-prj-h">مستند UBL 2.1</h4><pre class="nn-einv-xml" dir="ltr">';
+    l_h := l_h || ('<h4 class="nn-prj-h">مستند UBL 2.1</h4><pre class="nn-einv-xml" dir="ltr">');
     DBMS_LOB.append(l_h, TO_CLOB(esc(DBMS_LOB.substr(REPLACE(s.xml_content, '><', '>' || CHR(10) || '<'), 30000, 1))));
-    RETURN l_h || '</pre>';
+    RETURN l_h || ('</pre>');
   EXCEPTION WHEN NO_DATA_FOUND THEN
     RETURN '<div class="nn-empty">الإرسال غير موجود</div>';
   END submission_html;
@@ -752,12 +754,14 @@ CREATE OR REPLACE PACKAGE BODY NOONA_EINV_PKG AS
     l_h := '<table class="nn-prj-t"><thead><tr><th>الفرع</th><th>المحول</th><th>النمط</th><th>الجهاز</th><th>الخدمة</th><th>بيئة</th><th>الحالة</th></tr></thead><tbody>';
     FOR r IN (SELECT p.*, b.name_ar bname FROM loc_einvoice_profile p LEFT JOIN org_branch b ON b.id = p.branch_id WHERE p.company_id = company ORDER BY p.id) LOOP
       l_n := l_n + 1;
-      l_h := l_h || '<tr data-profile="' || r.id || '"><td>' || esc(NVL(r.bname, 'كل الفروع')) || '</td><td>' || CASE r.adapter_code WHEN 'SIMULATOR' THEN 'المحاكي' ELSE 'خدمة خارجية (REST)' END
+      l_h := l_h || ('<tr data-profile="' || r.id || '"><td>' || esc(NVL(r.bname, 'كل الفروع')) || '</td><td>' || CASE r.adapter_code WHEN 'SIMULATOR' THEN 'المحاكي' ELSE 'خدمة خارجية (REST)' END
           || '</td><td>' || CASE r.integration_mode WHEN 'CLEARANCE' THEN 'اعتماد + إبلاغ' ELSE r.integration_mode END || '</td><td dir="ltr">' || esc(r.device_id)
           || '</td><td dir="ltr">' || esc(r.endpoint_ref) || '</td><td>' || CASE r.is_sandbox WHEN 'Y' THEN 'اختبار' ELSE 'إنتاج' END || '</td><td>' || badge(r.status_code)
-          || '</td></tr>';
+          || '</td></tr>');
     END LOOP;
-    RETURN CASE WHEN l_n = 0 THEN '<div class="nn-empty">لم تفعل الفوترة الإلكترونية؛ أضف إعداداً (ابدأ بالمحاكي للاختبار)</div>' ELSE l_h || '</tbody></table>' END;
+    IF l_n = 0 THEN RETURN TO_CLOB('<div class="nn-empty">لم تفعل الفوترة الإلكترونية؛ أضف إعداداً (ابدأ بالمحاكي للاختبار)</div>'); END IF;
+    -- CASE لا يرجع أكثر من 32 ألف حرف حتى لو كانت فروعه CLOB
+    RETURN l_h || ('</tbody></table>');
   END profiles_html;
 END NOONA_EINV_PKG;
 /

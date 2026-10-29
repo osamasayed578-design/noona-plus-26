@@ -25,7 +25,7 @@ wwv_flow_imp_page.create_page(
 );
 wwv_flow_imp_page.create_page_plug(
  p_id=>wwv_flow_imp.id(91820275000000855)
-,p_plug_name=>'Visit'
+,p_plug_name=>'الزيارة'
 ,p_region_template_options=>'#DEFAULT#:nn-rpt-filters:t-Region--removeHeader js-removeLandmark'
 ,p_plug_template=>4072358936313175081
 ,p_plug_display_sequence=>1
@@ -96,9 +96,9 @@ wwv_flow_imp_page.create_page_item(
 ,p_name=>'P35_TRIAGE'
 ,p_item_sequence=>10
 ,p_item_plug_id=>wwv_flow_imp.id(91820275000000859)
-,p_prompt=>'CTAS level'
+,p_prompt=>'مستوى الفرز (CTAS)'
 ,p_display_as=>'NATIVE_SELECT_LIST'
-,p_lov=>'STATIC2:1 - Resuscitation;1,2 - Emergent;2,3 - Urgent;3,4 - Less urgent;4,5 - Non urgent;5'
+,p_lov=>'STATIC2:1 - إنعاش;1,2 - طارئ جداً;2,3 - عاجل;3,4 - أقل إلحاحاً;4,5 - غير عاجل;5'
 ,p_lov_display_null=>'YES'
 ,p_lov_null_text=>'- اختر -'
 ,p_cHeight=>1
@@ -116,7 +116,7 @@ wwv_flow_imp_page.create_page_button(
 ,p_button_action=>'SUBMIT'
 ,p_button_template_options=>'#DEFAULT#'
 ,p_button_template_id=>4072362960822175091
-,p_button_image_alt=>'Save triage'
+,p_button_image_alt=>'حفظ الفرز'
 ,p_button_position=>'NEXT'
 );
 wwv_flow_imp_page.create_page_process(
@@ -152,7 +152,7 @@ wwv_flow_imp_page.create_page_item(
 ,p_name=>'P35_BP'
 ,p_item_sequence=>10
 ,p_item_plug_id=>wwv_flow_imp.id(91820275000000863)
-,p_prompt=>'BP (e.g. 120/80)'
+,p_prompt=>'ضغط الدم (مثلاً 120/80)'
 ,p_display_as=>'NATIVE_TEXT_FIELD'
 ,p_cSize=>8
 ,p_cMaxlength=>10
@@ -169,7 +169,7 @@ wwv_flow_imp_page.create_page_item(
 ,p_name=>'P35_HR'
 ,p_item_sequence=>20
 ,p_item_plug_id=>wwv_flow_imp.id(91820275000000863)
-,p_prompt=>'Pulse (bpm)'
+,p_prompt=>'النبض (نبضة/دقيقة)'
 ,p_display_as=>'NATIVE_NUMBER_FIELD'
 ,p_cSize=>20
 ,p_begin_on_new_line=>'N'
@@ -184,7 +184,7 @@ wwv_flow_imp_page.create_page_item(
 ,p_name=>'P35_TEMP'
 ,p_item_sequence=>30
 ,p_item_plug_id=>wwv_flow_imp.id(91820275000000863)
-,p_prompt=>'Temp (°C)'
+,p_prompt=>'الحرارة (°م)'
 ,p_display_as=>'NATIVE_NUMBER_FIELD'
 ,p_cSize=>20
 ,p_field_template=>1609121967514267634
@@ -198,7 +198,7 @@ wwv_flow_imp_page.create_page_item(
 ,p_name=>'P35_RR'
 ,p_item_sequence=>40
 ,p_item_plug_id=>wwv_flow_imp.id(91820275000000863)
-,p_prompt=>'Resp. rate'
+,p_prompt=>'معدل التنفس'
 ,p_display_as=>'NATIVE_NUMBER_FIELD'
 ,p_cSize=>20
 ,p_begin_on_new_line=>'N'
@@ -213,7 +213,7 @@ wwv_flow_imp_page.create_page_item(
 ,p_name=>'P35_SPO2'
 ,p_item_sequence=>50
 ,p_item_plug_id=>wwv_flow_imp.id(91820275000000863)
-,p_prompt=>'SpO2 %'
+,p_prompt=>'تشبع الأكسجين SpO2 %'
 ,p_display_as=>'NATIVE_NUMBER_FIELD'
 ,p_cSize=>20
 ,p_field_template=>1609121967514267634
@@ -227,7 +227,7 @@ wwv_flow_imp_page.create_page_item(
 ,p_name=>'P35_WT'
 ,p_item_sequence=>60
 ,p_item_plug_id=>wwv_flow_imp.id(91820275000000863)
-,p_prompt=>'Weight (kg)'
+,p_prompt=>'الوزن (كجم)'
 ,p_display_as=>'NATIVE_NUMBER_FIELD'
 ,p_cSize=>20
 ,p_begin_on_new_line=>'N'
@@ -242,7 +242,7 @@ wwv_flow_imp_page.create_page_item(
 ,p_name=>'P35_HT'
 ,p_item_sequence=>70
 ,p_item_plug_id=>wwv_flow_imp.id(91820275000000863)
-,p_prompt=>'Height (cm)'
+,p_prompt=>'الطول (سم)'
 ,p_display_as=>'NATIVE_NUMBER_FIELD'
 ,p_cSize=>20
 ,p_field_template=>1609121967514267634
@@ -256,7 +256,7 @@ wwv_flow_imp_page.create_page_item(
 ,p_name=>'P35_PAIN'
 ,p_item_sequence=>80
 ,p_item_plug_id=>wwv_flow_imp.id(91820275000000863)
-,p_prompt=>'Pain (0-10)'
+,p_prompt=>'الألم (0-10)'
 ,p_display_as=>'NATIVE_NUMBER_FIELD'
 ,p_cSize=>20
 ,p_begin_on_new_line=>'N'
@@ -271,7 +271,7 @@ wwv_flow_imp_page.create_page_item(
 ,p_name=>'P35_GLU'
 ,p_item_sequence=>90
 ,p_item_plug_id=>wwv_flow_imp.id(91820275000000863)
-,p_prompt=>'RBS (mg/dL)'
+,p_prompt=>'سكر عشوائي RBS (ملجم/دسل)'
 ,p_display_as=>'NATIVE_NUMBER_FIELD'
 ,p_cSize=>20
 ,p_field_template=>1609121967514267634
@@ -285,7 +285,7 @@ wwv_flow_imp_page.create_page_item(
 ,p_name=>'P35_VNOTES'
 ,p_item_sequence=>100
 ,p_item_plug_id=>wwv_flow_imp.id(91820275000000863)
-,p_prompt=>'Notes'
+,p_prompt=>'ملاحظات'
 ,p_display_as=>'NATIVE_TEXT_FIELD'
 ,p_cSize=>40
 ,p_cMaxlength=>500
@@ -307,7 +307,7 @@ wwv_flow_imp_page.create_page_button(
 ,p_button_template_options=>'#DEFAULT#'
 ,p_button_template_id=>4072362960822175091
 ,p_button_is_hot=>'Y'
-,p_button_image_alt=>'Save vital signs'
+,p_button_image_alt=>'حفظ العلامات الحيوية'
 ,p_button_position=>'NEXT'
 );
 wwv_flow_imp_page.create_page_process(
@@ -332,7 +332,7 @@ wwv_flow_imp_page.create_page_process(
 );
 wwv_flow_imp_page.create_page_plug(
  p_id=>wwv_flow_imp.id(91820275000000876)
-,p_plug_name=>'Vitals chart'
+,p_plug_name=>'مخطط العلامات الحيوية'
 ,p_region_template_options=>'#DEFAULT#:t-Region--scrollBody'
 ,p_plug_template=>4072358936313175081
 ,p_plug_display_sequence=>12
@@ -363,9 +363,9 @@ wwv_flow_imp_page.create_page_item(
 ,p_name=>'P35_NTYPE'
 ,p_item_sequence=>10
 ,p_item_plug_id=>wwv_flow_imp.id(91820275000000877)
-,p_prompt=>'Type'
+,p_prompt=>'النوع'
 ,p_display_as=>'NATIVE_SELECT_LIST'
-,p_lov=>'STATIC2:Nursing;NURSING,Progress;PROGRESS,Consultation;CONSULTATION,Procedure;PROCEDURE,Discharge;DISCHARGE'
+,p_lov=>'STATIC2:تمريضية;NURSING,متابعة;PROGRESS,استشارة;CONSULTATION,إجراء;PROCEDURE,خروج;DISCHARGE'
 ,p_cHeight=>1
 ,p_lov_display_extra=>'NO'
 ,p_field_template=>1609121967514267634
@@ -378,11 +378,11 @@ wwv_flow_imp_page.create_page_item(
 ,p_name=>'P35_AUTHOR'
 ,p_item_sequence=>20
 ,p_item_plug_id=>wwv_flow_imp.id(91820275000000877)
-,p_prompt=>'Author'
+,p_prompt=>'الكاتب'
 ,p_display_as=>'NATIVE_SELECT_LIST'
 ,p_lov=>'select name_ar d, id r from his_doctor where company_id = noona_his_pkg.company and status_code = ''ACTIVE'' order by case title when ''NURSE'' then 0 else 1 end, name_ar'
 ,p_lov_display_null=>'YES'
-,p_lov_null_text=>'- current user -'
+,p_lov_null_text=>'- المستخدم الحالي -'
 ,p_cHeight=>1
 ,p_lov_display_extra=>'NO'
 ,p_begin_on_new_line=>'N'
@@ -396,7 +396,7 @@ wwv_flow_imp_page.create_page_item(
 ,p_name=>'P35_NOTE'
 ,p_item_sequence=>30
 ,p_item_plug_id=>wwv_flow_imp.id(91820275000000877)
-,p_prompt=>'Note (English)'
+,p_prompt=>'الملاحظة (بالإنجليزية)'
 ,p_display_as=>'NATIVE_TEXTAREA'
 ,p_cSize=>60
 ,p_cMaxlength=>1000
@@ -417,7 +417,7 @@ wwv_flow_imp_page.create_page_button(
 ,p_button_action=>'SUBMIT'
 ,p_button_template_options=>'#DEFAULT#'
 ,p_button_template_id=>4072362960822175091
-,p_button_image_alt=>'Add note'
+,p_button_image_alt=>'إضافة ملاحظة'
 ,p_button_position=>'NEXT'
 );
 wwv_flow_imp_page.create_page_process(
@@ -440,7 +440,7 @@ wwv_flow_imp_page.create_page_process(
 );
 wwv_flow_imp_page.create_page_plug(
  p_id=>wwv_flow_imp.id(91820275000000883)
-,p_plug_name=>'Notes'
+,p_plug_name=>'ملاحظات'
 ,p_region_template_options=>'#DEFAULT#:t-Region--scrollBody'
 ,p_plug_template=>4072358936313175081
 ,p_plug_display_sequence=>22
@@ -471,7 +471,7 @@ wwv_flow_imp_page.create_page_item(
 ,p_name=>'P35_LINE'
 ,p_item_sequence=>10
 ,p_item_plug_id=>wwv_flow_imp.id(91820275000000884)
-,p_prompt=>'Medicine'
+,p_prompt=>'الدواء'
 ,p_display_as=>'NATIVE_SELECT_LIST'
 ,p_lov=>'select nvl(i.name_en, i.name_ar) || '' - '' || l.dose || '' '' || l.frequency || '' ('' || x.rx_no || '')'' d, l.id r from his_prescription x join his_prescription_line l on l.prescription_id = x.id join inv_item i on i.id = l.item_id where x.visit_id = :P35_VISIT and x.status_code not in (''CANCELLED'', ''EXPIRED'') order by x.rx_at, l.line_no'
 ,p_lov_display_null=>'YES'
@@ -488,9 +488,9 @@ wwv_flow_imp_page.create_page_item(
 ,p_name=>'P35_OUTCOME'
 ,p_item_sequence=>20
 ,p_item_plug_id=>wwv_flow_imp.id(91820275000000884)
-,p_prompt=>'Outcome'
+,p_prompt=>'النتيجة'
 ,p_display_as=>'NATIVE_SELECT_LIST'
-,p_lov=>'STATIC2:Given;GIVEN,Held;HELD,Refused;REFUSED,Missed;MISSED'
+,p_lov=>'STATIC2:أُعطيت;GIVEN,أُجّلت;HELD,رفضها المريض;REFUSED,فاتت;MISSED'
 ,p_cHeight=>1
 ,p_lov_display_extra=>'NO'
 ,p_begin_on_new_line=>'N'
@@ -504,9 +504,9 @@ wwv_flow_imp_page.create_page_item(
 ,p_name=>'P35_ROUTE'
 ,p_item_sequence=>30
 ,p_item_plug_id=>wwv_flow_imp.id(91820275000000884)
-,p_prompt=>'Route'
+,p_prompt=>'طريقة الإعطاء'
 ,p_display_as=>'NATIVE_SELECT_LIST'
-,p_lov=>'STATIC2:Oral;ORAL,IV;IV,IM;IM,SC;SC,Inhaled;INHALED,Topical;TOPICAL,Rectal;RECTAL,Other;OTHER'
+,p_lov=>'STATIC2:فموي;ORAL,IV;IV,IM;IM,SC;SC,استنشاق;INHALED,موضعي;TOPICAL,شرجي;RECTAL,أخرى;OTHER'
 ,p_cHeight=>1
 ,p_lov_display_extra=>'NO'
 ,p_field_template=>1609121967514267634
@@ -519,7 +519,7 @@ wwv_flow_imp_page.create_page_item(
 ,p_name=>'P35_DOSE'
 ,p_item_sequence=>40
 ,p_item_plug_id=>wwv_flow_imp.id(91820275000000884)
-,p_prompt=>'Dose given'
+,p_prompt=>'الجرعة المعطاة'
 ,p_display_as=>'NATIVE_TEXT_FIELD'
 ,p_cSize=>12
 ,p_cMaxlength=>100
@@ -537,11 +537,11 @@ wwv_flow_imp_page.create_page_item(
 ,p_name=>'P35_NURSE'
 ,p_item_sequence=>50
 ,p_item_plug_id=>wwv_flow_imp.id(91820275000000884)
-,p_prompt=>'Nurse'
+,p_prompt=>'الممرض'
 ,p_display_as=>'NATIVE_SELECT_LIST'
 ,p_lov=>'select name_ar d, id r from his_doctor where company_id = noona_his_pkg.company and status_code = ''ACTIVE'' order by case title when ''NURSE'' then 0 else 1 end, name_ar'
 ,p_lov_display_null=>'YES'
-,p_lov_null_text=>'- current user -'
+,p_lov_null_text=>'- المستخدم الحالي -'
 ,p_cHeight=>1
 ,p_lov_display_extra=>'NO'
 ,p_field_template=>1609121967514267634
@@ -554,7 +554,7 @@ wwv_flow_imp_page.create_page_item(
 ,p_name=>'P35_MNOTES'
 ,p_item_sequence=>60
 ,p_item_plug_id=>wwv_flow_imp.id(91820275000000884)
-,p_prompt=>'Notes / reason'
+,p_prompt=>'ملاحظات / سبب'
 ,p_display_as=>'NATIVE_TEXT_FIELD'
 ,p_cSize=>40
 ,p_cMaxlength=>500
@@ -575,7 +575,7 @@ wwv_flow_imp_page.create_page_button(
 ,p_button_action=>'SUBMIT'
 ,p_button_template_options=>'#DEFAULT#'
 ,p_button_template_id=>4072362960822175091
-,p_button_image_alt=>'Record administration'
+,p_button_image_alt=>'تسجيل إعطاء الجرعة'
 ,p_button_position=>'NEXT'
 );
 wwv_flow_imp_page.create_page_process(

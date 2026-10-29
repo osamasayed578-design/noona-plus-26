@@ -151,8 +151,8 @@ CREATE OR REPLACE PACKAGE BODY NOONA_BRAND_PKG AS
     l_len := DBMS_LOB.GETLENGTH(l_blob);
     l_out := 'data:' || l_mime || ';base64,';
     WHILE l_pos <= l_len LOOP
-      l_out := l_out || REPLACE(REPLACE(UTL_RAW.CAST_TO_VARCHAR2(UTL_ENCODE.BASE64_ENCODE(
-                 DBMS_LOB.SUBSTR(l_blob, c_step, l_pos))), CHR(13)), CHR(10));
+      l_out := l_out || (REPLACE(REPLACE(UTL_RAW.CAST_TO_VARCHAR2(UTL_ENCODE.BASE64_ENCODE(
+                 DBMS_LOB.SUBSTR(l_blob, c_step, l_pos))), CHR(13)), CHR(10)));
       l_pos := l_pos + c_step;
     END LOOP;
     RETURN l_out;

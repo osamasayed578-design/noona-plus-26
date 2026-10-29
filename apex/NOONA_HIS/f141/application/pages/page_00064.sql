@@ -39,7 +39,7 @@ wwv_flow_imp_page.create_page_item(
 ,p_name=>'P64_SRV'
 ,p_item_sequence=>10
 ,p_item_plug_id=>wwv_flow_imp.id(91820275000000700)
-,p_prompt=>'Test'
+,p_prompt=>'التحليل'
 ,p_display_as=>'NATIVE_SELECT_LIST'
 ,p_lov=>'select noona_his_pkg.service_name(id) d, id r from his_service where company_id = noona_his_pkg.company and service_type = ''LAB'' order by 1'
 ,p_lov_display_null=>'YES'
@@ -56,7 +56,7 @@ wwv_flow_imp_page.create_page_item(
 ,p_name=>'P64_CODE'
 ,p_item_sequence=>20
 ,p_item_plug_id=>wwv_flow_imp.id(91820275000000700)
-,p_prompt=>'Code (e.g. HB)'
+,p_prompt=>'الرمز (مثلاً HB)'
 ,p_display_as=>'NATIVE_TEXT_FIELD'
 ,p_cSize=>10
 ,p_cMaxlength=>30
@@ -74,7 +74,7 @@ wwv_flow_imp_page.create_page_item(
 ,p_name=>'P64_NAME_EN'
 ,p_item_sequence=>30
 ,p_item_plug_id=>wwv_flow_imp.id(91820275000000700)
-,p_prompt=>'Name (English)'
+,p_prompt=>'الاسم (بالإنجليزية)'
 ,p_display_as=>'NATIVE_TEXT_FIELD'
 ,p_cSize=>40
 ,p_cMaxlength=>200
@@ -109,7 +109,7 @@ wwv_flow_imp_page.create_page_item(
 ,p_name=>'P64_UNIT'
 ,p_item_sequence=>50
 ,p_item_plug_id=>wwv_flow_imp.id(91820275000000700)
-,p_prompt=>'Unit'
+,p_prompt=>'الوحدة'
 ,p_display_as=>'NATIVE_TEXT_FIELD'
 ,p_cSize=>10
 ,p_cMaxlength=>30
@@ -126,11 +126,11 @@ wwv_flow_imp_page.create_page_item(
 ,p_name=>'P64_GENDER'
 ,p_item_sequence=>60
 ,p_item_plug_id=>wwv_flow_imp.id(91820275000000700)
-,p_prompt=>'Sex'
+,p_prompt=>'الجنس'
 ,p_display_as=>'NATIVE_SELECT_LIST'
-,p_lov=>'STATIC2:Male;M,Female;F'
+,p_lov=>'STATIC2:ذكر;M,أنثى;F'
 ,p_lov_display_null=>'YES'
-,p_lov_null_text=>'All'
+,p_lov_null_text=>'الكل'
 ,p_cHeight=>1
 ,p_lov_display_extra=>'NO'
 ,p_begin_on_new_line=>'N'
@@ -144,7 +144,7 @@ wwv_flow_imp_page.create_page_item(
 ,p_name=>'P64_LOW'
 ,p_item_sequence=>70
 ,p_item_plug_id=>wwv_flow_imp.id(91820275000000700)
-,p_prompt=>'Reference low'
+,p_prompt=>'الحد المرجعي الأدنى'
 ,p_display_as=>'NATIVE_NUMBER_FIELD'
 ,p_cSize=>20
 ,p_field_template=>1609121967514267634
@@ -158,7 +158,7 @@ wwv_flow_imp_page.create_page_item(
 ,p_name=>'P64_HIGH'
 ,p_item_sequence=>80
 ,p_item_plug_id=>wwv_flow_imp.id(91820275000000700)
-,p_prompt=>'Reference high'
+,p_prompt=>'الحد المرجعي الأعلى'
 ,p_display_as=>'NATIVE_NUMBER_FIELD'
 ,p_cSize=>20
 ,p_begin_on_new_line=>'N'
@@ -173,7 +173,7 @@ wwv_flow_imp_page.create_page_item(
 ,p_name=>'P64_CLOW'
 ,p_item_sequence=>90
 ,p_item_plug_id=>wwv_flow_imp.id(91820275000000700)
-,p_prompt=>'Critical below'
+,p_prompt=>'حرج أقل من'
 ,p_display_as=>'NATIVE_NUMBER_FIELD'
 ,p_cSize=>20
 ,p_field_template=>1609121967514267634
@@ -187,7 +187,7 @@ wwv_flow_imp_page.create_page_item(
 ,p_name=>'P64_CHIGH'
 ,p_item_sequence=>100
 ,p_item_plug_id=>wwv_flow_imp.id(91820275000000700)
-,p_prompt=>'Critical above'
+,p_prompt=>'حرج أعلى من'
 ,p_display_as=>'NATIVE_NUMBER_FIELD'
 ,p_cSize=>20
 ,p_begin_on_new_line=>'N'
@@ -202,7 +202,7 @@ wwv_flow_imp_page.create_page_item(
 ,p_name=>'P64_REF'
 ,p_item_sequence=>110
 ,p_item_plug_id=>wwv_flow_imp.id(91820275000000700)
-,p_prompt=>'Text reference (e.g. Negative)'
+,p_prompt=>'مرجع نصي (مثلاً Negative)'
 ,p_display_as=>'NATIVE_TEXT_FIELD'
 ,p_cSize=>40
 ,p_cMaxlength=>200
@@ -223,7 +223,7 @@ wwv_flow_imp_page.create_page_button(
 ,p_button_template_options=>'#DEFAULT#'
 ,p_button_template_id=>4072362960822175091
 ,p_button_is_hot=>'Y'
-,p_button_image_alt=>'Save parameter'
+,p_button_image_alt=>'حفظ المكون'
 ,p_button_position=>'NEXT'
 );
 wwv_flow_imp_page.create_page_button(
@@ -234,7 +234,7 @@ wwv_flow_imp_page.create_page_button(
 ,p_button_action=>'SUBMIT'
 ,p_button_template_options=>'#DEFAULT#'
 ,p_button_template_id=>4072362960822175091
-,p_button_image_alt=>'Load default parameters, English names & templates'
+,p_button_image_alt=>'تحميل المكونات والقوالب الافتراضية'
 ,p_button_position=>'NEXT'
 );
 wwv_flow_imp_page.create_page_process(
@@ -318,7 +318,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_db_column_name=>'CODE'
 ,p_display_order=>20
 ,p_column_identifier=>'B'
-,p_column_label=>'Code'
+,p_column_label=>'الرمز'
 ,p_column_type=>'STRING'
 ,p_heading_alignment=>'CENTER'
 ,p_use_as_row_header=>'N'
@@ -328,7 +328,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_db_column_name=>'NAME_EN'
 ,p_display_order=>30
 ,p_column_identifier=>'C'
-,p_column_label=>'Name'
+,p_column_label=>'الاسم'
 ,p_column_type=>'STRING'
 ,p_heading_alignment=>'CENTER'
 ,p_use_as_row_header=>'N'
@@ -348,7 +348,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_db_column_name=>'UNIT'
 ,p_display_order=>50
 ,p_column_identifier=>'E'
-,p_column_label=>'Unit'
+,p_column_label=>'الوحدة'
 ,p_column_type=>'STRING'
 ,p_heading_alignment=>'CENTER'
 ,p_use_as_row_header=>'N'
@@ -358,7 +358,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_db_column_name=>'SEX'
 ,p_display_order=>60
 ,p_column_identifier=>'F'
-,p_column_label=>'Sex'
+,p_column_label=>'الجنس'
 ,p_column_type=>'STRING'
 ,p_heading_alignment=>'CENTER'
 ,p_use_as_row_header=>'N'
@@ -368,7 +368,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_db_column_name=>'REF_LOW'
 ,p_display_order=>70
 ,p_column_identifier=>'G'
-,p_column_label=>'Low'
+,p_column_label=>'الحد الأدنى'
 ,p_column_type=>'NUMBER'
 ,p_heading_alignment=>'CENTER'
 ,p_use_as_row_header=>'N'
@@ -378,7 +378,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_db_column_name=>'REF_HIGH'
 ,p_display_order=>80
 ,p_column_identifier=>'H'
-,p_column_label=>'High'
+,p_column_label=>'الحد الأعلى'
 ,p_column_type=>'NUMBER'
 ,p_heading_alignment=>'CENTER'
 ,p_use_as_row_header=>'N'
@@ -388,7 +388,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_db_column_name=>'CRIT_LOW'
 ,p_display_order=>90
 ,p_column_identifier=>'I'
-,p_column_label=>'Crit. low'
+,p_column_label=>'حرج أدنى'
 ,p_column_type=>'NUMBER'
 ,p_heading_alignment=>'CENTER'
 ,p_use_as_row_header=>'N'
@@ -398,7 +398,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_db_column_name=>'CRIT_HIGH'
 ,p_display_order=>100
 ,p_column_identifier=>'J'
-,p_column_label=>'Crit. high'
+,p_column_label=>'حرج أعلى'
 ,p_column_type=>'NUMBER'
 ,p_heading_alignment=>'CENTER'
 ,p_use_as_row_header=>'N'
@@ -408,7 +408,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_db_column_name=>'REF_TEXT'
 ,p_display_order=>110
 ,p_column_identifier=>'K'
-,p_column_label=>'Text ref.'
+,p_column_label=>'مرجع نصي'
 ,p_column_type=>'STRING'
 ,p_heading_alignment=>'CENTER'
 ,p_use_as_row_header=>'N'
@@ -438,7 +438,7 @@ wwv_flow_imp_page.create_page_item(
 ,p_name=>'P64_TCODE'
 ,p_item_sequence=>10
 ,p_item_plug_id=>wwv_flow_imp.id(91820275000000730)
-,p_prompt=>'Template code'
+,p_prompt=>'رمز القالب'
 ,p_display_as=>'NATIVE_TEXT_FIELD'
 ,p_cSize=>12
 ,p_cMaxlength=>30
@@ -455,7 +455,7 @@ wwv_flow_imp_page.create_page_item(
 ,p_name=>'P64_TNAME'
 ,p_item_sequence=>20
 ,p_item_plug_id=>wwv_flow_imp.id(91820275000000730)
-,p_prompt=>'Name'
+,p_prompt=>'الاسم'
 ,p_display_as=>'NATIVE_TEXT_FIELD'
 ,p_cSize=>40
 ,p_cMaxlength=>200
@@ -473,7 +473,7 @@ wwv_flow_imp_page.create_page_item(
 ,p_name=>'P64_TMOD'
 ,p_item_sequence=>30
 ,p_item_plug_id=>wwv_flow_imp.id(91820275000000730)
-,p_prompt=>'Modality'
+,p_prompt=>'نوع الجهاز'
 ,p_display_as=>'NATIVE_SELECT_LIST'
 ,p_lov=>'STATIC2:أشعة سينية;XRAY,أشعة مقطعية;CT,رنين مغناطيسي;MRI,موجات صوتية;ULTRASOUND,دوبلر;DOPPLER,ماموجرام;MAMMOGRAPHY,أشعة بالصبغة;FLUOROSCOPY,هشاشة العظام;DEXA,طب نووي;NUCLEAR,مسح PET;PET,رسم قلب;ECG,إيكو القلب;ECHO,جهد;STRESS_TEST,هولتر;HOLTER,رسم مخ;EEG,رسم عصب وعضلات;EMG,مناظير;ENDOSCOPY'
 ,p_lov_display_null=>'YES'
@@ -490,7 +490,7 @@ wwv_flow_imp_page.create_page_item(
 ,p_name=>'P64_TBODY'
 ,p_item_sequence=>40
 ,p_item_plug_id=>wwv_flow_imp.id(91820275000000730)
-,p_prompt=>'Template text (English)'
+,p_prompt=>'نص القالب (بالإنجليزية)'
 ,p_display_as=>'NATIVE_TEXTAREA'
 ,p_cSize=>60
 ,p_cMaxlength=>1000
@@ -511,7 +511,7 @@ wwv_flow_imp_page.create_page_button(
 ,p_button_action=>'SUBMIT'
 ,p_button_template_options=>'#DEFAULT#'
 ,p_button_template_id=>4072362960822175091
-,p_button_image_alt=>'Save template'
+,p_button_image_alt=>'حفظ القالب'
 ,p_button_position=>'NEXT'
 );
 wwv_flow_imp_page.create_page_process(
@@ -575,7 +575,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_db_column_name=>'CODE'
 ,p_display_order=>20
 ,p_column_identifier=>'B'
-,p_column_label=>'Code'
+,p_column_label=>'الرمز'
 ,p_column_type=>'STRING'
 ,p_heading_alignment=>'CENTER'
 ,p_use_as_row_header=>'N'
@@ -585,7 +585,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_db_column_name=>'NAME_AR'
 ,p_display_order=>30
 ,p_column_identifier=>'C'
-,p_column_label=>'Name'
+,p_column_label=>'الاسم'
 ,p_column_type=>'STRING'
 ,p_heading_alignment=>'CENTER'
 ,p_use_as_row_header=>'N'
@@ -595,7 +595,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_db_column_name=>'MODALITY'
 ,p_display_order=>40
 ,p_column_identifier=>'D'
-,p_column_label=>'Modality'
+,p_column_label=>'نوع الجهاز'
 ,p_column_type=>'STRING'
 ,p_heading_alignment=>'CENTER'
 ,p_use_as_row_header=>'N'
@@ -605,7 +605,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_db_column_name=>'BODY'
 ,p_display_order=>50
 ,p_column_identifier=>'E'
-,p_column_label=>'Text'
+,p_column_label=>'النص'
 ,p_column_type=>'STRING'
 ,p_heading_alignment=>'CENTER'
 ,p_use_as_row_header=>'N'

@@ -56,9 +56,9 @@ wwv_flow_imp_page.create_page_item(
 ,p_name=>'P36_TYPE'
 ,p_item_sequence=>20
 ,p_item_plug_id=>wwv_flow_imp.id(91820275000000896)
-,p_prompt=>'Type'
+,p_prompt=>'النوع'
 ,p_display_as=>'NATIVE_SELECT_LIST'
-,p_lov=>'STATIC2:Sick leave;SICK_LEAVE,Medical report;MEDICAL_REPORT,Referral letter;REFERRAL,Fitness certificate;FITNESS,Companion certificate;COMPANION'
+,p_lov=>'STATIC2:إجازة مرضية;SICK_LEAVE,تقرير طبي;MEDICAL_REPORT,خطاب تحويل;REFERRAL,Fitness certificate;FITNESS,Companion certificate;COMPANION'
 ,p_cHeight=>1
 ,p_lov_display_extra=>'NO'
 ,p_begin_on_new_line=>'N'
@@ -72,7 +72,7 @@ wwv_flow_imp_page.create_page_item(
 ,p_name=>'P36_FROM'
 ,p_item_sequence=>30
 ,p_item_plug_id=>wwv_flow_imp.id(91820275000000896)
-,p_prompt=>'From'
+,p_prompt=>'من'
 ,p_display_as=>'NATIVE_DATE_PICKER_APEX'
 ,p_cSize=>20
 ,p_format_mask=>'YYYY-MM-DD'
@@ -91,7 +91,7 @@ wwv_flow_imp_page.create_page_item(
 ,p_name=>'P36_TO'
 ,p_item_sequence=>40
 ,p_item_plug_id=>wwv_flow_imp.id(91820275000000896)
-,p_prompt=>'To'
+,p_prompt=>'إلى'
 ,p_display_as=>'NATIVE_DATE_PICKER_APEX'
 ,p_cSize=>20
 ,p_format_mask=>'YYYY-MM-DD'
@@ -111,7 +111,7 @@ wwv_flow_imp_page.create_page_item(
 ,p_name=>'P36_REF'
 ,p_item_sequence=>50
 ,p_item_plug_id=>wwv_flow_imp.id(91820275000000896)
-,p_prompt=>'Referred to (hospital / specialty)'
+,p_prompt=>'محول إلى (مستشفى / تخصص)'
 ,p_display_as=>'NATIVE_TEXT_FIELD'
 ,p_cSize=>40
 ,p_cMaxlength=>200
@@ -128,11 +128,11 @@ wwv_flow_imp_page.create_page_item(
 ,p_name=>'P36_DOCTOR'
 ,p_item_sequence=>60
 ,p_item_plug_id=>wwv_flow_imp.id(91820275000000896)
-,p_prompt=>'Doctor'
+,p_prompt=>'الطبيب'
 ,p_display_as=>'NATIVE_SELECT_LIST'
 ,p_lov=>'select d.name_ar || '' - '' || p.name_ar d, d.id r from his_doctor d join his_department p on p.id = d.department_id where d.company_id = noona_his_pkg.company and d.status_code = ''ACTIVE'' order by p.sort_order, p.name_ar, d.name_ar'
 ,p_lov_display_null=>'YES'
-,p_lov_null_text=>'- visit doctor -'
+,p_lov_null_text=>'- طبيب الزيارة -'
 ,p_cHeight=>1
 ,p_lov_display_extra=>'NO'
 ,p_begin_on_new_line=>'N'
@@ -146,7 +146,7 @@ wwv_flow_imp_page.create_page_item(
 ,p_name=>'P36_BODY'
 ,p_item_sequence=>70
 ,p_item_plug_id=>wwv_flow_imp.id(91820275000000896)
-,p_prompt=>'Text (English; empty = standard wording)'
+,p_prompt=>'النص (بالإنجليزية؛ فارغ = الصيغة القياسية)'
 ,p_display_as=>'NATIVE_TEXTAREA'
 ,p_cSize=>60
 ,p_cMaxlength=>1000
@@ -189,7 +189,7 @@ wwv_flow_imp_page.create_page_button(
 ,p_button_template_options=>'#DEFAULT#'
 ,p_button_template_id=>4072362960822175091
 ,p_button_is_hot=>'Y'
-,p_button_image_alt=>'Issue'
+,p_button_image_alt=>'إصدار'
 ,p_button_position=>'NEXT'
 );
 wwv_flow_imp_page.create_page_process(
@@ -227,7 +227,7 @@ wwv_flow_imp_page.create_page_item(
 ,p_name=>'P36_CERT'
 ,p_item_sequence=>10
 ,p_item_plug_id=>wwv_flow_imp.id(91820275000000908)
-,p_prompt=>'Certificate'
+,p_prompt=>'التقرير'
 ,p_display_as=>'NATIVE_SELECT_LIST'
 ,p_lov=>'select c.cert_no || '' - '' || noona_his_clin_pkg.cert_type_label(c.cert_type) d, c.id r from his_certificate c where c.company_id = noona_his_pkg.company and c.status_code = ''ISSUED'' and c.visit_id = :P36_VISIT order by c.id desc'
 ,p_lov_display_null=>'YES'
@@ -244,7 +244,7 @@ wwv_flow_imp_page.create_page_item(
 ,p_name=>'P36_REASON'
 ,p_item_sequence=>20
 ,p_item_plug_id=>wwv_flow_imp.id(91820275000000908)
-,p_prompt=>'Reason'
+,p_prompt=>'السبب'
 ,p_display_as=>'NATIVE_TEXT_FIELD'
 ,p_cSize=>40
 ,p_cMaxlength=>200
@@ -265,7 +265,7 @@ wwv_flow_imp_page.create_page_button(
 ,p_button_action=>'SUBMIT'
 ,p_button_template_options=>'#DEFAULT#'
 ,p_button_template_id=>4072362960822175091
-,p_button_image_alt=>'Cancel certificate'
+,p_button_image_alt=>'إلغاء التقرير'
 ,p_button_position=>'NEXT'
 );
 wwv_flow_imp_page.create_page_process(
@@ -331,7 +331,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_db_column_name=>'CERT_NO'
 ,p_display_order=>20
 ,p_column_identifier=>'B'
-,p_column_label=>'No.'
+,p_column_label=>'الرقم'
 ,p_column_type=>'STRING'
 ,p_heading_alignment=>'CENTER'
 ,p_use_as_row_header=>'N'
@@ -341,7 +341,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_db_column_name=>'CERT_TYPE'
 ,p_display_order=>30
 ,p_column_identifier=>'C'
-,p_column_label=>'Type'
+,p_column_label=>'النوع'
 ,p_column_type=>'STRING'
 ,p_heading_alignment=>'CENTER'
 ,p_use_as_row_header=>'N'
@@ -351,7 +351,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_db_column_name=>'ISSUED_ON'
 ,p_display_order=>40
 ,p_column_identifier=>'D'
-,p_column_label=>'Issued'
+,p_column_label=>'تاريخ الإصدار'
 ,p_column_type=>'DATE'
 ,p_heading_alignment=>'CENTER'
 ,p_use_as_row_header=>'N'
@@ -381,7 +381,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_db_column_name=>'FROM_DATE'
 ,p_display_order=>70
 ,p_column_identifier=>'G'
-,p_column_label=>'From'
+,p_column_label=>'من'
 ,p_column_type=>'DATE'
 ,p_heading_alignment=>'CENTER'
 ,p_use_as_row_header=>'N'
@@ -391,7 +391,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_db_column_name=>'TO_DATE'
 ,p_display_order=>80
 ,p_column_identifier=>'H'
-,p_column_label=>'To'
+,p_column_label=>'إلى'
 ,p_column_type=>'DATE'
 ,p_heading_alignment=>'CENTER'
 ,p_use_as_row_header=>'N'
@@ -401,7 +401,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_db_column_name=>'DAYS'
 ,p_display_order=>90
 ,p_column_identifier=>'I'
-,p_column_label=>'Days'
+,p_column_label=>'الأيام'
 ,p_column_type=>'NUMBER'
 ,p_heading_alignment=>'CENTER'
 ,p_use_as_row_header=>'N'
@@ -411,7 +411,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_db_column_name=>'REFERRAL_TO'
 ,p_display_order=>100
 ,p_column_identifier=>'J'
-,p_column_label=>'Referred to'
+,p_column_label=>'محول إلى'
 ,p_column_type=>'STRING'
 ,p_heading_alignment=>'CENTER'
 ,p_use_as_row_header=>'N'
@@ -421,7 +421,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_db_column_name=>'DOCTOR'
 ,p_display_order=>110
 ,p_column_identifier=>'K'
-,p_column_label=>'Doctor'
+,p_column_label=>'الطبيب'
 ,p_column_type=>'STRING'
 ,p_heading_alignment=>'CENTER'
 ,p_use_as_row_header=>'N'
@@ -431,7 +431,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_db_column_name=>'VERIFY_CODE'
 ,p_display_order=>120
 ,p_column_identifier=>'L'
-,p_column_label=>'Code'
+,p_column_label=>'الرمز'
 ,p_column_type=>'STRING'
 ,p_heading_alignment=>'CENTER'
 ,p_use_as_row_header=>'N'
@@ -441,7 +441,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_db_column_name=>'STATUS'
 ,p_display_order=>130
 ,p_column_identifier=>'M'
-,p_column_label=>'Status'
+,p_column_label=>'الحالة'
 ,p_column_type=>'STRING'
 ,p_heading_alignment=>'CENTER'
 ,p_use_as_row_header=>'N'
@@ -451,7 +451,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_db_column_name=>'PRN'
 ,p_display_order=>140
 ,p_column_identifier=>'N'
-,p_column_label=>'Print'
+,p_column_label=>'طباعة'
 ,p_column_type=>'STRING'
 ,p_display_text_as=>'WITHOUT_MODIFICATION'
 ,p_column_link=>'f?p=&APP_ID.:37:&SESSION.::&DEBUG.:RP,37:P37_ID:#ID#'

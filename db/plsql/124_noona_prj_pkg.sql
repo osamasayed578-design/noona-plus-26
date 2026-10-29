@@ -1422,13 +1422,15 @@ CREATE OR REPLACE PACKAGE BODY NOONA_PRJ_PKG AS
                CONNECT BY PRIOR w.id = w.parent_wbs_id
                ORDER SIBLINGS BY w.code) LOOP
       l_n := l_n + 1;
-      l_h := l_h || '<tr data-wbs="' || r.id || '"><td>' || esc(r.code) || '</td><td style="padding-inline-start:' || (r.wbs_level * 14) || 'px">'
+      l_h := l_h || ('<tr data-wbs="' || r.id || '"><td>' || esc(r.code) || '</td><td style="padding-inline-start:' || (r.wbs_level * 14) || 'px">'
           || esc(r.name_ar) || '</td><td class="n">' || CASE WHEN r.weight_pct IS NOT NULL THEN pct(r.weight_pct) END || '</td><td>'
           || ds(r.planned_start) || CASE WHEN r.planned_end IS NOT NULL THEN ' &larr; ' || ds(r.planned_end) END || '</td><td>' || bar(r.percent_complete)
           || '</td><td class="n">' || fmt(r.budget) || '</td><td class="n' || CASE WHEN r.budget > 0 AND r.actual > r.budget THEN ' is-over' END || '">'
-          || fmt(r.actual) || '</td><td>' || badge(r.status_code) || '</td></tr>';
+          || fmt(r.actual) || '</td><td>' || badge(r.status_code) || '</td></tr>');
     END LOOP;
-    RETURN CASE WHEN l_n = 0 THEN '<div class="nn-empty">لا توجد بنود عمل</div>' ELSE l_h || '</tbody></table>' END;
+    IF l_n = 0 THEN RETURN TO_CLOB('<div class="nn-empty">لا توجد بنود عمل</div>'); END IF;
+    -- CASE لا يرجع أكثر من 32 ألف حرف حتى لو كانت فروعه CLOB
+    RETURN l_h || ('</tbody></table>');
   END wbs_html;
 
   FUNCTION budget_html(p_project_id IN NUMBER) RETURN CLOB IS
@@ -1448,13 +1450,13 @@ CREATE OR REPLACE PACKAGE BODY NOONA_PRJ_PKG AS
       CONTINUE WHEN r.budget = 0 AND r.actual = 0;
       l_tb := l_tb + r.budget;
       l_ta := l_ta + r.actual;
-      l_h := l_h || '<tr><td>' || esc(cost_type_label(r.cost_type)) || '</td><td class="n">' || fmt(r.budget) || '</td><td class="n">' || fmt(r.actual)
+      l_h := l_h || ('<tr><td>' || esc(cost_type_label(r.cost_type)) || '</td><td class="n">' || fmt(r.budget) || '</td><td class="n">' || fmt(r.actual)
           || '</td><td class="n' || CASE WHEN r.actual > r.budget THEN ' is-over' END || '">' || fmt(r.budget - r.actual) || '</td><td>'
-          || CASE WHEN r.budget > 0 THEN bar(r.actual / r.budget * 100) ELSE '<span class="nn-badge is-warning">بلا موازنة</span>' END || '</td></tr>';
+          || CASE WHEN r.budget > 0 THEN bar(r.actual / r.budget * 100) ELSE '<span class="nn-badge is-warning">بلا موازنة</span>' END || '</td></tr>');
     END LOOP;
-    RETURN l_h || '</tbody><tfoot><tr><td>الإجمالي</td><td class="n">' || fmt(l_tb) || '</td><td class="n">' || fmt(l_ta) || '</td><td class="n'
+    RETURN l_h || ('</tbody><tfoot><tr><td>الإجمالي</td><td class="n">' || fmt(l_tb) || '</td><td class="n">' || fmt(l_ta) || '</td><td class="n'
         || CASE WHEN l_ta > l_tb THEN ' is-over' END || '">' || fmt(l_tb - l_ta) || '</td><td>'
-        || CASE WHEN l_tb > 0 THEN bar(l_ta / l_tb * 100) END || '</td></tr></tfoot></table>';
+        || CASE WHEN l_tb > 0 THEN bar(l_ta / l_tb * 100) END || '</td></tr></tfoot></table>');
   END budget_html;
 
   FUNCTION costs_html(p_project_id IN NUMBER, p_limit IN PLS_INTEGER DEFAULT 50) RETURN CLOB IS
@@ -1468,15 +1470,17 @@ CREATE OR REPLACE PACKAGE BODY NOONA_PRJ_PKG AS
                 FROM prj_cost_line c JOIN prj_wbs w ON w.id = c.wbs_id
                WHERE c.project_id = p_project_id ORDER BY c.cost_date DESC, c.id DESC FETCH FIRST p_limit ROWS ONLY) LOOP
       l_n := l_n + 1;
-      l_h := l_h || '<tr' || CASE WHEN r.status_code = 'REVERSED' THEN ' class="is-void"' END || '><td>' || ds(r.cost_date) || '</td><td>'
+      l_h := l_h || ('<tr' || CASE WHEN r.status_code = 'REVERSED' THEN ' class="is-void"' END || '><td>' || ds(r.cost_date) || '</td><td>'
           || esc(cost_type_label(r.cost_type)) || '</td><td>' || esc(r.wbs) || '</td><td>' || esc(r.description) || '</td><td>' || esc(r.reference)
           || '</td><td class="n">' || CASE WHEN r.quantity IS NOT NULL THEN fq(r.quantity) END || '</td><td class="n">' || fmt(r.amount_func)
           || '</td><td>' || badge(r.status_code) || '</td><td>'
           || CASE WHEN r.status_code = 'POSTED' AND r.source_entity_type IN ('PRJ_COST_LINE', 'PRJ_TIMESHEET')
                   THEN '<button type="button" class="nn-prj-rev t-Button t-Button--small t-Button--danger t-Button--simple" data-id="' || r.id
-                       || '">عكس</button>' END || '</td></tr>';
+                       || '">عكس</button>' END || '</td></tr>');
     END LOOP;
-    RETURN CASE WHEN l_n = 0 THEN '<div class="nn-empty">لا توجد تكاليف مسجلة</div>' ELSE l_h || '</tbody></table>' END;
+    IF l_n = 0 THEN RETURN TO_CLOB('<div class="nn-empty">لا توجد تكاليف مسجلة</div>'); END IF;
+    -- CASE لا يرجع أكثر من 32 ألف حرف حتى لو كانت فروعه CLOB
+    RETURN l_h || ('</tbody></table>');
   END costs_html;
 
   FUNCTION contracts_html(p_project_id IN NUMBER, p_link IN VARCHAR2 DEFAULT NULL) RETURN CLOB IS
@@ -1494,15 +1498,16 @@ CREATE OR REPLACE PACKAGE BODY NOONA_PRJ_PKG AS
       l_n := l_n + 1;
       l_p := CASE WHEN r.customer_account_id IS NOT NULL THEN NOONA_SAL_PKG.customer_label(r.customer_account_id)
                   ELSE NOONA_PUR_PKG.supplier_label(r.supplier_account_id) END;
-      l_h := l_h || '<tr><td>' || CASE WHEN p_link IS NOT NULL THEN '<a href="' || REPLACE(p_link, '#ID#', r.id) || '">' || esc(r.contract_no) || '</a>'
+      l_h := l_h || ('<tr><td>' || CASE WHEN p_link IS NOT NULL THEN '<a href="' || REPLACE(p_link, '#ID#', r.id) || '">' || esc(r.contract_no) || '</a>'
                                        ELSE esc(r.contract_no) END
           || '</td><td>' || CASE r.contract_type WHEN 'MAIN_CONTRACT' THEN 'رئيسي (العميل)' WHEN 'SUBCONTRACT' THEN 'مقاول باطن' ELSE esc(r.contract_type) END
           || '</td><td>' || esc(l_p) || '</td><td class="n">' || fmt(r.current_value) || '</td><td class="n">' || fmt(r.certified) || '</td><td>'
           || bar(CASE WHEN r.current_value > 0 THEN r.certified / r.current_value * 100 END) || '</td><td class="n">' || fmt(retention_held(r.id))
-          || '</td><td>' || badge(r.status_code) || '</td></tr>';
+          || '</td><td>' || badge(r.status_code) || '</td></tr>');
     END LOOP;
-    RETURN CASE WHEN l_n = 0 THEN '<div class="nn-empty">لا توجد عقود؛ أضف العقد الرئيسي مع العميل وعقود مقاولي الباطن</div>'
-                ELSE l_h || '</tbody></table>' END;
+    IF l_n = 0 THEN RETURN TO_CLOB('<div class="nn-empty">لا توجد عقود؛ أضف العقد الرئيسي مع العميل وعقود مقاولي الباطن</div>'); END IF;
+    -- CASE لا يرجع أكثر من 32 ألف حرف حتى لو كانت فروعه CLOB
+    RETURN l_h || ('</tbody></table>');
   END contracts_html;
 
   FUNCTION contract_html(p_contract_id IN NUMBER) RETURN CLOB IS
@@ -1527,25 +1532,25 @@ CREATE OR REPLACE PACKAGE BODY NOONA_PRJ_PKG AS
                WHERE b.contract_id = p_contract_id ORDER BY b.sort_order, b.item_code) LOOP
       l_t := l_t + ROUND((r.contract_qty + r.variation_qty) * r.unit_rate, 2);
       l_x := l_x + ROUND(r.executed_qty * r.unit_rate, 2);
-      l_h := l_h || '<tr><td>' || esc(r.item_code) || '</td><td>' || esc(r.description_ar) || '</td><td>' || esc(r.uom) || '</td><td class="n">'
+      l_h := l_h || ('<tr><td>' || esc(r.item_code) || '</td><td>' || esc(r.description_ar) || '</td><td>' || esc(r.uom) || '</td><td class="n">'
           || fq(r.contract_qty) || '</td><td class="n">' || CASE WHEN r.variation_qty <> 0 THEN fq(r.variation_qty) END || '</td><td class="n">'
           || fmt(r.unit_rate) || '</td><td class="n">' || fmt((r.contract_qty + r.variation_qty) * r.unit_rate) || '</td><td class="n">'
           || fq(r.executed_qty) || '</td><td>' || bar(CASE WHEN r.contract_qty + r.variation_qty > 0 THEN r.executed_qty / (r.contract_qty + r.variation_qty) * 100 END)
-          || '</td></tr>';
+          || '</td></tr>');
     END LOOP;
-    l_h := l_h || '</tbody><tfoot><tr><td colspan="6">الإجمالي</td><td class="n">' || fmt(l_t) || '</td><td class="n">' || fmt(l_x) || '</td><td>'
-        || bar(CASE WHEN l_t > 0 THEN l_x / l_t * 100 END) || '</td></tr></tfoot></table>';
+    l_h := l_h || ('</tbody><tfoot><tr><td colspan="6">الإجمالي</td><td class="n">' || fmt(l_t) || '</td><td class="n">' || fmt(l_x) || '</td><td>'
+        || bar(CASE WHEN l_t > 0 THEN l_x / l_t * 100 END) || '</td></tr></tfoot></table>');
     FOR v IN (SELECT doc_no, doc_date, variation_type, description, amount, time_impact_days, status_code FROM prj_variation_order
                WHERE contract_id = p_contract_id ORDER BY doc_date, id) LOOP
       IF v.doc_no IS NOT NULL AND INSTR(l_h, 'nn-prj-vo') = 0 THEN
-        l_h := l_h || '<h4 class="nn-prj-h">أوامر التغيير</h4><table class="nn-prj-t nn-prj-vo"><thead><tr><th>الرقم</th><th>التاريخ</th><th>الوصف</th>'
-            || '<th class="n">الأثر المالي</th><th class="n">الأثر الزمني</th><th>الحالة</th></tr></thead><tbody>';
+        l_h := l_h || ('<h4 class="nn-prj-h">أوامر التغيير</h4><table class="nn-prj-t nn-prj-vo"><thead><tr><th>الرقم</th><th>التاريخ</th><th>الوصف</th>'
+            || '<th class="n">الأثر المالي</th><th class="n">الأثر الزمني</th><th>الحالة</th></tr></thead><tbody>');
       END IF;
-      l_h := l_h || '<tr><td>' || esc(v.doc_no) || '</td><td>' || ds(v.doc_date) || '</td><td>' || esc(v.description) || '</td><td class="n">'
+      l_h := l_h || ('<tr><td>' || esc(v.doc_no) || '</td><td>' || ds(v.doc_date) || '</td><td>' || esc(v.description) || '</td><td class="n">'
           || fmt(v.amount) || '</td><td class="n">' || CASE WHEN v.time_impact_days > 0 THEN v.time_impact_days || ' يوم' END || '</td><td>'
-          || badge(v.status_code) || '</td></tr>';
+          || badge(v.status_code) || '</td></tr>');
     END LOOP;
-    IF INSTR(l_h, 'nn-prj-vo') > 0 THEN l_h := l_h || '</tbody></table>'; END IF;
+    IF INSTR(l_h, 'nn-prj-vo') > 0 THEN l_h := l_h || ('</tbody></table>'); END IF;
     RETURN l_h;
   END contract_html;
 
@@ -1569,15 +1574,17 @@ CREATE OR REPLACE PACKAGE BODY NOONA_PRJ_PKG AS
       ELSE
         l_op := NULL;
       END IF;
-      l_h := l_h || '<tr' || CASE WHEN r.status_code = 'CANCELLED' THEN ' class="is-void"' END || '><td>' || r.claim_no || '</td><td>'
+      l_h := l_h || ('<tr' || CASE WHEN r.status_code = 'CANCELLED' THEN ' class="is-void"' END || '><td>' || r.claim_no || '</td><td>'
           || CASE WHEN p_link IS NOT NULL THEN '<a href="' || REPLACE(p_link, '#ID#', r.id) || '">' || esc(r.doc_no) || '</a>' ELSE esc(r.doc_no) END
           || '</td><td>' || esc(kind_label(r.claim_kind)) || '</td><td>' || ds(r.period_from) || ' &larr; ' || ds(r.period_to) || '</td><td class="n">'
           || fmt(r.current_gross) || '</td><td class="n">' || fmt(r.retention_amount) || '</td><td class="n">' || fmt(r.advance_recovery)
           || '</td><td class="n">' || fmt(r.tax_amount) || '</td><td class="n"><b>' || fmt(r.net_payable) || '</b></td><td class="n">'
           || CASE WHEN l_op IS NOT NULL THEN fmt(l_op) END || '</td><td>'
-          || CASE WHEN l_op = 0 AND r.status_code = 'APPROVED' THEN badge('PAID') ELSE badge(r.status_code) END || '</td></tr>';
+          || CASE WHEN l_op = 0 AND r.status_code = 'APPROVED' THEN badge('PAID') ELSE badge(r.status_code) END || '</td></tr>');
     END LOOP;
-    RETURN CASE WHEN l_n = 0 THEN '<div class="nn-empty">لا توجد مستخلصات لهذا العقد</div>' ELSE l_h || '</tbody></table>' END;
+    IF l_n = 0 THEN RETURN TO_CLOB('<div class="nn-empty">لا توجد مستخلصات لهذا العقد</div>'); END IF;
+    -- CASE لا يرجع أكثر من 32 ألف حرف حتى لو كانت فروعه CLOB
+    RETURN l_h || ('</tbody></table>');
   END claims_html;
 
   FUNCTION claim_print(p_claim_id IN NUMBER) RETURN CLOB IS
@@ -1603,20 +1610,20 @@ CREATE OR REPLACE PACKAGE BODY NOONA_PRJ_PKG AS
         || '</th><td>' || esc(l_pt) || '</td><th>الفترة</th><td>' || ds(l_cl.period_from) || ' إلى ' || ds(l_cl.period_to) || '</td></tr>'
         || '<tr><th>قيمة العقد الحالية</th><td>' || fmt(contract_value(l_c.id)) || '</td><th>التاريخ</th><td>' || ds(l_cl.doc_date) || '</td></tr></table>';
     IF l_cl.claim_kind = 'PROGRESS' THEN
-      l_h := l_h || '<table class="nn-prj-t"><thead><tr><th>البند</th><th>الوصف</th><th class="n">كمية العقد</th><th class="n">السابقة</th>'
+      l_h := l_h || ('<table class="nn-prj-t"><thead><tr><th>البند</th><th>الوصف</th><th class="n">كمية العقد</th><th class="n">السابقة</th>'
           || '<th class="n">الحالية</th><th class="n">التراكمية</th><th class="n">السعر</th><th class="n">القيمة التراكمية</th><th class="n">قيمة الفترة</th>'
-          || '</tr></thead><tbody>';
+          || '</tr></thead><tbody>');
       FOR r IN (SELECT b.item_code, b.description_ar, b.contract_qty + b.variation_qty q, l.previous_qty, l.current_qty, l.qty_to_date, l.unit_rate,
                        l.amount_to_date, l.current_amount
                   FROM prj_progress_claim_line l JOIN prj_boq_item b ON b.id = l.boq_item_id
                  WHERE l.claim_id = p_claim_id AND (l.qty_to_date > 0) ORDER BY b.sort_order, b.item_code) LOOP
-        l_h := l_h || '<tr><td>' || esc(r.item_code) || '</td><td>' || esc(r.description_ar) || '</td><td class="n">' || fq(r.q) || '</td><td class="n">'
+        l_h := l_h || ('<tr><td>' || esc(r.item_code) || '</td><td>' || esc(r.description_ar) || '</td><td class="n">' || fq(r.q) || '</td><td class="n">'
             || fq(r.previous_qty) || '</td><td class="n">' || fq(r.current_qty) || '</td><td class="n">' || fq(r.qty_to_date) || '</td><td class="n">'
-            || fmt(r.unit_rate) || '</td><td class="n">' || fmt(r.amount_to_date) || '</td><td class="n">' || fmt(r.current_amount) || '</td></tr>';
+            || fmt(r.unit_rate) || '</td><td class="n">' || fmt(r.amount_to_date) || '</td><td class="n">' || fmt(r.current_amount) || '</td></tr>');
       END LOOP;
-      l_h := l_h || '</tbody></table>';
+      l_h := l_h || ('</tbody></table>');
     END IF;
-    l_h := l_h || '<table class="nn-prj-cert-sum">'
+    l_h := l_h || ('<table class="nn-prj-cert-sum">'
         || CASE WHEN l_cl.claim_kind = 'PROGRESS' THEN
              '<tr><th>إجمالي الأعمال المنفذة حتى تاريخه</th><td>' || fmt(l_cl.gross_to_date) || '</td></tr>'
              || '<tr><th>يخصم: المعتمد في المستخلصات السابقة</th><td>(' || fmt(l_cl.previous_certified) || ')</td></tr>' END
@@ -1629,7 +1636,7 @@ CREATE OR REPLACE PACKAGE BODY NOONA_PRJ_PKG AS
         || '<div class="nn-prj-cert-sign"><div>المهندس المشرف<br><br>..................</div><div>الاستشاري / ' || esc(l_cl.certified_by)
         || '<br><br>..................</div><div>الاعتماد المالي<br><br>..................</div></div>'
         || CASE WHEN l_cl.status_code = 'DRAFT' THEN '<div class="nn-prj-draft">مسودة - غير معتمدة</div>'
-                WHEN l_cl.status_code = 'CANCELLED' THEN '<div class="nn-prj-draft">ملغى</div>' END || '</div>';
+                WHEN l_cl.status_code = 'CANCELLED' THEN '<div class="nn-prj-draft">ملغى</div>' END || '</div>');
     RETURN l_h;
   EXCEPTION WHEN NO_DATA_FOUND THEN
     RETURN '<div class="nn-empty">المستخلص غير موجود</div>';
@@ -1650,18 +1657,19 @@ CREATE OR REPLACE PACKAGE BODY NOONA_PRJ_PKG AS
       l_n := l_n + 1;
       l_ac := actual_cost(r.id); l_bl := billed(r.id); l_cl := collected(r.id);
       t_cv := t_cv + NVL(r.contract_value, 0); t_bg := t_bg + NVL(r.budget_amount, 0); t_ac := t_ac + l_ac; t_bl := t_bl + l_bl; t_cl := t_cl + l_cl;
-      l_h := l_h || '<tr><td>' || CASE WHEN p_link IS NOT NULL THEN '<a href="' || REPLACE(p_link, '#ID#', r.id) || '">' END || esc(r.code || ' - ' || r.name_ar)
+      l_h := l_h || ('<tr><td>' || CASE WHEN p_link IS NOT NULL THEN '<a href="' || REPLACE(p_link, '#ID#', r.id) || '">' END || esc(r.code || ' - ' || r.name_ar)
           || CASE WHEN p_link IS NOT NULL THEN '</a>' END || '</td><td>' || esc(type_label(r.project_type)) || '</td><td>' || bar(r.percent_complete)
           || '</td><td' || CASE WHEN r.planned_end < TRUNC(SYSDATE) AND r.status_code = 'ACTIVE' AND NVL(r.percent_complete, 0) < 100 THEN ' class="is-over"' END
           || '>' || ds(r.planned_end) || '</td><td class="n">' || fmt(r.contract_value) || '</td><td class="n">' || fmt(r.budget_amount)
           || '</td><td class="n' || CASE WHEN r.budget_amount > 0 AND l_ac > r.budget_amount THEN ' is-over' END || '">' || fmt(l_ac) || '</td><td class="n">'
           || fmt(l_bl) || '</td><td class="n">' || fmt(l_cl) || '</td><td class="n' || CASE WHEN l_bl - l_ac < 0 THEN ' is-over' END || '">' || fmt(l_bl - l_ac)
-          || '</td><td class="n">' || CASE WHEN l_bl > 0 THEN pct((l_bl - l_ac) / l_bl * 100) END || '</td><td>' || badge(r.status_code) || '</td></tr>';
+          || '</td><td class="n">' || CASE WHEN l_bl > 0 THEN pct((l_bl - l_ac) / l_bl * 100) END || '</td><td>' || badge(r.status_code) || '</td></tr>');
     END LOOP;
-    RETURN CASE WHEN l_n = 0 THEN '<div class="nn-empty">لا توجد مشروعات</div>'
-                ELSE l_h || '</tbody><tfoot><tr><td colspan="4">الإجمالي (' || l_n || ')</td><td class="n">' || fmt(t_cv) || '</td><td class="n">' || fmt(t_bg)
+    IF l_n = 0 THEN RETURN TO_CLOB('<div class="nn-empty">لا توجد مشروعات</div>'); END IF;
+    -- CASE لا يرجع أكثر من 32 ألف حرف حتى لو كانت فروعه CLOB
+    RETURN l_h || ('</tbody><tfoot><tr><td colspan="4">الإجمالي (' || l_n || ')</td><td class="n">' || fmt(t_cv) || '</td><td class="n">' || fmt(t_bg)
                     || '</td><td class="n">' || fmt(t_ac) || '</td><td class="n">' || fmt(t_bl) || '</td><td class="n">' || fmt(t_cl) || '</td><td class="n">'
-                    || fmt(t_bl - t_ac) || '</td><td class="n">' || CASE WHEN t_bl > 0 THEN pct((t_bl - t_ac) / t_bl * 100) END || '</td><td></td></tr></tfoot></table>' END;
+                    || fmt(t_bl - t_ac) || '</td><td class="n">' || CASE WHEN t_bl > 0 THEN pct((t_bl - t_ac) / t_bl * 100) END || '</td><td></td></tr></tfoot></table>');
   END portfolio_html;
 
   FUNCTION claims_register_html(p_from IN DATE, p_to IN DATE, p_direction IN VARCHAR2 DEFAULT NULL) RETURN CLOB IS
@@ -1681,14 +1689,15 @@ CREATE OR REPLACE PACKAGE BODY NOONA_PRJ_PKG AS
       l_pt := CASE WHEN r.customer_account_id IS NOT NULL THEN NOONA_SAL_PKG.customer_label(r.customer_account_id)
                    ELSE NOONA_PUR_PKG.supplier_label(r.supplier_account_id) END;
       t_g := t_g + r.current_gross; t_r := t_r + r.retention_amount; t_a := t_a + r.advance_recovery; t_t := t_t + r.tax_amount; t_n := t_n + r.net_payable;
-      l_h := l_h || '<tr><td>' || ds(r.doc_date) || '</td><td>' || esc(r.doc_no) || '</td><td>' || esc(r.pcode) || '</td><td>' || esc(r.contract_no)
+      l_h := l_h || ('<tr><td>' || ds(r.doc_date) || '</td><td>' || esc(r.doc_no) || '</td><td>' || esc(r.pcode) || '</td><td>' || esc(r.contract_no)
           || '</td><td>' || esc(l_pt) || '</td><td>' || esc(kind_label(r.claim_kind)) || CASE WHEN r.claim_direction = 'PAYABLE' THEN ' (باطن)' END
           || '</td><td class="n">' || fmt(r.current_gross) || '</td><td class="n">' || fmt(r.retention_amount) || '</td><td class="n">' || fmt(r.advance_recovery)
-          || '</td><td class="n">' || fmt(r.tax_amount) || '</td><td class="n">' || fmt(r.net_payable) || '</td></tr>';
+          || '</td><td class="n">' || fmt(r.tax_amount) || '</td><td class="n">' || fmt(r.net_payable) || '</td></tr>');
     END LOOP;
-    RETURN CASE WHEN l_n = 0 THEN '<div class="nn-empty">لا توجد مستخلصات معتمدة في الفترة</div>'
-                ELSE l_h || '</tbody><tfoot><tr><td colspan="6">الإجمالي (' || l_n || ')</td><td class="n">' || fmt(t_g) || '</td><td class="n">' || fmt(t_r)
-                    || '</td><td class="n">' || fmt(t_a) || '</td><td class="n">' || fmt(t_t) || '</td><td class="n">' || fmt(t_n) || '</td></tr></tfoot></table>' END;
+    IF l_n = 0 THEN RETURN TO_CLOB('<div class="nn-empty">لا توجد مستخلصات معتمدة في الفترة</div>'); END IF;
+    -- CASE لا يرجع أكثر من 32 ألف حرف حتى لو كانت فروعه CLOB
+    RETURN l_h || ('</tbody><tfoot><tr><td colspan="6">الإجمالي (' || l_n || ')</td><td class="n">' || fmt(t_g) || '</td><td class="n">' || fmt(t_r)
+                    || '</td><td class="n">' || fmt(t_a) || '</td><td class="n">' || fmt(t_t) || '</td><td class="n">' || fmt(t_n) || '</td></tr></tfoot></table>');
   END claims_register_html;
 
   FUNCTION retention_html RETURN CLOB IS
@@ -1709,12 +1718,14 @@ CREATE OR REPLACE PACKAGE BODY NOONA_PRJ_PKG AS
       l_pt := CASE WHEN k.customer_account_id IS NOT NULL THEN NOONA_SAL_PKG.customer_label(k.customer_account_id)
                    ELSE NOONA_PUR_PKG.supplier_label(k.supplier_account_id) END;
       l_rel := CASE WHEN k.end_date IS NOT NULL THEN ADD_MONTHS(k.end_date, NVL(k.defects_liability_months, 12)) END;
-      l_h := l_h || '<tr><td>' || esc(k.pcode) || '</td><td>' || esc(k.contract_no) || '</td><td>' || esc(l_pt) || '</td><td>'
+      l_h := l_h || ('<tr><td>' || esc(k.pcode) || '</td><td>' || esc(k.contract_no) || '</td><td>' || esc(l_pt) || '</td><td>'
           || CASE WHEN k.contract_type = 'MAIN_CONTRACT' THEN 'لدى العميل (لنا)' ELSE 'لمقاول الباطن (علينا)' END || '</td><td class="n">' || fmt(l_r)
           || '</td><td class="n">' || fmt(advance_open(k.id)) || '</td><td>' || ds(k.end_date) || '</td><td'
-          || CASE WHEN l_rel <= TRUNC(SYSDATE) THEN ' class="is-over"' END || '>' || ds(l_rel) || '</td></tr>';
+          || CASE WHEN l_rel <= TRUNC(SYSDATE) THEN ' class="is-over"' END || '>' || ds(l_rel) || '</td></tr>');
     END LOOP;
-    RETURN CASE WHEN l_n = 0 THEN '<div class="nn-empty">لا توجد محتجزات أو دفعات مقدمة قائمة</div>' ELSE l_h || '</tbody></table>' END;
+    IF l_n = 0 THEN RETURN TO_CLOB('<div class="nn-empty">لا توجد محتجزات أو دفعات مقدمة قائمة</div>'); END IF;
+    -- CASE لا يرجع أكثر من 32 ألف حرف حتى لو كانت فروعه CLOB
+    RETURN l_h || ('</tbody></table>');
   END retention_html;
 
   FUNCTION cost_report_html(p_from IN DATE, p_to IN DATE, p_project_id IN NUMBER DEFAULT NULL) RETURN CLOB IS
@@ -1731,11 +1742,12 @@ CREATE OR REPLACE PACKAGE BODY NOONA_PRJ_PKG AS
                GROUP BY p.code || ' - ' || p.name_ar, c.cost_type ORDER BY 1, 2) LOOP
       l_n := l_n + 1;
       l_t := l_t + r.a;
-      l_h := l_h || '<tr><td>' || esc(r.prj) || '</td><td>' || esc(cost_type_label(r.cost_type)) || '</td><td class="n">' || r.n || '</td><td class="n">'
-          || fmt(r.a) || '</td></tr>';
+      l_h := l_h || ('<tr><td>' || esc(r.prj) || '</td><td>' || esc(cost_type_label(r.cost_type)) || '</td><td class="n">' || r.n || '</td><td class="n">'
+          || fmt(r.a) || '</td></tr>');
     END LOOP;
-    RETURN CASE WHEN l_n = 0 THEN '<div class="nn-empty">لا توجد تكاليف في الفترة</div>'
-                ELSE l_h || '</tbody><tfoot><tr><td colspan="3">الإجمالي</td><td class="n">' || fmt(l_t) || '</td></tr></tfoot></table>' END;
+    IF l_n = 0 THEN RETURN TO_CLOB('<div class="nn-empty">لا توجد تكاليف في الفترة</div>'); END IF;
+    -- CASE لا يرجع أكثر من 32 ألف حرف حتى لو كانت فروعه CLOB
+    RETURN l_h || ('</tbody><tfoot><tr><td colspan="3">الإجمالي</td><td class="n">' || fmt(l_t) || '</td></tr></tfoot></table>');
   END cost_report_html;
 
   FUNCTION unit_costs_html(p_project_id IN NUMBER, p_basis IN VARCHAR2 DEFAULT 'AREA') RETURN CLOB IS
@@ -1768,13 +1780,13 @@ CREATE OR REPLACE PACKAGE BODY NOONA_PRJ_PKG AS
                WHERE property_id = l_prop AND status_code <> 'CANCELLED' ORDER BY code) LOOP
       l_share := ROUND(l_cost * CASE l_basis WHEN 'AREA' THEN NVL(u.area, 0) WHEN 'SALE_VALUE' THEN NVL(u.list_price, 0) ELSE 1 END / l_base, 2);
       l_tp := l_tp + NVL(u.list_price, 0);
-      l_h := l_h || '<tr><td>' || esc(NOONA_RE_PKG.unit_label(u.id)) || '</td><td>' || esc(NOONA_RE_PKG.unit_type_label(u.unit_type)) || '</td><td class="n">'
+      l_h := l_h || ('<tr><td>' || esc(NOONA_RE_PKG.unit_label(u.id)) || '</td><td>' || esc(NOONA_RE_PKG.unit_type_label(u.unit_type)) || '</td><td class="n">'
           || fq(u.area) || '</td><td class="n">' || fmt(u.list_price) || '</td><td class="n">' || fmt(l_share) || '</td><td class="n'
           || CASE WHEN u.list_price < l_share THEN ' is-over' END || '">' || CASE WHEN u.list_price > 0 THEN fmt(u.list_price - l_share) END || '</td><td>'
-          || esc(NOONA_RE_PKG.unit_status_label(u.status_code)) || '</td></tr>';
+          || esc(NOONA_RE_PKG.unit_status_label(u.status_code)) || '</td></tr>');
     END LOOP;
-    RETURN l_h || '</tbody><tfoot><tr><td colspan="3">الإجمالي</td><td class="n">' || fmt(l_tp) || '</td><td class="n">' || fmt(l_cost) || '</td><td class="n">'
-        || CASE WHEN l_tp > 0 THEN fmt(l_tp - l_cost) END || '</td><td></td></tr></tfoot></table>';
+    RETURN l_h || ('</tbody><tfoot><tr><td colspan="3">الإجمالي</td><td class="n">' || fmt(l_tp) || '</td><td class="n">' || fmt(l_cost) || '</td><td class="n">'
+        || CASE WHEN l_tp > 0 THEN fmt(l_tp - l_cost) END || '</td><td></td></tr></tfoot></table>');
   END unit_costs_html;
 END NOONA_PRJ_PKG;
 /

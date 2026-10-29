@@ -1254,18 +1254,18 @@ CREATE OR REPLACE PACKAGE BODY NOONA_INV_PKG AS
                ORDER BY g.name_ar, i.item_no) LOOP
       l_n := l_n + 1;
       l_tot := l_tot + ROUND(r.qty * r.ac, 2);
-      l_html := l_html || ('<tr' || CASE WHEN r.min_qty IS NOT NULL AND r.qty < r.min_qty THEN ' class="nn-rpt-warn"' END || '><td class="nn-num-code">'
+      l_html := l_html || (('<tr' || CASE WHEN r.min_qty IS NOT NULL AND r.qty < r.min_qty THEN ' class="nn-rpt-warn"' END || '><td class="nn-num-code">'
              || CASE WHEN p_link IS NOT NULL THEN '<a href="' || REPLACE(p_link, '#ID#', r.id) || '">' || esc(r.item_no) || '</a>' ELSE esc(r.item_no) END
              || '</td><td>' || esc(r.item_code) || '</td><td class="nn-rpt-text">' || esc(r.name_ar) || '</td><td>' || esc(r.cat)
              || '</td><td>' || fqty(r.qty) || '</td><td>' || esc(r.uom) || '</td><td>' || fmt(r.ac) || '</td><td>' || fmt(r.qty * r.ac)
-             || '</td><td>' || CASE WHEN r.min_qty IS NOT NULL THEN fqty(r.min_qty) END || '</td></tr>');
+             || '</td><td>' || CASE WHEN r.min_qty IS NOT NULL THEN fqty(r.min_qty) END || '</td></tr>'));
     END LOOP;
     IF l_n = 0 THEN
       l_html := l_html || ('<tr><td colspan="9" class="nn-rpt-text">لا توجد أرصدة</td></tr>');
     END IF;
-    RETURN l_html || ('</tbody><tfoot><tr><td colspan="7">إجمالي قيمة المخزون (' || l_n || ' صنف)</td><td>' || fmt(l_tot)
+    RETURN l_html || (('</tbody><tfoot><tr><td colspan="7">إجمالي قيمة المخزون (' || l_n || ' صنف)</td><td>' || fmt(l_tot)
         || '</td><td></td></tr></tfoot></table>'
-        || NOONA_GL_PKG.report_footer('الكمية من الحركات المرحلة؛ القيمة بالمتوسط المرجح للشركة'));
+        || NOONA_GL_PKG.report_footer('الكمية من الحركات المرحلة؛ القيمة بالمتوسط المرجح للشركة')));
   END stock_balance;
 
   FUNCTION item_card(p_item_id IN NUMBER, p_from IN DATE, p_to IN DATE, p_warehouse_id IN NUMBER DEFAULT NULL) RETURN CLOB IS
@@ -1292,14 +1292,14 @@ CREATE OR REPLACE PACKAGE BODY NOONA_INV_PKG AS
                ORDER BY t.doc_date, t.id, l.line_no) LOOP
       l_bal := l_bal + r.q;
       IF r.q > 0 THEN l_in := l_in + r.q; ELSE l_out := l_out - r.q; END IF;
-      l_html := l_html || ('<tr><td>' || TO_CHAR(r.doc_date, 'YYYY-MM-DD') || '</td><td>' || esc(r.doc_no) || '</td><td class="nn-rpt-text">'
+      l_html := l_html || (('<tr><td>' || TO_CHAR(r.doc_date, 'YYYY-MM-DD') || '</td><td>' || esc(r.doc_no) || '</td><td class="nn-rpt-text">'
              || esc(r.typ) || '</td><td>' || esc(r.wh) || '</td><td>' || esc(r.lot_no)
              || CASE WHEN r.expiry_date IS NOT NULL THEN ' (' || TO_CHAR(r.expiry_date, 'YYYY-MM-DD') || ')' END || '</td><td>'
              || CASE WHEN r.q > 0 THEN fqty(r.q) END || '</td><td>' || CASE WHEN r.q < 0 THEN fqty(-r.q) END || '</td><td>' || fqty(l_bal)
-             || '</td><td>' || fmt(r.unit_cost) || '</td></tr>');
+             || '</td><td>' || fmt(r.unit_cost) || '</td></tr>'));
     END LOOP;
-    RETURN l_html || ('</tbody><tfoot><tr><td colspan="5">الإجمالي</td><td>' || fqty(l_in) || '</td><td>' || fqty(l_out) || '</td><td>'
-        || fqty(l_bal) || '</td><td></td></tr></tfoot></table>' || NOONA_GL_PKG.report_footer('الحركات المرحلة فقط'));
+    RETURN l_html || (('</tbody><tfoot><tr><td colspan="5">الإجمالي</td><td>' || fqty(l_in) || '</td><td>' || fqty(l_out) || '</td><td>'
+        || fqty(l_bal) || '</td><td></td></tr></tfoot></table>' || NOONA_GL_PKG.report_footer('الحركات المرحلة فقط')));
   END item_card;
 
   FUNCTION expiry_report(p_days IN NUMBER DEFAULT 90, p_warehouse_id IN NUMBER DEFAULT NULL) RETURN CLOB IS
@@ -1317,15 +1317,15 @@ CREATE OR REPLACE PACKAGE BODY NOONA_INV_PKG AS
                  AND (p_warehouse_id IS NULL OR o.warehouse_id = p_warehouse_id)
                ORDER BY l.expiry_date, i.item_no) LOOP
       l_n := l_n + 1;
-      l_html := l_html || ('<tr' || CASE WHEN r.days < 0 THEN ' class="nn-rpt-bad"' WHEN r.days <= 30 THEN ' class="nn-rpt-warn"' END
+      l_html := l_html || (('<tr' || CASE WHEN r.days < 0 THEN ' class="nn-rpt-bad"' WHEN r.days <= 30 THEN ' class="nn-rpt-warn"' END
              || '><td class="nn-rpt-text">' || esc(r.item) || '</td><td>' || esc(r.generic_name) || '</td><td>' || esc(r.lot_no) || '</td><td>'
              || TO_CHAR(r.expiry_date, 'YYYY-MM-DD') || '</td><td>' || CASE WHEN r.days < 0 THEN 'منتهية' ELSE TO_CHAR(r.days) END
-             || '</td><td>' || esc(r.wh) || '</td><td>' || fqty(r.q) || '</td><td>' || fmt(r.v) || '</td></tr>');
+             || '</td><td>' || esc(r.wh) || '</td><td>' || fqty(r.q) || '</td><td>' || fmt(r.v) || '</td></tr>'));
     END LOOP;
     IF l_n = 0 THEN
       l_html := l_html || ('<tr><td colspan="8" class="nn-rpt-text">لا توجد دفعات منتهية أو قريبة الانتهاء</td></tr>');
     END IF;
-    RETURN l_html || ('</tbody></table>' || NOONA_GL_PKG.report_footer('الدفعات التي لها رصيد فقط؛ الدفعة المنتهية لا تباع'));
+    RETURN l_html || (('</tbody></table>' || NOONA_GL_PKG.report_footer('الدفعات التي لها رصيد فقط؛ الدفعة المنتهية لا تباع')));
   END expiry_report;
 
   FUNCTION reorder_report RETURN CLOB IS
@@ -1343,14 +1343,14 @@ CREATE OR REPLACE PACKAGE BODY NOONA_INV_PKG AS
                WHERE c.company_id = company AND c.min_qty IS NOT NULL AND q.qty < c.min_qty AND i.status_code = 'ACTIVE'
                ORDER BY i.item_no) LOOP
       l_n := l_n + 1;
-      l_html := l_html || ('<tr><td class="nn-rpt-text">' || esc(r.item) || '</td><td>' || fqty(r.qty) || '</td><td>' || fqty(r.min_qty)
+      l_html := l_html || (('<tr><td class="nn-rpt-text">' || esc(r.item) || '</td><td>' || fqty(r.qty) || '</td><td>' || fqty(r.min_qty)
              || '</td><td>' || CASE WHEN r.max_qty IS NOT NULL THEN fqty(r.max_qty) END || '</td><td><b>' || fqty(r.sugg) || '</b></td><td>'
-             || fmt(r.last_purchase_price) || '</td><td>' || fmt(r.sugg * r.last_purchase_price) || '</td></tr>');
+             || fmt(r.last_purchase_price) || '</td><td>' || fmt(r.sugg * r.last_purchase_price) || '</td></tr>'));
     END LOOP;
     IF l_n = 0 THEN
       l_html := l_html || ('<tr><td colspan="7" class="nn-rpt-text">لا توجد أصناف تحت حد الطلب</td></tr>');
     END IF;
-    RETURN l_html || ('</tbody></table>' || NOONA_GL_PKG.report_footer('الكمية المقترحة: حتى الحد الأعلى أو كمية إعادة الطلب أيهما أكبر'));
+    RETURN l_html || (('</tbody></table>' || NOONA_GL_PKG.report_footer('الكمية المقترحة: حتى الحد الأعلى أو كمية إعادة الطلب أيهما أكبر')));
   END reorder_report;
 
   FUNCTION fitment_search(p_make IN VARCHAR2, p_model IN VARCHAR2 DEFAULT NULL, p_year IN NUMBER DEFAULT NULL,
@@ -1376,9 +1376,9 @@ CREATE OR REPLACE PACKAGE BODY NOONA_INV_PKG AS
                  AND i.status_code = 'ACTIVE'
                ORDER BY i.name_ar) LOOP
       l_n := l_n + 1;
-      l_html := l_html || ('<tr><td class="nn-num-code">' || esc(r.item_no) || '</td><td class="nn-rpt-text">' || esc(r.name_ar) || '</td><td>'
+      l_html := l_html || (('<tr><td class="nn-num-code">' || esc(r.item_no) || '</td><td class="nn-rpt-text">' || esc(r.name_ar) || '</td><td>'
              || esc(r.manufacturer_part_no) || '</td><td>' || esc(r.brand) || '</td><td>' || esc(r.fit) || '</td><td>' || fqty(r.qty)
-             || '</td><td>' || fmt(r.sale_price) || '</td><td>' || esc(r.alts) || '</td></tr>');
+             || '</td><td>' || fmt(r.sale_price) || '</td><td>' || esc(r.alts) || '</td></tr>'));
     END LOOP;
     IF l_n = 0 THEN
       l_html := l_html || ('<tr><td colspan="8" class="nn-rpt-text">لا توجد قطع مسجل توافقها مع هذه المركبة</td></tr>');
@@ -1398,7 +1398,7 @@ CREATE OR REPLACE PACKAGE BODY NOONA_INV_PKG AS
     FUNCTION want(p VARCHAR2) RETURN BOOLEAN IS BEGIN RETURN INSTR(',' || REPLACE(p_names, ' ') || ',', ',' || p || ',') > 0; END;
     PROCEDURE put(p_name VARCHAR2, p_json CLOB) IS
     BEGIN
-      l_out := l_out || (CASE WHEN l_first THEN '' ELSE ',' END || '"' || p_name || '":' || NVL(p_json, TO_CLOB('[]')));
+      l_out := l_out || ((CASE WHEN l_first THEN '' ELSE ',' END || '"' || p_name || '":' || NVL(p_json, TO_CLOB('[]'))));
       l_first := FALSE;
     END put;
   BEGIN

@@ -801,11 +801,11 @@ CREATE OR REPLACE PACKAGE BODY NOONA_CSH_PKG AS
               ORDER BY 1 DESC, 4) LOOP
       l_b := balance(r.box_id, r.bank_id);
       l_tot := l_tot + l_b;
-      l_html := l_html || ('<tr><td>' || r.k || '</td><td>' || esc(r.code) || '</td><td class="nn-rpt-text">' || esc(r.name_ar)
+      l_html := l_html || (('<tr><td>' || r.k || '</td><td>' || esc(r.code) || '</td><td class="nn-rpt-text">' || esc(r.name_ar)
              || '</td><td class="nn-rpt-text">' || esc(r.acc) || '</td><td>' || NOONA_UI_PKG.status_badge(r.status_code)
-             || '</td><td>' || fmt0(l_b) || '</td></tr>');
+             || '</td><td>' || fmt0(l_b) || '</td></tr>'));
     END LOOP;
-    RETURN l_html || ('</tbody><tfoot><tr><td colspan="5">إجمالي النقدية</td><td>' || fmt0(l_tot) || '</td></tr></tfoot></table>');
+    RETURN l_html || (('</tbody><tfoot><tr><td colspan="5">إجمالي النقدية</td><td>' || fmt0(l_tot) || '</td></tr></tfoot></table>'));
   END balances_html;
 
   FUNCTION place_name(p_t csh_transaction%ROWTYPE) RETURN VARCHAR2 IS
@@ -874,13 +874,13 @@ CREATE OR REPLACE PACKAGE BODY NOONA_CSH_PKG AS
                 FROM csh_transaction_line l JOIN gl_account a ON a.id = l.account_id
                 LEFT JOIN gl_cost_center c ON c.id = l.cost_center_id
                WHERE l.transaction_id = p_id ORDER BY l.line_no) LOOP
-      l_html := l_html || ('<tr><td>' || r.line_no || '</td><td class="nn-rpt-text">' || esc(r.acc) || '</td><td class="nn-rpt-text">'
-             || esc(r.cc) || '</td><td class="nn-rpt-text">' || esc(r.description) || '</td><td>' || fmt0(r.amount) || '</td></tr>');
+      l_html := l_html || (('<tr><td>' || r.line_no || '</td><td class="nn-rpt-text">' || esc(r.acc) || '</td><td class="nn-rpt-text">'
+             || esc(r.cc) || '</td><td class="nn-rpt-text">' || esc(r.description) || '</td><td>' || fmt0(r.amount) || '</td></tr>'));
     END LOOP;
-    RETURN l_html || ('</tbody><tfoot><tr><td colspan="4">الإجمالي</td><td>' || fmt0(l_t.amount) || '</td></tr></tfoot></table>'
+    RETURN l_html || (('</tbody><tfoot><tr><td colspan="4">الإجمالي</td><td>' || fmt0(l_t.amount) || '</td></tr></tfoot></table>'
         || '<div class="nn-sign"><div>المحاسب<br><span>' || esc(l_t.created_by) || '</span></div><div>المعتمد<br><span>'
         || esc(l_t.posted_by) || '</span></div><div>' || CASE l_t.txn_type WHEN 'RECEIPT' THEN 'أمين الصندوق' ELSE 'المستلم' END
-        || '<br><span>&nbsp;</span></div></div>');
+        || '<br><span>&nbsp;</span></div></div>'));
   END voucher_print;
 
   FUNCTION cash_book(p_box_id IN NUMBER, p_bank_id IN NUMBER, p_from IN DATE, p_to IN DATE) RETURN CLOB IS
@@ -921,13 +921,13 @@ CREATE OR REPLACE PACKAGE BODY NOONA_CSH_PKG AS
                ORDER BY e.accounting_date, e.id) LOOP
       l_bal := l_bal + r.amt;
       IF r.amt > 0 THEN l_in := l_in + r.amt; ELSE l_out := l_out - r.amt; END IF;
-      l_html := l_html || ('<tr><td>' || TO_CHAR(r.d, 'YYYY-MM-DD') || '</td><td>' || esc(r.doc_no) || '</td><td>'
+      l_html := l_html || (('<tr><td>' || TO_CHAR(r.d, 'YYYY-MM-DD') || '</td><td>' || esc(r.doc_no) || '</td><td>'
              || type_label(r.txn_type) || CASE WHEN r.is_rev = 'Y' THEN ' (عكس)' END || '</td><td class="nn-rpt-text">'
              || esc(r.counterparty_name) || '</td><td class="nn-rpt-text">' || esc(r.description) || '</td><td>'
-             || fmt(GREATEST(r.amt, 0)) || '</td><td>' || fmt(GREATEST(-r.amt, 0)) || '</td><td>' || fmt0(l_bal) || '</td></tr>');
+             || fmt(GREATEST(r.amt, 0)) || '</td><td>' || fmt(GREATEST(-r.amt, 0)) || '</td><td>' || fmt0(l_bal) || '</td></tr>'));
     END LOOP;
-    RETURN l_html || ('</tbody><tfoot><tr><td colspan="5">الإجمالي والرصيد الختامي</td><td>' || fmt0(l_in) || '</td><td>'
-        || fmt0(l_out) || '</td><td>' || fmt0(l_bal) || '</td></tr></tfoot></table>');
+    RETURN l_html || (('</tbody><tfoot><tr><td colspan="5">الإجمالي والرصيد الختامي</td><td>' || fmt0(l_in) || '</td><td>'
+        || fmt0(l_out) || '</td><td>' || fmt0(l_bal) || '</td></tr></tfoot></table>'));
   END cash_book;
 
   FUNCTION negative_balances_html RETURN CLOB IS
@@ -943,9 +943,9 @@ CREATE OR REPLACE PACKAGE BODY NOONA_CSH_PKG AS
                 SELECT a.name_ar, 'حساب بنكي', balance(NULL, a.id), NVL(a.overdraft_limit, 0) FROM csh_bank_account a
                  WHERE a.company_id = NOONA_GL_PKG.company) WHERE bal < 0 ORDER BY bal) LOOP
       l_n := l_n + 1;
-      l_h := l_h || '<tr><td>' || esc(r.nm) || '</td><td>' || r.kind || '</td><td class="n nn-neg">' || fmt0(r.bal)
+      l_h := l_h || ('<tr><td>' || esc(r.nm) || '</td><td>' || r.kind || '</td><td class="n nn-neg">' || fmt0(r.bal)
           || '</td><td class="n">' || fmt(r.od) || '</td><td>' || CASE WHEN -r.bal <= r.od THEN 'ضمن التسهيل البنكي'
-             ELSE 'تمويل ' || fmt0(-r.bal - r.od) || ' بسند قبض أو تحويل، أو مراجعة المصروفات المسجلة عليه' END || '</td></tr>';
+             ELSE 'تمويل ' || fmt0(-r.bal - r.od) || ' بسند قبض أو تحويل، أو مراجعة المصروفات المسجلة عليه' END || '</td></tr>');
     END LOOP;
     RETURN CASE WHEN l_n = 0 THEN NULL ELSE '<p class="nn-hint">هذه الأرصدة سالبة من حركات سابقة. أي صرف جديد منها سيرفض حتى تمول.</p>'
                                          || l_h || '</tbody></table>' END;

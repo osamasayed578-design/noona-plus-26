@@ -730,21 +730,21 @@ CREATE OR REPLACE PACKAGE BODY NOONA_HR_PKG AS
     FOR r IN (SELECT e.name_ar, x.amount, x.effective_from FROM pay_employee_element x JOIN pay_element e ON e.id = x.element_id
                WHERE x.employment_id = p_employment_id AND TRUNC(SYSDATE) BETWEEN x.effective_from AND NVL(x.effective_to, DATE '9999-12-31')
                ORDER BY e.sort_order) LOOP
-      l_html := l_html || ('<tr><td class="nn-rpt-text">' || esc(r.name_ar) || '</td><td>' || fnum(r.amount) || '</td></tr>');
+      l_html := l_html || (('<tr><td class="nn-rpt-text">' || esc(r.name_ar) || '</td><td>' || fnum(r.amount) || '</td></tr>'));
       l_tot := l_tot + r.amount;
     END LOOP;
-    l_html := l_html || ('<tr class="nn-rpt-total"><td class="nn-rpt-text">الإجمالي الشهري</td><td>' || fnum(l_tot) || '</td></tr></table></div>'
+    l_html := l_html || (('<tr class="nn-rpt-total"><td class="nn-rpt-text">الإجمالي الشهري</td><td>' || fnum(l_tot) || '</td></tr></table></div>'
            || '<div><h4>الإجازات</h4><table class="nn-rpt"><tr><td class="nn-rpt-text">رصيد الإجازة السنوية المتاح</td><td>'
            || fnum(leave_available(l_m.employee_id, 'ANNUAL'), 1) || ' يوم</td></tr><tr><td class="nn-rpt-text">الاستحقاق السنوي</td><td>'
-           || annual_days(l_m, TRUNC(SYSDATE)) || ' يوم</td></tr></table><h4>الحركات الوظيفية</h4><table class="nn-rpt">');
+           || annual_days(l_m, TRUNC(SYSDATE)) || ' يوم</td></tr></table><h4>الحركات الوظيفية</h4><table class="nn-rpt">'));
     FOR a IN (SELECT * FROM (SELECT doc_no, action_type, effective_date, reason FROM hr_employee_action
                               WHERE employment_id = p_employment_id ORDER BY effective_date DESC, id DESC) WHERE ROWNUM <= 6) LOOP
-      l_html := l_html || ('<tr><td>' || TO_CHAR(a.effective_date, 'YYYY-MM-DD') || '</td><td class="nn-rpt-text">'
+      l_html := l_html || (('<tr><td>' || TO_CHAR(a.effective_date, 'YYYY-MM-DD') || '</td><td class="nn-rpt-text">'
              || CASE a.action_type WHEN 'HIRE' THEN 'تعيين' WHEN 'SALARY_CHANGE' THEN 'تعديل راتب' WHEN 'TRANSFER' THEN 'نقل'
                   WHEN 'POSITION_CHANGE' THEN 'تغيير مسمى' WHEN 'TERMINATION' THEN 'إنهاء خدمة' ELSE a.action_type END
-             || ' · ' || esc(a.doc_no) || '</td><td class="nn-rpt-text">' || esc(a.reason) || '</td></tr>');
+             || ' · ' || esc(a.doc_no) || '</td><td class="nn-rpt-text">' || esc(a.reason) || '</td></tr>'));
     END LOOP;
-    RETURN l_html || '</table></div></div>';
+    RETURN l_html || ('</table></div></div>');
   END employee_card;
 
   FUNCTION headcount_report RETURN CLOB IS
@@ -756,12 +756,12 @@ CREATE OR REPLACE PACKAGE BODY NOONA_HR_PKG AS
                 FROM hr_employment m LEFT JOIN org_unit u ON u.id = m.org_unit_id
                WHERE m.company_id = company AND m.status_code IN ('ACTIVE', 'NOTICE_PERIOD', 'SUSPENDED')
                GROUP BY NVL(u.name_ar, 'غير محدد') ORDER BY 1) LOOP
-      l_html := l_html || ('<tr><td class="nn-rpt-text">' || esc(r.unit) || '</td><td>' || r.sa || '</td><td>' || r.ns || '</td><td>'
-             || (r.sa + r.ns) || '</td><td>' || ROUND(r.sa * 100 / (r.sa + r.ns), 1) || '%</td></tr>');
+      l_html := l_html || (('<tr><td class="nn-rpt-text">' || esc(r.unit) || '</td><td>' || r.sa || '</td><td>' || r.ns || '</td><td>'
+             || (r.sa + r.ns) || '</td><td>' || ROUND(r.sa * 100 / (r.sa + r.ns), 1) || '%</td></tr>'));
       l_s := l_s + r.sa; l_n := l_n + r.ns;
     END LOOP;
-    RETURN l_html || ('</tbody><tfoot><tr><td class="nn-rpt-text">الإجمالي</td><td>' || l_s || '</td><td>' || l_n || '</td><td>' || (l_s + l_n)
-        || '</td><td>' || CASE WHEN l_s + l_n > 0 THEN ROUND(l_s * 100 / (l_s + l_n), 1) ELSE 0 END || '%</td></tr></tfoot></table>');
+    RETURN l_html || (('</tbody><tfoot><tr><td class="nn-rpt-text">الإجمالي</td><td>' || l_s || '</td><td>' || l_n || '</td><td>' || (l_s + l_n)
+        || '</td><td>' || CASE WHEN l_s + l_n > 0 THEN ROUND(l_s * 100 / (l_s + l_n), 1) ELSE 0 END || '%</td></tr></tfoot></table>'));
   END headcount_report;
 
   FUNCTION leave_balances_report(p_date IN DATE DEFAULT TRUNC(SYSDATE)) RETURN CLOB IS
@@ -773,12 +773,12 @@ CREATE OR REPLACE PACKAGE BODY NOONA_HR_PKG AS
                 LEFT JOIN hr_leave_balance b ON b.employee_id = m.employee_id AND b.balance_year = EXTRACT(YEAR FROM p_date)
                      AND b.leave_type_id = NOONA_HR_PKG.leave_type_id('ANNUAL')
                WHERE m.company_id = company AND m.status_code IN ('ACTIVE', 'NOTICE_PERIOD', 'SUSPENDED') ORDER BY m.id) LOOP
-      l_html := l_html || ('<tr><td class="nn-rpt-text">' || esc(employment_label(r.id)) || '</td><td>'
+      l_html := l_html || (('<tr><td class="nn-rpt-text">' || esc(employment_label(r.id)) || '</td><td>'
              || CASE WHEN (p_date - r.start_date) / 365 >= 5 THEN GREATEST(30, r.annual_leave_days) ELSE r.annual_leave_days END || '</td><td>'
              || fnum(r.ob, 1) || '</td><td>' || fnum(r.tk, 1) || '</td><td>' || fnum(r.adj, 1) || '</td><td><b>'
-             || fnum(leave_available(r.employee_id, 'ANNUAL', p_date), 1) || '</b></td></tr>');
+             || fnum(leave_available(r.employee_id, 'ANNUAL', p_date), 1) || '</b></td></tr>'));
     END LOOP;
-    RETURN l_html || '</tbody></table>';
+    RETURN l_html || ('</tbody></table>');
   END leave_balances_report;
 
   FUNCTION attendance_report(p_month IN DATE) RETURN CLOB IS
@@ -792,12 +792,12 @@ CREATE OR REPLACE PACKAGE BODY NOONA_HR_PKG AS
                          AND a.work_date BETWEEN l_from AND l_to AND a.absence_type IS NULL) present
                 FROM hr_employment m WHERE m.company_id = company AND m.status_code IN ('ACTIVE', 'NOTICE_PERIOD', 'SUSPENDED')
                ORDER BY m.id) LOOP
-      l_html := l_html || ('<tr><td class="nn-rpt-text">' || esc(employment_label(r.id)) || '</td><td>' || r.present || '</td><td>'
+      l_html := l_html || (('<tr><td class="nn-rpt-text">' || esc(employment_label(r.id)) || '</td><td>' || r.present || '</td><td>'
              || absent_days(r.employee_id, l_from, l_to) || '</td><td>' || late_minutes(r.employee_id, l_from, l_to) || '</td><td>'
              || fnum(overtime_hours(r.employee_id, l_from, l_to), 1) || '</td><td>' || unpaid_leave_days(r.employee_id, l_from, l_to)
-             || '</td></tr>');
+             || '</td></tr>'));
     END LOOP;
-    RETURN l_html || '</tbody></table>';
+    RETURN l_html || ('</tbody></table>');
   END attendance_report;
 
   FUNCTION expiring_report(p_days IN NUMBER DEFAULT 60) RETURN CLOB IS
@@ -818,15 +818,15 @@ CREATE OR REPLACE PACKAGE BODY NOONA_HR_PKG AS
                WHERE m.company_id = company AND m.status_code = 'ACTIVE' AND m.probation_end_date BETWEEN TRUNC(SYSDATE) AND TRUNC(SYSDATE) + p_days
                ORDER BY 4) LOOP
       l_n := l_n + 1;
-      l_html := l_html || ('<tr><td class="nn-rpt-text">' || esc(employment_label(r.id)) || '</td><td class="nn-rpt-text">' || r.doc
+      l_html := l_html || (('<tr><td class="nn-rpt-text">' || esc(employment_label(r.id)) || '</td><td class="nn-rpt-text">' || r.doc
              || '</td><td>' || esc(r.no) || '</td><td>' || TO_CHAR(r.d, 'YYYY-MM-DD') || '</td><td>'
              || CASE WHEN r.d < TRUNC(SYSDATE) THEN '<span class="nn-badge is-danger">منتهي</span>'
-                     ELSE '<span class="nn-badge is-warning">بعد ' || (r.d - TRUNC(SYSDATE)) || ' يوم</span>' END || '</td></tr>');
+                     ELSE '<span class="nn-badge is-warning">بعد ' || (r.d - TRUNC(SYSDATE)) || ' يوم</span>' END || '</td></tr>'));
     END LOOP;
     IF l_n = 0 THEN
-      l_html := l_html || '<tr><td colspan="5" class="nn-rpt-text">لا توجد مستندات منتهية أو قريبة الانتهاء</td></tr>';
+      l_html := l_html || ('<tr><td colspan="5" class="nn-rpt-text">لا توجد مستندات منتهية أو قريبة الانتهاء</td></tr>');
     END IF;
-    RETURN l_html || '</tbody></table>';
+    RETURN l_html || ('</tbody></table>');
   END expiring_report;
 
 END NOONA_HR_PKG;

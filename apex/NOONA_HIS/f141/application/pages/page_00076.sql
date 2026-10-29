@@ -25,7 +25,7 @@ wwv_flow_imp_page.create_page(
 );
 wwv_flow_imp_page.create_page_plug(
  p_id=>wwv_flow_imp.id(91820275000001101)
-,p_plug_name=>'Patient'
+,p_plug_name=>'المريض'
 ,p_region_template_options=>'#DEFAULT#:nn-rpt-filters:t-Region--removeHeader js-removeLandmark'
 ,p_plug_template=>4072358936313175081
 ,p_plug_display_sequence=>1
@@ -118,7 +118,7 @@ wwv_flow_imp_page.create_page_item(
 ,p_name=>'P76_DOSE'
 ,p_item_sequence=>10
 ,p_item_plug_id=>wwv_flow_imp.id(91820275000001107)
-,p_prompt=>'Dose due'
+,p_prompt=>'الجرعة المستحقة'
 ,p_display_as=>'NATIVE_SELECT_LIST'
 ,p_lov=>'select to_char(m.due_at, ''MM-DD HH24:MI'') || '' - '' || nvl(i.name_en, i.name_ar) || '' '' || m.dose || '' '' || m.route || case when m.due_at < systimestamp - interval ''30'' minute then '' (overdue)'' end d, m.id r from his_med_schedule m join his_prescription_line l on l.id = m.line_id join inv_item i on i.id = l.item_id where m.visit_id = :P76_VISIT and m.status_code = ''DUE'' and m.due_at <= systimestamp + interval ''2'' hour order by m.due_at'
 ,p_lov_display_null=>'YES'
@@ -135,9 +135,9 @@ wwv_flow_imp_page.create_page_item(
 ,p_name=>'P76_OUTCOME'
 ,p_item_sequence=>20
 ,p_item_plug_id=>wwv_flow_imp.id(91820275000001107)
-,p_prompt=>'Outcome'
+,p_prompt=>'النتيجة'
 ,p_display_as=>'NATIVE_SELECT_LIST'
-,p_lov=>'STATIC2:Given;GIVEN,Held;HELD,Refused;REFUSED,Missed;MISSED'
+,p_lov=>'STATIC2:أُعطيت;GIVEN,أُجّلت;HELD,رفضها المريض;REFUSED,فاتت;MISSED'
 ,p_cHeight=>1
 ,p_lov_display_extra=>'NO'
 ,p_begin_on_new_line=>'N'
@@ -151,7 +151,7 @@ wwv_flow_imp_page.create_page_item(
 ,p_name=>'P76_DGIVEN'
 ,p_item_sequence=>30
 ,p_item_plug_id=>wwv_flow_imp.id(91820275000001107)
-,p_prompt=>'Dose given (if different)'
+,p_prompt=>'الجرعة المعطاة (إن اختلفت)'
 ,p_display_as=>'NATIVE_TEXT_FIELD'
 ,p_cSize=>12
 ,p_cMaxlength=>100
@@ -168,11 +168,11 @@ wwv_flow_imp_page.create_page_item(
 ,p_name=>'P76_NURSE'
 ,p_item_sequence=>40
 ,p_item_plug_id=>wwv_flow_imp.id(91820275000001107)
-,p_prompt=>'Nurse'
+,p_prompt=>'الممرض'
 ,p_display_as=>'NATIVE_SELECT_LIST'
 ,p_lov=>'select name_ar || case title when ''NURSE'' then '''' else '' - '' || title end d, id r from his_doctor where company_id = noona_his_pkg.company and status_code = ''ACTIVE'' order by case title when ''NURSE'' then 0 else 1 end, name_ar'
 ,p_lov_display_null=>'YES'
-,p_lov_null_text=>'- current user -'
+,p_lov_null_text=>'- المستخدم الحالي -'
 ,p_cHeight=>1
 ,p_lov_display_extra=>'NO'
 ,p_begin_on_new_line=>'N'
@@ -186,7 +186,7 @@ wwv_flow_imp_page.create_page_item(
 ,p_name=>'P76_DNOTES'
 ,p_item_sequence=>50
 ,p_item_plug_id=>wwv_flow_imp.id(91820275000001107)
-,p_prompt=>'Notes / reason'
+,p_prompt=>'ملاحظات / سبب'
 ,p_display_as=>'NATIVE_TEXT_FIELD'
 ,p_cSize=>40
 ,p_cMaxlength=>500
@@ -207,7 +207,7 @@ wwv_flow_imp_page.create_page_button(
 ,p_button_template_options=>'#DEFAULT#'
 ,p_button_template_id=>4072362960822175091
 ,p_button_is_hot=>'Y'
-,p_button_image_alt=>'Record'
+,p_button_image_alt=>'السجل'
 ,p_button_position=>'NEXT'
 );
 wwv_flow_imp_page.create_page_process(
@@ -247,7 +247,7 @@ wwv_flow_imp_page.create_page_item(
 ,p_name=>'P76_TASK'
 ,p_item_sequence=>10
 ,p_item_plug_id=>wwv_flow_imp.id(91820275000001115)
-,p_prompt=>'Task'
+,p_prompt=>'المهمة'
 ,p_display_as=>'NATIVE_SELECT_LIST'
 ,p_lov=>'select noona_his_nurse_pkg.task_label(t.task_type) || nvl2(t.description, '': '' || t.description, '''') || '' (every '' || t.every_hours || ''h, next '' || to_char(t.next_due_at, ''HH24:MI'') || '')'' d, t.id r from his_care_task t where t.visit_id = :P76_VISIT and t.status_code = ''ACTIVE'' order by t.next_due_at'
 ,p_lov_display_null=>'YES'
@@ -264,7 +264,7 @@ wwv_flow_imp_page.create_page_item(
 ,p_name=>'P76_TVALUE'
 ,p_item_sequence=>20
 ,p_item_plug_id=>wwv_flow_imp.id(91820275000001115)
-,p_prompt=>'Result (e.g. 140 mg/dL, intake 500 mL)'
+,p_prompt=>'النتيجة (مثلاً 140 ملجم/دسل، مدخول 500 مل)'
 ,p_display_as=>'NATIVE_TEXT_FIELD'
 ,p_cSize=>40
 ,p_cMaxlength=>200
@@ -282,7 +282,7 @@ wwv_flow_imp_page.create_page_item(
 ,p_name=>'P76_TNOTES'
 ,p_item_sequence=>30
 ,p_item_plug_id=>wwv_flow_imp.id(91820275000001115)
-,p_prompt=>'Notes'
+,p_prompt=>'ملاحظات'
 ,p_display_as=>'NATIVE_TEXT_FIELD'
 ,p_cSize=>40
 ,p_cMaxlength=>500
@@ -303,7 +303,7 @@ wwv_flow_imp_page.create_page_button(
 ,p_button_template_options=>'#DEFAULT#'
 ,p_button_template_id=>4072362960822175091
 ,p_button_is_hot=>'Y'
-,p_button_image_alt=>'Done'
+,p_button_image_alt=>'تم'
 ,p_button_position=>'NEXT'
 );
 wwv_flow_imp_page.create_page_button(
@@ -314,7 +314,7 @@ wwv_flow_imp_page.create_page_button(
 ,p_button_action=>'SUBMIT'
 ,p_button_template_options=>'#DEFAULT#'
 ,p_button_template_id=>4072362960822175091
-,p_button_image_alt=>'Stop task'
+,p_button_image_alt=>'إيقاف المهمة'
 ,p_button_position=>'NEXT'
 );
 wwv_flow_imp_page.create_page_item(
@@ -322,9 +322,9 @@ wwv_flow_imp_page.create_page_item(
 ,p_name=>'P76_TTYPE'
 ,p_item_sequence=>40
 ,p_item_plug_id=>wwv_flow_imp.id(91820275000001115)
-,p_prompt=>'New task'
+,p_prompt=>'مهمة جديدة'
 ,p_display_as=>'NATIVE_SELECT_LIST'
-,p_lov=>'STATIC2:Vital signs;VITALS,Blood sugar;BLOOD_SUGAR,Position change;TURNING,Wound care;WOUND_CARE,Intake / output;INTAKE_OUTPUT,Doctor round;DOCTOR_ROUND,Observation;OBSERVATION,Other;OTHER'
+,p_lov=>'STATIC2:العلامات الحيوية;VITALS,سكر الدم;BLOOD_SUGAR,تغيير الوضعية;TURNING,العناية بالجرح;WOUND_CARE,السوائل الداخلة والخارجة;INTAKE_OUTPUT,Doctor round;DOCTOR_ROUND,Observation;OBSERVATION,Other;OTHER'
 ,p_lov_display_null=>'YES'
 ,p_lov_null_text=>'-'
 ,p_cHeight=>1
@@ -340,7 +340,7 @@ wwv_flow_imp_page.create_page_item(
 ,p_name=>'P76_TDESC'
 ,p_item_sequence=>50
 ,p_item_plug_id=>wwv_flow_imp.id(91820275000001115)
-,p_prompt=>'Description'
+,p_prompt=>'الوصف'
 ,p_display_as=>'NATIVE_TEXT_FIELD'
 ,p_cSize=>40
 ,p_cMaxlength=>500
@@ -357,7 +357,7 @@ wwv_flow_imp_page.create_page_item(
 ,p_name=>'P76_TEVERY'
 ,p_item_sequence=>60
 ,p_item_plug_id=>wwv_flow_imp.id(91820275000001115)
-,p_prompt=>'Every (hours)'
+,p_prompt=>'كل (ساعات)'
 ,p_display_as=>'NATIVE_NUMBER_FIELD'
 ,p_cSize=>20
 ,p_begin_on_new_line=>'N'
@@ -375,7 +375,7 @@ wwv_flow_imp_page.create_page_button(
 ,p_button_action=>'SUBMIT'
 ,p_button_template_options=>'#DEFAULT#'
 ,p_button_template_id=>4072362960822175091
-,p_button_image_alt=>'Add task'
+,p_button_image_alt=>'إضافة مهمة'
 ,p_button_position=>'NEXT'
 );
 wwv_flow_imp_page.create_page_process(
@@ -431,7 +431,7 @@ wwv_flow_imp_page.create_page_process(
 );
 wwv_flow_imp_page.create_page_plug(
  p_id=>wwv_flow_imp.id(91820275000001128)
-,p_plug_name=>'Chart'
+,p_plug_name=>'المخطط'
 ,p_region_template_options=>'#DEFAULT#:t-Region--scrollBody:nn-print-area:t-Region--removeHeader js-removeLandmark:t-Region--noUI'
 ,p_plug_template=>4072358936313175081
 ,p_plug_display_sequence=>10

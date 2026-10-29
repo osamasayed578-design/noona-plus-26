@@ -66,7 +66,8 @@ async function scanPage(page, mobile) {
       }
       // أهداف اللمس أصغر من 24×24 (WCAG 2.5.8)، عدا الروابط داخل النص والجداول
       document.querySelectorAll('a, button, input:not([type=hidden]), select, [role=button]').forEach((e) => {
-        if (!vis(e) || e.closest('p, td, li.a-IRR-pagination, .nn-mail-text')) return;
+        // رابط تخطي المحتوى (مخفي حتى التركيز) وحقل الملف المخفي خلف منطقة السحب ليسا أهداف لمس
+        if (!vis(e) || e.closest('p, td, li.a-IRR-pagination, .nn-mail-text') || e.id === 't_Body_skipToContent' || e.type === 'file') return;
         const b = e.getBoundingClientRect();
         if (b.width < 24 || b.height < 24) r.small.push(sel(e) + ' ' + Math.round(b.width) + '×' + Math.round(b.height));
       });
@@ -160,7 +161,7 @@ async function auditUrl(page, url, label, app, errs) {
       await page.setViewportSize({ width: 1366, height: 860 });
       await page.goto(t.h).catch(() => {}); await page.waitForLoadState('networkidle').catch(() => {});
       const sub = await page.evaluate(() => { const a = document.querySelector('.a-IRR-table td a[href], .t-Report-report td a[href], table.nn-prj-t td a[href]');
-        return a && !a.href.startsWith('javascript') ? a.href : null; }).catch(() => null);
+        return a && !a.href.startsWith('javascript') && !/#$/.test(a.getAttribute('href') || '') ? a.href : null; }).catch(() => null);
       const sk = sub && sub.split('?')[0];
       if (sub && !seen.has(sk + '#sub')) {
         seen.add(sk + '#sub');

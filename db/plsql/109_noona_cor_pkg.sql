@@ -273,7 +273,7 @@ CREATE OR REPLACE PACKAGE BODY NOONA_COR_PKG AS
                 FROM cor_instruction WHERE is_active = 'Y' GROUP BY code ORDER BY 3, 1) LOOP
       l_s := l_s || CASE WHEN l_s <> '[' THEN ',' END || '{"c":' || jt(i.code) || ',"n":' || jt(i.n) || '}';
     END LOOP;
-    l_out := l_out || ',"instr":' || l_s || ']';
+    l_out := l_out || (',"instr":' || l_s || ']');
     l_s := '[';
     FOR t IN (SELECT code, MAX(name_ar) KEEP (DENSE_RANK FIRST ORDER BY CASE WHEN tenant_id IS NULL THEN 1 ELSE 0 END) n,
                      MAX(direction) k
@@ -281,7 +281,7 @@ CREATE OR REPLACE PACKAGE BODY NOONA_COR_PKG AS
                ORDER BY CASE WHEN code IN ('INTERNAL_MEMO', 'INCOMING_LETTER', 'OUTGOING_LETTER') THEN 0 ELSE 1 END, 1) LOOP
       l_s := l_s || CASE WHEN l_s <> '[' THEN ',' END || '{"c":' || jt(t.code) || ',"n":' || jt(t.n) || ',"k":' || jt(t.k) || '}';
     END LOOP;
-    RETURN l_out || ',"types":' || l_s || ']}';
+    RETURN l_out || (',"types":' || l_s || ']}');
   END meta_json;
 
   FUNCTION unread_count RETURN NUMBER IS
@@ -334,12 +334,12 @@ CREATE OR REPLACE PACKAGE BODY NOONA_COR_PKG AS
         SELECT LISTAGG(target_name_snapshot, '، ') WITHIN GROUP (ORDER BY sort_order, id) INTO l_who
           FROM (SELECT target_name_snapshot, sort_order, id FROM cor_addressee
                  WHERE correspondence_id = d.id AND addressee_role = 'TO' AND ROWNUM <= 3);
-        l_out := l_out || (CASE WHEN NOT l_first THEN ',' END || '{"id":' || d.id || ',"t":' || d.id || ',"draft":"Y"'
+        l_out := l_out || ((CASE WHEN NOT l_first THEN ',' END || '{"id":' || d.id || ',"t":' || d.id || ',"draft":"Y"'
               || ',"who":' || jt(NVL(l_who, '(بدون مستلم)')) || ',"s":' || jt(d.subject) || ',"sn":' || jt(snippet(d.body_text))
-              || ',"d":' || jt(date_label(d.ts_at)) || ',"k":' || jt(d.direction) || ',"u":"N","st":"N","n":1}');
+              || ',"d":' || jt(date_label(d.ts_at)) || ',"k":' || jt(d.direction) || ',"u":"N","st":"N","n":1}'));
         l_first := FALSE;
       END LOOP;
-      RETURN l_out || '],"more":' || jt(l_more) || '}';
+      RETURN l_out || ('],"more":' || jt(l_more) || '}');
     END IF;
 
     IF l_f IN ('INCOMING', 'OUTGOING') THEN
@@ -359,14 +359,14 @@ CREATE OR REPLACE PACKAGE BODY NOONA_COR_PKG AS
         IF d.rn = l_off + 51 THEN l_more := 'Y'; EXIT; END IF;
         SELECT COUNT(*) INTO l_att FROM dms_document_link
          WHERE entity_type = 'COR_CORRESPONDENCE' AND entity_id = d.id AND status_code = 'ACTIVE';
-        l_out := l_out || (CASE WHEN NOT l_first THEN ',' END || '{"id":' || d.id || ',"t":' || d.tid
+        l_out := l_out || ((CASE WHEN NOT l_first THEN ',' END || '{"id":' || d.id || ',"t":' || d.tid
               || ',"who":' || jt(party_name(d.id)) || ',"s":' || jt(d.subject) || ',"sn":' || jt(snippet(d.body_text))
               || ',"d":' || jt(date_label(d.ts_at)) || ',"no":' || jt(d.correspondence_no) || ',"ext":' || jt(d.external_no)
               || ',"k":' || jt(l_f) || ',"p":' || jt(d.priority_code) || ',"a":' || jt(CASE WHEN l_att > 0 THEN 'Y' ELSE 'N' END)
-              || ',"u":"N","st":"N","n":1}');
+              || ',"u":"N","st":"N","n":1}'));
         l_first := FALSE;
       END LOOP;
-      RETURN l_out || '],"more":' || jt(l_more) || '}';
+      RETURN l_out || ('],"more":' || jt(l_more) || '}');
     END IF;
 
     FOR t IN (SELECT * FROM (
@@ -447,7 +447,7 @@ CREATE OR REPLACE PACKAGE BODY NOONA_COR_PKG AS
       l_out := l_out || (CASE WHEN NOT l_first THEN ',' END || l_row);
       l_first := FALSE;
     END LOOP;
-    RETURN l_out || '],"more":' || jt(l_more) || '}';
+    RETURN l_out || ('],"more":' || jt(l_more) || '}');
   END list_json;
 
   -- ================================================================ السلسلة
@@ -492,7 +492,7 @@ CREATE OR REPLACE PACKAGE BODY NOONA_COR_PKG AS
                || ',"due":' || jt(TO_CHAR(f.due_at, 'YYYY-MM-DD')) || ',"at":' || jt(full_date(f.entered_at))
                || ',"note":' || jt(f.note) || ',"done":' || jt(CASE WHEN f.status_code = 'COMPLETED' THEN 'Y' ELSE 'N' END) || '}';
       END LOOP;
-      l_out := l_out || (CASE WHEN NOT l_first THEN ',' END
+      l_out := l_out || ((CASE WHEN NOT l_first THEN ',' END
             || '{"id":' || c.id || ',"from":' || jt(l_from) || ',"fi":' || jt(initials(l_from))
             || ',"mine":' || jt(CASE WHEN c.author_member_id = l_me THEN 'Y' ELSE 'N' END)
             || ',"by":' || jt(CASE WHEN c.direction = 'INCOMING' THEN 'سجله ' || name_of(c.author_member_id) END)
@@ -514,7 +514,7 @@ CREATE OR REPLACE PACKAGE BODY NOONA_COR_PKG AS
                  || ',"late":' || jt(CASE WHEN l_r.due_at < SYSTIMESTAMP AND l_r.action_status IN ('NONE', 'ACKNOWLEDGED') THEN 'Y' ELSE 'N' END)
                  || ',"act":' || jt(l_r.action_status) || ',"unread":' || jt(CASE WHEN l_r.read_status = 'UNREAD' THEN 'Y' ELSE 'N' END)
                  || '}' END
-            || '}');
+            || '}'));
       l_first := FALSE;
     END LOOP;
     NOONA_CORE_PKG.assert(l_any, 'NOONA-COR-002', 'لا تملك صلاحية الاطلاع على هذه المراسلة', 'You are not a party to this correspondence');
@@ -528,7 +528,7 @@ CREATE OR REPLACE PACKAGE BODY NOONA_COR_PKG AS
     UPDATE ntf_notification SET read_at = NVL(read_at, SYSTIMESTAMP)
      WHERE membership_id = l_me AND source_entity_type = 'COR_CORRESPONDENCE' AND read_at IS NULL
        AND source_entity_id IN (SELECT id FROM cor_correspondence WHERE NVL(thread_id, id) = l_tid);
-    RETURN l_out || '],"subject":' || jt(l_root.subject) || ',"star":' || jt(l_star) || ',"inbox":' || jt(l_act) || '}';
+    RETURN l_out || ('],"subject":' || jt(l_root.subject) || ',"star":' || jt(l_star) || ',"inbox":' || jt(l_act) || '}');
   END thread_json;
 
   -- ================================================================ الدليل
@@ -544,8 +544,8 @@ CREATE OR REPLACE PACKAGE BODY NOONA_COR_PKG AS
                    AND (l_q IS NULL OR UPPER(u.display_name) LIKE '%' || l_q || '%' OR UPPER(u.username) LIKE '%' || l_q || '%'
                         OR UPPER(u.email) LIKE '%' || l_q || '%')
                  ORDER BY u.display_name) WHERE ROWNUM <= 12) LOOP
-      l_out := l_out || (CASE WHEN l_n > 0 THEN ',' END || '{"k":"U","id":' || u.id || ',"n":' || jt(u.display_name)
-            || ',"e":' || jt(u.e) || ',"i":' || jt(initials(u.display_name)) || '}');
+      l_out := l_out || ((CASE WHEN l_n > 0 THEN ',' END || '{"k":"U","id":' || u.id || ',"n":' || jt(u.display_name)
+            || ',"e":' || jt(u.e) || ',"i":' || jt(initials(u.display_name)) || '}'));
       l_n := l_n + 1;
     END LOOP;
     FOR o IN (SELECT * FROM (
@@ -553,11 +553,11 @@ CREATE OR REPLACE PACKAGE BODY NOONA_COR_PKG AS
                  WHERE company_id = company AND status_code = 'ACTIVE' AND receives_correspondence = 'Y'
                    AND (l_q IS NULL OR UPPER(name_ar) LIKE '%' || l_q || '%' OR UPPER(code) LIKE '%' || l_q || '%')
                  ORDER BY name_ar) WHERE ROWNUM <= 8) LOOP
-      l_out := l_out || (CASE WHEN l_n > 0 THEN ',' END || '{"k":"O","id":' || o.id || ',"n":' || jt(o.name_ar)
-            || ',"e":"وحدة تنظيمية","i":"#"}');
+      l_out := l_out || ((CASE WHEN l_n > 0 THEN ',' END || '{"k":"O","id":' || o.id || ',"n":' || jt(o.name_ar)
+            || ',"e":"وحدة تنظيمية","i":"#"}'));
       l_n := l_n + 1;
     END LOOP;
-    RETURN l_out || ']';
+    RETURN l_out || (']');
   END directory_json;
 
   FUNCTION parties_json(p_q IN VARCHAR2) RETURN CLOB IS
@@ -569,10 +569,10 @@ CREATE OR REPLACE PACKAGE BODY NOONA_COR_PKG AS
                 SELECT id, display_name_ar FROM pty_party
                  WHERE l_q IS NOT NULL AND (UPPER(display_name_ar) LIKE '%' || l_q || '%' OR UPPER(party_no) LIKE '%' || l_q || '%')
                  ORDER BY display_name_ar) WHERE ROWNUM <= 10) LOOP
-      l_out := l_out || (CASE WHEN l_n > 0 THEN ',' END || '{"id":' || p.id || ',"n":' || jt(p.display_name_ar) || '}');
+      l_out := l_out || ((CASE WHEN l_n > 0 THEN ',' END || '{"id":' || p.id || ',"n":' || jt(p.display_name_ar) || '}'));
       l_n := l_n + 1;
     END LOOP;
-    RETURN l_out || ']';
+    RETURN l_out || (']');
   END parties_json;
 
   FUNCTION draft_json(p_id IN NUMBER) RETURN CLOB IS

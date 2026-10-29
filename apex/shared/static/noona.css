@@ -78,7 +78,7 @@ b, strong, th { font-weight: 700; }
 .nn-hello { margin-bottom: 14px; }
 .nn-hello-title { font-size: 1.5rem; font-weight: 700; color: var(--nn-text); }
 .nn-hello-sub { color: var(--nn-muted); margin-top: 2px; }
-.nn-hello-sub a { margin-inline-start: 4px; }
+.nn-hello-sub a { margin-inline-start: 4px; text-decoration: underline; text-underline-offset: 3px; }
 
 .nn-kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 12px; }
 .nn-kpi { display: flex; align-items: center; gap: 12px; background: var(--nn-surface); border: 1px solid var(--nn-border);
@@ -1511,3 +1511,13 @@ pre.nn-einv-xml { direction: ltr; text-align: left; max-height: 480px; overflow:
 .nn-aut-f textarea, .nn-aut-f input, .nn-aut-f select { width: 100%; font: inherit; }
 .nn-aut-dlg-act { display: flex; gap: 8px; margin-top: 12px; }
 @media print { .nn-aut-acts, .nn-aut-cat, .nn-aut-mini, .nn-aut-lt button { display: none !important; } .nn-aut-main { grid-template-columns: 1fr; } }
+
+/* ================= إمكانية الوصول (نتائج فحص تجربة المستخدم) ================= */
+/* الروابط داخل النص تتميز بخط سفلي لا باللون وحده */
+.t-Region-body p a:not(.t-Button), .nn-hint a, .nn-hello-sub a { text-decoration: underline; text-underline-offset: 3px; }
+/* أهداف لمس 24×24 على الأقل على الجوال (WCAG 2.5.8) */
+@media (max-width: 640px) {
+  input[type="checkbox"], input[type="radio"] { min-width: 24px; min-height: 24px; }
+  .apex-item-option label, .t-Form-fieldContainer .apex-item-checkbox label { min-height: 24px; display: inline-flex; align-items: center; }
+  a.fa, button.fa, .nn-fd-ib, .nn-mail-ib { min-width: 32px; min-height: 32px; display: inline-flex; align-items: center; justify-content: center; }
+}

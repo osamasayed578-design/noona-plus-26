@@ -21,7 +21,7 @@ def build(app, url, link, scheme, L):
     TASK_LOV = ("select noona_his_nurse_pkg.task_label(t.task_type) || nvl2(t.description, ': ' || t.description, '') || ' (every ' || t.every_hours "
                 "|| 'h, next ' || to_char(t.next_due_at, 'HH24:MI') || ')' d, t.id r from his_care_task t where t.visit_id = :P76_VISIT "
                 "and t.status_code = 'ACTIVE' order by t.next_due_at")
-    TASK_TYPES = ('STATIC2:Vital signs;VITALS,Blood sugar;BLOOD_SUGAR,Position change;TURNING,Wound care;WOUND_CARE,Intake / output;INTAKE_OUTPUT,'
+    TASK_TYPES = ('STATIC2:العلامات الحيوية;VITALS,سكر الدم;BLOOD_SUGAR,تغيير الوضعية;TURNING,العناية بالجرح;WOUND_CARE,السوائل الداخلة والخارجة;INTAKE_OUTPUT,'
                   'Doctor round;DOCTOR_ROUND,Observation;OBSERVATION,Other;OTHER')
 
     # =========================================================== 74) ورديات التمريض والمناوبات
@@ -135,7 +135,7 @@ def build(app, url, link, scheme, L):
 
     # =========================================================== 76) الملف الإلكتروني للمنوم
     p = app.page(76, 'Inpatient Chart', 'INPATIENT-CHART', 'Inpatient chart - الملف الإلكتروني للمنوم', scheme=scheme, protection='N')
-    hd = p.static('Patient', 1, hide_header=True, opts='#DEFAULT#:nn-rpt-filters')
+    hd = p.static('المريض', 1, hide_header=True, opts='#DEFAULT#:nn-rpt-filters')
     p.select('P76_VISIT', hd, 10, 'المريض المنوم', lov_sql=INPT_LOV, submit=True)
     p.button(hd, 10, 'NURSING', 'العلامات الحيوية والملاحظات', redirect="f?p=&APP_ID.:35:&SESSION.::&DEBUG.:RP,35:P35_VISIT:&P76_VISIT.")
     p.button(hd, 20, 'RX', 'وصفة جديدة', redirect="f?p=&APP_ID.:33:&SESSION.::&DEBUG.:RP,33:P33_VISIT:&P76_VISIT.")
@@ -143,25 +143,25 @@ def build(app, url, link, scheme, L):
     p.button(hd, 40, 'PRINT', 'طباعة', redirect='javascript:window.print();')
     V = ':P76_VISIT is not null'
     fd = p.static('Record a dose - تسجيل جرعة', 5, condition=V)
-    p.select('P76_DOSE', fd, 10, 'Dose due', lov_sql=DOSE_LOV)
-    p.select('P76_OUTCOME', fd, 20, 'Outcome', lov_sql='STATIC2:Given;GIVEN,Held;HELD,Refused;REFUSED,Missed;MISSED', null_text=None)
-    p.text('P76_DGIVEN', fd, 30, 'Dose given (if different)', maxlen=100, width=12)
-    p.select('P76_NURSE', fd, 40, 'Nurse', lov_sql=NURSE_LOV, null_text='- current user -')
-    p.text('P76_DNOTES', fd, 50, 'Notes / reason', maxlen=500)
-    b_d = p.button(fd, 10, 'RECORD_DOSE', 'Record', hot=True)
+    p.select('P76_DOSE', fd, 10, 'الجرعة المستحقة', lov_sql=DOSE_LOV)
+    p.select('P76_OUTCOME', fd, 20, 'النتيجة', lov_sql='STATIC2:أُعطيت;GIVEN,أُجّلت;HELD,رفضها المريض;REFUSED,فاتت;MISSED', null_text=None)
+    p.text('P76_DGIVEN', fd, 30, 'الجرعة المعطاة (إن اختلفت)', maxlen=100, width=12)
+    p.select('P76_NURSE', fd, 40, 'الممرض', lov_sql=NURSE_LOV, null_text='- المستخدم الحالي -')
+    p.text('P76_DNOTES', fd, 50, 'ملاحظات / سبب', maxlen=500)
+    b_d = p.button(fd, 10, 'RECORD_DOSE', 'السجل', hot=True)
     p.process(10, 'AFTER_SUBMIT', 'Dose', ['declare l number;', 'begin',
         '    l := noona_his_nurse_pkg.record_dose(:P76_DOSE, :P76_OUTCOME, to_number(:P76_NURSE), :P76_DNOTES, :P76_DGIVEN);',
         '    :P76_DOSE := null; :P76_DNOTES := null; :P76_DGIVEN := null;', 'end;'], when_button=b_d, success='Dose recorded')
     ft = p.static('Care plan - خطة المتابعة', 6, condition=V)
-    p.select('P76_TASK', ft, 10, 'Task', lov_sql=TASK_LOV)
-    p.text('P76_TVALUE', ft, 20, 'Result (e.g. 140 mg/dL, intake 500 mL)', maxlen=200)
-    p.text('P76_TNOTES', ft, 30, 'Notes', maxlen=500)
-    b_tc = p.button(ft, 10, 'DONE_TASK', 'Done', hot=True)
-    b_ts = p.button(ft, 20, 'STOP_TASK', 'Stop task')
-    p.select('P76_TTYPE', ft, 40, 'New task', lov_sql=TASK_TYPES, null_text='-')
-    p.text('P76_TDESC', ft, 50, 'Description', maxlen=500)
-    p.number('P76_TEVERY', ft, 60, 'Every (hours)')
-    b_ta = p.button(ft, 30, 'ADD_TASK', 'Add task')
+    p.select('P76_TASK', ft, 10, 'المهمة', lov_sql=TASK_LOV)
+    p.text('P76_TVALUE', ft, 20, 'النتيجة (مثلاً 140 ملجم/دسل، مدخول 500 مل)', maxlen=200)
+    p.text('P76_TNOTES', ft, 30, 'ملاحظات', maxlen=500)
+    b_tc = p.button(ft, 10, 'DONE_TASK', 'تم', hot=True)
+    b_ts = p.button(ft, 20, 'STOP_TASK', 'إيقاف المهمة')
+    p.select('P76_TTYPE', ft, 40, 'مهمة جديدة', lov_sql=TASK_TYPES, null_text='-')
+    p.text('P76_TDESC', ft, 50, 'الوصف', maxlen=500)
+    p.number('P76_TEVERY', ft, 60, 'كل (ساعات)')
+    b_ta = p.button(ft, 30, 'ADD_TASK', 'إضافة مهمة')
     p.process(20, 'AFTER_SUBMIT', 'Task Done', ['declare l number;', 'begin',
         '    l := noona_his_nurse_pkg.complete_task(:P76_TASK, :P76_TVALUE, :P76_TNOTES, to_number(:P76_NURSE));',
         '    :P76_TVALUE := null; :P76_TNOTES := null;', 'end;'], when_button=b_tc, success='Task recorded')
@@ -170,7 +170,7 @@ def build(app, url, link, scheme, L):
         "    select json_object('visit' value to_number(:P76_VISIT), 'type' value :P76_TTYPE, 'desc' value :P76_TDESC, 'every' value to_number(:P76_TEVERY)",
         "           returning clob) into l_doc from dual;",
         '    l := noona_his_nurse_pkg.add_task(l_doc);', 'end;'], when_button=b_ta, success='Task added')
-    p.dynamic('Chart', 10, 'return noona_his_nurse_pkg.inpatient_chart_html(:P76_VISIT);', hide_header=True,
+    p.dynamic('المخطط', 10, 'return noona_his_nurse_pkg.inpatient_chart_html(:P76_VISIT);', hide_header=True,
               opts='#DEFAULT#:t-Region--scrollBody:nn-print-area', condition=V)
     p.onload("$('#P76_DGIVEN,#P76_DNOTES,#P76_TVALUE,#P76_TNOTES,#P76_TDESC').attr('dir', 'ltr');")
     p.branch(10, url(76, 'P76_VISIT', '&P76_VISIT.') + '&success_msg=#SUCCESS_MSG#')

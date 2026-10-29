@@ -1065,15 +1065,17 @@ CREATE OR REPLACE PACKAGE BODY NOONA_RES_PKG AS
                WHERE u.property_id = p_property_id AND u.company_id = company AND u.usage_type IN ('SALE', 'MIXED')
                ORDER BY b.code, u.code) LOOP
       l_n := l_n + 1;
-      l_h := l_h || CASE WHEN p_link IS NOT NULL AND u.status_code = 'AVAILABLE' THEN '<a' ELSE '<div' END || ' class="nn-res-unit is-' || LOWER(u.status_code) || '"'
+      l_h := l_h || (CASE WHEN p_link IS NOT NULL AND u.status_code = 'AVAILABLE' THEN '<a' ELSE '<div' END || ' class="nn-res-unit is-' || LOWER(u.status_code) || '"'
           || CASE WHEN p_link IS NOT NULL AND u.status_code = 'AVAILABLE' THEN ' href="' || REPLACE(p_link, '#ID#', u.id) || '"' END
           || ' title="' || esc(NOONA_RE_PKG.unit_status_label(u.status_code)) || '"><b>' || esc(u.code) || '</b><small>'
           || esc(NOONA_RE_PKG.unit_type_label(u.unit_type)) || CASE WHEN u.bedrooms > 0 THEN ' · ' || u.bedrooms || ' غرف' END
           || CASE WHEN u.area > 0 THEN ' · ' || ROUND(u.area) || ' م²' END || '</small><span>' || CASE WHEN u.price > 0 THEN fmt(u.price) END || '</span>'
           || '<em>' || esc(NOONA_RE_PKG.unit_status_label(u.status_code)) || '</em>'
-          || CASE WHEN p_link IS NOT NULL AND u.status_code = 'AVAILABLE' THEN '</a>' ELSE '</div>' END;
+          || CASE WHEN p_link IS NOT NULL AND u.status_code = 'AVAILABLE' THEN '</a>' ELSE '</div>' END);
     END LOOP;
-    RETURN CASE WHEN l_n = 0 THEN '<div class="nn-empty">لا توجد وحدات للبيع في هذا العقار (استخدام الوحدة: للبيع أو متعدد)</div>' ELSE l_h || '</div>' END;
+    IF l_n = 0 THEN RETURN TO_CLOB('<div class="nn-empty">لا توجد وحدات للبيع في هذا العقار (استخدام الوحدة: للبيع أو متعدد)</div>'); END IF;
+    -- CASE لا يرجع أكثر من 32 ألف حرف حتى لو كانت فروعه CLOB
+    RETURN l_h || ('</div>');
   END availability_html;
 
   FUNCTION reservations_html(p_status IN VARCHAR2 DEFAULT NULL) RETURN CLOB IS
@@ -1086,12 +1088,14 @@ CREATE OR REPLACE PACKAGE BODY NOONA_RES_PKG AS
     FOR r IN (SELECT r.*, p.display_name_ar bname FROM re_reservation r JOIN pty_party p ON p.id = r.buyer_party_id
                WHERE r.company_id = company AND (p_status IS NULL OR r.status_code = p_status) ORDER BY r.id DESC FETCH FIRST 300 ROWS ONLY) LOOP
       l_n := l_n + 1;
-      l_h := l_h || '<tr data-res="' || r.id || '"><td><b>' || esc(r.doc_no) || '</b></td><td>' || ds(r.doc_date) || '</td><td>' || esc(NOONA_RE_PKG.unit_label(r.unit_id))
+      l_h := l_h || ('<tr data-res="' || r.id || '"><td><b>' || esc(r.doc_no) || '</b></td><td>' || ds(r.doc_date) || '</td><td>' || esc(NOONA_RE_PKG.unit_label(r.unit_id))
           || '</td><td>' || esc(r.bname) || '</td><td class="n">' || fmt(r.quoted_price) || '</td><td class="n">' || fmt(r.discount_amount) || '</td><td class="n">'
           || fmt(r.deposit_amount) || '</td><td' || CASE WHEN r.status_code = 'ACTIVE' AND r.expires_at < SYSTIMESTAMP + 1 THEN ' class="is-over"' END || '>'
-          || TO_CHAR(r.expires_at, 'YYYY-MM-DD') || '</td><td>' || badge(r.status_code) || '</td></tr>';
+          || TO_CHAR(r.expires_at, 'YYYY-MM-DD') || '</td><td>' || badge(r.status_code) || '</td></tr>');
     END LOOP;
-    RETURN CASE WHEN l_n = 0 THEN '<div class="nn-empty">لا توجد حجوزات</div>' ELSE l_h || '</tbody></table>' END;
+    IF l_n = 0 THEN RETURN TO_CLOB('<div class="nn-empty">لا توجد حجوزات</div>'); END IF;
+    -- CASE لا يرجع أكثر من 32 ألف حرف حتى لو كانت فروعه CLOB
+    RETURN l_h || ('</tbody></table>');
   END reservations_html;
 
   FUNCTION contracts_html(p_status IN VARCHAR2 DEFAULT NULL, p_link IN VARCHAR2 DEFAULT NULL) RETURN CLOB IS
@@ -1108,14 +1112,16 @@ CREATE OR REPLACE PACKAGE BODY NOONA_RES_PKG AS
                ORDER BY c.id DESC FETCH FIRST 300 ROWS ONLY) LOOP
       l_n := l_n + 1;
       l_c := collected(r.id);
-      l_h := l_h || '<tr><td>' || CASE WHEN p_link IS NOT NULL THEN '<a href="' || REPLACE(p_link, '#ID#', r.id) || '"><b>' || esc(r.doc_no) || '</b></a>'
+      l_h := l_h || ('<tr><td>' || CASE WHEN p_link IS NOT NULL THEN '<a href="' || REPLACE(p_link, '#ID#', r.id) || '"><b>' || esc(r.doc_no) || '</b></a>'
                                        ELSE '<b>' || esc(r.doc_no) || '</b>' END
           || '</td><td>' || ds(r.doc_date) || '</td><td>' || esc(NOONA_RE_PKG.unit_label(r.unit_id)) || '</td><td>' || esc(r.bname) || '</td><td class="n">'
           || fmt(r.total_amount) || '</td><td class="n">' || fmt(l_c) || '</td><td><div class="nn-prj-bar"><span style="width:'
           || LEAST(100, ROUND(l_c * 100 / NULLIF(r.total_amount, 0))) || '%"></span></div> ' || pct(l_c * 100 / NULLIF(r.total_amount, 0)) || '</td><td>'
-          || badge(r.status_code) || '</td></tr>';
+          || badge(r.status_code) || '</td></tr>');
     END LOOP;
-    RETURN CASE WHEN l_n = 0 THEN '<div class="nn-empty">لا توجد عقود بيع</div>' ELSE l_h || '</tbody></table>' END;
+    IF l_n = 0 THEN RETURN TO_CLOB('<div class="nn-empty">لا توجد عقود بيع</div>'); END IF;
+    -- CASE لا يرجع أكثر من 32 ألف حرف حتى لو كانت فروعه CLOB
+    RETURN l_h || ('</tbody></table>');
   END contracts_html;
 
   FUNCTION installments_html(p_contract_id IN NUMBER) RETURN CLOB IS
@@ -1134,13 +1140,13 @@ CREATE OR REPLACE PACKAGE BODY NOONA_RES_PKG AS
       IF i.status_code <> 'CANCELLED' THEN
         t_a := t_a + i.amount; t_t := t_t + i.tax_amount; t_p := t_p + i.paid_amount;
       END IF;
-      l_h := l_h || '<tr' || CASE WHEN i.status_code = 'CANCELLED' THEN ' class="is-void"' END || '><td>' || i.installment_no || '</td><td>' || esc(i.label)
+      l_h := l_h || ('<tr' || CASE WHEN i.status_code = 'CANCELLED' THEN ' class="is-void"' END || '><td>' || i.installment_no || '</td><td>' || esc(i.label)
           || '</td><td' || CASE WHEN i.status_code = 'OVERDUE' THEN ' class="is-over"' END || '>' || ds(i.due_date) || '</td><td class="n">' || fmt(i.amount)
           || '</td><td class="n">' || fmt(i.tax_amount) || '</td><td class="n">' || fmt(i.amount + i.tax_amount) || '</td><td class="n">' || fmt(i.paid_amount)
-          || '</td><td>' || esc(l_no) || '</td><td>' || badge(i.status_code) || '</td></tr>';
+          || '</td><td>' || esc(l_no) || '</td><td>' || badge(i.status_code) || '</td></tr>');
     END LOOP;
-    RETURN l_h || '</tbody><tfoot><tr><td colspan="3">الإجمالي</td><td class="n">' || fmt(t_a) || '</td><td class="n">' || fmt(t_t) || '</td><td class="n">'
-        || fmt(t_a + t_t) || '</td><td class="n">' || fmt(t_p) || '</td><td colspan="2">المتبقي ' || fmt(t_a + t_t - t_p) || '</td></tr></tfoot></table>';
+    RETURN l_h || ('</tbody><tfoot><tr><td colspan="3">الإجمالي</td><td class="n">' || fmt(t_a) || '</td><td class="n">' || fmt(t_t) || '</td><td class="n">'
+        || fmt(t_a + t_t) || '</td><td class="n">' || fmt(t_p) || '</td><td colspan="2">المتبقي ' || fmt(t_a + t_t - t_p) || '</td></tr></tfoot></table>');
   END installments_html;
 
   FUNCTION contract_html(p_contract_id IN NUMBER) RETURN CLOB IS
@@ -1175,24 +1181,24 @@ CREATE OR REPLACE PACKAGE BODY NOONA_RES_PKG AS
                 || ' · مردود ' || fmt(c.refunded_amount) || '</td></tr>' END
         || '</table><h4 class="nn-prj-h">جدول الأقساط</h4>' || installments_html(c.id);
     FOR m IN (SELECT b.*, p.display_name_ar bname FROM re_broker_commission b JOIN pty_party p ON p.id = b.broker_party_id WHERE b.contract_id = c.id) LOOP
-      l_h := l_h || '<h4 class="nn-prj-h">عمولة الوسيط</h4><p>' || esc(m.bname) || ' · ' || pct(m.commission_pct) || ' = ' || fmt(m.commission_amount) || ' · '
-          || esc(m.eligibility_rule) || ' ' || badge(m.status_code) || '</p>';
+      l_h := l_h || ('<h4 class="nn-prj-h">عمولة الوسيط</h4><p>' || esc(m.bname) || ' · ' || pct(m.commission_pct) || ' = ' || fmt(m.commission_amount) || ' · '
+          || esc(m.eligibility_rule) || ' ' || badge(m.status_code) || '</p>');
     END LOOP;
     FOR h IN (SELECT * FROM re_handover WHERE contract_id = c.id ORDER BY id) LOOP
-      l_h := l_h || '<h4 class="nn-prj-h">التسليم ' || esc(h.doc_no) || '</h4><p>الموعد ' || ds(h.scheduled_date)
+      l_h := l_h || ('<h4 class="nn-prj-h">التسليم ' || esc(h.doc_no) || '</h4><p>الموعد ' || ds(h.scheduled_date)
           || CASE WHEN h.handover_date IS NOT NULL THEN ' · سلمت ' || ds(h.handover_date) END
-          || CASE WHEN h.keys_count IS NOT NULL THEN ' · المفاتيح ' || h.keys_count END || ' ' || badge(h.status_code) || '</p>';
+          || CASE WHEN h.keys_count IS NOT NULL THEN ' · المفاتيح ' || h.keys_count END || ' ' || badge(h.status_code) || '</p>');
       IF h.snag_list IS NOT NULL THEN
-        l_h := l_h || '<ul class="nn-res-snags">';
+        l_h := l_h || ('<ul class="nn-res-snags">');
         FOR s IN (SELECT item, NVL(st, 'OPEN') st FROM JSON_TABLE(h.snag_list, '$[*]' COLUMNS (item VARCHAR2(500) PATH '$.item', st VARCHAR2(30) PATH '$.status'))) LOOP
-          l_h := l_h || '<li class="is-' || LOWER(s.st) || '">' || esc(s.item) || CASE WHEN s.st = 'FIXED' THEN ' ✓' END || '</li>';
+          l_h := l_h || ('<li class="is-' || LOWER(s.st) || '">' || esc(s.item) || CASE WHEN s.st = 'FIXED' THEN ' ✓' END || '</li>');
         END LOOP;
-        l_h := l_h || '</ul>';
+        l_h := l_h || ('</ul>');
       END IF;
     END LOOP;
     FOR t IN (SELECT * FROM re_title_transfer WHERE contract_id = c.id) LOOP
-      l_h := l_h || '<h4 class="nn-prj-h">الإفراغ</h4><p>صك ' || esc(t.new_deed_no) || ' · ' || ds(t.transfer_date) || ' · مرجع ' || esc(t.authority_ref)
-          || CASE WHEN t.fees_amount > 0 THEN ' · الرسوم ' || fmt(t.fees_amount) END || ' ' || badge(t.status_code) || '</p>';
+      l_h := l_h || ('<h4 class="nn-prj-h">الإفراغ</h4><p>صك ' || esc(t.new_deed_no) || ' · ' || ds(t.transfer_date) || ' · مرجع ' || esc(t.authority_ref)
+          || CASE WHEN t.fees_amount > 0 THEN ' · الرسوم ' || fmt(t.fees_amount) END || ' ' || badge(t.status_code) || '</p>');
     END LOOP;
     RETURN l_h;
   END contract_html;
@@ -1214,14 +1220,15 @@ CREATE OR REPLACE PACKAGE BODY NOONA_RES_PKG AS
                ORDER BY i.due_date, c.doc_no) LOOP
       l_n := l_n + 1;
       t := t + i.amount + i.tax_amount; t_p := t_p + i.paid_amount;
-      l_h := l_h || '<tr><td>' || ds(i.due_date) || '</td><td>' || esc(i.doc_no) || '</td><td>' || esc(NOONA_RE_PKG.unit_label(i.unit_id)) || '</td><td>'
+      l_h := l_h || ('<tr><td>' || ds(i.due_date) || '</td><td>' || esc(i.doc_no) || '</td><td>' || esc(NOONA_RE_PKG.unit_label(i.unit_id)) || '</td><td>'
           || esc(i.bname) || '</td><td>' || esc(i.label) || '</td><td class="n">' || fmt(i.amount + i.tax_amount) || '</td><td class="n">' || fmt(i.paid_amount)
           || '</td><td class="n">' || fmt(i.amount + i.tax_amount - i.paid_amount) || '</td><td' || CASE WHEN i.due_date < TRUNC(SYSDATE) THEN ' class="is-over"' END
-          || '>' || CASE WHEN i.due_date < TRUNC(SYSDATE) THEN (TRUNC(SYSDATE) - i.due_date) || ' يوم' END || '</td><td>' || badge(i.status_code) || '</td></tr>';
+          || '>' || CASE WHEN i.due_date < TRUNC(SYSDATE) THEN (TRUNC(SYSDATE) - i.due_date) || ' يوم' END || '</td><td>' || badge(i.status_code) || '</td></tr>');
     END LOOP;
-    RETURN CASE WHEN l_n = 0 THEN '<div class="nn-empty">لا توجد أقساط مستحقة في الفترة</div>'
-                ELSE l_h || '</tbody><tfoot><tr><td colspan="5">الإجمالي (' || l_n || ')</td><td class="n">' || fmt(t) || '</td><td class="n">' || fmt(t_p)
-                    || '</td><td class="n">' || fmt(t - t_p) || '</td><td colspan="2"></td></tr></tfoot></table>' END;
+    IF l_n = 0 THEN RETURN TO_CLOB('<div class="nn-empty">لا توجد أقساط مستحقة في الفترة</div>'); END IF;
+    -- CASE لا يرجع أكثر من 32 ألف حرف حتى لو كانت فروعه CLOB
+    RETURN l_h || ('</tbody><tfoot><tr><td colspan="5">الإجمالي (' || l_n || ')</td><td class="n">' || fmt(t) || '</td><td class="n">' || fmt(t_p)
+                    || '</td><td class="n">' || fmt(t - t_p) || '</td><td colspan="2"></td></tr></tfoot></table>');
   END collections_html;
 
   FUNCTION commissions_html(p_status IN VARCHAR2 DEFAULT NULL) RETURN CLOB IS
@@ -1236,11 +1243,13 @@ CREATE OR REPLACE PACKAGE BODY NOONA_RES_PKG AS
                 JOIN re_sale_contract c ON c.id = b.contract_id
                WHERE b.company_id = company AND (p_status IS NULL OR b.status_code = p_status) ORDER BY b.id DESC) LOOP
       l_n := l_n + 1;
-      l_h := l_h || '<tr data-com="' || m.id || '"><td>' || esc(m.bname) || '</td><td>' || esc(m.doc_no) || '</td><td>' || esc(NOONA_RE_PKG.unit_label(m.unit_id))
+      l_h := l_h || ('<tr data-com="' || m.id || '"><td>' || esc(m.bname) || '</td><td>' || esc(m.doc_no) || '</td><td>' || esc(NOONA_RE_PKG.unit_label(m.unit_id))
           || '</td><td class="n">' || pct(m.commission_pct) || '</td><td class="n">' || fmt(m.commission_amount) || '</td><td>' || esc(m.eligibility_rule)
-          || '</td><td>' || ds(m.paid_date) || '</td><td>' || badge(m.status_code) || '</td></tr>';
+          || '</td><td>' || ds(m.paid_date) || '</td><td>' || badge(m.status_code) || '</td></tr>');
     END LOOP;
-    RETURN CASE WHEN l_n = 0 THEN '<div class="nn-empty">لا توجد عمولات</div>' ELSE l_h || '</tbody></table>' END;
+    IF l_n = 0 THEN RETURN TO_CLOB('<div class="nn-empty">لا توجد عمولات</div>'); END IF;
+    -- CASE لا يرجع أكثر من 32 ألف حرف حتى لو كانت فروعه CLOB
+    RETURN l_h || ('</tbody></table>');
   END commissions_html;
 
   FUNCTION handovers_html RETURN CLOB IS
@@ -1259,11 +1268,13 @@ CREATE OR REPLACE PACKAGE BODY NOONA_RES_PKG AS
       IF h.snag_list IS NOT NULL THEN
         SELECT COUNT(*) INTO l_open FROM JSON_TABLE(h.snag_list, '$[*]' COLUMNS (st VARCHAR2(30) PATH '$.status')) WHERE NVL(st, 'OPEN') = 'OPEN';
       END IF;
-      l_h := l_h || '<tr data-ho="' || h.id || '"><td><b>' || esc(h.doc_no) || '</b></td><td>' || esc(NOONA_RE_PKG.unit_label(h.unit_id)) || '</td><td>'
+      l_h := l_h || ('<tr data-ho="' || h.id || '"><td><b>' || esc(h.doc_no) || '</b></td><td>' || esc(NOONA_RE_PKG.unit_label(h.unit_id)) || '</td><td>'
           || esc(h.cno) || '</td><td>' || esc(h.bname) || '</td><td>' || ds(h.scheduled_date) || '</td><td>' || ds(h.handover_date) || '</td><td>'
-          || CASE WHEN l_open > 0 THEN '<span class="nn-badge is-warning">' || l_open || '</span>' END || '</td><td>' || badge(h.status_code) || '</td></tr>';
+          || CASE WHEN l_open > 0 THEN '<span class="nn-badge is-warning">' || l_open || '</span>' END || '</td><td>' || badge(h.status_code) || '</td></tr>');
     END LOOP;
-    RETURN CASE WHEN l_n = 0 THEN '<div class="nn-empty">لا توجد مواعيد تسليم</div>' ELSE l_h || '</tbody></table>' END;
+    IF l_n = 0 THEN RETURN TO_CLOB('<div class="nn-empty">لا توجد مواعيد تسليم</div>'); END IF;
+    -- CASE لا يرجع أكثر من 32 ألف حرف حتى لو كانت فروعه CLOB
+    RETURN l_h || ('</tbody></table>');
   END handovers_html;
 
   FUNCTION sales_report_html(p_from IN DATE, p_to IN DATE) RETURN CLOB IS
@@ -1286,13 +1297,14 @@ CREATE OR REPLACE PACKAGE BODY NOONA_RES_PKG AS
         l_c := l_c + collected(x.id);
       END LOOP;
       t_v := t_v + r.val; t_c := t_c + l_c;
-      l_h := l_h || '<tr><td>' || esc(NOONA_RE_PKG.property_name(r.property_id)) || '</td><td class="n">' || r.n || '</td><td class="n">' || fmt(r.area)
+      l_h := l_h || ('<tr><td>' || esc(NOONA_RE_PKG.property_name(r.property_id)) || '</td><td class="n">' || r.n || '</td><td class="n">' || fmt(r.area)
           || '</td><td class="n">' || fmt(r.val) || '</td><td class="n">' || CASE WHEN r.area > 0 THEN fmt(r.val / r.area) END || '</td><td class="n">' || fmt(r.disc)
-          || '</td><td class="n">' || fmt(l_c) || '</td></tr>';
+          || '</td><td class="n">' || fmt(l_c) || '</td></tr>');
     END LOOP;
-    RETURN CASE WHEN l_n = 0 THEN '<div class="nn-empty">لا توجد مبيعات في الفترة</div>'
-                ELSE l_h || '</tbody><tfoot><tr><td colspan="3">الإجمالي</td><td class="n">' || fmt(t_v) || '</td><td></td><td></td><td class="n">' || fmt(t_c)
-                    || '</td></tr></tfoot></table>' END;
+    IF l_n = 0 THEN RETURN TO_CLOB('<div class="nn-empty">لا توجد مبيعات في الفترة</div>'); END IF;
+    -- CASE لا يرجع أكثر من 32 ألف حرف حتى لو كانت فروعه CLOB
+    RETURN l_h || ('</tbody><tfoot><tr><td colspan="3">الإجمالي</td><td class="n">' || fmt(t_v) || '</td><td></td><td></td><td class="n">' || fmt(t_c)
+                    || '</td></tr></tfoot></table>');
   END sales_report_html;
 
   FUNCTION plans_html RETURN CLOB IS
@@ -1306,12 +1318,14 @@ CREATE OR REPLACE PACKAGE BODY NOONA_RES_PKG AS
       l_n := l_n + 1;
       SELECT LISTAGG(RTRIM(RTRIM(TO_CHAR(due_pct, 'FM990.99'), '0'), '.') || '%', ' · ') WITHIN GROUP (ORDER BY line_no) INTO l_l
         FROM re_payment_plan_line WHERE payment_plan_id = p.id AND line_no <= 8;
-      l_h := l_h || '<tr><td><b>' || esc(p.name_ar) || '</b></td><td>' || esc(NVL(NOONA_RE_PKG.property_name(p.property_id), 'كل العقارات')) || '</td><td class="n">'
+      l_h := l_h || ('<tr><td><b>' || esc(p.name_ar) || '</b></td><td>' || esc(NVL(NOONA_RE_PKG.property_name(p.property_id), 'كل العقارات')) || '</td><td class="n">'
           || pct(p.down_payment_pct) || '</td><td class="n">' || p.installments_count || '</td><td>'
           || CASE p.frequency WHEN 'MONTHLY' THEN 'شهري' WHEN 'QUARTERLY' THEN 'ربع سنوي' WHEN 'SEMI_ANNUAL' THEN 'نصف سنوي' WHEN 'ANNUAL' THEN 'سنوي' ELSE p.frequency END
-          || '</td><td><small>' || esc(l_l) || '</small></td></tr>';
+          || '</td><td><small>' || esc(l_l) || '</small></td></tr>');
     END LOOP;
-    RETURN CASE WHEN l_n = 0 THEN '<div class="nn-empty">لا توجد خطط سداد</div>' ELSE l_h || '</tbody></table>' END;
+    IF l_n = 0 THEN RETURN TO_CLOB('<div class="nn-empty">لا توجد خطط سداد</div>'); END IF;
+    -- CASE لا يرجع أكثر من 32 ألف حرف حتى لو كانت فروعه CLOB
+    RETURN l_h || ('</tbody></table>');
   END plans_html;
 
   FUNCTION price_lists_html RETURN CLOB IS
@@ -1326,11 +1340,13 @@ CREATE OR REPLACE PACKAGE BODY NOONA_RES_PKG AS
                      (SELECT AVG(price_per_sqm) FROM re_price_list_line l WHERE l.price_list_id = p.id) sq
                 FROM re_price_list p WHERE p.company_id = company ORDER BY p.id DESC) LOOP
       l_n := l_n + 1;
-      l_h := l_h || '<tr data-pl="' || p.id || '"><td><b>' || esc(p.name_ar) || '</b></td><td>' || esc(NOONA_RE_PKG.property_name(p.property_id)) || '</td><td>'
+      l_h := l_h || ('<tr data-pl="' || p.id || '"><td><b>' || esc(p.name_ar) || '</b></td><td>' || esc(NOONA_RE_PKG.property_name(p.property_id)) || '</td><td>'
           || ds(p.effective_from) || '</td><td class="n">' || p.n || '</td><td class="n">' || fmt(p.av) || '</td><td class="n">' || fmt(p.sq) || '</td><td>'
-          || badge(p.status_code) || '</td></tr>';
+          || badge(p.status_code) || '</td></tr>');
     END LOOP;
-    RETURN CASE WHEN l_n = 0 THEN '<div class="nn-empty">لا توجد قوائم أسعار</div>' ELSE l_h || '</tbody></table>' END;
+    IF l_n = 0 THEN RETURN TO_CLOB('<div class="nn-empty">لا توجد قوائم أسعار</div>'); END IF;
+    -- CASE لا يرجع أكثر من 32 ألف حرف حتى لو كانت فروعه CLOB
+    RETURN l_h || ('</tbody></table>');
   END price_lists_html;
 
   FUNCTION allocations_html(p_property_id IN NUMBER DEFAULT NULL) RETURN CLOB IS
@@ -1342,11 +1358,13 @@ CREATE OR REPLACE PACKAGE BODY NOONA_RES_PKG AS
     FOR a IN (SELECT a.*, (SELECT COUNT(*) FROM JSON_TABLE(a.details, '$[*]' COLUMNS (u NUMBER PATH '$.unit'))) n FROM re_cost_allocation a
                WHERE a.company_id = company AND (p_property_id IS NULL OR a.property_id = p_property_id) ORDER BY a.id DESC) LOOP
       l_n := l_n + 1;
-      l_h := l_h || '<tr><td>' || TO_CHAR(a.posted_at, 'YYYY-MM-DD') || '</td><td>' || esc(NOONA_RE_PKG.property_name(a.property_id)) || '</td><td>'
+      l_h := l_h || ('<tr><td>' || TO_CHAR(a.posted_at, 'YYYY-MM-DD') || '</td><td>' || esc(NOONA_RE_PKG.property_name(a.property_id)) || '</td><td>'
           || CASE a.allocation_basis WHEN 'AREA' THEN 'المساحة' WHEN 'SALE_VALUE' THEN 'سعر البيع' ELSE 'عدد الوحدات' END || '</td><td class="n">' || fmt(a.total_cost)
-          || '</td><td class="n">' || a.n || '</td><td>' || badge(a.status_code) || '</td></tr>';
+          || '</td><td class="n">' || a.n || '</td><td>' || badge(a.status_code) || '</td></tr>');
     END LOOP;
-    RETURN CASE WHEN l_n = 0 THEN '<div class="nn-empty">لم ترسمل تكاليف تطوير بعد</div>' ELSE l_h || '</tbody></table>' END;
+    IF l_n = 0 THEN RETURN TO_CLOB('<div class="nn-empty">لم ترسمل تكاليف تطوير بعد</div>'); END IF;
+    -- CASE لا يرجع أكثر من 32 ألف حرف حتى لو كانت فروعه CLOB
+    RETURN l_h || ('</tbody></table>');
   END allocations_html;
 END NOONA_RES_PKG;
 /

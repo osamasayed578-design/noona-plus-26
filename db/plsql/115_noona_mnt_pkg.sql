@@ -532,7 +532,7 @@ CREATE OR REPLACE PACKAGE BODY NOONA_MNT_PKG AS
               UNION ALL SELECT 'IN_PROGRESS', 'قيد التنفيذ', 3 FROM dual UNION ALL SELECT 'ON_HOLD', 'معلق', 4 FROM dual
               UNION ALL SELECT 'COMPLETED', 'منجز بانتظار الإغلاق', 5 FROM dual ORDER BY 3) LOOP
       l_n := 0;
-      l_out := l_out || '<div class="nn-mnt-col nn-mnt-' || LOWER(c.st) || '"><div class="nn-mnt-colh">' || c.nm || '</div>';
+      l_out := l_out || ('<div class="nn-mnt-col nn-mnt-' || LOWER(c.st) || '"><div class="nn-mnt-colh">' || c.nm || '</div>');
       FOR r IN (SELECT r.id, r.doc_no, r.title, r.priority_code, r.due_at, r.resolved_at, r.status_code, r.channel_code, c2.icon,
                        t.name_ar team, r.technician_id, r.room_out_of_order
                   FROM mnt_request r JOIN mnt_service_category c2 ON c2.id = r.category_id LEFT JOIN mnt_team t ON t.id = r.team_id
@@ -540,7 +540,7 @@ CREATE OR REPLACE PACKAGE BODY NOONA_MNT_PKG AS
                    AND (p_property_id IS NULL OR r.property_id = p_property_id) AND (p_team_id IS NULL OR r.team_id = p_team_id)
                  ORDER BY CASE r.priority_code WHEN 'EMERGENCY' THEN 1 WHEN 'URGENT' THEN 2 WHEN 'HIGH' THEN 3 WHEN 'NORMAL' THEN 4 ELSE 5 END,
                           r.due_at FETCH FIRST 60 ROWS ONLY) LOOP
-        l_out := l_out || CASE WHEN p_link IS NOT NULL THEN '<a href="' || REPLACE(p_link, '#ID#', r.id) || '"' ELSE '<div' END
+        l_out := l_out || (CASE WHEN p_link IS NOT NULL THEN '<a href="' || REPLACE(p_link, '#ID#', r.id) || '"' ELSE '<div' END
               || ' class="nn-mnt-card is-' || LOWER(r.priority_code) || '"><div class="nn-mnt-top"><span class="fa ' || NVL(r.icon, 'fa-wrench')
               || '"></span><b>' || esc(r.doc_no) || '</b><span class="nn-mnt-pr">' || priority_label(r.priority_code) || '</span></div><div class="nn-mnt-t">'
               || esc(r.title) || '</div><div class="nn-mnt-loc"><span class="fa fa-map-marker"></span> ' || esc(location_label(r.id))
@@ -549,13 +549,13 @@ CREATE OR REPLACE PACKAGE BODY NOONA_MNT_PKG AS
               || CASE WHEN r.team IS NOT NULL THEN ' · ' || esc(r.team) END
               || CASE WHEN r.technician_id IS NOT NULL THEN ' · ' || esc(technician_name(r.technician_id)) END
               || ' ' || sla_badge(r.due_at, r.resolved_at, r.status_code) || '</div>'
-              || CASE WHEN p_link IS NOT NULL THEN '</a>' ELSE '</div>' END;
+              || CASE WHEN p_link IS NOT NULL THEN '</a>' ELSE '</div>' END);
         l_n := l_n + 1;
       END LOOP;
-      IF l_n = 0 THEN l_out := l_out || '<div class="nn-mnt-empty">لا يوجد</div>'; END IF;
-      l_out := l_out || '</div>';
+      IF l_n = 0 THEN l_out := l_out || ('<div class="nn-mnt-empty">لا يوجد</div>'); END IF;
+      l_out := l_out || ('</div>');
     END LOOP;
-    RETURN l_out || '</div>';
+    RETURN l_out || ('</div>');
   END board_html;
 
   FUNCTION request_html(p_request_id IN NUMBER) RETURN CLOB IS
@@ -599,12 +599,12 @@ CREATE OR REPLACE PACKAGE BODY NOONA_MNT_PKG AS
           || CASE WHEN l_r.resolution_notes IS NOT NULL THEN '<div class="nn-mnt-notes"><b>ما تم عمله والملاحظات</b><p>'
              || REPLACE(esc(l_r.resolution_notes), CHR(10), '<br>') || '</p></div>' END;
     IF l_wo.id IS NOT NULL THEN
-      l_out := l_out || '<table class="nn-rpt"><thead><tr><th>الفني</th><th>التاريخ</th><th>الساعات</th><th>التكلفة</th></tr></thead><tbody>';
+      l_out := l_out || ('<table class="nn-rpt"><thead><tr><th>الفني</th><th>التاريخ</th><th>الساعات</th><th>التكلفة</th></tr></thead><tbody>');
       FOR l IN (SELECT technician_id, work_date, hours, cost_amount FROM mnt_wo_labor WHERE work_order_id = l_wo.id ORDER BY work_date, id) LOOP
-        l_out := l_out || '<tr><td class="nn-rpt-text">' || esc(technician_name(l.technician_id)) || '</td><td>' || TO_CHAR(l.work_date, 'YYYY-MM-DD')
-              || '</td><td>' || l.hours || '</td><td>' || fnum(l.cost_amount) || '</td></tr>';
+        l_out := l_out || ('<tr><td class="nn-rpt-text">' || esc(technician_name(l.technician_id)) || '</td><td>' || TO_CHAR(l.work_date, 'YYYY-MM-DD')
+              || '</td><td>' || l.hours || '</td><td>' || fnum(l.cost_amount) || '</td></tr>');
       END LOOP;
-      l_out := l_out || '</tbody></table>';
+      l_out := l_out || ('</tbody></table>');
     END IF;
     RETURN l_out;
   END request_html;
@@ -622,13 +622,13 @@ CREATE OR REPLACE PACKAGE BODY NOONA_MNT_PKG AS
                 LEFT JOIN mnt_work_order w ON w.request_id = r.id AND w.status_code <> 'CANCELLED'
                WHERE r.company_id = company AND r.doc_date BETWEEN p_from AND p_to AND r.status_code NOT IN ('CANCELLED', 'REJECTED')
                GROUP BY c.name_ar ORDER BY COUNT(*) DESC) LOOP
-      l_out := l_out || '<tr><td class="nn-rpt-text">' || esc(r.name_ar) || '</td><td>' || r.cnt || '</td><td>' || r.done || '</td><td>' || r.met
+      l_out := l_out || ('<tr><td class="nn-rpt-text">' || esc(r.name_ar) || '</td><td>' || r.cnt || '</td><td>' || r.done || '</td><td>' || r.met
             || '</td><td>' || CASE WHEN r.done > 0 THEN ROUND(r.met * 100 / r.done) || '%' END || '</td><td>' || r.avg_h || '</td><td>' || r.open_n
-            || '</td><td>' || fnum(r.cost) || '</td><td>' || r.sat || '</td></tr>';
+            || '</td><td>' || fnum(r.cost) || '</td><td>' || r.sat || '</td></tr>');
       l_n := l_n + 1;
     END LOOP;
     IF l_n = 0 THEN RETURN '<div class="nn-empty">لا توجد بلاغات في الفترة</div>'; END IF;
-    RETURN l_out || '</tbody></table></div>';
+    RETURN l_out || ('</tbody></table></div>');
   END performance_html;
 
 END NOONA_MNT_PKG;

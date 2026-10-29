@@ -218,9 +218,9 @@ CREATE OR REPLACE PACKAGE BODY NOONA_GL_PKG AS
     l_first BOOLEAN := TRUE;
   BEGIN
     FOR c IN (SELECT currency_code, name_ar FROM ref_currency WHERE is_active = 'Y' ORDER BY CASE WHEN currency_code = ledger_currency THEN 0 ELSE 1 END, currency_code) LOOP
-      l_out := l_out || (CASE WHEN NOT l_first THEN ',' END
+      l_out := l_out || ((CASE WHEN NOT l_first THEN ',' END
             || '{"c":' || NOONA_CORE_PKG.json_text(c.currency_code) || ',"n":' || NOONA_CORE_PKG.json_text(c.name_ar)
-            || ',"r":' || NVL(TO_CHAR(rate_for(c.currency_code, NVL(p_date, SYSDATE)), 'TM9', 'NLS_NUMERIC_CHARACTERS=''.,'''), 'null') || '}');
+            || ',"r":' || NVL(TO_CHAR(rate_for(c.currency_code, NVL(p_date, SYSDATE)), 'TM9', 'NLS_NUMERIC_CHARACTERS=''.,'''), 'null') || '}'));
       l_first := FALSE;
     END LOOP;
     RETURN l_out || (']');
@@ -1342,15 +1342,15 @@ CREATE OR REPLACE PACKAGE BODY NOONA_GL_PKG AS
        ORDER BY a.account_code) LOOP
       IF l_grp IS NULL OR l_grp <> r.account_type THEN
         l_grp := r.account_type;
-        l_html := l_html || ('<tr class="nn-rpt-group"><td colspan="8">' || esc(CASE r.account_type WHEN 'ASSET' THEN 'الأصول'
+        l_html := l_html || (('<tr class="nn-rpt-group"><td colspan="8">' || esc(CASE r.account_type WHEN 'ASSET' THEN 'الأصول'
                   WHEN 'LIABILITY' THEN 'الخصوم' WHEN 'EQUITY' THEN 'حقوق الملكية' WHEN 'REVENUE' THEN 'الإيرادات'
-                  WHEN 'EXPENSE' THEN 'التكاليف والمصروفات' ELSE r.account_type END) || '</td></tr>');
+                  WHEN 'EXPENSE' THEN 'التكاليف والمصروفات' ELSE r.account_type END) || '</td></tr>'));
       END IF;
       l_t := r.opening + r.pdr - r.pcr;
-      l_html := l_html || ('<tr><td class="nn-num-code">' || drill(p_link, r.id, r.account_code) || '</td><td>' || esc(r.name_ar) || '</td>'
+      l_html := l_html || (('<tr><td class="nn-num-code">' || drill(p_link, r.id, r.account_code) || '</td><td>' || esc(r.name_ar) || '</td>'
              || '<td>' || fmt(GREATEST(r.opening, 0)) || '</td><td>' || fmt(GREATEST(-r.opening, 0)) || '</td>'
              || '<td>' || fmt(r.pdr) || '</td><td>' || fmt(r.pcr) || '</td>'
-             || '<td>' || fmt(GREATEST(l_t, 0)) || '</td><td>' || fmt(GREATEST(-l_t, 0)) || '</td></tr>');
+             || '<td>' || fmt(GREATEST(l_t, 0)) || '</td><td>' || fmt(GREATEST(-l_t, 0)) || '</td></tr>'));
       t_odr := t_odr + GREATEST(r.opening, 0); t_ocr := t_ocr + GREATEST(-r.opening, 0);
       t_pdr := t_pdr + r.pdr; t_pcr := t_pcr + r.pcr;
       t_cdr := t_cdr + GREATEST(l_t, 0); t_ccr := t_ccr + GREATEST(-l_t, 0);
@@ -1362,19 +1362,19 @@ CREATE OR REPLACE PACKAGE BODY NOONA_GL_PKG AS
        AND (j.status_code IN ('POSTED', 'REVERSED') OR (l_all = 'Y' AND j.status_code IN ('SUBMITTED', 'APPROVED')))
        AND (p_cost_center_id IS NULL OR l.cost_center_id = p_cost_center_id);
     IF l_prior <> 0 THEN
-      l_html := l_html || ('<tr class="nn-rpt-head2"><td></td><td>نتيجة سنوات سابقة غير مقفلة (تقفل في الأرباح المبقاة)</td><td>'
+      l_html := l_html || (('<tr class="nn-rpt-head2"><td></td><td>نتيجة سنوات سابقة غير مقفلة (تقفل في الأرباح المبقاة)</td><td>'
              || fmt(GREATEST(l_prior, 0)) || '</td><td>' || fmt(GREATEST(-l_prior, 0)) || '</td><td></td><td></td><td>'
-             || fmt(GREATEST(l_prior, 0)) || '</td><td>' || fmt(GREATEST(-l_prior, 0)) || '</td></tr>');
+             || fmt(GREATEST(l_prior, 0)) || '</td><td>' || fmt(GREATEST(-l_prior, 0)) || '</td></tr>'));
       t_odr := t_odr + GREATEST(l_prior, 0); t_ocr := t_ocr + GREATEST(-l_prior, 0);
       t_cdr := t_cdr + GREATEST(l_prior, 0); t_ccr := t_ccr + GREATEST(-l_prior, 0);
     END IF;
-    l_html := l_html || ('</tbody><tfoot><tr><td colspan="2">الإجمالي</td><td>' || fmt0(t_odr) || '</td><td>' || fmt0(t_ocr)
+    l_html := l_html || (('</tbody><tfoot><tr><td colspan="2">الإجمالي</td><td>' || fmt0(t_odr) || '</td><td>' || fmt0(t_ocr)
            || '</td><td>' || fmt0(t_pdr) || '</td><td>' || fmt0(t_pcr) || '</td><td>' || fmt0(t_cdr) || '</td><td>' || fmt0(t_ccr)
            || '</td></tr></tfoot></table>'
            || CASE WHEN t_cdr = t_ccr THEN '<div class="nn-chain is-ok nn-rpt-check"><span class="fa fa-check-circle" aria-hidden="true"></span><div><b>الميزان متوازن</b></div></div>'
                    ELSE '<div class="nn-chain is-bad nn-rpt-check"><span class="fa fa-exclamation-triangle" aria-hidden="true"></span><div><b>الميزان غير متوازن: الفرق '
                         || fmt0(t_cdr - t_ccr) || '</b></div></div>' END
-           || report_footer(CASE WHEN l_all = 'Y' THEN 'القيود المرحلة والمرسلة والمعتمدة غير المرحلة' END));
+           || report_footer(CASE WHEN l_all = 'Y' THEN 'القيود المرحلة والمرسلة والمعتمدة غير المرحلة' END)));
     RETURN l_html;
   END trial_balance;
 
@@ -1411,11 +1411,11 @@ CREATE OR REPLACE PACKAGE BODY NOONA_GL_PKG AS
                  AND j.doc_date BETWEEN p_from AND p_to AND (p_cost_center_id IS NULL OR l.cost_center_id = p_cost_center_id)
                ORDER BY j.doc_date, j.posted_at, j.id, l.line_no) LOOP
       l_bal := l_bal + r.debit_func - r.credit_func;
-      l_html := l_html || ('<tr><td>' || TO_CHAR(r.doc_date, 'YYYY-MM-DD') || '</td><td>' || drill(p_link, r.id, r.doc_no) || '</td><td class="nn-rpt-text">'
-             || esc(r.txt) || '</td><td>' || fmt(r.debit_func) || '</td><td>' || fmt(r.credit_func) || '</td><td>' || fmt0(l_bal * l_sign) || '</td></tr>');
+      l_html := l_html || (('<tr><td>' || TO_CHAR(r.doc_date, 'YYYY-MM-DD') || '</td><td>' || drill(p_link, r.id, r.doc_no) || '</td><td class="nn-rpt-text">'
+             || esc(r.txt) || '</td><td>' || fmt(r.debit_func) || '</td><td>' || fmt(r.credit_func) || '</td><td>' || fmt0(l_bal * l_sign) || '</td></tr>'));
     END LOOP;
-    RETURN l_html || ('</tbody><tfoot><tr><td colspan="5">الرصيد الختامي (' || CASE l_acc.normal_balance WHEN 'DEBIT' THEN 'مدين' ELSE 'دائن' END
-        || ' بطبيعته)</td><td>' || fmt0(l_bal * l_sign) || '</td></tr></tfoot></table>' || report_footer);
+    RETURN l_html || (('</tbody><tfoot><tr><td colspan="5">الرصيد الختامي (' || CASE l_acc.normal_balance WHEN 'DEBIT' THEN 'مدين' ELSE 'دائن' END
+        || ' بطبيعته)</td><td>' || fmt0(l_bal * l_sign) || '</td></tr></tfoot></table>' || report_footer));
   END account_statement;
 
   FUNCTION cost_centers_json RETURN CLOB IS
@@ -1439,7 +1439,7 @@ CREATE OR REPLACE PACKAGE BODY NOONA_GL_PKG AS
     PROCEDURE close_group IS
     BEGIN
       IF l_grp IS NOT NULL THEN
-        l_html := l_html || ('<tr class="nn-rpt-sub"><td colspan="2">إجمالي ' || esc(l_grp) || '</td><td>' || fmt0(l_gsum) || '</td></tr>');
+        l_html := l_html || (('<tr class="nn-rpt-sub"><td colspan="2">إجمالي ' || esc(l_grp) || '</td><td>' || fmt0(l_gsum) || '</td></tr>'));
       END IF;
     END close_group;
   BEGIN
@@ -1470,7 +1470,7 @@ CREATE OR REPLACE PACKAGE BODY NOONA_GL_PKG AS
       IF l_type IS NULL OR l_type <> r.account_type THEN
         close_group; l_grp := NULL;
         IF l_type = 'REVENUE' THEN
-          l_html := l_html || ('<tr class="nn-rpt-total"><td colspan="2">إجمالي الإيرادات</td><td>' || fmt0(l_rev) || '</td></tr>');
+          l_html := l_html || (('<tr class="nn-rpt-total"><td colspan="2">إجمالي الإيرادات</td><td>' || fmt0(l_rev) || '</td></tr>'));
         END IF;
         l_type := r.account_type;
         l_html := l_html || ('<tr class="nn-rpt-group"><td colspan="3">' || CASE r.account_type WHEN 'REVENUE' THEN 'الإيرادات'
@@ -1479,21 +1479,21 @@ CREATE OR REPLACE PACKAGE BODY NOONA_GL_PKG AS
       IF l_grp IS NULL OR l_grp <> r.grp_code || ' ' || r.grp_name THEN
         close_group;
         l_grp := r.grp_code || ' ' || r.grp_name; l_gsum := 0;
-        l_html := l_html || ('<tr class="nn-rpt-head2"><td colspan="3">' || esc(l_grp) || '</td></tr>');
+        l_html := l_html || (('<tr class="nn-rpt-head2"><td colspan="3">' || esc(l_grp) || '</td></tr>'));
       END IF;
-      l_html := l_html || ('<tr><td class="nn-num-code">' || esc(r.account_code) || '</td><td>' || esc(r.name_ar) || '</td><td>'
-             || fmt0(r.amount) || '</td></tr>');
+      l_html := l_html || (('<tr><td class="nn-num-code">' || esc(r.account_code) || '</td><td>' || esc(r.name_ar) || '</td><td>'
+             || fmt0(r.amount) || '</td></tr>'));
       l_gsum := l_gsum + r.amount;
       IF r.account_type = 'REVENUE' THEN l_rev := l_rev + r.amount; ELSE l_exp := l_exp + r.amount; END IF;
     END LOOP;
     close_group;
     IF l_type = 'REVENUE' THEN
-      l_html := l_html || ('<tr class="nn-rpt-total"><td colspan="2">إجمالي الإيرادات</td><td>' || fmt0(l_rev) || '</td></tr>');
+      l_html := l_html || (('<tr class="nn-rpt-total"><td colspan="2">إجمالي الإيرادات</td><td>' || fmt0(l_rev) || '</td></tr>'));
     END IF;
-    l_html := l_html || ('<tr class="nn-rpt-total"><td colspan="2">إجمالي التكاليف والمصروفات</td><td>' || fmt0(l_exp) || '</td></tr>'
+    l_html := l_html || (('<tr class="nn-rpt-total"><td colspan="2">إجمالي التكاليف والمصروفات</td><td>' || fmt0(l_exp) || '</td></tr>'
            || '</tbody><tfoot><tr><td colspan="2">' || CASE WHEN l_rev - l_exp >= 0 THEN 'صافي الربح' ELSE 'صافي الخسارة' END
            || '</td><td>' || fmt0(ABS(l_rev - l_exp)) || '</td></tr></tfoot></table>'
-           || report_footer('القيود المرحلة بتاريخ القيد دون قيود إقفال السنة'));
+           || report_footer('القيود المرحلة بتاريخ القيد دون قيود إقفال السنة')));
     RETURN l_html;
   END income_statement;
 
@@ -1510,8 +1510,8 @@ CREATE OR REPLACE PACKAGE BODY NOONA_GL_PKG AS
     PROCEDURE close_sec IS
     BEGIN
       IF l_sec IS NOT NULL THEN
-        l_html := l_html || ('<tr class="nn-rpt-total"><td colspan="2">إجمالي ' || CASE l_sec WHEN 'ASSET' THEN 'الأصول'
-                  WHEN 'LIABILITY' THEN 'الخصوم' ELSE 'حقوق الملكية' END || '</td><td>' || fmt0(l_tot) || '</td></tr>');
+        l_html := l_html || (('<tr class="nn-rpt-total"><td colspan="2">إجمالي ' || CASE l_sec WHEN 'ASSET' THEN 'الأصول'
+                  WHEN 'LIABILITY' THEN 'الخصوم' ELSE 'حقوق الملكية' END || '</td><td>' || fmt0(l_tot) || '</td></tr>'));
       END IF;
     END close_sec;
   BEGIN
@@ -1541,8 +1541,8 @@ CREATE OR REPLACE PACKAGE BODY NOONA_GL_PKG AS
         l_html := l_html || ('<tr class="nn-rpt-group"><td colspan="3">' || CASE r.account_type WHEN 'ASSET' THEN 'الأصول'
                   WHEN 'LIABILITY' THEN 'الخصوم' ELSE 'حقوق الملكية' END || '</td></tr>');
       END IF;
-      l_html := l_html || ('<tr><td class="nn-num-code">' || esc(r.account_code) || '</td><td>' || esc(r.name_ar) || '</td><td>'
-             || fmt0(r.bal) || '</td></tr>');
+      l_html := l_html || (('<tr><td class="nn-num-code">' || esc(r.account_code) || '</td><td>' || esc(r.name_ar) || '</td><td>'
+             || fmt0(r.bal) || '</td></tr>'));
       l_tot := l_tot + r.bal;
     END LOOP;
     -- حقوق الملكية تشمل أرباح الفترة دائماً (حتى لو لم توجد حسابات حقوق ملكية بأرصدة)
@@ -1554,20 +1554,20 @@ CREATE OR REPLACE PACKAGE BODY NOONA_GL_PKG AS
       l_html := l_html || ('<tr class="nn-rpt-group"><td colspan="3">حقوق الملكية</td></tr>');
     END IF;
     IF l_prev <> 0 THEN
-      l_html := l_html || ('<tr><td></td><td>أرباح (خسائر) سنوات سابقة غير مرحلة</td><td>' || fmt0(l_prev) || '</td></tr>');
+      l_html := l_html || (('<tr><td></td><td>أرباح (خسائر) سنوات سابقة غير مرحلة</td><td>' || fmt0(l_prev) || '</td></tr>'));
       l_tot := l_tot + l_prev;
     END IF;
-    l_html := l_html || ('<tr><td></td><td>' || CASE WHEN l_cur >= 0 THEN 'صافي ربح السنة الجارية' ELSE 'صافي خسارة السنة الجارية' END
-           || '</td><td>' || fmt0(l_cur) || '</td></tr>');
+    l_html := l_html || (('<tr><td></td><td>' || CASE WHEN l_cur >= 0 THEN 'صافي ربح السنة الجارية' ELSE 'صافي خسارة السنة الجارية' END
+           || '</td><td>' || fmt0(l_cur) || '</td></tr>'));
     l_tot := l_tot + l_cur;
     close_sec;
     l_le := l_le + l_tot;
-    l_html := l_html || ('</tbody><tfoot><tr><td colspan="2">إجمالي الخصوم وحقوق الملكية</td><td>' || fmt0(l_le) || '</td></tr></tfoot></table>'
+    l_html := l_html || (('</tbody><tfoot><tr><td colspan="2">إجمالي الخصوم وحقوق الملكية</td><td>' || fmt0(l_le) || '</td></tr></tfoot></table>'
            || CASE WHEN ROUND(l_asst, 2) = ROUND(l_le, 2)
                    THEN '<div class="nn-chain is-ok nn-rpt-check"><span class="fa fa-check-circle" aria-hidden="true"></span><div><b>الميزانية متوازنة: الأصول = الخصوم + حقوق الملكية = '
                         || fmt0(l_asst) || '</b></div></div>'
                    ELSE '<div class="nn-chain is-bad nn-rpt-check"><span class="fa fa-exclamation-triangle" aria-hidden="true"></span><div><b>الميزانية غير متوازنة: الفرق '
-                        || fmt0(l_asst - l_le) || '</b></div></div>' END || report_footer);
+                        || fmt0(l_asst - l_le) || '</b></div></div>' END || report_footer));
     RETURN l_html;
   END balance_sheet;
 
@@ -1614,7 +1614,7 @@ CREATE OR REPLACE PACKAGE BODY NOONA_GL_PKG AS
                 || CASE p_by WHEN 'MONTH' THEN ' حسب الشهر' ELSE ' حسب مراكز التكلفة' END
                 || ' من ' || TO_CHAR(p_from, 'YYYY-MM-DD') || ' إلى ' || TO_CHAR(p_to, 'YYYY-MM-DD'))
            || '<div class="nn-rpt-scroll"><table class="nn-rpt nn-rpt-matrix"><thead><tr><th>الحساب</th><th>البيان</th>';
-    FOR i IN 1 .. l_n LOOP l_html := l_html || ('<th>' || esc(l_cols(i)) || '</th>'); END LOOP;
+    FOR i IN 1 .. l_n LOOP l_html := l_html || (('<th>' || esc(l_cols(i)) || '</th>')); END LOOP;
     l_html := l_html || ('<th>الإجمالي</th><th>النسبة</th></tr></thead><tbody>');
     -- الإجمالي العام أولاً لحساب النسب
     FOR a IN (SELECT a.account_code FROM gl_account a WHERE a.coa_id = primary_coa AND a.account_type = p_type AND a.is_postable = 'Y') LOOP
@@ -1629,25 +1629,25 @@ CREATE OR REPLACE PACKAGE BODY NOONA_GL_PKG AS
         IF l_amt.EXISTS(a.account_code || '|' || l_keys(i)) THEN l_rowt := l_rowt + l_amt(a.account_code || '|' || l_keys(i)); END IF;
       END LOOP;
       IF l_rowt <> 0 THEN
-        l_html := l_html || ('<tr><td class="nn-num-code">' || esc(a.account_code) || '</td><td>' || esc(a.name_ar) || '</td>');
+        l_html := l_html || (('<tr><td class="nn-num-code">' || esc(a.account_code) || '</td><td>' || esc(a.name_ar) || '</td>'));
         FOR i IN 1 .. l_n LOOP
           IF l_amt.EXISTS(a.account_code || '|' || l_keys(i)) THEN
-            l_html := l_html || ('<td>' || fmt(l_amt(a.account_code || '|' || l_keys(i))) || '</td>');
+            l_html := l_html || (('<td>' || fmt(l_amt(a.account_code || '|' || l_keys(i))) || '</td>'));
             l_coltot(l_keys(i)) := CASE WHEN l_coltot.EXISTS(l_keys(i)) THEN l_coltot(l_keys(i)) ELSE 0 END + l_amt(a.account_code || '|' || l_keys(i));
           ELSE
             l_html := l_html || ('<td></td>');
           END IF;
         END LOOP;
-        l_html := l_html || ('<td class="nn-rpt-rowtot">' || fmt0(l_rowt) || '</td><td>'
-               || CASE WHEN l_grand <> 0 THEN TO_CHAR(ROUND(l_rowt * 100 / l_grand, 1), 'FM990.0') || '%' END || '</td></tr>');
+        l_html := l_html || (('<td class="nn-rpt-rowtot">' || fmt0(l_rowt) || '</td><td>'
+               || CASE WHEN l_grand <> 0 THEN TO_CHAR(ROUND(l_rowt * 100 / l_grand, 1), 'FM990.0') || '%' END || '</td></tr>'));
       END IF;
     END LOOP;
     l_html := l_html || ('</tbody><tfoot><tr><td colspan="2">الإجمالي</td>');
     FOR i IN 1 .. l_n LOOP
-      l_html := l_html || ('<td>' || fmt0(CASE WHEN l_coltot.EXISTS(l_keys(i)) THEN l_coltot(l_keys(i)) ELSE 0 END) || '</td>');
+      l_html := l_html || (('<td>' || fmt0(CASE WHEN l_coltot.EXISTS(l_keys(i)) THEN l_coltot(l_keys(i)) ELSE 0 END) || '</td>'));
     END LOOP;
-    RETURN l_html || ('<td>' || fmt0(l_grand) || '</td><td>100%</td></tr></tfoot></table></div>'
-        || report_footer('القيود المرحلة بتاريخ القيد دون قيود إقفال السنة'));
+    RETURN l_html || (('<td>' || fmt0(l_grand) || '</td><td>100%</td></tr></tfoot></table></div>'
+        || report_footer('القيود المرحلة بتاريخ القيد دون قيود إقفال السنة')));
   END analysis;
 
 END NOONA_GL_PKG;

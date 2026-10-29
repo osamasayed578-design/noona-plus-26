@@ -804,10 +804,10 @@ CREATE OR REPLACE PACKAGE BODY NOONA_PAY_PKG AS
                 JOIN hr_employment m ON m.id = re.employment_id JOIN hr_employee e ON e.id = m.employee_id
                 JOIN pty_party p ON p.id = e.person_party_id LEFT JOIN ref_bank b ON b.id = m.bank_id
                WHERE l.bank_file_id = p_file_id ORDER BY e.employee_no) LOOP
-      l_out := l_out || (r.employee_no || ',"' || REPLACE(r.nm, '"', '') || '",' || r.national_id || ',' || r.bank || ',' || r.iban || ','
+      l_out := l_out || ((r.employee_no || ',"' || REPLACE(r.nm, '"', '') || '",' || r.national_id || ',' || r.bank || ',' || r.iban || ','
             || TO_CHAR(res(r.id, 'BASIC'), 'FM9999999990.00') || ',' || TO_CHAR(res(r.id, 'HOUSING'), 'FM9999999990.00') || ','
             || TO_CHAR(r.gross_amount - res(r.id, 'BASIC,HOUSING'), 'FM9999999990.00') || ','
-            || TO_CHAR(r.deduction_amount, 'FM9999999990.00') || ',' || TO_CHAR(r.net_amount, 'FM9999999990.00') || CHR(13) || CHR(10));
+            || TO_CHAR(r.deduction_amount, 'FM9999999990.00') || ',' || TO_CHAR(r.net_amount, 'FM9999999990.00') || CHR(13) || CHR(10)));
     END LOOP;
     NOONA_AUDIT_PKG.log_event('EXPORT', 'PAY_BANK_FILE', p_file_id, 'EXPORT', 'SUCCESS');
     RETURN l_out;
@@ -1044,13 +1044,13 @@ CREATE OR REPLACE PACKAGE BODY NOONA_PAY_PKG AS
              WHEN l_r.status_code IN ('POSTED', 'APPROVED') THEN 'is-info' ELSE 'is-warning' END || '">' || status_label(l_r.status_code) || '</span></div>';
     IF l_r.anomaly_report IS NOT NULL AND l_r.anomaly_report <> '[]' THEN
       l_an := JSON_ARRAY_T.parse(l_r.anomaly_report);
-      l_out := l_out || '<div class="nn-hr-anom"><b>تنبيهات المراجعة</b><ul>';
+      l_out := l_out || ('<div class="nn-hr-anom"><b>تنبيهات المراجعة</b><ul>');
       FOR i IN 0 .. l_an.get_size - 1 LOOP
         l_o := TREAT(l_an.get(i) AS JSON_OBJECT_T);
-        l_out := l_out || '<li class="' || CASE WHEN l_o.get_string('error') = 'Y' THEN 'is-err' END || '">' || esc(l_o.get_string('name'))
-              || ': ' || esc(l_o.get_string('msg')) || '</li>';
+        l_out := l_out || ('<li class="' || CASE WHEN l_o.get_string('error') = 'Y' THEN 'is-err' END || '">' || esc(l_o.get_string('name'))
+              || ': ' || esc(l_o.get_string('msg')) || '</li>');
       END LOOP;
-      l_out := l_out || '</ul></div>';
+      l_out := l_out || ('</ul></div>');
     END IF;
     RETURN l_out;
   END run_header_html;
@@ -1076,22 +1076,22 @@ CREATE OR REPLACE PACKAGE BODY NOONA_PAY_PKG AS
       v := SYS.ODCINUMBERLIST(res(r.id, 'BASIC'), res(r.id, 'HOUSING'), res(r.id, 'TRANSPORT'), res(r.id, 'OTHER_ALLOW'), res(r.id, 'OVERTIME'),
                               res(r.id, 'BONUS,COMMISSION'), res(r.id, 'EOS,LEAVE_PAY'), r.gross_amount, res(r.id, 'ABSENCE'), res(r.id, 'GOSI_EE'),
                               res(r.id, 'LOAN'), res(r.id, 'PENALTY,OTHER_DED'), r.net_amount, r.employer_cost);
-      l_out := l_out || ('<tr' || CASE WHEN r.status_code = 'ERROR' THEN ' class="is-err"' END || '><td class="nn-rpt-text">'
+      l_out := l_out || (('<tr' || CASE WHEN r.status_code = 'ERROR' THEN ' class="is-err"' END || '><td class="nn-rpt-text">'
             || CASE WHEN p_link IS NOT NULL THEN '<a href="' || REPLACE(p_link, '#ID#', r.id) || '">' || esc(NOONA_HR_PKG.employment_label(r.employment_id)) || '</a>'
                     ELSE esc(NOONA_HR_PKG.employment_label(r.employment_id)) END
             || CASE WHEN r.error_message IS NOT NULL THEN '<div class="nn-hr-err">' || esc(r.error_message) || '</div>' END
-            || '</td><td>' || fnum(r.payable_days, 1) || CASE WHEN r.absence_days > 0 THEN '<small> (غياب ' || fnum(r.absence_days, 1) || ')</small>' END || '</td>');
+            || '</td><td>' || fnum(r.payable_days, 1) || CASE WHEN r.absence_days > 0 THEN '<small> (غياب ' || fnum(r.absence_days, 1) || ')</small>' END || '</td>'));
       FOR i IN 1 .. 14 LOOP
-        l_out := l_out || ('<td' || CASE WHEN i IN (8, 13) THEN ' class="nn-hr-strong"' END || '>' || CASE WHEN v(i) <> 0 THEN fnum(v(i)) END || '</td>');
+        l_out := l_out || (('<td' || CASE WHEN i IN (8, 13) THEN ' class="nn-hr-strong"' END || '>' || CASE WHEN v(i) <> 0 THEN fnum(v(i)) END || '</td>'));
         t(i) := t(i) + v(i);
       END LOOP;
-      l_out := l_out || '</tr>';
+      l_out := l_out || ('</tr>');
     END LOOP;
-    l_out := l_out || '</tbody><tfoot><tr><td class="nn-rpt-text">الإجمالي (' || NVL(l_r.employee_count, 0) || ')</td><td></td>';
+    l_out := l_out || ('</tbody><tfoot><tr><td class="nn-rpt-text">الإجمالي (' || NVL(l_r.employee_count, 0) || ')</td><td></td>');
     FOR i IN 1 .. 14 LOOP
-      l_out := l_out || ('<td>' || fnum(t(i)) || '</td>');
+      l_out := l_out || (('<td>' || fnum(t(i)) || '</td>'));
     END LOOP;
-    RETURN l_out || '</tr></tfoot></table></div>';
+    RETURN l_out || ('</tr></tfoot></table></div>');
   END run_register_html;
 
   FUNCTION payslip_html(p_run_employee_id IN NUMBER) RETURN CLOB IS
@@ -1116,11 +1116,11 @@ CREATE OR REPLACE PACKAGE BODY NOONA_PAY_PKG AS
     FOR x IN (SELECT el.name_ar, el.element_type, rr.quantity, rr.amount, el.code FROM pay_run_result rr JOIN pay_element el ON el.id = rr.element_id
                WHERE rr.run_employee_id = p_run_employee_id AND el.show_on_payslip = 'Y' ORDER BY el.sort_order, rr.id) LOOP
       IF x.element_type = 'EARNING' THEN
-        l_ear := l_ear || '<tr><td class="nn-rpt-text">' || esc(x.name_ar)
-              || CASE WHEN x.code = 'OVERTIME' THEN ' (' || fnum(x.quantity, 1) || ' ساعة)' END || '</td><td>' || fnum(x.amount) || '</td></tr>';
+        l_ear := l_ear || ('<tr><td class="nn-rpt-text">' || esc(x.name_ar)
+              || CASE WHEN x.code = 'OVERTIME' THEN ' (' || fnum(x.quantity, 1) || ' ساعة)' END || '</td><td>' || fnum(x.amount) || '</td></tr>');
       ELSE
-        l_ded := l_ded || '<tr><td class="nn-rpt-text">' || esc(x.name_ar)
-              || CASE WHEN x.code = 'ABSENCE' THEN ' (' || fnum(x.quantity, 1) || ' يوم)' END || '</td><td>' || fnum(x.amount) || '</td></tr>';
+        l_ded := l_ded || ('<tr><td class="nn-rpt-text">' || esc(x.name_ar)
+              || CASE WHEN x.code = 'ABSENCE' THEN ' (' || fnum(x.quantity, 1) || ' يوم)' END || '</td><td>' || fnum(x.amount) || '</td></tr>');
       END IF;
     END LOOP;
     l_out := '<div class="nn-payslip"><div class="nn-payslip-h"><div><b>' || esc(l_co) || '</b><span>قسيمة راتب '
@@ -1146,11 +1146,11 @@ CREATE OR REPLACE PACKAGE BODY NOONA_PAY_PKG AS
     FOR x IN (SELECT el.name_ar, el.element_type, COUNT(DISTINCT re.id) n, SUM(rr.amount) amt
                 FROM pay_run_employee re JOIN pay_run_result rr ON rr.run_employee_id = re.id JOIN pay_element el ON el.id = rr.element_id
                WHERE re.run_id = l_r.id GROUP BY el.name_ar, el.element_type, el.sort_order ORDER BY el.sort_order) LOOP
-      l_out := l_out || ('<tr><td class="nn-rpt-text">' || esc(x.name_ar) || '</td><td class="nn-rpt-text">'
+      l_out := l_out || (('<tr><td class="nn-rpt-text">' || esc(x.name_ar) || '</td><td class="nn-rpt-text">'
             || CASE x.element_type WHEN 'EARNING' THEN 'استحقاق' WHEN 'EMPLOYER_CONTRIBUTION' THEN 'على المنشأة' ELSE 'استقطاع' END
-            || '</td><td>' || x.n || '</td><td>' || fnum(x.amt) || '</td></tr>');
+            || '</td><td>' || x.n || '</td><td>' || fnum(x.amt) || '</td></tr>'));
     END LOOP;
-    RETURN l_out || '</tbody></table>';
+    RETURN l_out || ('</tbody></table>');
   END element_summary_html;
 
   FUNCTION gosi_report_html(p_run_id IN NUMBER) RETURN CLOB IS
@@ -1165,12 +1165,12 @@ CREATE OR REPLACE PACKAGE BODY NOONA_PAY_PKG AS
       a := res(r.id, 'GOSI_EE'); b := res(r.id, 'GOSI_ER');
       SELECT MAX(rr.quantity) INTO q FROM pay_run_result rr JOIN pay_element el ON el.id = rr.element_id
        WHERE rr.run_employee_id = r.id AND el.code IN ('GOSI_EE', 'GOSI_ER');
-      l_out := l_out || ('<tr><td class="nn-rpt-text">' || esc(NOONA_HR_PKG.employment_label(r.employment_id)) || '</td><td>' || esc(r.nationality)
-            || '</td><td>' || esc(r.gosi_no) || '</td><td>' || fnum(q) || '</td><td>' || fnum(a) || '</td><td>' || fnum(b) || '</td><td>' || fnum(a + b) || '</td></tr>');
+      l_out := l_out || (('<tr><td class="nn-rpt-text">' || esc(NOONA_HR_PKG.employment_label(r.employment_id)) || '</td><td>' || esc(r.nationality)
+            || '</td><td>' || esc(r.gosi_no) || '</td><td>' || fnum(q) || '</td><td>' || fnum(a) || '</td><td>' || fnum(b) || '</td><td>' || fnum(a + b) || '</td></tr>'));
       l_ee := l_ee + a; l_er := l_er + b;
     END LOOP;
-    RETURN l_out || ('</tbody><tfoot><tr><td class="nn-rpt-text">الإجمالي</td><td></td><td></td><td></td><td>' || fnum(l_ee) || '</td><td>' || fnum(l_er)
-        || '</td><td>' || fnum(l_ee + l_er) || '</td></tr></tfoot></table>');
+    RETURN l_out || (('</tbody><tfoot><tr><td class="nn-rpt-text">الإجمالي</td><td></td><td></td><td></td><td>' || fnum(l_ee) || '</td><td>' || fnum(l_er)
+        || '</td><td>' || fnum(l_ee + l_er) || '</td></tr></tfoot></table>'));
   END gosi_report_html;
 
   FUNCTION eos_liability_html(p_date IN DATE DEFAULT TRUNC(SYSDATE)) RETURN CLOB IS
@@ -1182,13 +1182,13 @@ CREATE OR REPLACE PACKAGE BODY NOONA_PAY_PKG AS
     FOR m IN (SELECT m.id, m.start_date FROM hr_employment m WHERE m.company_id = company AND m.status_code IN ('ACTIVE', 'NOTICE_PERIOD', 'SUSPENDED')
                ORDER BY m.start_date) LOOP
       a := eos_amount(m.id, p_date); b := eos_amount(m.id, p_date, 'RESIGNATION'); c := provision_balance(m.id, 'END_OF_SERVICE');
-      l_out := l_out || ('<tr><td class="nn-rpt-text">' || esc(NOONA_HR_PKG.employment_label(m.id)) || '</td><td>' || TO_CHAR(m.start_date, 'YYYY-MM-DD')
+      l_out := l_out || (('<tr><td class="nn-rpt-text">' || esc(NOONA_HR_PKG.employment_label(m.id)) || '</td><td>' || TO_CHAR(m.start_date, 'YYYY-MM-DD')
             || '</td><td>' || fnum(NOONA_HR_PKG.service_years(m.id, p_date), 2) || '</td><td>' || fnum(eos_wage(m.id, p_date)) || '</td><td>' || fnum(a)
-            || '</td><td>' || fnum(b) || '</td><td>' || fnum(c) || '</td></tr>');
+            || '</td><td>' || fnum(b) || '</td><td>' || fnum(c) || '</td></tr>'));
       l_t1 := l_t1 + a; l_t2 := l_t2 + b; l_t3 := l_t3 + c;
     END LOOP;
-    RETURN l_out || ('</tbody><tfoot><tr><td class="nn-rpt-text">الإجمالي</td><td></td><td></td><td></td><td>' || fnum(l_t1) || '</td><td>' || fnum(l_t2)
-        || '</td><td>' || fnum(l_t3) || '</td></tr></tfoot></table>');
+    RETURN l_out || (('</tbody><tfoot><tr><td class="nn-rpt-text">الإجمالي</td><td></td><td></td><td></td><td>' || fnum(l_t1) || '</td><td>' || fnum(l_t2)
+        || '</td><td>' || fnum(l_t3) || '</td></tr></tfoot></table>'));
   END eos_liability_html;
 
   FUNCTION loans_report_html RETURN CLOB IS
@@ -1198,12 +1198,12 @@ CREATE OR REPLACE PACKAGE BODY NOONA_PAY_PKG AS
   BEGIN
     FOR l IN (SELECT * FROM pay_loan WHERE company_id = company AND status_code IN ('APPROVED', 'ACTIVE') ORDER BY doc_date DESC) LOOP
       SELECT COUNT(*) INTO l_n FROM pay_loan_installment WHERE loan_id = l.id AND status_code IN ('SCHEDULED', 'DEFERRED');
-      l_out := l_out || ('<tr><td>' || esc(l.doc_no) || '</td><td class="nn-rpt-text">' || esc(NOONA_HR_PKG.employment_label(l.employment_id))
+      l_out := l_out || (('<tr><td>' || esc(l.doc_no) || '</td><td class="nn-rpt-text">' || esc(NOONA_HR_PKG.employment_label(l.employment_id))
             || '</td><td>' || fnum(l.principal_amount) || '</td><td>' || fnum(l.installment_amount) || '</td><td>'
             || fnum(l.principal_amount - l.outstanding_balance) * CASE WHEN l.status_code = 'ACTIVE' THEN 1 ELSE 0 END || '</td><td>'
-            || fnum(l.outstanding_balance) || '</td><td>' || l_n || '</td><td>' || status_label(l.status_code) || '</td></tr>');
+            || fnum(l.outstanding_balance) || '</td><td>' || l_n || '</td><td>' || status_label(l.status_code) || '</td></tr>'));
     END LOOP;
-    RETURN l_out || '</tbody></table>';
+    RETURN l_out || ('</tbody></table>');
   END loans_report_html;
 
   FUNCTION cost_center_html(p_run_id IN NUMBER) RETURN CLOB IS
@@ -1215,10 +1215,10 @@ CREATE OR REPLACE PACKAGE BODY NOONA_PAY_PKG AS
                      SUM(re.employer_cost - re.gross_amount) er, SUM(re.employer_cost) t
                 FROM pay_run_employee re JOIN hr_employment m ON m.id = re.employment_id LEFT JOIN gl_cost_center c ON c.id = m.cost_center_id
                WHERE re.run_id = l_r.id GROUP BY CASE WHEN c.id IS NULL THEN 'غير محدد' ELSE c.code || ' - ' || c.name_ar END ORDER BY 1) LOOP
-      l_out := l_out || ('<tr><td class="nn-rpt-text">' || esc(x.cc) || '</td><td>' || x.n || '</td><td>' || fnum(x.g) || '</td><td>' || fnum(x.er)
-            || '</td><td>' || fnum(x.t) || '</td></tr>');
+      l_out := l_out || (('<tr><td class="nn-rpt-text">' || esc(x.cc) || '</td><td>' || x.n || '</td><td>' || fnum(x.g) || '</td><td>' || fnum(x.er)
+            || '</td><td>' || fnum(x.t) || '</td></tr>'));
     END LOOP;
-    RETURN l_out || '</tbody></table>';
+    RETURN l_out || ('</tbody></table>');
   END cost_center_html;
 
 END NOONA_PAY_PKG;

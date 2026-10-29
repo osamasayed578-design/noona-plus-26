@@ -121,7 +121,7 @@ wwv_flow_imp_page.create_page_item(
 ,p_name=>'P57_SRV'
 ,p_item_sequence=>20
 ,p_item_plug_id=>wwv_flow_imp.id(91820275000000649)
-,p_prompt=>'Procedure'
+,p_prompt=>'الإجراء'
 ,p_display_as=>'NATIVE_SELECT_LIST'
 ,p_lov=>'select noona_his_pkg.service_name(s.id) || '' ('' || to_char(s.price, ''FM999G990D00'') || '')'' d, s.id r from his_service s where s.company_id = noona_his_pkg.company and s.status_code = ''ACTIVE'' and s.service_type in (''MINOR_SURGERY'', ''MAJOR_SURGERY'', ''PROCEDURE'') order by 1'
 ,p_lov_display_null=>'YES'
@@ -193,7 +193,7 @@ wwv_flow_imp_page.create_page_item(
 ,p_item_plug_id=>wwv_flow_imp.id(91820275000000649)
 ,p_prompt=>'التخدير'
 ,p_display_as=>'NATIVE_SELECT_LIST'
-,p_lov=>'STATIC2:General;GENERAL,Spinal;SPINAL,Local;LOCAL,Sedation;SEDATION'
+,p_lov=>'STATIC2:عام;GENERAL,نصفي (Spinal);SPINAL,موضعي;LOCAL,تهدئة;SEDATION'
 ,p_lov_display_null=>'YES'
 ,p_lov_null_text=>'- اختر -'
 ,p_cHeight=>1
@@ -321,7 +321,7 @@ wwv_flow_imp_page.create_page_item(
 ,p_name=>'P57_NOTES'
 ,p_item_sequence=>20
 ,p_item_plug_id=>wwv_flow_imp.id(91820275000000661)
-,p_prompt=>'Operative notes (English) / cancel reason'
+,p_prompt=>'ملاحظات العملية (بالإنجليزية) / سبب الإلغاء'
 ,p_display_as=>'NATIVE_TEXTAREA'
 ,p_cSize=>60
 ,p_cMaxlength=>1000

@@ -296,19 +296,19 @@ CREATE OR REPLACE PACKAGE BODY NOONA_RST_PKG AS
                ORDER BY bl.line_no) LOOP
       l_n := l_n + 1;
       l_cost := l_cost + r.q * r.c;
-      l_h := l_h || '<tr><td>' || esc(r.name_ar) || ' <small>' || esc(r.item_no) || '</small></td><td class="n">' || fqty(r.q) || '</td><td>'
+      l_h := l_h || ('<tr><td>' || esc(r.name_ar) || ' <small>' || esc(r.item_no) || '</small></td><td class="n">' || fqty(r.q) || '</td><td>'
           || esc(r.uom) || '</td><td class="n">' || fmt0(r.c) || '</td><td class="n">'
           || TO_CHAR(ROUND(r.q * r.c, 4), 'FM999G990D0099', 'NLS_NUMERIC_CHARACTERS=''.,''') || '</td><td class="n'
-          || CASE WHEN r.oh < r.q THEN ' nn-neg' END || '">' || fqty(r.oh) || '</td></tr>';
+          || CASE WHEN r.oh < r.q THEN ' nn-neg' END || '">' || fqty(r.oh) || '</td></tr>');
     END LOOP;
     IF l_n = 0 THEN
       RETURN '<p class="nn-hint">لا توجد وصفة لهذا الصنف بعد: لن يصرف شيء من المخزون عند بيعه. أضف مكوناته بالأسفل.</p>';
     END IF;
     SELECT MAX(c.sale_price) INTO l_price FROM inv_item_company c WHERE c.item_id = p_item_id AND c.company_id = l_co;
     l_price := l_price / (1 + NOONA_INV_PKG.tax_rate(NOONA_INV_PKG.item_tax_code(p_item_id, 'SALE')) / 100);   -- السعر قبل الضريبة
-    RETURN l_h || '</tbody><tfoot><tr><td colspan="4">تكلفة الحصة · السعر قبل الضريبة ' || fmt0(l_price) || '</td><td class="n">' || fmt0(l_cost)
+    RETURN l_h || ('</tbody><tfoot><tr><td colspan="4">تكلفة الحصة · السعر قبل الضريبة ' || fmt0(l_price) || '</td><td class="n">' || fmt0(l_cost)
         || '</td><td class="n">' || CASE WHEN l_price > 0 THEN 'نسبة التكلفة ' || ROUND(l_cost * 100 / l_price, 1) || '%' END
-        || '</td></tr></tfoot></table>';
+        || '</td></tr></tfoot></table>');
   END recipe_html;
 
   FUNCTION save_ingredient(p_name_ar IN VARCHAR2, p_uom_id IN NUMBER) RETURN NUMBER IS
@@ -798,24 +798,24 @@ CREATE OR REPLACE PACKAGE BODY NOONA_RST_PKG AS
     SELECT MAX(code) INTO l_tc FROM rst_table WHERE id = l_r.table_id;
     l_h := '<div class="nn-receipt nn-rst-bill"><div class="nn-rc-head"><b>' || esc(NOONA_SAL_PKG.seller_name) || '</b><br>الحساب (ليس فاتورة ضريبية)<br>'
         || esc(l_hd) || CASE WHEN l_tc IS NOT NULL THEN '<br>الطاولة: ' || esc(l_tc) END || '</div>';
-    l_h := l_h || '<div class="nn-rc-meta">' || TO_CHAR(SYSDATE, 'YYYY-MM-DD HH24:MI') || ' · ' || esc(type_label(l_r.order_type))
+    l_h := l_h || ('<div class="nn-rc-meta">' || TO_CHAR(SYSDATE, 'YYYY-MM-DD HH24:MI') || ' · ' || esc(type_label(l_r.order_type))
         || CASE WHEN l_r.guests IS NOT NULL THEN ' · ' || l_r.guests || ' أشخاص' END || ' · ' || esc(l_r.waiter_name) || '</div>'
-        || '<table class="nn-rc-lines"><tbody>';
+        || '<table class="nn-rc-lines"><tbody>');
     FOR r IN (SELECT i.name_ar, SUM(l.quantity) q, l.unit_price, SUM(l.line_total) t
                 FROM rst_order_line l JOIN inv_item i ON i.id = l.item_id
                WHERE l.order_id IN (SELECT COLUMN_VALUE FROM TABLE(l_ids)) AND l.kitchen_status <> 'VOID'
                GROUP BY i.name_ar, l.unit_price ORDER BY MIN(l.line_no)) LOOP
-      l_h := l_h || '<tr><td>' || esc(r.name_ar) || '<br><small>' || fqty(r.q) || ' × ' || fmt0(r.unit_price) || '</small></td><td class="n">'
-          || fmt0(r.t) || '</td></tr>';
+      l_h := l_h || ('<tr><td>' || esc(r.name_ar) || '<br><small>' || fqty(r.q) || ' × ' || fmt0(r.unit_price) || '</small></td><td class="n">'
+          || fmt0(r.t) || '</td></tr>');
       l_gr := l_gr + r.t;
     END LOOP;
     SELECT NVL(SUM(total_amount), 0), NVL(SUM(tax_amount), 0) INTO l_sum, l_tax FROM rst_order WHERE id IN (SELECT COLUMN_VALUE FROM TABLE(l_ids));
-    l_h := l_h || '</tbody></table><table class="nn-rc-tot">'
+    l_h := l_h || ('</tbody></table><table class="nn-rc-tot">'
         || CASE WHEN l_gr <> l_sum THEN '<tr><td>المجموع</td><td class="n">' || fmt0(l_gr) || '</td></tr><tr><td>الخصم</td><td class="n">'
                 || fmt0(l_gr - l_sum) || '</td></tr>' END
         || '<tr><td>منها ضريبة القيمة المضافة</td><td class="n">' || fmt0(l_tax) || '</td></tr>'
         || '<tr class="nn-rc-grand"><td>المطلوب</td><td class="n">' || fmt0(l_sum) || '</td></tr></table>'
-        || '<div class="nn-rc-foot">الأسعار شاملة الضريبة · تصدر الفاتورة الضريبية عند السداد</div></div>';
+        || '<div class="nn-rc-foot">الأسعار شاملة الضريبة · تصدر الفاتورة الضريبية عند السداد</div></div>');
     UPDATE rst_order SET status_code = 'BILLED', billed_at = SYSTIMESTAMP
      WHERE id IN (SELECT COLUMN_VALUE FROM TABLE(l_ids)) AND status_code = 'OPEN';
     RETURN l_h;
@@ -1050,19 +1050,19 @@ CREATE OR REPLACE PACKAGE BODY NOONA_RST_PKG AS
                ORDER BY NOONA_SAL_PKG.customer_balance(x.id) DESC) LOOP
       l_n := l_n + 1;
       l_tot := l_tot + r.bal;
-      l_h := l_h || '<tr><td><b>' || esc(r.name) || '</b><br><small>' || esc(r.customer_no) || '</small></td><td>' || esc(r.phone) || '</td>'
+      l_h := l_h || ('<tr><td><b>' || esc(r.name) || '</b><br><small>' || esc(r.customer_no) || '</small></td><td>' || esc(r.phone) || '</td>'
           || '<td class="n">' || fmt0(r.rst) || '</td><td class="n"><b class="' || CASE WHEN r.bal > 0 THEN 'nn-neg' END || '">' || fmt0(r.bal)
           || '</b></td><td class="n">' || CASE WHEN r.lim IS NOT NULL THEN fmt0(r.lim) ELSE '—' END || '</td><td>'
           || TO_CHAR(r.last_at, 'YYYY-MM-DD') || '</td><td class="nn-rst-act">'
-          || CASE WHEN r.bal > 0 THEN '<button type="button" class="t-Button t-Button--small t-Button--hot" data-collect="' || r.id || '" data-name="'
+          || CASE WHEN r.bal > 0 THEN '<button type="button" class="t-Button t-Button--small" data-collect="' || r.id || '" data-name="'
                   || esc(r.name) || '" data-bal="' || TO_CHAR(r.bal, 'FM9999999990D00', 'NLS_NUMERIC_CHARACTERS=''.,''') || '">تحصيل</button> ' END
-          || '<button type="button" class="t-Button t-Button--small" data-stmt="' || r.id || '">كشف حساب</button></td></tr>';
+          || '<button type="button" class="t-Button t-Button--small" data-stmt="' || r.id || '">كشف حساب</button></td></tr>');
     END LOOP;
     IF l_n = 0 THEN
-      l_h := l_h || '<tr><td colspan="7" class="nn-hint">لا يوجد عملاء آجلون عليهم أرصدة</td></tr>';
+      l_h := l_h || ('<tr><td colspan="7" class="nn-hint">لا يوجد عملاء آجلون عليهم أرصدة</td></tr>');
     END IF;
-    RETURN l_h || '</tbody><tfoot><tr><td colspan="3">إجمالي المستحق على ' || l_n || ' عميل</td><td class="n"><b>' || fmt0(l_tot)
-        || '</b></td><td colspan="3"></td></tr></tfoot></table>';
+    RETURN l_h || ('</tbody><tfoot><tr><td colspan="3">إجمالي المستحق على ' || l_n || ' عميل</td><td class="n"><b>' || fmt0(l_tot)
+        || '</b></td><td colspan="3"></td></tr></tfoot></table>');
   END credit_html;
 
   -- ================================================================ اللوحات
@@ -1104,15 +1104,15 @@ CREATE OR REPLACE PACKAGE BODY NOONA_RST_PKG AS
     FOR k IN 1 .. l_rs.COUNT LOOP l_max := GREATEST(l_max, NVL(l_rs(k).v, 0)); END LOOP;
     l_h := '<section class="nn-rst-card"><h3>' || esc(p_title) || '</h3>';
     IF l_rs.COUNT = 0 THEN
-      RETURN l_h || '<p class="nn-hint">لا توجد بيانات في الفترة</p></section>';
+      RETURN l_h || ('<p class="nn-hint">لا توجد بيانات في الفترة</p></section>');
     END IF;
     FOR k IN 1 .. l_rs.COUNT LOOP
-      l_h := l_h || '<div class="nn-rst-bar"><span class="l">' || esc(l_rs(k).lbl) || '</span><span class="b"><i style="width:'
+      l_h := l_h || ('<div class="nn-rst-bar"><span class="l">' || esc(l_rs(k).lbl) || '</span><span class="b"><i style="width:'
           || CASE WHEN l_max > 0 THEN ROUND(NVL(l_rs(k).v, 0) * 100 / l_max) ELSE 0 END || '%"></i></span><span class="v">'
           || CASE WHEN p_money THEN fmt0(l_rs(k).v) ELSE fqty(l_rs(k).v) END
-          || CASE WHEN l_rs(k).c IS NOT NULL THEN ' <small>(' || fqty(l_rs(k).c) || ')</small>' END || '</span></div>';
+          || CASE WHEN l_rs(k).c IS NOT NULL THEN ' <small>(' || fqty(l_rs(k).c) || ')</small>' END || '</span></div>');
     END LOOP;
-    RETURN l_h || '</section>';
+    RETURN l_h || ('</section>');
   END bars;
 
   FUNCTION dashboard_html(p_from IN DATE, p_to IN DATE, p_terminal_id IN NUMBER DEFAULT NULL) RETURN CLOB IS
@@ -1155,54 +1155,54 @@ CREATE OR REPLACE PACKAGE BODY NOONA_RST_PKG AS
       SELECT type_label(order_type), SUM(total_amount), COUNT(*) FROM rst_order
        WHERE company_id = l_co AND status_code IN ('PAID', 'CHARGED') AND closed_at >= l_f AND closed_at < l_t AND (l_tm IS NULL OR terminal_id = l_tm)
        GROUP BY order_type ORDER BY 2 DESC;
-    l_h := l_h || bars('المبيعات حسب نوع الطلب (عدد الطلبات)', l_cur);
+    l_h := l_h || (bars('المبيعات حسب نوع الطلب (عدد الطلبات)', l_cur));
     OPEN l_cur FOR
       SELECT m.name_ar, SUM(p.amount) - SUM(CASE WHEN m.method_type = 'CASH' THEN s.change_amount ELSE 0 END), COUNT(DISTINCT s.id)
         FROM pos_payment p JOIN pos_sale s ON s.id = p.sale_id JOIN ref_payment_method m ON m.id = p.payment_method_id
        WHERE s.id IN (SELECT pos_sale_id FROM rst_order WHERE company_id = l_co AND status_code IN ('PAID', 'CHARGED') AND closed_at >= l_f
                          AND closed_at < l_t AND (l_tm IS NULL OR terminal_id = l_tm))
        GROUP BY m.name_ar ORDER BY 2 DESC;
-    l_h := l_h || bars('طرق السداد (عدد الإيصالات)', l_cur);
+    l_h := l_h || (bars('طرق السداد (عدد الإيصالات)', l_cur));
     OPEN l_cur FOR
       SELECT * FROM (SELECT i.name_ar, SUM(l.line_total), SUM(l.quantity) FROM rst_order_line l JOIN rst_order o ON o.id = l.order_id JOIN inv_item i ON i.id = l.item_id
        WHERE o.company_id = l_co AND o.status_code IN ('PAID', 'CHARGED') AND l.kitchen_status <> 'VOID' AND o.closed_at >= l_f AND o.closed_at < l_t
          AND (l_tm IS NULL OR o.terminal_id = l_tm)
        GROUP BY i.name_ar ORDER BY 2 DESC) WHERE ROWNUM <= 10;
-    l_h := l_h || bars('الأصناف الأكثر مبيعاً (الكمية)', l_cur);
+    l_h := l_h || (bars('الأصناف الأكثر مبيعاً (الكمية)', l_cur));
     OPEN l_cur FOR
       SELECT g.name_ar, SUM(l.line_total), SUM(l.quantity) FROM rst_order_line l JOIN rst_order o ON o.id = l.order_id JOIN inv_item i ON i.id = l.item_id
         JOIN inv_item_category g ON g.id = i.category_id
        WHERE o.company_id = l_co AND o.status_code IN ('PAID', 'CHARGED') AND l.kitchen_status <> 'VOID' AND o.closed_at >= l_f AND o.closed_at < l_t
          AND (l_tm IS NULL OR o.terminal_id = l_tm)
        GROUP BY g.name_ar ORDER BY 2 DESC;
-    l_h := l_h || bars('المبيعات حسب فئة القائمة', l_cur);
+    l_h := l_h || (bars('المبيعات حسب فئة القائمة', l_cur));
     OPEN l_cur FOR
       SELECT TO_CHAR(closed_at, 'HH24') || ':00', SUM(total_amount), COUNT(*) FROM rst_order
        WHERE company_id = l_co AND status_code IN ('PAID', 'CHARGED') AND closed_at >= l_f AND closed_at < l_t AND (l_tm IS NULL OR terminal_id = l_tm)
        GROUP BY TO_CHAR(closed_at, 'HH24') ORDER BY 1;
-    l_h := l_h || bars('المبيعات حسب الساعة (ساعات الذروة)', l_cur);
+    l_h := l_h || (bars('المبيعات حسب الساعة (ساعات الذروة)', l_cur));
     OPEN l_cur FOR
       SELECT TO_CHAR(closed_at, 'YYYY-MM-DD'), SUM(total_amount), COUNT(*) FROM rst_order
        WHERE company_id = l_co AND status_code IN ('PAID', 'CHARGED') AND closed_at >= l_f AND closed_at < l_t AND (l_tm IS NULL OR terminal_id = l_tm)
        GROUP BY TO_CHAR(closed_at, 'YYYY-MM-DD') ORDER BY 1;
-    l_h := l_h || bars('المبيعات اليومية', l_cur);
+    l_h := l_h || (bars('المبيعات اليومية', l_cur));
     OPEN l_cur FOR
       SELECT NVL(waiter_name, '—'), SUM(total_amount), COUNT(*) FROM rst_order
        WHERE company_id = l_co AND status_code IN ('PAID', 'CHARGED') AND closed_at >= l_f AND closed_at < l_t AND (l_tm IS NULL OR terminal_id = l_tm)
        GROUP BY waiter_name ORDER BY 2 DESC;
-    l_h := l_h || bars('المبيعات حسب النادل/الكاشير', l_cur);
+    l_h := l_h || (bars('المبيعات حسب النادل/الكاشير', l_cur));
     OPEN l_cur FOR
       SELECT * FROM (SELECT t.code || ' - ' || t.name_ar, SUM(o.total_amount), COUNT(*) FROM rst_order o JOIN rst_table t ON t.id = o.table_id
        WHERE o.company_id = l_co AND o.status_code IN ('PAID', 'CHARGED') AND o.closed_at >= l_f AND o.closed_at < l_t
          AND (l_tm IS NULL OR o.terminal_id = l_tm)
        GROUP BY t.code, t.name_ar ORDER BY 2 DESC) WHERE ROWNUM <= 10;
-    l_h := l_h || bars('الطاولات الأعلى مبيعاً', l_cur);
+    l_h := l_h || (bars('الطاولات الأعلى مبيعاً', l_cur));
     OPEN l_cur FOR
       SELECT * FROM (SELECT NOONA_SAL_PKG.customer_label(customer_account_id), SUM(total_amount), COUNT(*) FROM rst_order
        WHERE company_id = l_co AND status_code = 'CHARGED' AND closed_at >= l_f AND closed_at < l_t AND (l_tm IS NULL OR terminal_id = l_tm)
        GROUP BY customer_account_id ORDER BY 2 DESC) WHERE ROWNUM <= 10;
-    l_h := l_h || bars('المبيعات الآجلة حسب العميل', l_cur);
-    RETURN l_h || '</div></div>';
+    l_h := l_h || (bars('المبيعات الآجلة حسب العميل', l_cur));
+    RETURN l_h || ('</div></div>');
   END dashboard_html;
 
 END NOONA_RST_PKG;

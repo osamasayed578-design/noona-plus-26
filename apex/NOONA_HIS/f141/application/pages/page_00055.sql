@@ -303,7 +303,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_db_column_name=>'MEDICINE'
 ,p_display_order=>60
 ,p_column_identifier=>'F'
-,p_column_label=>'Medicine'
+,p_column_label=>'الدواء'
 ,p_column_type=>'STRING'
 ,p_heading_alignment=>'CENTER'
 ,p_use_as_row_header=>'N'
@@ -313,7 +313,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_db_column_name=>'SIG'
 ,p_display_order=>70
 ,p_column_identifier=>'G'
-,p_column_label=>'Sig'
+,p_column_label=>'طريقة الاستعمال (Sig)'
 ,p_column_type=>'STRING'
 ,p_heading_alignment=>'CENTER'
 ,p_use_as_row_header=>'N'

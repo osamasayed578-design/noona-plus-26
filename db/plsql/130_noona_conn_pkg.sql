@@ -638,13 +638,15 @@ CREATE OR REPLACE PACKAGE BODY NOONA_CONN_PKG AS
         || '<th class="n">فشل</th><th>بواسطة</th><th>الحالة</th></tr></thead><tbody>';
     FOR j IN (SELECT * FROM api_import_job WHERE company_id = company ORDER BY id DESC FETCH FIRST 100 ROWS ONLY) LOOP
       l_n := l_n + 1;
-      l_h := l_h || '<tr data-job="' || j.id || '"><td>' || j.id || '</td><td>' || TO_CHAR(j.created_at, 'YYYY-MM-DD HH24:MI') || '</td><td>'
+      l_h := l_h || ('<tr data-job="' || j.id || '"><td>' || j.id || '</td><td>' || TO_CHAR(j.created_at, 'YYYY-MM-DD HH24:MI') || '</td><td>'
           || esc(type_label(j.import_type)) || '</td><td>' || esc(j.file_name) || '</td><td class="n">' || j.total_rows || '</td><td class="n">' || j.ok_rows
           || '</td><td class="n">' || j.failed_rows || '</td><td>' || esc(j.created_by) || '</td><td><span class="nn-badge '
           || CASE j.status_code WHEN 'COMPLETED' THEN 'is-success' WHEN 'PARTIAL' THEN 'is-warning' WHEN 'FAILED' THEN 'is-danger' ELSE 'is-muted' END || '">'
-          || CASE j.status_code WHEN 'COMPLETED' THEN 'مكتمل' WHEN 'PARTIAL' THEN 'جزئي' WHEN 'FAILED' THEN 'فشل' ELSE 'جار' END || '</span></td></tr>';
+          || CASE j.status_code WHEN 'COMPLETED' THEN 'مكتمل' WHEN 'PARTIAL' THEN 'جزئي' WHEN 'FAILED' THEN 'فشل' ELSE 'جار' END || '</span></td></tr>');
     END LOOP;
-    RETURN CASE WHEN l_n = 0 THEN '<div class="nn-empty">لا توجد عمليات استيراد بعد</div>' ELSE l_h || '</tbody></table>' END;
+    IF l_n = 0 THEN RETURN TO_CLOB('<div class="nn-empty">لا توجد عمليات استيراد بعد</div>'); END IF;
+    -- CASE لا يرجع أكثر من 32 ألف حرف حتى لو كانت فروعه CLOB
+    RETURN l_h || ('</tbody></table>');
   END jobs_html;
 
   FUNCTION job_html(p_job_id IN NUMBER) RETURN CLOB IS
@@ -656,11 +658,11 @@ CREATE OR REPLACE PACKAGE BODY NOONA_CONN_PKG AS
     l_h := '<div class="nn-prj-chips"><span>' || esc(type_label(j.import_type)) || '</span><span>' || esc(j.file_name) || '</span><span>نجح ' || j.ok_rows
         || ' من ' || j.total_rows || '</span>' || CASE WHEN j.failed_rows > 0 THEN '<span class="is-danger">فشل ' || j.failed_rows || '</span>' END || '</div>';
     IF j.failed_rows > 0 OR JSON_EXISTS(j.errors, '$[0]') THEN
-      l_h := l_h || '<table class="nn-prj-t"><thead><tr><th>الصف</th><th>الاسم</th><th>الخطأ</th></tr></thead><tbody>';
+      l_h := l_h || ('<table class="nn-prj-t"><thead><tr><th>الصف</th><th>الاسم</th><th>الخطأ</th></tr></thead><tbody>');
       FOR e IN (SELECT * FROM JSON_TABLE(j.errors, '$[*]' COLUMNS (rn NUMBER PATH '$.row', nm VARCHAR2(400) PATH '$.name', er VARCHAR2(1000) PATH '$.error'))) LOOP
-        l_h := l_h || '<tr><td>' || CASE WHEN e.rn > 0 THEN TO_CHAR(e.rn) END || '</td><td>' || esc(e.nm) || '</td><td>' || esc(e.er) || '</td></tr>';
+        l_h := l_h || ('<tr><td>' || CASE WHEN e.rn > 0 THEN TO_CHAR(e.rn) END || '</td><td>' || esc(e.nm) || '</td><td>' || esc(e.er) || '</td></tr>');
       END LOOP;
-      l_h := l_h || '</tbody></table>';
+      l_h := l_h || ('</tbody></table>');
     END IF;
     RETURN l_h;
   EXCEPTION WHEN NO_DATA_FOUND THEN
@@ -693,12 +695,14 @@ CREATE OR REPLACE PACKAGE BODY NOONA_CONN_PKG AS
                WHERE s.company_id = company AND (p_bank_account_id IS NULL OR s.bank_account_id = p_bank_account_id)
                ORDER BY s.id DESC FETCH FIRST 100 ROWS ONLY) LOOP
       l_n := l_n + 1;
-      l_h := l_h || '<tr data-st="' || s.id || '"><td><a href="#" class="nn-st-open" data-id="' || s.id || '">' || esc(s.statement_no) || '</a></td><td>'
+      l_h := l_h || ('<tr data-st="' || s.id || '"><td><a href="#" class="nn-st-open" data-id="' || s.id || '">' || esc(s.statement_no) || '</a></td><td>'
           || esc(s.bname) || '</td><td>' || TO_CHAR(s.from_date, 'YYYY-MM-DD') || ' ← ' || TO_CHAR(s.to_date, 'YYYY-MM-DD') || '</td><td class="n">' || s.cnt
           || '</td><td class="n">' || s.ok || '</td><td class="n">' || s.sug || '</td><td class="n">' || s.un || '</td><td class="n">' || fmt(s.net) || '</td><td>'
-          || st_badge(s.status_code) || '</td></tr>';
+          || st_badge(s.status_code) || '</td></tr>');
     END LOOP;
-    RETURN CASE WHEN l_n = 0 THEN '<div class="nn-empty">لا توجد كشوف مستوردة</div>' ELSE l_h || '</tbody></table>' END;
+    IF l_n = 0 THEN RETURN TO_CLOB('<div class="nn-empty">لا توجد كشوف مستوردة</div>'); END IF;
+    -- CASE لا يرجع أكثر من 32 ألف حرف حتى لو كانت فروعه CLOB
+    RETURN l_h || ('</tbody></table>');
   END statements_html;
 
   FUNCTION statement_html(p_statement_id IN NUMBER) RETURN CLOB IS
@@ -718,7 +722,7 @@ CREATE OR REPLACE PACKAGE BODY NOONA_CONN_PKG AS
                 LEFT JOIN csh_recon_match m ON m.statement_line_id = l.id AND m.status_code IN ('SUGGESTED', 'CONFIRMED')
                 LEFT JOIN csh_transaction t ON t.id = m.transaction_id
                WHERE l.statement_id = p_statement_id ORDER BY l.line_no) LOOP
-      l_h := l_h || '<tr data-line="' || l.id || '"' || CASE WHEN l.mid IS NOT NULL THEN ' data-match="' || l.mid || '"' END || '><td>' || l.line_no || '</td><td>'
+      l_h := l_h || ('<tr data-line="' || l.id || '"' || CASE WHEN l.mid IS NOT NULL THEN ' data-match="' || l.mid || '"' END || '><td>' || l.line_no || '</td><td>'
           || TO_CHAR(l.txn_date, 'YYYY-MM-DD') || '</td><td dir="ltr">' || esc(l.bank_reference) || '</td><td>' || esc(l.counterparty)
           || CASE WHEN l.narrative IS NOT NULL THEN '<br><small>' || esc(l.narrative) || '</small>' END || '</td><td class="n">'
           || CASE WHEN l.amount > 0 THEN fmt(l.amount) END || '</td><td class="n">' || CASE WHEN l.amount < 0 THEN fmt(-l.amount) END || '</td><td>'
@@ -728,9 +732,9 @@ CREATE OR REPLACE PACKAGE BODY NOONA_CONN_PKG AS
                     || '">اعتماد</button> <button type="button" class="t-Button t-Button--small nn-recon-no" data-id="' || l.mid || '">رفض</button>'
                   WHEN l.mst = 'CONFIRMED' THEN '<button type="button" class="t-Button t-Button--small nn-recon-no" data-id="' || l.mid || '">تراجع</button>'
                   WHEN l.status_code = 'UNMATCHED' THEN '<button type="button" class="t-Button t-Button--small nn-recon-ign" data-id="' || l.id || '">تجاهل</button>' END
-          || '</td></tr>';
+          || '</td></tr>');
     END LOOP;
-    RETURN l_h || '</tbody></table>';
+    RETURN l_h || ('</tbody></table>');
   EXCEPTION WHEN NO_DATA_FOUND THEN
     RETURN '<div class="nn-empty">اختر كشفاً</div>';
   END statement_html;

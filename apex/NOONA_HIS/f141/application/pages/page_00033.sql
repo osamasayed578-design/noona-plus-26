@@ -39,7 +39,7 @@ wwv_flow_imp_page.create_page_item(
 ,p_name=>'P33_VISIT'
 ,p_item_sequence=>5
 ,p_item_plug_id=>wwv_flow_imp.id(91820275000000533)
-,p_prompt=>'Visit'
+,p_prompt=>'الزيارة'
 ,p_display_as=>'NATIVE_SELECT_LIST'
 ,p_lov=>'select v.visit_no || '' - '' || p.name_ar || '' ('' || p.mrn || '')'' d, v.id r from his_visit v join his_patient p on p.id = v.patient_id where v.company_id = noona_his_pkg.company and v.status_code = ''OPEN'' order by v.visit_at desc'
 ,p_lov_display_null=>'YES'
@@ -140,7 +140,7 @@ wwv_flow_imp_page.create_page_item(
 ,p_item_plug_id=>wwv_flow_imp.id(91820275000000533)
 ,p_prompt=>'Route 1'
 ,p_display_as=>'NATIVE_SELECT_LIST'
-,p_lov=>'STATIC2:Oral;ORAL,IV;IV,IM;IM,SC;SC,Inhaled;INHALED,Topical;TOPICAL,Rectal;RECTAL,Other;OTHER'
+,p_lov=>'STATIC2:فموي;ORAL,IV;IV,IM;IM,SC;SC,استنشاق;INHALED,موضعي;TOPICAL,شرجي;RECTAL,أخرى;OTHER'
 ,p_cHeight=>1
 ,p_lov_display_extra=>'NO'
 ,p_field_template=>1609121967514267634
@@ -254,7 +254,7 @@ wwv_flow_imp_page.create_page_item(
 ,p_item_plug_id=>wwv_flow_imp.id(91820275000000533)
 ,p_prompt=>'Route 2'
 ,p_display_as=>'NATIVE_SELECT_LIST'
-,p_lov=>'STATIC2:Oral;ORAL,IV;IV,IM;IM,SC;SC,Inhaled;INHALED,Topical;TOPICAL,Rectal;RECTAL,Other;OTHER'
+,p_lov=>'STATIC2:فموي;ORAL,IV;IV,IM;IM,SC;SC,استنشاق;INHALED,موضعي;TOPICAL,شرجي;RECTAL,أخرى;OTHER'
 ,p_cHeight=>1
 ,p_lov_display_extra=>'NO'
 ,p_begin_on_new_line=>'N'
@@ -369,7 +369,7 @@ wwv_flow_imp_page.create_page_item(
 ,p_item_plug_id=>wwv_flow_imp.id(91820275000000533)
 ,p_prompt=>'Route 3'
 ,p_display_as=>'NATIVE_SELECT_LIST'
-,p_lov=>'STATIC2:Oral;ORAL,IV;IV,IM;IM,SC;SC,Inhaled;INHALED,Topical;TOPICAL,Rectal;RECTAL,Other;OTHER'
+,p_lov=>'STATIC2:فموي;ORAL,IV;IV,IM;IM,SC;SC,استنشاق;INHALED,موضعي;TOPICAL,شرجي;RECTAL,أخرى;OTHER'
 ,p_cHeight=>1
 ,p_lov_display_extra=>'NO'
 ,p_field_template=>1609121967514267634
@@ -400,7 +400,7 @@ wwv_flow_imp_page.create_page_item(
 ,p_name=>'P33_INSTR'
 ,p_item_sequence=>50
 ,p_item_plug_id=>wwv_flow_imp.id(91820275000000533)
-,p_prompt=>'Instructions (e.g. after meals)'
+,p_prompt=>'التعليمات (مثلاً بعد الأكل)'
 ,p_display_as=>'NATIVE_TEXT_FIELD'
 ,p_cSize=>40
 ,p_cMaxlength=>500
@@ -417,7 +417,7 @@ wwv_flow_imp_page.create_page_item(
 ,p_name=>'P33_VALID'
 ,p_item_sequence=>55
 ,p_item_plug_id=>wwv_flow_imp.id(91820275000000533)
-,p_prompt=>'Valid for (days, default 30)'
+,p_prompt=>'الصلاحية بالأيام (الافتراضي 30)'
 ,p_display_as=>'NATIVE_NUMBER_FIELD'
 ,p_cSize=>20
 ,p_begin_on_new_line=>'N'
@@ -457,7 +457,7 @@ wwv_flow_imp_page.create_page_button(
 ,p_button_template_options=>'#DEFAULT#'
 ,p_button_template_id=>4072362960822175091
 ,p_button_is_hot=>'Y'
-,p_button_image_alt=>'Prescribe'
+,p_button_image_alt=>'إصدار الوصفة'
 ,p_button_position=>'NEXT'
 );
 wwv_flow_imp_page.create_page_process(
@@ -529,7 +529,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_db_column_name=>'RX_NO'
 ,p_display_order=>20
 ,p_column_identifier=>'B'
-,p_column_label=>'Rx'
+,p_column_label=>'رقم الوصفة'
 ,p_column_type=>'STRING'
 ,p_heading_alignment=>'CENTER'
 ,p_use_as_row_header=>'N'
@@ -539,7 +539,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_db_column_name=>'RX_AT'
 ,p_display_order=>30
 ,p_column_identifier=>'C'
-,p_column_label=>'Date'
+,p_column_label=>'التاريخ'
 ,p_column_type=>'STRING'
 ,p_heading_alignment=>'CENTER'
 ,p_use_as_row_header=>'N'
@@ -549,7 +549,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_db_column_name=>'MEDICINE'
 ,p_display_order=>40
 ,p_column_identifier=>'D'
-,p_column_label=>'Medicine'
+,p_column_label=>'الدواء'
 ,p_column_type=>'STRING'
 ,p_heading_alignment=>'CENTER'
 ,p_use_as_row_header=>'N'
@@ -559,7 +559,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_db_column_name=>'DOSE'
 ,p_display_order=>50
 ,p_column_identifier=>'E'
-,p_column_label=>'Dose'
+,p_column_label=>'الجرعة'
 ,p_column_type=>'STRING'
 ,p_heading_alignment=>'CENTER'
 ,p_use_as_row_header=>'N'
@@ -569,7 +569,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_db_column_name=>'FREQUENCY'
 ,p_display_order=>60
 ,p_column_identifier=>'F'
-,p_column_label=>'Frequency'
+,p_column_label=>'التكرار'
 ,p_column_type=>'STRING'
 ,p_heading_alignment=>'CENTER'
 ,p_use_as_row_header=>'N'
@@ -579,7 +579,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_db_column_name=>'DURATION_DAYS'
 ,p_display_order=>70
 ,p_column_identifier=>'G'
-,p_column_label=>'Days'
+,p_column_label=>'الأيام'
 ,p_column_type=>'NUMBER'
 ,p_heading_alignment=>'CENTER'
 ,p_use_as_row_header=>'N'
@@ -589,7 +589,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_db_column_name=>'QUANTITY'
 ,p_display_order=>80
 ,p_column_identifier=>'H'
-,p_column_label=>'Qty'
+,p_column_label=>'الكمية'
 ,p_column_type=>'NUMBER'
 ,p_heading_alignment=>'CENTER'
 ,p_use_as_row_header=>'N'
@@ -599,7 +599,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_db_column_name=>'DISPENSED_QTY'
 ,p_display_order=>90
 ,p_column_identifier=>'I'
-,p_column_label=>'Dispensed'
+,p_column_label=>'المصروف'
 ,p_column_type=>'NUMBER'
 ,p_heading_alignment=>'CENTER'
 ,p_use_as_row_header=>'N'
@@ -609,7 +609,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_db_column_name=>'STATUS'
 ,p_display_order=>100
 ,p_column_identifier=>'J'
-,p_column_label=>'Status'
+,p_column_label=>'الحالة'
 ,p_column_type=>'STRING'
 ,p_heading_alignment=>'CENTER'
 ,p_use_as_row_header=>'N'
@@ -619,7 +619,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_db_column_name=>'ERX_NO'
 ,p_display_order=>110
 ,p_column_identifier=>'K'
-,p_column_label=>'e-Rx'
+,p_column_label=>'الوصفة الإلكترونية'
 ,p_column_type=>'STRING'
 ,p_heading_alignment=>'CENTER'
 ,p_use_as_row_header=>'N'
@@ -629,7 +629,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_db_column_name=>'PRN'
 ,p_display_order=>120
 ,p_column_identifier=>'L'
-,p_column_label=>'Print'
+,p_column_label=>'طباعة'
 ,p_column_type=>'STRING'
 ,p_display_text_as=>'WITHOUT_MODIFICATION'
 ,p_column_link=>'f?p=&APP_ID.:38:&SESSION.::&DEBUG.:RP,38:P38_ID:#ID#'
