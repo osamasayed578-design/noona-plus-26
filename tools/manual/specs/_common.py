@@ -4,7 +4,7 @@ LIST = '.a-IRR-table td a'
 
 def nav(text, wait=2500):
     """إجراء التقاط: الانتقال عبر عنصر في القائمة الجانبية (روابطه تحمل checksum الصفحة)."""
-    return {'eval': "(() => { const a = [...document.querySelectorAll('#t_TreeNav a')].find((x) => x.textContent.trim() === '"
+    return {'eval': "(() => { try { apex.jQuery('#t_TreeNav').treeView('expandAll'); } catch (e) {} const a = [...document.querySelectorAll('#t_TreeNav a')].find((x) => x.textContent.trim() === '"
                     + text + "'); if (a) location.href = a.href; })()", 'wait': wait}
 
 

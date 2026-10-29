@@ -370,6 +370,7 @@ CREATE OR REPLACE PACKAGE BODY NOONA_GL_PKG AS
     l_id     NUMBER;
     l_chart  t_accs := standard_chart;
     l_re NUMBER; l_rnd NUMBER; l_gain NUMBER; l_loss NUMBER;
+    l_n NUMBER; l_y0 DATE; l_fy NUMBER;
     FUNCTION acc(p_code VARCHAR2) RETURN NUMBER IS
       l NUMBER;
     BEGIN
@@ -392,8 +393,26 @@ CREATE OR REPLACE PACKAGE BODY NOONA_GL_PKG AS
         END LOOP;
       END IF;
       SELECT MIN(id) INTO l_cal FROM gl_fiscal_calendar WHERE company_id = l_co.id AND is_active = 'Y';
-      NOONA_CORE_PKG.assert(l_cal IS NOT NULL, 'NOONA-GL-020',
-        'لا يوجد تقويم مالي للشركة؛ أنشئ السنة المالية أولاً', 'No fiscal calendar for the company');
+      -- شركة جديدة بلا تقويم: تقويم ميلادي 12 شهراً والسنة المالية الحالية بفتراتها
+      IF l_cal IS NULL THEN
+        INSERT INTO gl_fiscal_calendar (company_id, code, name_ar, name_en, period_pattern)
+        VALUES (l_co.id, 'GREG-12', 'التقويم الميلادي 12 شهراً', 'Gregorian 12 months', 'MONTHLY_12')
+        RETURNING id INTO l_cal;
+      END IF;
+      SELECT COUNT(*) INTO l_n FROM gl_fiscal_year WHERE company_id = l_co.id;
+      IF l_n = 0 THEN
+        l_y0 := TRUNC(SYSDATE, 'YYYY');
+        INSERT INTO gl_fiscal_year (company_id, calendar_id, code, name_ar, name_en, start_date, end_date, status_code)
+        VALUES (l_co.id, l_cal, 'FY' || TO_CHAR(l_y0, 'YYYY'), 'السنة المالية ' || TO_CHAR(l_y0, 'YYYY'),
+                'Fiscal Year ' || TO_CHAR(l_y0, 'YYYY'), l_y0, ADD_MONTHS(l_y0, 12) - 1, 'OPEN')
+        RETURNING id INTO l_fy;
+        FOR m IN 1 .. 12 LOOP
+          INSERT INTO gl_period (company_id, fiscal_year_id, period_no, period_code, period_type, start_date, end_date, name_ar, name_en)
+          VALUES (l_co.id, l_fy, m, TO_CHAR(l_y0, 'YYYY') || '-' || LPAD(m, 2, '0'), 'NORMAL', ADD_MONTHS(l_y0, m - 1),
+                  LAST_DAY(ADD_MONTHS(l_y0, m - 1)), 'الفترة ' || m || ' - ' || TO_CHAR(l_y0, 'YYYY'),
+                  'Period ' || m || ' ' || TO_CHAR(l_y0, 'YYYY'));
+        END LOOP;
+      END IF;
       l_re := acc('3103'); l_rnd := acc('5299'); l_gain := acc('4202'); l_loss := acc('5211');
       INSERT INTO gl_ledger (company_id, code, name_ar, name_en, ledger_type, coa_id, calendar_id, currency_code,
                              retained_earnings_account_id, rounding_account_id, suspense_account_id,

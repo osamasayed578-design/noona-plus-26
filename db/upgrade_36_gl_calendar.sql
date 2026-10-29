@@ -1,0 +1,27 @@
+-- =============================================================================
+-- NOONA PLUS ERP | ترقية 36: تجهيز الأستاذ العام للشركات الجديدة
+--   * زر «تجهيز الأستاذ العام» كان يفشل (NOONA-GL-020) لأي مؤسسة أو شركة تجهز بعد التثبيت لعدم وجود تقويم مالي
+--   * الآن ينشئ التجهيز تقويماً شهرياً (12 فترة) إن لم يوجد، والسنة المالية الحالية بفتراتها إن لم توجد للشركة
+--   sqlplus NOONA_OWNER@//host:1521/PDB @upgrade_36_gl_calendar.sql
+-- =============================================================================
+SET DEFINE OFF
+SET FEEDBACK OFF
+SET SERVEROUTPUT ON
+WHENEVER SQLERROR EXIT SQL.SQLCODE
+ALTER SESSION SET DDL_LOCK_TIMEOUT = 120;
+
+PROMPT ========== Client character set check (NLS_LANG must end with .AL32UTF8)
+BEGIN
+  IF LENGTH('نونا') <> 4 THEN
+    RAISE_APPLICATION_ERROR(-20000, 'NOONA-INS-001: Client character set is not UTF-8; Arabic text would be corrupted. '
+      || 'Windows CMD: set NLS_LANG=AMERICAN_AMERICA.AL32UTF8  then run sqlplus again.');
+  END IF;
+END;
+/
+PROMPT ========== الأستاذ العام
+@@plsql/100_noona_gl_pkg.sql
+EXEC DBMS_UTILITY.COMPILE_SCHEMA(USER, FALSE)
+SELECT object_type, object_name FROM user_objects WHERE status <> 'VALID';
+SELECT name||' '||line||':'||position||' '||substr(text,1,140) err FROM user_errors ORDER BY name, type, sequence;
+PROMPT ========== Upgrade 36 done
+EXIT

@@ -105,8 +105,16 @@ module.exports = async function video(app, outDir, name, opts = {}) {
     await type('#P9999_USERNAME', user);
     await type('#P9999_PASSWORD', pwd);
     await click(page.getByRole('button').filter({ hasText: /Sign In|تسجيل الدخول|دخول/ }).first());
+    await page.waitForURL(/session=\d+/, { timeout: 20000 }).catch(() => {});
+    await settle();
     sess = new URL(page.url()).searchParams.get('session');
     if (!page.url().includes(`/${app}/`)) { await page.goto(`${base}/home?session=${sess}`); await settle(); }
+  }
+  // الانتقال عبر عنصر في القائمة الجانبية (روابطه تحمل checksum)
+  async function nav(text) {
+    const href = await page.evaluate((t) => { try { apex.jQuery('#t_TreeNav').treeView('expandAll'); } catch (e) { /* القائمة مطوية */ }
+      const a = [...document.querySelectorAll('#t_TreeNav a')].find((x) => x.textContent.trim() === t); return a ? a.href : null; }, text);
+    if (href) { await page.goto(href); await settle(); }
   }
   async function switchApp(newApp) { base = `http://localhost:${port}/ords/r/noonaplus/${newApp}`; await page.goto(`${base}/home?session=${sess}`); await settle(); }
   async function logout() { cap = ''; step = ''; await ctx.clearCookies(); }
@@ -130,5 +138,5 @@ module.exports = async function video(app, outDir, name, opts = {}) {
     fs.renameSync(vp, dst);
     return dst;
   }
-  return { page, say, setStep, type, select, click, go, login, switchApp, logout, card, alerts, wait, settle, done, get sess() { return sess; } };
+  return { page, say, setStep, type, select, click, go, nav, login, switchApp, logout, card, alerts, wait, settle, done, get sess() { return sess; } };
 };

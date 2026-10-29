@@ -5,6 +5,7 @@ const video = require('./vlib.js');
 const out = process.argv[2];
 const sfx = String(Date.now()).slice(-4);
 const T = { code: 'NOOR' + sfx, slug: 'noor' + sfx, admin: 'NOOR_ADMIN' + sfx, pwd: 'NoorDemo#2026', user: 'NOOR_ACC' + sfx };
+console.log('USERS ' + T.admin + ' ' + T.user);
 
 (async () => {
   const v = await video('noona_platform', out, 'v00_foundation');
