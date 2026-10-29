@@ -153,7 +153,7 @@ wwv_flow_imp_page.create_page_item(
 ,p_item_plug_id=>wwv_flow_imp.id(91820262000000734)
 ,p_prompt=>'الاشتراك'
 ,p_display_as=>'NATIVE_SELECT_LIST'
-,p_lov=>'select event_type || '' -> '' || target_url d, id r from api_webhook_subscription where status_code <> ''DISABLED'' order by id desc'
+,p_lov=>'select noona_api_pkg.event_label(event_type) || '' ← '' || target_url d, id r from api_webhook_subscription where status_code <> ''DISABLED'' order by id desc'
 ,p_lov_display_null=>'YES'
 ,p_lov_null_text=>'- اختر -'
 ,p_cHeight=>1

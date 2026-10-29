@@ -123,7 +123,7 @@ wwv_flow_imp_page.create_page_item(
 ,p_item_plug_id=>wwv_flow_imp.id(91820275000000649)
 ,p_prompt=>'الإجراء'
 ,p_display_as=>'NATIVE_SELECT_LIST'
-,p_lov=>'select noona_his_pkg.service_name(s.id) || '' ('' || to_char(s.price, ''FM999G990D00'') || '')'' d, s.id r from his_service s where s.company_id = noona_his_pkg.company and s.status_code = ''ACTIVE'' and s.service_type in (''MINOR_SURGERY'', ''MAJOR_SURGERY'', ''PROCEDURE'') order by 1'
+,p_lov=>'select s.name_ar || nvl2(s.name_en, '' · '' || s.name_en, '''') || '' ('' || to_char(s.price, ''FM999G990D00'') || '')'' d, s.id r from his_service s where s.company_id = noona_his_pkg.company and s.status_code = ''ACTIVE'' and s.service_type in (''MINOR_SURGERY'', ''MAJOR_SURGERY'', ''PROCEDURE'') order by 1'
 ,p_lov_display_null=>'YES'
 ,p_lov_null_text=>'- اختر -'
 ,p_cHeight=>1
@@ -306,7 +306,7 @@ wwv_flow_imp_page.create_page_item(
 ,p_item_plug_id=>wwv_flow_imp.id(91820275000000661)
 ,p_prompt=>'العملية'
 ,p_display_as=>'NATIVE_SELECT_LIST'
-,p_lov=>'select to_char(s.start_at, ''YYYY-MM-DD HH24:MI'') || '' - '' || noona_his_pkg.service_name(s.service_id) || '' - '' || p.name_ar d, s.id r from his_surgery s join his_visit v on v.id = s.visit_id join his_patient p on p.id = v.patient_id where s.company_id = noona_his_pkg.company and s.status_code in (''SCHEDULED'', ''IN_PROGRESS'') order by s.start_at'
+,p_lov=>'select to_char(s.start_at, ''YYYY-MM-DD HH24:MI'') || '' - '' || (select x.name_ar from his_service x where x.id = s.service_id) || '' - '' || p.name_ar d, s.id r from his_surgery s join his_visit v on v.id = s.visit_id join his_patient p on p.id = v.patient_id where s.company_id = noona_his_pkg.company and s.status_code in (''SCHEDULED'', ''IN_PROGRESS'') order by s.start_at'
 ,p_lov_display_null=>'YES'
 ,p_lov_null_text=>'- اختر -'
 ,p_cHeight=>1

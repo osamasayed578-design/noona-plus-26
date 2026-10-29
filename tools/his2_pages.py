@@ -20,17 +20,17 @@ def build(app, url, link, scheme, L):
                f"join his_patient p on p.id = v.patient_id left join his_bed b on b.id = a.bed_id where a.company_id = {CO} and a.status_code = 'ADMITTED' "
                "order by b.bed_no")
     WARD_LOV = f"select name_ar d, id r from his_department where company_id = {CO} and dept_type = 'INPATIENT_WARD' order by name_ar"
-    SURG_SRV_LOV = (f"select noona_his_pkg.service_name(s.id) || ' (' || to_char(s.price, 'FM999G990D00') || ')' d, s.id r from his_service s "
+    SURG_SRV_LOV = (f"select s.name_ar || nvl2(s.name_en, ' · ' || s.name_en, '') || ' (' || to_char(s.price, 'FM999G990D00') || ')' d, s.id r from his_service s "
                     f"where s.company_id = {CO} and s.status_code = 'ACTIVE' and s.service_type in ('MINOR_SURGERY', 'MAJOR_SURGERY', 'PROCEDURE') order by 1")
     THER_SRV_LOV = (f"select s.name_ar || ' (' || to_char(s.price, 'FM999G990D00') || ')' d, s.id r from his_service s "
                     f"where s.company_id = {CO} and s.status_code = 'ACTIVE' and s.service_type in ('PHYSIOTHERAPY', 'THERAPY', 'NURSING', 'DENTAL') order by 1")
-    SURGERY_LOV = (f"select to_char(s.start_at, 'YYYY-MM-DD HH24:MI') || ' - ' || noona_his_pkg.service_name(s.service_id) || ' - ' || p.name_ar d, s.id r "
+    SURGERY_LOV = (f"select to_char(s.start_at, 'YYYY-MM-DD HH24:MI') || ' - ' || (select x.name_ar from his_service x where x.id = s.service_id) || ' - ' || p.name_ar d, s.id r "
                    f"from his_surgery s join his_visit v on v.id = s.visit_id join his_patient p on p.id = v.patient_id where s.company_id = {CO} "
                    "and s.status_code in ('SCHEDULED', 'IN_PROGRESS') order by s.start_at")
     PLAN_LOV = (f"select p.name_ar || ' - ' || s.name_ar || ' (' || t.sessions_done || '/' || t.sessions_total || ')' d, t.id r from his_therapy_plan t "
                 f"join his_visit v on v.id = t.visit_id join his_patient p on p.id = v.patient_id join his_service s on s.id = t.service_id "
                 f"where t.company_id = {CO} and t.status_code = 'ACTIVE' order by p.name_ar")
-    LAB_SRV_LOV = (f"select noona_his_pkg.service_name(id) d, id r from his_service where company_id = {CO} and service_type = 'LAB' order by 1")
+    LAB_SRV_LOV = (f"select name_ar || nvl2(name_en, ' · ' || name_en, '') d, id r from his_service where company_id = {CO} and service_type = 'LAB' order by 1")
     DEVICE_LOV = f"select code || ' - ' || name_ar d, id r from his_device where company_id = {CO} order by code"
     RX_LOV = (f"select x.rx_no || ' - ' || p.name_ar || ' (' || case x.status_code when 'ACTIVE' then 'جديدة' else 'جزئية' end || ')' d, x.id r "
               f"from his_prescription x join his_visit v on v.id = x.visit_id join his_patient p on p.id = v.patient_id where x.company_id = {CO} "

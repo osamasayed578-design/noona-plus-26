@@ -151,7 +151,7 @@ def build(app, url, link, scheme, L):
     p.select('P67_KIND', f, 30, 'النوع', lov_sql='STATIC2:تأمين (أهلية وموافقات ومطالبات);INSURANCE,منصة الوصفات الإلكترونية;ERX', null_text=None)
     p.select('P67_MODE', f, 40, 'طريقة الربط', lov_sql='STATIC2:محاكاة للتجربة;SIMULATOR,REST (JSON);REST,بريد إلكتروني;EMAIL', null_text=None)
     p.text('P67_URL', f, 50, 'عنوان الخدمة (REST)', maxlen=1000)
-    p.select('P67_AUTH', f, 60, 'المصادقة', lov_sql='STATIC2:بدون;NONE,Basic;BASIC,Bearer token;BEARER,API key;API_KEY', null_text=None)
+    p.select('P67_AUTH', f, 60, 'المصادقة', lov_sql='STATIC2:بدون;NONE,مستخدم وكلمة مرور (Basic);BASIC,رمز وصول (Bearer);BEARER,مفتاح API;API_KEY', null_text=None)
     p.text('P67_USER', f, 70, 'المستخدم / بريد المرسل', maxlen=200)
     p.password('P67_SECRET', f, 80, 'كلمة المرور أو المفتاح (فارغ = يبقى الحالي)')
     p.text('P67_KEYH', f, 90, 'ترويسة المفتاح (API key)', maxlen=100, width=15)

@@ -761,7 +761,7 @@ CREATE OR REPLACE PACKAGE BODY NOONA_DMS_PKG AS
                 LEFT JOIN dms_document_version v ON v.id = d.current_version_id LEFT JOIN dms_file_content c ON c.id = v.content_id
                WHERE d.id = p_document_id) LOOP
       l_url := CASE WHEN p_link IS NOT NULL AND r.file_name IS NOT NULL THEN REPLACE(REPLACE(p_link, '#ID#', r.id), '#VER#', '') END;
-      l_out := '<div class="nn-dv-card" tabindex="0" role="button" data-kind="' || file_kind(r.detected_mime) || '"'
+      l_out := '<div class="nn-dv-card" data-kind="' || file_kind(r.detected_mime) || '"'
             || ' data-view="' || esc(l_url) || '" data-dl="' || esc(CASE WHEN l_url IS NOT NULL THEN l_url || '&p49_mode=D' END) || '"'
             || ' data-title="' || esc(r.reference_no || ' - ' || r.title) || '"'
             || ' data-paper="' || esc('المرجع الورقي: ' || NVL(r.external_ref, '-') || ' | موقع الأصل: ' || NVL(r.physical_location, '-')) || '">'
@@ -776,9 +776,9 @@ CREATE OR REPLACE PACKAGE BODY NOONA_DMS_PKG AS
                                       || CASE WHEN r.version_no > 1 THEN ' &middot; إصدار ' || r.version_no END END
             || ' &middot; ' || esc(r.created_by) || ' ' || TO_CHAR(r.created_at, 'YYYY-MM-DD') || '</small>'
             || NVL(validity_badge(r.valid_to, r.expiry_alert_days), '') || '</div>'
-            || CASE WHEN l_url IS NOT NULL THEN '<div class="nn-dv-btns"><span class="nn-dv-show fa fa-eye" title="عرض"></span>'
-                    || '<a class="fa fa-download" title="تنزيل" href="' || esc(l_url || '&p49_mode=D') || '"></a>'
-                    || '<a class="fa fa-external-link" title="فتح في نافذة" target="_blank" rel="noopener" href="' || esc(l_url) || '"></a></div>' END
+            || CASE WHEN l_url IS NOT NULL THEN '<div class="nn-dv-btns"><button type="button" class="nn-dv-show fa fa-eye" title="عرض" aria-label="عرض المستند"></button>'
+                    || '<a class="fa fa-download" title="تنزيل" aria-label="تنزيل" href="' || esc(l_url || '&p49_mode=D') || '"></a>'
+                    || '<a class="fa fa-external-link" title="فتح في نافذة" aria-label="فتح في نافذة" target="_blank" rel="noopener" href="' || esc(l_url) || '"></a></div>' END
             || '</div>';
     END LOOP;
     RETURN l_out;

@@ -160,18 +160,18 @@ BEGIN
   say('العلاج الطبيعي: خطة 6 جلسات نفذت منها جلستان');
 
   -- الأجهزة الطبية
-  l_x := NOONA_HIS_CARE_PKG.save_device('{"code":"DEMO-CT1","name":"CT Scanner 128-slice","dept":' || dep('RCT') || ',"modality":"CT",'
+  l_x := NOONA_HIS_CARE_PKG.save_device('{"code":"DEMO-CT1","name":"جهاز الأشعة المقطعية 128 شريحة","dept":' || dep('RCT') || ',"modality":"CT",'
          || '"manufacturer":"Siemens","model":"SOMATOM go.Top","serial":"CT-778812","installed":"' || TO_CHAR(ADD_MONTHS(SYSDATE, -14), 'YYYY-MM-DD')
          || '","warranty":"' || TO_CHAR(ADD_MONTHS(SYSDATE, 10), 'YYYY-MM-DD') || '","cal_days":180}');
   NOONA_HIS_CARE_PKG.log_device(l_x, 'CALIBRATION', TRUNC(SYSDATE) - 170, 'Siemens Healthineers', 4500, 'Semi-annual calibration and QA phantom');
-  l_x := NOONA_HIS_CARE_PKG.save_device('{"code":"DEMO-MRI1","name":"MRI 1.5T","dept":' || dep('RMRI') || ',"modality":"MRI",'
+  l_x := NOONA_HIS_CARE_PKG.save_device('{"code":"DEMO-MRI1","name":"جهاز الرنين المغناطيسي 1.5 تسلا","dept":' || dep('RMRI') || ',"modality":"MRI",'
          || '"manufacturer":"GE","model":"SIGNA Explorer","serial":"MR-55120","installed":"' || TO_CHAR(ADD_MONTHS(SYSDATE, -30), 'YYYY-MM-DD')
          || '","cal_days":365}');
   NOONA_HIS_CARE_PKG.log_device(l_x, 'PREVENTIVE', TRUNC(SYSDATE) - 40, 'GE Healthcare', 6000, 'Annual PM, helium level 92%');
   NOONA_HIS_CARE_PKG.log_device(l_x, 'CALIBRATION', TRUNC(SYSDATE) - 40, 'GE Healthcare', 0, 'Coil calibration');
-  l_x := NOONA_HIS_CARE_PKG.save_device('{"code":"DEMO-US1","name":"Ultrasound Logiq P9","dept":' || dep('RUS') || ',"modality":"ULTRASOUND",'
+  l_x := NOONA_HIS_CARE_PKG.save_device('{"code":"DEMO-US1","name":"جهاز الموجات فوق الصوتية Logiq P9","dept":' || dep('RUS') || ',"modality":"ULTRASOUND",'
          || '"manufacturer":"GE","serial":"US-90211","installed":"' || TO_CHAR(ADD_MONTHS(SYSDATE, -8), 'YYYY-MM-DD') || '","cal_days":365}');
-  l_x := NOONA_HIS_CARE_PKG.save_device('{"code":"DEMO-HEM1","name":"Hematology Analyzer XN-550","dept":' || dep('LHEM')
+  l_x := NOONA_HIS_CARE_PKG.save_device('{"code":"DEMO-HEM1","name":"محلل الدم XN-550","dept":' || dep('LHEM')
          || ',"manufacturer":"Sysmex","serial":"XN-31004","installed":"' || TO_CHAR(ADD_MONTHS(SYSDATE, -6), 'YYYY-MM-DD') || '","cal_days":90}');
   NOONA_HIS_CARE_PKG.log_device(l_x, 'BREAKDOWN', TRUNC(SYSDATE), NULL, NULL, 'Aspiration probe error');
   say('الأجهزة: 4 بسجل معايرة وصيانة (أحدها خارج الخدمة، وآخر معايرته مستحقة قريباً)');

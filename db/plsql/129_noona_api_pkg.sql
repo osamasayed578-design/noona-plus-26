@@ -1322,7 +1322,7 @@ CREATE OR REPLACE PACKAGE BODY NOONA_API_PKG AS
     l_h CLOB;
   BEGIN
     guard('API_CLIENT.VIEW');
-    l_h := '<table class="nn-prj-t"><thead><tr><th>الطريقة</th><th>المسار</th><th>الوحدة</th><th>الصلاحية المطلوبة</th><th>Idempotency-Key</th></tr></thead><tbody>'
+    l_h := '<table class="nn-prj-t"><thead><tr><th>الطريقة</th><th>المسار</th><th>الوحدة</th><th>الصلاحية المطلوبة</th><th>منع التكرار</th></tr></thead><tbody>'
         || '<tr><td dir="ltr"><code>POST</code></td><td dir="ltr"><code>/' || c_version || '/token</code></td><td>دخول</td><td>-</td><td></td></tr>';
     FOR e IN (SELECT * FROM api_endpoint WHERE api_version = c_version AND is_active = 'Y' ORDER BY path_template, http_method) LOOP
       l_h := l_h || ('<tr><td dir="ltr"><code>' || e.http_method || '</code></td><td dir="ltr"><code>/' || c_version || esc(e.path_template) || '</code></td><td>'

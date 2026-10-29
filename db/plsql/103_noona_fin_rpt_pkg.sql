@@ -157,6 +157,15 @@ CREATE OR REPLACE PACKAGE BODY NOONA_FIN_RPT_PKG AS
     l_dr   NUMBER; l_cr NUMBER;
     t_dr   NUMBER := 0; t_cr NUMBER := 0;
     l_cnt  PLS_INTEGER := 0;
+    l_buf  VARCHAR2(32767);
+    -- السطور تتجمع في نص قصير ثم تلحق بالـ CLOB دفعة واحدة: الإلحاق بالـ CLOB لكل سطر بطيء مع آلاف الحركات
+    PROCEDURE add(p_s IN VARCHAR2) IS
+    BEGIN
+      IF LENGTHB(l_buf) + LENGTHB(p_s) > 30000 THEN
+        DBMS_LOB.WRITEAPPEND(l_html, LENGTH(l_buf), l_buf); l_buf := NULL;
+      END IF;
+      l_buf := l_buf || p_s;
+    END add;
   BEGIN
     view_guard;
     l_html := NOONA_BRAND_PKG.report_header('دفتر الأستاذ' || period_text(p_from, p_to)
@@ -181,8 +190,8 @@ CREATE OR REPLACE PACKAGE BODY NOONA_FIN_RPT_PKG AS
        ORDER BY a.account_code) LOOP
       l_cnt := l_cnt + 1;
       l_bal := a.opening; l_dr := 0; l_cr := 0;
-      l_html := l_html || (('<tr class="nn-rpt-group"><td colspan="6">' || esc(a.account_code || ' - ' || a.name_ar) || '</td></tr>'
-             || '<tr class="nn-rpt-head2"><td colspan="5">رصيد أول المدة</td><td>' || fmt0(l_bal) || '</td></tr>'));
+      add('<tr class="nn-rpt-group"><td colspan="6">' || esc(a.account_code || ' - ' || a.name_ar) || '</td></tr>'
+             || '<tr class="nn-rpt-head2"><td colspan="5">رصيد أول المدة</td><td>' || fmt0(l_bal) || '</td></tr>');
       FOR r IN (SELECT j.id, j.doc_date, j.doc_no, NVL(l.description, j.description) txt, l.debit_func, l.credit_func
                   FROM gl_journal_line l JOIN gl_journal j ON j.id = l.journal_id
                  WHERE l.account_id = a.id AND j.ledger_id = l_led AND j.status_code IN ('POSTED', 'REVERSED')
@@ -190,16 +199,19 @@ CREATE OR REPLACE PACKAGE BODY NOONA_FIN_RPT_PKG AS
                  ORDER BY j.doc_date, j.posted_at, j.id, l.line_no) LOOP
         l_bal := l_bal + r.debit_func - r.credit_func;
         l_dr := l_dr + r.debit_func; l_cr := l_cr + r.credit_func;
-        l_html := l_html || (('<tr><td>' || TO_CHAR(r.doc_date, 'YYYY-MM-DD') || '</td><td>' || drill(p_link, r.id, r.doc_no)
+        add('<tr><td>' || TO_CHAR(r.doc_date, 'YYYY-MM-DD') || '</td><td>' || drill(p_link, r.id, r.doc_no)
                || '</td><td class="nn-rpt-text">' || esc(r.txt) || '</td><td>' || fmt(r.debit_func) || '</td><td>' || fmt(r.credit_func)
-               || '</td><td>' || fmt0(l_bal) || '</td></tr>'));
+               || '</td><td>' || fmt0(l_bal) || '</td></tr>');
       END LOOP;
-      l_html := l_html || (('<tr class="nn-rpt-sub"><td colspan="3">مجموع الحركة والرصيد الختامي (موجب = مدين)</td><td>' || fmt0(l_dr)
-             || '</td><td>' || fmt0(l_cr) || '</td><td>' || fmt0(l_bal) || '</td></tr>'));
+      add('<tr class="nn-rpt-sub"><td colspan="3">مجموع الحركة والرصيد الختامي (موجب = مدين)</td><td>' || fmt0(l_dr)
+             || '</td><td>' || fmt0(l_cr) || '</td><td>' || fmt0(l_bal) || '</td></tr>');
       t_dr := t_dr + l_dr; t_cr := t_cr + l_cr;
     END LOOP;
     IF l_cnt = 0 THEN
-      l_html := l_html || ('<tr><td colspan="6" class="nn-rpt-text">لا توجد حركات في هذا النطاق</td></tr>');
+      add('<tr><td colspan="6" class="nn-rpt-text">لا توجد حركات في هذا النطاق</td></tr>');
+    END IF;
+    IF l_buf IS NOT NULL THEN
+      DBMS_LOB.WRITEAPPEND(l_html, LENGTH(l_buf), l_buf);
     END IF;
     RETURN l_html || (('</tbody><tfoot><tr><td colspan="3">إجمالي حركة الحسابات المعروضة</td><td>' || fmt0(t_dr) || '</td><td>'
         || fmt0(t_cr) || '</td><td></td></tr></tfoot></table>'

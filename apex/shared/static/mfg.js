@@ -426,10 +426,10 @@
         var rows = Array.isArray(d) ? d : [];
         root.innerHTML = '<div class="nn-mfg-note">الطلب = أوامر البيع المفتوحة + احتياجات أوامر الإنتاج + الوصول لحد الطلب الأعلى. الوارد = الرصيد + أوامر الإنتاج والشراء وطلبات الشراء المفتوحة. '
             + 'المصنع ينفجر على مكوناته مستوى بمستوى. حدد المقترحات وعدل الكميات ثم نفذ: تنشأ أوامر إنتاج مخططة وطلب شراء مسودة.</div>'
-            + '<div class="nn-td-wrap"><table class="nn-td-table"><thead><tr><th><input type="checkbox" data-all checked></th><th>المستوى</th><th>الصنف</th><th>الإجراء</th>'
+            + '<div class="nn-td-wrap"><table class="nn-td-table"><thead><tr><th><input type="checkbox" data-all checked aria-label="تحديد كل المقترحات"></th><th>المستوى</th><th>الصنف</th><th>الإجراء</th>'
             + '<th>الرصيد</th><th>الوارد</th><th>الطلب</th><th>حد الطلب</th><th>صافي الاحتياج</th><th>الكمية المنفذة</th><th>التكلفة التقديرية</th></tr></thead><tbody>'
             + (rows.map(function (r, i) {
-                return '<tr><td><input type="checkbox" data-pick="' + i + '" checked></td><td>' + r.lvl + '</td><td class="nn-td-item"><b>' + esc(r.n) + '</b></td><td>'
+                return '<tr><td><input type="checkbox" data-pick="' + i + '" checked aria-label="تحديد المقترح ' + (i + 1) + '"></td><td>' + r.lvl + '</td><td class="nn-td-item"><b>' + esc(r.n) + '</b></td><td>'
                      + (r.t === 'MAKE' ? '<span class="nn-badge is-info">تصنيع</span>' : '<span class="nn-badge is-warning">شراء</span>') + '</td><td>' + qty(r.oh) + '</td><td>' + qty(r.sup)
                      + '</td><td>' + qty(r.gross) + '</td><td>' + qty(r.min) + '</td><td><b>' + qty(r.net) + '</b></td><td><input type="number" step="any" data-q="' + i + '" value="'
                      + esc(r.net) + '"></td><td>' + money(num(r.net) * num(r.c)) + '</td></tr>';

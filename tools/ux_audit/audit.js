@@ -49,10 +49,15 @@ async function scanPage(page, mobile) {
       // نصوص الواجهة: العناوين والتسميات والأزرار ورؤوس الأعمدة والعناصر النائبة والخيارات
       const q = 'label, th, button, h1, h2, h3, h4, .t-Region-title, .t-Button-label, .a-IRR-headerLabel, .t-Alert-title, legend, .nn-kpi-label, a.t-Button';
       // شريط التنقل العلوي يعرض اسم المستخدم (بيانات لا تسمية)
-      document.querySelectorAll(q).forEach((e) => { if (vis(e) && !e.closest('.t-NavigationBar, .t-Header-navBar')) r.texts.push(e.innerText || ''); });
+      // المحتوى المعلن إنجليزياً (lang="en") مقصود: الشهادات الطبية والمطبوعات الإنجليزية
+      document.querySelectorAll(q).forEach((e) => { if (vis(e) && !e.closest('.t-NavigationBar, .t-Header-navBar, [lang^="en"]')) r.texts.push(e.innerText || ''); });
       document.querySelectorAll('input[placeholder], textarea[placeholder]').forEach((e) => { if (vis(e)) r.texts.push(e.placeholder); });
       document.querySelectorAll('select').forEach((s) => { if (vis(s)) [...s.options].slice(0, 15).forEach((o) => r.texts.push(o.text)); });
-      r.hot = [...document.querySelectorAll('.t-Button--hot')].filter((e) => vis(e) && !e.closest('.ui-dialog, .t-Dialog, [role=dialog]')).length;
+      // الزر الرئيسي يقاس لكل منطقة عمل: أكبر عدد أزرار مميزة داخل منطقة واحدة (شاشات الإعداد فيها نماذج مستقلة لكل منها زرها)
+      const per = new Map();
+      [...document.querySelectorAll('.t-Button--hot')].filter((e) => vis(e) && !e.closest('.ui-dialog, .t-Dialog, [role=dialog]')).forEach((e) => {
+        const reg = e.closest('.t-Region, .t-ButtonRegion, form') || document.body; per.set(reg, (per.get(reg) || 0) + 1); });
+      r.hot = Math.max(0, ...per.values());
     } else {
       const W = window.innerWidth;
       r.overflow = Math.max(0, document.documentElement.scrollWidth - W);
@@ -113,7 +118,7 @@ async function auditUrl(page, url, label, app, errs) {
   rec.title = (d.title || '').replace(/\s+/g, ' ').trim().slice(0, 80);
   const eng = [...new Set(d.texts.map(englishIn).filter(Boolean))];
   if (eng.length) rec.issues.push({ k: 'english', sev: 'moderate', msg: eng.length + ' نص إنجليزي ظاهر في الواجهة', detail: eng.slice(0, 8).join(' · ') });
-  if (d.hot > 2) rec.issues.push({ k: 'hot', sev: 'minor', msg: d.hot + ' أزرار رئيسية (مميزة) في الشاشة', detail: 'يفضل زر رئيسي واحد لكل منطقة عمل' });
+  if (d.hot > 1) rec.issues.push({ k: 'hot', sev: 'minor', msg: d.hot + ' أزرار رئيسية (مميزة) في منطقة واحدة', detail: 'يفضل زر رئيسي واحد لكل منطقة عمل' });
   if (rec.ms > SLOW_MS) rec.issues.push({ k: 'slow', sev: 'moderate', msg: 'تحميل بطيء ' + (rec.ms / 1000).toFixed(1) + ' ث', detail: '' });
   for (const v of await axe(page)) {
     rec.issues.push({ k: 'a11y:' + v.id, sev: v.impact || 'minor', msg: v.help + ' (' + v.n + ')', detail: v.sample });

@@ -154,7 +154,7 @@ wwv_flow_imp_page.create_page_process(
 ,p_process_type=>'NATIVE_PLSQL'
 ,p_process_name=>'Defaults'
 ,p_process_sql_clob=>wwv_flow_string.join(wwv_flow_t_varchar2(
-':P35_FROM := nvl(:P35_FROM, to_char(trunc(sysdate, ''YYYY''), ''YYYY-MM-DD''));',
+':P35_FROM := nvl(:P35_FROM, to_char(trunc(sysdate, ''MM''), ''YYYY-MM-DD''));',
 ':P35_TO := nvl(:P35_TO, to_char(sysdate, ''YYYY-MM-DD''));'))
 ,p_process_clob_language=>'PLSQL'
 ,p_error_display_location=>'INLINE_IN_NOTIFICATION'

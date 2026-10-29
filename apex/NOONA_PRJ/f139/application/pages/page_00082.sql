@@ -84,7 +84,7 @@ wwv_flow_imp_page.create_page_item(
 ,p_name=>'P82_NAME_EN'
 ,p_item_sequence=>25
 ,p_item_plug_id=>wwv_flow_imp.id(91820273000000581)
-,p_prompt=>'Project name (English)'
+,p_prompt=>'اسم المشروع بالإنجليزية'
 ,p_display_as=>'NATIVE_TEXT_FIELD'
 ,p_cSize=>40
 ,p_cMaxlength=>400

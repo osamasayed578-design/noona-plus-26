@@ -22,7 +22,7 @@ def build_admin(app, url):
                          f"return noona_security_pkg.has_permission('API_CLIENT.VIEW', {CO}) = 'Y';",
                          'صفحات التكاملات تتطلب صلاحية عرض عملاء API / Integrations access required')
     CLIENT_LOV = "select name_ar || ' (' || client_id || ')' d, id r from api_client order by id desc"
-    WH_LOV = ("select event_type || ' -> ' || target_url d, id r from api_webhook_subscription where status_code <> 'DISABLED' "
+    WH_LOV = ("select noona_api_pkg.event_label(event_type) || ' ← ' || target_url d, id r from api_webhook_subscription where status_code <> 'DISABLED' "
               "order by id desc")
     ROLE_LOV = "select name_ar d, id r from sec_role where status_code = 'ACTIVE' order by name_ar"
     CO_LOV = ("select nvl(trade_name_ar, legal_name_ar) d, id r from org_company where status_code not in ('CLOSED', 'ARCHIVED') "

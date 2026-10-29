@@ -142,7 +142,7 @@ wwv_flow_imp_page.create_page_item(
 ,p_item_plug_id=>wwv_flow_imp.id(91820275000000944)
 ,p_prompt=>'المصادقة'
 ,p_display_as=>'NATIVE_SELECT_LIST'
-,p_lov=>'STATIC2:بدون;NONE,Basic;BASIC,Bearer token;BEARER,API key;API_KEY'
+,p_lov=>'STATIC2:بدون;NONE,مستخدم وكلمة مرور (Basic);BASIC,رمز وصول (Bearer);BEARER,مفتاح API;API_KEY'
 ,p_cHeight=>1
 ,p_lov_display_extra=>'NO'
 ,p_field_template=>1609121967514267634

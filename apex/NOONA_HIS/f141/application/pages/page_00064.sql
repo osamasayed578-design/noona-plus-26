@@ -41,7 +41,7 @@ wwv_flow_imp_page.create_page_item(
 ,p_item_plug_id=>wwv_flow_imp.id(91820275000000700)
 ,p_prompt=>'التحليل'
 ,p_display_as=>'NATIVE_SELECT_LIST'
-,p_lov=>'select noona_his_pkg.service_name(id) d, id r from his_service where company_id = noona_his_pkg.company and service_type = ''LAB'' order by 1'
+,p_lov=>'select name_ar || nvl2(name_en, '' · '' || name_en, '''') d, id r from his_service where company_id = noona_his_pkg.company and service_type = ''LAB'' order by 1'
 ,p_lov_display_null=>'YES'
 ,p_lov_null_text=>'- اختر -'
 ,p_cHeight=>1

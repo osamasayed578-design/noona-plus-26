@@ -517,7 +517,9 @@ p.select('P35_ACC_TO', f, 40, 'إلى حساب', lov_sql=ACC_CODES, null_text='�
 p.select('P35_CC', f, 50, 'مركز التكلفة', lov_sql=CC_LOV, null_text='كل المراكز')
 p.button(f, 10, 'RUN', 'عرض', hot=True)
 p.button(f, 20, 'PRINT', 'طباعة', redirect='javascript:window.print();')
-p.process(10, 'BEFORE_HEADER', 'Defaults', [YEAR_START.format('P35_FROM'), TODAY.format('P35_TO')])
+# الافتراضي: الشهر الحالي (كيومية القيود) حتى يفتح الدفتر سريعاً مع نمو الحركات؛ يوسع المستخدم الفترة عند الحاجة
+p.process(10, 'BEFORE_HEADER', 'Defaults', [
+    ":P35_FROM := nvl(:P35_FROM, to_char(trunc(sysdate, 'MM'), 'YYYY-MM-DD'));", TODAY.format('P35_TO')])
 p.dynamic('دفتر الأستاذ', 20, [
     "return noona_fin_rpt_pkg.general_ledger(to_date(:P35_FROM, 'YYYY-MM-DD'), to_date(:P35_TO, 'YYYY-MM-DD'),",
     f"    :P35_ACC_FROM, :P35_ACC_TO, :P35_CC, {JV_LINK});"], hide_header=True, opts='#DEFAULT#:t-Region--scrollBody:nn-print-area')

@@ -99,7 +99,7 @@ def build(app, url, link, scheme):
     p.hidden('P82_ID', f, 1, protected=False)
     p.text('P82_CODE', f, 10, 'الرمز (فارغ = تلقائي)', maxlen=50, width=15)
     p.text('P82_NAME', f, 20, 'اسم المشروع', required=True, maxlen=400)
-    p.text('P82_NAME_EN', f, 25, 'Project name (English)', maxlen=400)
+    p.text('P82_NAME_EN', f, 25, 'اسم المشروع بالإنجليزية', maxlen=400)
     p.select('P82_TYPE', f, 30, 'النوع', lov_sql=TYPE_LOV, null_text=None)
     p.select('P82_CUSTOMER', f, 40, 'العميل (المالك)', lov_sql=CUST_LOV, null_text='- بدون (داخلي) -')
     p.select('P82_MANAGER', f, 50, 'مدير المشروع', lov_sql=EMP_LOV)

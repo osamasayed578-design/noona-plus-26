@@ -362,7 +362,7 @@ CREATE OR REPLACE PACKAGE BODY NOONA_HIS_CLIN_PKG AS
                 FROM his_certificate c JOIN his_visit v ON v.id = c.visit_id JOIN his_patient p ON p.id = v.patient_id
                 LEFT JOIN his_doctor d ON d.id = c.doctor_id JOIN org_company co ON co.id = c.company_id JOIN his_department dp ON dp.id = v.department_id
                WHERE c.id = p_id AND c.company_id = company) LOOP
-      l_h := '<div class="nn-his-cert" dir="ltr">' || CASE WHEN c.status_code = 'CANCELLED' THEN '<div class="nn-his-void">CANCELLED</div>' END
+      l_h := '<div class="nn-his-cert" dir="ltr" lang="en">' || CASE WHEN c.status_code = 'CANCELLED' THEN '<div class="nn-his-void">CANCELLED</div>' END
           || '<header><div><b>' || esc(NVL(c.co_en, c.co_ar)) || '</b><br><small>' || esc(c.co_ar) || '</small></div><div class="r"><b>'
           || esc(cert_type_label(c.cert_type)) || '</b><br><small>No. ' || esc(c.cert_no) || ' · ' || TO_CHAR(c.issued_on, 'DD Mon YYYY', 'NLS_DATE_LANGUAGE=ENGLISH') || '</small></div></header>'
           || '<table class="nn-his-certp"><tr><th>Patient</th><td>' || esc(NVL(c.pname_en, c.name_ar)) || CASE WHEN c.pname_en IS NOT NULL THEN ' / ' || esc(c.name_ar) END
