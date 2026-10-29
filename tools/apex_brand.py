@@ -6,6 +6,8 @@ import os, re, sys, zlib
 STATIC_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'apex', 'shared', 'static')
 FILES = [('noona.css', 'text/css'), ('noona.js', 'application/javascript'), ('cairo-arabic.woff2', 'font/woff2'), ('cairo-latin.woff2', 'font/woff2'),
          ('noona-logo.svg', 'image/svg+xml'), ('noona-logo-white.svg', 'image/svg+xml')]
+# صورة خلفية صفحة الدخول: أرقام ثابتة بعيدة عن ملفات التطبيقات الإضافية (aut.js, mfg.js...) التي تلحق بـ FILES
+SLOT_FILES = [(21, 'noona-login-bg.jpg', 'image/jpeg'), (22, 'noona-login-bg-sm.jpg', 'image/jpeg')]
 LOGIN_LABELS = [(",p_button_image_alt=>'Sign In'", ",p_button_image_alt=>'تسجيل الدخول'"),
                 (",p_prompt=>'Username'", ",p_prompt=>'اسم المستخدم'"),
                 (",p_placeholder=>'Username'", ",p_placeholder=>'اسم المستخدم'"),
@@ -61,7 +63,7 @@ def brand(app_dir):
     ws = re.search(r"p_default_workspace_id=>(\d+)", ca).group(1)
     content = b''
     paths = []
-    for k, (fname, mime) in enumerate(FILES, start=1):
+    for k, fname, mime in [(k, f, m) for k, (f, m) in enumerate(FILES, start=1)] + SLOT_FILES:
         rel = f'shared_components/files/noona_{k}'
         path = a + rel + '.sql'
         old = open(path, encoding='utf-8').read() if os.path.exists(path) else ''
