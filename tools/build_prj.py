@@ -48,7 +48,9 @@ PROP_LOV = ("select name_ar || ' (' || code || ')' d, id r from re_property wher
 HOTEL_LOV = ("select p.name_ar d, p.id r from re_property p where p.company_id = noona_hsp_pkg.company and p.status_code <> 'INACTIVE' "
              "and exists (select 1 from hsp_room r where r.property_id = p.id) order by p.code")
 BRANCH_LOV = "select name_ar d, id r from org_branch where company_id = noona_re_pkg.company and status_code = 'ACTIVE' order by name_ar"
-CITY_LOV = "select name_ar d, id r from ref_city where is_active = 'Y' order by name_ar"
+# مدن دولة الشركة (المدن عامة على المنصة لكل الدول)
+CITY_LOV = ("select name_ar d, id r from ref_city where is_active = 'Y'"
+            " and country_code = nvl((select country_code from org_company where id = noona_re_pkg.company), country_code) order by name_ar")
 PTYPE_LOV = ('STATIC2:فندق;HOTEL,شقق فندقية;SERVICED_APARTMENTS,عمارة سكنية;BUILDING,برج;TOWER,مجمع سكني;COMPOUND,مجمع فلل;VILLA_COMPOUND,'
              'مركز تجاري;MALL,مجمع مكاتب;OFFICE_PARK,مستودعات;WAREHOUSE_PARK,مخطط أراض;LAND_SUBDIVISION')
 UTYPE_LOV = ('STATIC2:شقة;APARTMENT,غرفة فندقية;ROOM,جناح;SUITE,استوديو;STUDIO,فيلا;VILLA,تاون هاوس;TOWNHOUSE,مكتب;OFFICE,محل;SHOP,'

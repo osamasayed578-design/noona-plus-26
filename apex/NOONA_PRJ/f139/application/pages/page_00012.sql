@@ -120,7 +120,7 @@ wwv_flow_imp_page.create_page_item(
 ,p_item_plug_id=>wwv_flow_imp.id(91820273000000086)
 ,p_prompt=>'المدينة'
 ,p_display_as=>'NATIVE_SELECT_LIST'
-,p_lov=>'select name_ar d, id r from ref_city where is_active = ''Y'' order by name_ar'
+,p_lov=>'select name_ar d, id r from ref_city where is_active = ''Y'' and country_code = nvl((select country_code from org_company where id = noona_re_pkg.company), country_code) order by name_ar'
 ,p_lov_display_null=>'YES'
 ,p_lov_null_text=>'- اختر -'
 ,p_cHeight=>1
