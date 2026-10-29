@@ -23,7 +23,7 @@ STATIC = os.path.join(ROOT, 'apex', 'shared', 'static')
 PW = os.environ.get('PW_PATH', '/opt/node-tools/node_modules/playwright')
 
 BUTTON_HELP = {
-    'حفظ': 'يحفظ البيانات المدخلة.', 'إلغاء': 'يعود دون حفظ.', 'حذف': 'يحذف السجل بعد التأكيد.', 'عرض': 'يحدّث النتائج حسب المرشحات.',
+    'حفظ': 'يحفظ البيانات المدخلة.', 'إلغاء': 'يعود دون حفظ أو يلغي حسب الشاشة.', 'حذف': 'يحذف السجل بعد التأكيد.', 'عرض': 'يحدّث النتائج حسب المرشحات.',
     'طباعة': 'يطبع الصفحة أو المستند.', 'جديد': 'يفتح نموذجاً فارغاً لإضافة سجل جديد.', 'بحث': 'يبحث بالقيمة المدخلة.',
     'رجوع': 'يعود للشاشة السابقة.', 'اليوم': 'يضبط الفترة على اليوم.',
 }
@@ -35,6 +35,7 @@ def esc(s):
 
 
 def load_spec(path):
+    sys.path.insert(0, os.path.dirname(path))
     sp = importlib.util.spec_from_file_location(os.path.basename(path)[:-3], path)
     m = importlib.util.module_from_spec(sp)
     sp.loader.exec_module(m)
@@ -135,7 +136,7 @@ ol.steps li { margin: 3px 0; }
 .mods a { display: block; background: #fff; border: 1px solid var(--b); border-top: 4px solid var(--p); border-radius: 10px; padding: 14px 16px; color: var(--t); text-decoration: none; }
 .mods a b { display: block; color: #0b3b6e; font-size: 17px; }
 @media print { body { background: #fff; font-size: 12.5px; } main { padding: 0; max-width: none; } .screen, .card { border: 0; padding: 0; }
-  .screen { page-break-before: always; } .cover { -webkit-print-color-adjust: exact; print-color-adjust: exact; } a { color: inherit; } }
+  .screen { page-break-before: always; } .screen.first { page-break-before: avoid; } h2 { page-break-before: always; } h2.top { page-break-before: avoid; } .cover { -webkit-print-color-adjust: exact; print-color-adjust: exact; } a { color: inherit; } }
 """
 
 
@@ -154,11 +155,11 @@ def lst(items, cls='', ordered=False):
     return f'<{tag} class="{cls}">' + ''.join(f'<li>{t}</li>' for t in items) + f'</{tag}>'
 
 
-def render_screen(mod, s, cap, n):
+def render_screen(mod, s, cap, n, first=False):
     p = cap.get((s['app'], s['shot'])) or {}
     img = image(mod, p['_dir'], s['shot']) if p.get('shot') else None
     title = s.get('title') or p.get('title') or s['alias']
-    h = [f'<section class="screen" id="{esc(s["shot"])}"><h3>{n}. {esc(title)}</h3>']
+    h = [f'<section class="screen{" first" if first else ""}" id="{esc(s["shot"])}"><h3>{n}. {esc(title)}</h3>']
     h.append(f'<div class="path">التطبيق: <b>{esc(mod["app_names"].get(s["app"], s["app"]))}</b>'
              + (f' · المسار: <b>{esc(s["menu"])}</b>' if s.get('menu') else '') + '</div>')
     h.append(para(s.get('purpose')))
@@ -185,6 +186,9 @@ def render_screen(mod, s, cap, n):
             h.append(f'<tr><td>{k}</td><td>{esc(i["label"])}</td><td>{esc(TYPE_HELP.get(i["type"], i["type"]))}</td>'
                      f'<td>{"<span class=req>نعم</span>" if i["required"] else "-"}</td><td>{esc(desc)}</td></tr>')
         h.append('</tbody></table>')
+    if s.get('doc_fields'):
+        h.append('<h4>حقول المستند</h4><table><thead><tr><th>#</th><th>الحقل</th><th>الوصف</th></tr></thead><tbody>'
+                 + ''.join(f'<tr><td>{k}</td><td>{esc(a)}</td><td>{b}</td></tr>' for k, (a, b) in enumerate(s['doc_fields'], 1)) + '</tbody></table>')
     btns = [b for b in p.get('buttons', []) if b not in s.get('hide_buttons', [])]
     bh = s.get('buttons', {})
     if btns:
@@ -215,9 +219,9 @@ def render(mod, cap):
                f'<p>NOONA PLUS ERP · كتالوج الاستخدام</p></div>')
     out.append('<div class="card">' + para(mod.get('intro')) + '</div>')
     if mod.get('before'):
-        out.append('<h2>قبل البدء</h2><div class="card">' + lst(mod['before']) + '</div>')
+        out.append('<h2 class="top">قبل البدء</h2><div class="card">' + lst(mod['before']) + '</div>')
     if mod.get('flow'):
-        out.append('<h2>تسلسل الإدخال</h2><ol class="flow">')
+        out.append('<h2 class="top">تسلسل الإدخال</h2><ol class="flow">')
         for f in mod['flow']:
             ref = f' <a href="#{esc(f[2])}">(الشاشة)</a>' if len(f) > 2 and f[2] else ''
             out.append(f'<li><b>{f[0]}</b><small>{f[1]}{ref}</small></li>')
@@ -229,9 +233,9 @@ def render(mod, cap):
     out.append('</ol></div>')
     for sec in mod['sections']:
         out.append(f'<h2 id="sec-{esc(sec["id"])}">{esc(sec["title"])}</h2>' + para(sec.get('intro')))
-        for s in sec['screens']:
+        for k, s in enumerate(sec['screens']):
             n += 1
-            out.append(render_screen(mod, s, cap, n))
+            out.append(render_screen(mod, s, cap, n, k == 0))
     if mod.get('faq'):
         out.append('<h2>أسئلة وحالات شائعة</h2><div class="card">' + ''.join(f'<h4>{q}</h4>{para(a)}' for q, a in mod['faq']) + '</div>')
     out.append('</main></body></html>')

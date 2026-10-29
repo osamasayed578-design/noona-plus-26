@@ -48,7 +48,7 @@ function extract() {
   const buttons = [];
   document.querySelectorAll('button.t-Button, a.t-Button').forEach((b) => {
     const t = clean(b.textContent);
-    if (t && visible(b) && !b.closest('.a-IRR-toolbar, .a-IRR-dialog, .t-Header, .ui-dialog') && !buttons.includes(t)) buttons.push(t);
+    if (t && visible(b) && !b.closest('.a-IRR-toolbar, .a-IRR-dialog, .t-Header, .ui-dialog, table, [id^=nn]') && !buttons.includes(t)) buttons.push(t);
   });
   const reports = [];
   document.querySelectorAll('.a-IRR').forEach((r) => {
