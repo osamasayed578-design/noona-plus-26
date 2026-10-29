@@ -1391,6 +1391,7 @@ CREATE OR REPLACE PACKAGE BODY NOONA_INV_PKG AS
     l_d     DATE := TRUNC(SYSDATE);
     l_coa   NUMBER := NOONA_GL_PKG.primary_coa;
     l_first BOOLEAN := TRUE;
+    l_cpk   NUMBER;
     FUNCTION want(p VARCHAR2) RETURN BOOLEAN IS BEGIN RETURN INSTR(',' || REPLACE(p_names, ' ') || ',', ',' || p || ',') > 0; END;
     PROCEDURE put(p_name VARCHAR2, p_json CLOB) IS
     BEGIN
@@ -1399,6 +1400,7 @@ CREATE OR REPLACE PACKAGE BODY NOONA_INV_PKG AS
     END put;
   BEGIN
     IF want('taxes') THEN
+      SELECT MAX(country_pack_id) INTO l_cpk FROM org_company WHERE id = l_co;
       SELECT JSON_ARRAYAGG(JSON_OBJECT('v' VALUE c.code,
                'n' VALUE CASE c.tax_nature WHEN 'STANDARD' THEN 'ضريبة ' || TO_CHAR(NVL((SELECT MAX(r.rate_pct) KEEP (DENSE_RANK LAST ORDER BY r.version_no)
                                FROM loc_tax_rate r WHERE r.tax_code_id = c.id AND r.effective_from <= l_d
@@ -1408,7 +1410,11 @@ CREATE OR REPLACE PACKAGE BODY NOONA_INV_PKG AS
                'r' VALUE NVL((SELECT MAX(r.rate_pct) KEEP (DENSE_RANK LAST ORDER BY r.version_no) FROM loc_tax_rate r
                                WHERE r.tax_code_id = c.id AND r.effective_from <= l_d AND (r.effective_to IS NULL OR r.effective_to >= l_d)), 0))
                ORDER BY c.code DESC RETURNING CLOB) INTO l_c
-        FROM loc_tax_code c WHERE c.status_code = 'ACTIVE';
+        FROM loc_tax_code c JOIN loc_tax_type t ON t.id = c.tax_type_id
+       WHERE c.status_code = 'ACTIVE' AND t.tax_category = 'VAT'
+         -- ضريبة القيمة المضافة لدولة الشركة فقط (لا ضرائب الدول الأخرى ولا الاستقطاع والزكاة)
+         AND (t.country_pack_id IS NULL OR t.country_pack_id = NVL(l_cpk, (SELECT MAX(t2.country_pack_id) FROM loc_tax_code c2
+               JOIN loc_tax_type t2 ON t2.id = c2.tax_type_id WHERE c2.code = 'VAT15')));
       put('taxes', l_c);
     END IF;
     IF want('whs') THEN

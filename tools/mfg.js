@@ -16,6 +16,18 @@
         return '<span class="nn-badge ' + c + '">' + esc(txt || st) + '</span>';
     };
     // طلب AJAX موحد: عند النجاح يعاد التحميل (أو الانتقال للرابط المعاد)
+    // تحديث صفوف الجدول دون المساس بالحقل الذي يكتب فيه المستخدم (إعادة بنائه تفقده التركيز وتغير قيمته أثناء الكتابة)
+    function setRows(tb, html) {
+        var a = document.activeElement;
+        if (!a || !tb.contains(a) || a.type === 'checkbox') { tb.innerHTML = html; return; }
+        var t = document.createElement('tbody'); t.innerHTML = html;
+        if (t.rows.length !== tb.rows.length) { tb.innerHTML = html; return; }
+        Array.prototype.forEach.call(t.rows, function (r, i) {
+            var o = tb.rows[i]; o.className = r.className;
+            if (o.cells.length !== r.cells.length) { if (!o.contains(a)) o.innerHTML = r.innerHTML; return; }
+            Array.prototype.forEach.call(r.cells, function (c, k) { var oc = o.cells[k]; if (!oc.contains(a) && oc.innerHTML !== c.innerHTML) oc.innerHTML = c.innerHTML; });
+        });
+    }
     function call(root, proc, args, okText) {
         var msg = root.querySelector('.nn-doc-msg'), btns = root.querySelectorAll('button');
         var fail = function (t) { if (msg) { msg.className = 'nn-doc-msg is-bad'; msg.textContent = t; } btns.forEach(function (b) { b.disabled = false; }); };
@@ -98,7 +110,7 @@
         var tb = root.querySelector('tbody'), tf = root.querySelector('tfoot');
         function render() {
             var total = 0;
-            tb.innerHTML = lines.map(function (l, i) {
+            setRows(tb, lines.map(function (l, i) {
                 var cost = num(l.q) * (1 + (l.co === 'Y' ? 0 : num(l.s) / 100)) * num(l.c) / Math.max(num(val('base')) || 1, 0.000001);
                 total += l.co === 'Y' ? -cost : cost;
                 var subs = (l.subs || []).map(function (s, k) { return '<span class="nn-chip">' + esc(s.n) + (s.f && num(s.f) !== 1 ? ' ×' + qty(s.f) : '')
@@ -113,7 +125,7 @@
                     + '<td class="nn-mfg-subs">' + subs + (ro || l.co === 'Y' ? '' : '<button type="button" class="nn-link" data-sub="' + i + '">+ بديل</button>') + '</td>'
                     + '<td>' + money(l.c) + '</td><td>' + money(l.co === 'Y' ? -cost : cost) + '</td><td>' + qty(l.oh) + '</td>'
                     + (ro ? '' : '<td><button type="button" class="nn-je-del" data-del="' + i + '" title="حذف">×</button></td>') + '</tr>';
-            }).join('') || '<tr><td colspan="11" class="nn-empty">أضف مكونات القائمة بالبحث أعلاه</td></tr>';
+            }).join('') || '<tr><td colspan="11" class="nn-empty">أضف مكونات القائمة بالبحث أعلاه</td></tr>');
             tf.innerHTML = '<tr><td colspan="8">تكلفة الخامات لكل ' + qty(val('base') || 1) + ' (المتوسط المرجح أو التكلفة المجمعة للمصنع)</td><td>' + money(total) + '</td><td colspan="2"></td></tr>';
         }
         function val(k) { var e = root.querySelector('[data-k="' + k + '"]'); return e ? e.value : d[k]; }
@@ -185,7 +197,7 @@
         var lot = function () { var e = root.querySelector('[data-k="lot"]'); return Math.max(num(e && e.value) || 1, 1); };
         function render() {
             var tot = 0, mins = 0;
-            tb.innerHTML = ops.map(function (o, i) {
+            setRows(tb, ops.map(function (o, i) {
                 var m = num(o.setup) / lot() + num(o.run), c = m / 60 * rate(o.wc);
                 tot += c; mins += m;
                 if (ro) return '<tr><td>' + esc(o.seq) + '</td><td class="nn-td-item">' + esc(o.d) + '</td><td>' + esc(o.wcn) + '</td><td>' + qty(o.setup) + '</td><td>'
@@ -197,7 +209,7 @@
                      + '<td><input type="number" step="any" data-l="' + i + '" data-c="run" value="' + esc(o.run || 0) + '"></td>'
                      + '<td><input type="checkbox" data-l="' + i + '" data-c="qc"' + (o.qc === 'Y' ? ' checked' : '') + '></td>'
                      + '<td>' + money(rate(o.wc)) + '</td><td>' + money(c) + '</td><td><button type="button" class="nn-je-del" data-del="' + i + '">×</button></td></tr>';
-            }).join('') || '<tr><td colspan="9" class="nn-empty">أضف عمليات التصنيع بالترتيب</td></tr>';
+            }).join('') || '<tr><td colspan="9" class="nn-empty">أضف عمليات التصنيع بالترتيب</td></tr>');
             tf.innerHTML = '<tr><td colspan="3">الزمن والتكلفة للوحدة (الإعداد موزع على ' + qty(lot()) + ')</td><td colspan="2">' + qty(mins) + ' دقيقة</td><td colspan="2"></td><td>'
                          + money(tot) + '</td>' + (ro ? '' : '<td></td>') + '</tr>';
         }

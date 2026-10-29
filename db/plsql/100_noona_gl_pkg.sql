@@ -39,6 +39,8 @@ CREATE OR REPLACE PACKAGE NOONA_GL_PKG AUTHID DEFINER AS
   -- مراكز تكلفة وربحية افتراضية (إن لم توجد مراكز)؛ يعيد عدد المراكز المضافة
   FUNCTION seed_cost_centers RETURN NUMBER;
 
+  -- فتح السنة المالية التالية: 12 فترة شهرية تبدأ بعد آخر سنة، مفتوحة للترحيل، وترقيم سنوي جديد للمستندات (القيود والسندات...)؛ يعيد معرف السنة
+  FUNCTION open_next_year RETURN NUMBER;
   -- ---------------------------------------------------------- إقفال السنة المالية
   -- قيد إقفال الإيرادات والمصروفات في حساب الأرباح المبقاة (حساب الأرباح والخسائر المرحلة) بتاريخ نهاية السنة،
   -- ثم تقفل فترات السنة والسنة نفسها؛ يعيد رقم قيد الإقفال
@@ -438,6 +440,53 @@ CREATE OR REPLACE PACKAGE BODY NOONA_GL_PKG AS
     l_id := seed_rates;
     RETURN l_ledger;
   END quick_setup;
+
+  FUNCTION open_next_year RETURN NUMBER IS
+    l_co   NUMBER := company;
+    l_last gl_fiscal_year%ROWTYPE;
+    l_y0   DATE;
+    l_yyyy VARCHAR2(4);
+    l_fy   NUMBER;
+    l_n    NUMBER;
+  BEGIN
+    guard('GL_PERIOD_STATUS.UPDATE');
+    SELECT COUNT(*) INTO l_n FROM gl_fiscal_year WHERE company_id = l_co;
+    NOONA_CORE_PKG.assert(l_n > 0, 'NOONA-GL-033', 'لا توجد سنة مالية؛ نفذ تجهيز الأستاذ العام أولاً', 'No fiscal year; run the GL setup first');
+    SELECT * INTO l_last FROM (SELECT * FROM gl_fiscal_year WHERE company_id = l_co ORDER BY end_date DESC) WHERE ROWNUM = 1;
+    l_y0 := l_last.end_date + 1;
+    -- لا تفتح أكثر من سنة واحدة مقدماً
+    NOONA_CORE_PKG.assert(l_y0 <= ADD_MONTHS(TRUNC(SYSDATE), 12), 'NOONA-GL-034',
+      'السنة التالية مفتوحة بالفعل (' || l_last.name_ar || ')', 'The next fiscal year is already open');
+    l_yyyy := TO_CHAR(ADD_MONTHS(l_y0, 11), 'YYYY');
+    INSERT INTO gl_fiscal_year (company_id, calendar_id, code, name_ar, name_en, start_date, end_date, status_code)
+    VALUES (l_co, l_last.calendar_id, 'FY' || l_yyyy, 'السنة المالية ' || l_yyyy, 'Fiscal Year ' || l_yyyy,
+            l_y0, ADD_MONTHS(l_y0, 12) - 1, 'OPEN')
+    RETURNING id INTO l_fy;
+    FOR m IN 1 .. 12 LOOP
+      INSERT INTO gl_period (company_id, fiscal_year_id, period_no, period_code, period_type, start_date, end_date, name_ar, name_en)
+      VALUES (l_co, l_fy, m, TO_CHAR(ADD_MONTHS(l_y0, m - 1), 'YYYY-MM'), 'NORMAL', ADD_MONTHS(l_y0, m - 1),
+              ADD_MONTHS(l_y0, m) - 1, 'الفترة ' || m || ' - ' || l_yyyy, 'Period ' || m || ' ' || l_yyyy);
+    END LOOP;
+    -- الفترات مفتوحة لكل دفاتر الشركة
+    INSERT INTO gl_period_status (company_id, period_id, ledger_id, module_code, status_code)
+    SELECT l_co, p.id, l.id, 'GL', 'OPEN'
+      FROM gl_period p CROSS JOIN gl_ledger l
+     WHERE p.fiscal_year_id = l_fy AND l.company_id = l_co AND l.status_code = 'ACTIVE';
+    -- الترقيم السنوي: نسخة لكل تسلسل سنوي للسنة الجديدة تبدأ من 1 (القيود، السندات، وغيرها)
+    FOR y IN (SELECT DISTINCT EXTRACT(YEAR FROM ADD_MONTHS(l_y0, k)) yr FROM (SELECT LEVEL - 1 k FROM dual CONNECT BY LEVEL <= 12)) LOOP
+      INSERT INTO ref_doc_sequence (company_id, branch_id, doc_type_code, fiscal_year, prefix, suffix, next_number, padding,
+                                    is_gapless, reset_policy, is_active)
+      SELECT s.company_id, s.branch_id, s.doc_type_code, y.yr, s.prefix, s.suffix, 1, s.padding, s.is_gapless, s.reset_policy, 'Y'
+        FROM ref_doc_sequence s
+       WHERE s.company_id = l_co AND s.reset_policy = 'YEARLY' AND s.is_active = 'Y'
+         AND s.fiscal_year = (SELECT MAX(x.fiscal_year) FROM ref_doc_sequence x WHERE x.company_id = s.company_id
+                                 AND x.doc_type_code = s.doc_type_code AND NVL(x.branch_id, -1) = NVL(s.branch_id, -1) AND x.fiscal_year < y.yr)
+         AND NOT EXISTS (SELECT 1 FROM ref_doc_sequence x WHERE x.company_id = s.company_id AND x.doc_type_code = s.doc_type_code
+                            AND NVL(x.branch_id, -1) = NVL(s.branch_id, -1) AND x.fiscal_year = y.yr);
+    END LOOP;
+    NOONA_AUDIT_PKG.log_event('CONFIG', 'GL_FISCAL_YEAR', l_fy, 'OPEN_YEAR', 'SUCCESS');
+    RETURN l_fy;
+  END open_next_year;
 
   PROCEDURE set_period_status(p_period_id IN NUMBER, p_status IN VARCHAR2) IS
     l_ledger NUMBER := primary_ledger;

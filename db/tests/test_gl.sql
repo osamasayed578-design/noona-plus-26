@@ -126,6 +126,20 @@ BEGIN
   l_c := NOONA_GL_PKG.gl_summary('1');
   ok('GL dashboard renders', INSTR(l_c, 'nn-kpi') > 0);
 
+  -- فتح السنة التالية: 12 فترة مفتوحة وترقيم سنوي جديد، ولا تفتح سنة ثانية مقدماً
+  SELECT COUNT(*) INTO l_n FROM gl_fiscal_year WHERE company_id = NOONA_GL_PKG.company AND start_date > ADD_MONTHS(TRUNC(SYSDATE), 12);
+  BEGIN
+    LOOP
+      l_led2 := NOONA_GL_PKG.open_next_year;
+      SELECT COUNT(*) INTO l_n FROM gl_period p JOIN gl_period_status s ON s.period_id = p.id
+       WHERE p.fiscal_year_id = l_led2 AND s.status_code = 'OPEN';
+      ok('next fiscal year opened with 12 open periods', l_n = 12, l_n);
+    END LOOP;
+  EXCEPTION WHEN OTHERS THEN expect('next year opened only one year ahead', 'NOONA-GL-034', SQLERRM); END;
+  SELECT COUNT(*) INTO l_n FROM ref_doc_sequence WHERE company_id = NOONA_GL_PKG.company AND doc_type_code = 'GL_JOURNAL'
+     AND fiscal_year = (SELECT EXTRACT(YEAR FROM MAX(start_date)) FROM gl_fiscal_year WHERE company_id = NOONA_GL_PKG.company);
+  ok('journal numbering exists for the latest year', l_n >= 1, l_n);
+
   ROLLBACK;
   NOONA_APEX_PKG.cleanup_request;
   DBMS_OUTPUT.PUT_LINE('=== RESULT: ' || g_pass || ' passed, ' || g_fail || ' failed');

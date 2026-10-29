@@ -22,7 +22,7 @@ wwv_flow_imp_page.create_page(
 ,p_protection_level=>'C'
 );
 wwv_flow_imp_page.create_page_plug(
- p_id=>wwv_flow_imp.id(91820266000000391)
+ p_id=>wwv_flow_imp.id(91820266000000393)
 ,p_plug_name=>'الفترتان'
 ,p_region_template_options=>'#DEFAULT#'
 ,p_plug_template=>4072358936313175081
@@ -33,10 +33,10 @@ wwv_flow_imp_page.create_page_plug(
   'show_line_breaks', 'Y')).to_clob
 );
 wwv_flow_imp_page.create_page_item(
- p_id=>wwv_flow_imp.id(91820266000000392)
+ p_id=>wwv_flow_imp.id(91820266000000394)
 ,p_name=>'P39_FROM'
 ,p_item_sequence=>10
-,p_item_plug_id=>wwv_flow_imp.id(91820266000000391)
+,p_item_plug_id=>wwv_flow_imp.id(91820266000000393)
 ,p_prompt=>'الفترة الحالية من'
 ,p_display_as=>'NATIVE_DATE_PICKER_APEX'
 ,p_cSize=>20
@@ -52,10 +52,10 @@ wwv_flow_imp_page.create_page_item(
   'use_defaults', 'Y')).to_clob
 );
 wwv_flow_imp_page.create_page_item(
- p_id=>wwv_flow_imp.id(91820266000000393)
+ p_id=>wwv_flow_imp.id(91820266000000395)
 ,p_name=>'P39_TO'
 ,p_item_sequence=>20
-,p_item_plug_id=>wwv_flow_imp.id(91820266000000391)
+,p_item_plug_id=>wwv_flow_imp.id(91820266000000393)
 ,p_prompt=>'الفترة الحالية إلى'
 ,p_display_as=>'NATIVE_DATE_PICKER_APEX'
 ,p_cSize=>20
@@ -72,10 +72,10 @@ wwv_flow_imp_page.create_page_item(
   'use_defaults', 'Y')).to_clob
 );
 wwv_flow_imp_page.create_page_item(
- p_id=>wwv_flow_imp.id(91820266000000394)
+ p_id=>wwv_flow_imp.id(91820266000000396)
 ,p_name=>'P39_FROM2'
 ,p_item_sequence=>30
-,p_item_plug_id=>wwv_flow_imp.id(91820266000000391)
+,p_item_plug_id=>wwv_flow_imp.id(91820266000000393)
 ,p_prompt=>'فترة المقارنة من'
 ,p_display_as=>'NATIVE_DATE_PICKER_APEX'
 ,p_cSize=>20
@@ -91,10 +91,10 @@ wwv_flow_imp_page.create_page_item(
   'use_defaults', 'Y')).to_clob
 );
 wwv_flow_imp_page.create_page_item(
- p_id=>wwv_flow_imp.id(91820266000000395)
+ p_id=>wwv_flow_imp.id(91820266000000397)
 ,p_name=>'P39_TO2'
 ,p_item_sequence=>40
-,p_item_plug_id=>wwv_flow_imp.id(91820266000000391)
+,p_item_plug_id=>wwv_flow_imp.id(91820266000000393)
 ,p_prompt=>'فترة المقارنة إلى'
 ,p_display_as=>'NATIVE_DATE_PICKER_APEX'
 ,p_cSize=>20
@@ -111,9 +111,9 @@ wwv_flow_imp_page.create_page_item(
   'use_defaults', 'Y')).to_clob
 );
 wwv_flow_imp_page.create_page_button(
- p_id=>wwv_flow_imp.id(91820266000000396)
+ p_id=>wwv_flow_imp.id(91820266000000398)
 ,p_button_sequence=>10
-,p_button_plug_id=>wwv_flow_imp.id(91820266000000391)
+,p_button_plug_id=>wwv_flow_imp.id(91820266000000393)
 ,p_button_name=>'RUN'
 ,p_button_action=>'SUBMIT'
 ,p_button_template_options=>'#DEFAULT#'
@@ -123,9 +123,9 @@ wwv_flow_imp_page.create_page_button(
 ,p_button_position=>'NEXT'
 );
 wwv_flow_imp_page.create_page_button(
- p_id=>wwv_flow_imp.id(91820266000000397)
+ p_id=>wwv_flow_imp.id(91820266000000399)
 ,p_button_sequence=>20
-,p_button_plug_id=>wwv_flow_imp.id(91820266000000391)
+,p_button_plug_id=>wwv_flow_imp.id(91820266000000393)
 ,p_button_name=>'PRINT'
 ,p_button_action=>'REDIRECT_URL'
 ,p_button_template_options=>'#DEFAULT#'
@@ -135,7 +135,7 @@ wwv_flow_imp_page.create_page_button(
 ,p_button_redirect_url=>'javascript:window.print();'
 );
 wwv_flow_imp_page.create_page_process(
- p_id=>wwv_flow_imp.id(91820266000000398)
+ p_id=>wwv_flow_imp.id(91820266000000400)
 ,p_process_sequence=>10
 ,p_process_point=>'BEFORE_HEADER'
 ,p_process_type=>'NATIVE_PLSQL'
@@ -147,10 +147,10 @@ wwv_flow_imp_page.create_page_process(
 ':P39_TO2 := nvl(:P39_TO2, to_char(add_months(sysdate, -12), ''YYYY-MM-DD''));'))
 ,p_process_clob_language=>'PLSQL'
 ,p_error_display_location=>'INLINE_IN_NOTIFICATION'
-,p_internal_uid=>91820266000000398
+,p_internal_uid=>91820266000000400
 );
 wwv_flow_imp_page.create_page_plug(
- p_id=>wwv_flow_imp.id(91820266000000399)
+ p_id=>wwv_flow_imp.id(91820266000000401)
 ,p_plug_name=>'مقارنة الفترات'
 ,p_region_template_options=>'#DEFAULT#:t-Region--scrollBody:nn-print-area:t-Region--removeHeader js-removeLandmark:t-Region--noUI'
 ,p_plug_template=>4072358936313175081

@@ -18,13 +18,13 @@ wwv_flow_imp_page.create_page(
 ,p_step_title=>'كشوف الحساب البنكية'
 ,p_autocomplete_on_off=>'OFF'
 ,p_page_template_options=>'#DEFAULT#'
-,p_required_role=>wwv_flow_imp.id(91820266000000872)
+,p_required_role=>wwv_flow_imp.id(91820266000000874)
 ,p_javascript_code_onload=>wwv_flow_string.join(wwv_flow_t_varchar2(
 '$(document).on(''click'', ''.nn-st-open'', function (e) { e.preventDefault(); window.location.href = apex.item(''P79_GO'').getValue().replace(''990000000001'', $(this).data(''id'')); });'))
 ,p_protection_level=>'C'
 );
 wwv_flow_imp_page.create_page_plug(
- p_id=>wwv_flow_imp.id(91820266000000873)
+ p_id=>wwv_flow_imp.id(91820266000000875)
 ,p_plug_name=>'استيراد كشف'
 ,p_region_template_options=>'#DEFAULT#'
 ,p_plug_template=>4072358936313175081
@@ -37,10 +37,10 @@ wwv_flow_imp_page.create_page_plug(
   'show_line_breaks', 'Y')).to_clob
 );
 wwv_flow_imp_page.create_page_item(
- p_id=>wwv_flow_imp.id(91820266000000874)
+ p_id=>wwv_flow_imp.id(91820266000000876)
 ,p_name=>'P79_BANK'
 ,p_item_sequence=>10
-,p_item_plug_id=>wwv_flow_imp.id(91820266000000873)
+,p_item_plug_id=>wwv_flow_imp.id(91820266000000875)
 ,p_prompt=>'الحساب البنكي'
 ,p_display_as=>'NATIVE_SELECT_LIST'
 ,p_lov=>'select name_ar d, id r from csh_bank_account where company_id = noona_conn_pkg.company and status_code = ''ACTIVE'' order by name_ar'
@@ -54,10 +54,10 @@ wwv_flow_imp_page.create_page_item(
   'page_action_on_selection', 'NONE')).to_clob
 );
 wwv_flow_imp_page.create_page_item(
- p_id=>wwv_flow_imp.id(91820266000000875)
+ p_id=>wwv_flow_imp.id(91820266000000877)
 ,p_name=>'P79_FILE'
 ,p_item_sequence=>20
-,p_item_plug_id=>wwv_flow_imp.id(91820266000000873)
+,p_item_plug_id=>wwv_flow_imp.id(91820266000000875)
 ,p_prompt=>'ملف الكشف'
 ,p_display_as=>'NATIVE_FILE'
 ,p_field_template=>1609121967514267634
@@ -73,10 +73,10 @@ wwv_flow_imp_page.create_page_item(
   'max_file_size', '5120')).to_clob
 );
 wwv_flow_imp_page.create_page_item(
- p_id=>wwv_flow_imp.id(91820266000000876)
+ p_id=>wwv_flow_imp.id(91820266000000878)
 ,p_name=>'P79_OPENING'
 ,p_item_sequence=>30
-,p_item_plug_id=>wwv_flow_imp.id(91820266000000873)
+,p_item_plug_id=>wwv_flow_imp.id(91820266000000875)
 ,p_prompt=>'الرصيد الافتتاحي (اختياري)'
 ,p_display_as=>'NATIVE_NUMBER_FIELD'
 ,p_cSize=>20
@@ -87,10 +87,10 @@ wwv_flow_imp_page.create_page_item(
   'virtual_keyboard', 'decimal')).to_clob
 );
 wwv_flow_imp_page.create_page_item(
- p_id=>wwv_flow_imp.id(91820266000000877)
+ p_id=>wwv_flow_imp.id(91820266000000879)
 ,p_name=>'P79_CLOSING'
 ,p_item_sequence=>40
-,p_item_plug_id=>wwv_flow_imp.id(91820266000000873)
+,p_item_plug_id=>wwv_flow_imp.id(91820266000000875)
 ,p_prompt=>'الرصيد الختامي (اختياري)'
 ,p_display_as=>'NATIVE_NUMBER_FIELD'
 ,p_cSize=>20
@@ -102,20 +102,20 @@ wwv_flow_imp_page.create_page_item(
   'virtual_keyboard', 'decimal')).to_clob
 );
 wwv_flow_imp_page.create_page_validation(
- p_id=>wwv_flow_imp.id(91820266000000879)
+ p_id=>wwv_flow_imp.id(91820266000000881)
 ,p_validation_name=>'P79_BANK required (IMPORT)'
 ,p_validation_sequence=>5
 ,p_validation=>'P79_BANK'
 ,p_validation_type=>'ITEM_NOT_NULL'
 ,p_error_message=>'#LABEL#: قيمة مطلوبة'
-,p_when_button_pressed=>wwv_flow_imp.id(91820266000000878)
-,p_associated_item=>wwv_flow_imp.id(91820266000000874)
+,p_when_button_pressed=>wwv_flow_imp.id(91820266000000880)
+,p_associated_item=>wwv_flow_imp.id(91820266000000876)
 ,p_error_display_location=>'INLINE_WITH_FIELD_AND_NOTIFICATION'
 );
 wwv_flow_imp_page.create_page_button(
- p_id=>wwv_flow_imp.id(91820266000000878)
+ p_id=>wwv_flow_imp.id(91820266000000880)
 ,p_button_sequence=>10
-,p_button_plug_id=>wwv_flow_imp.id(91820266000000873)
+,p_button_plug_id=>wwv_flow_imp.id(91820266000000875)
 ,p_button_name=>'IMPORT'
 ,p_button_action=>'SUBMIT'
 ,p_button_template_options=>'#DEFAULT#'
@@ -125,7 +125,7 @@ wwv_flow_imp_page.create_page_button(
 ,p_button_position=>'NEXT'
 );
 wwv_flow_imp_page.create_page_process(
- p_id=>wwv_flow_imp.id(91820266000000880)
+ p_id=>wwv_flow_imp.id(91820266000000882)
 ,p_process_sequence=>10
 ,p_process_point=>'AFTER_SUBMIT'
 ,p_process_type=>'NATIVE_PLSQL'
@@ -141,11 +141,11 @@ wwv_flow_imp_page.create_page_process(
 'end;'))
 ,p_process_clob_language=>'PLSQL'
 ,p_error_display_location=>'INLINE_IN_NOTIFICATION'
-,p_process_when_button_id=>wwv_flow_imp.id(91820266000000878)
-,p_internal_uid=>91820266000000880
+,p_process_when_button_id=>wwv_flow_imp.id(91820266000000880)
+,p_internal_uid=>91820266000000882
 );
 wwv_flow_imp_page.create_page_plug(
- p_id=>wwv_flow_imp.id(91820266000000881)
+ p_id=>wwv_flow_imp.id(91820266000000883)
 ,p_plug_name=>'الكشوف'
 ,p_region_template_options=>'#DEFAULT#:t-Region--scrollBody'
 ,p_plug_template=>4072358936313175081
@@ -156,7 +156,7 @@ wwv_flow_imp_page.create_page_plug(
 ,p_plug_source_type=>'NATIVE_DYNAMIC_CONTENT'
 );
 wwv_flow_imp_page.create_page_plug(
- p_id=>wwv_flow_imp.id(91820266000000882)
+ p_id=>wwv_flow_imp.id(91820266000000884)
 ,p_plug_name=>'go'
 ,p_region_template_options=>'#DEFAULT#:u-hidden:t-Region--removeHeader js-removeLandmark'
 ,p_plug_template=>4072358936313175081
@@ -167,17 +167,17 @@ wwv_flow_imp_page.create_page_plug(
   'show_line_breaks', 'Y')).to_clob
 );
 wwv_flow_imp_page.create_page_item(
- p_id=>wwv_flow_imp.id(91820266000000883)
+ p_id=>wwv_flow_imp.id(91820266000000885)
 ,p_name=>'P79_GO'
 ,p_item_sequence=>1
-,p_item_plug_id=>wwv_flow_imp.id(91820266000000882)
+,p_item_plug_id=>wwv_flow_imp.id(91820266000000884)
 ,p_display_as=>'NATIVE_HIDDEN'
 ,p_protection_level=>'N'
 ,p_attributes=>wwv_flow_t_plugin_attributes(wwv_flow_t_varchar2(
   'value_protected', 'N')).to_clob
 );
 wwv_flow_imp_page.create_page_process(
- p_id=>wwv_flow_imp.id(91820266000000884)
+ p_id=>wwv_flow_imp.id(91820266000000886)
 ,p_process_sequence=>5
 ,p_process_point=>'BEFORE_HEADER'
 ,p_process_type=>'NATIVE_PLSQL'
@@ -186,7 +186,7 @@ wwv_flow_imp_page.create_page_process(
 'begin :P79_GO := apex_page.get_url(p_page => 80, p_items => ''P80_ID'', p_values => ''990000000001''); end;'))
 ,p_process_clob_language=>'PLSQL'
 ,p_error_display_location=>'INLINE_IN_NOTIFICATION'
-,p_internal_uid=>91820266000000884
+,p_internal_uid=>91820266000000886
 );
 
 wwv_flow_imp.component_end;

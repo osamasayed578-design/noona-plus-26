@@ -239,8 +239,33 @@ wwv_flow_imp_page.create_page_process(
 ,p_process_success_message=>'تم تغيير حالة الفترة'
 ,p_internal_uid=>91820266000000078
 );
-wwv_flow_imp_page.create_page_branch(
+wwv_flow_imp_page.create_page_button(
  p_id=>wwv_flow_imp.id(91820266000000079)
+,p_button_sequence=>20
+,p_button_plug_id=>wwv_flow_imp.id(91820266000000061)
+,p_button_name=>'OPEN_NEXT_YEAR'
+,p_button_action=>'SUBMIT'
+,p_button_template_options=>'#DEFAULT#'
+,p_button_template_id=>4072362960822175091
+,p_button_image_alt=>'فتح السنة المالية التالية'
+,p_button_position=>'RIGHT_OF_IR_SEARCH_BAR'
+);
+wwv_flow_imp_page.create_page_process(
+ p_id=>wwv_flow_imp.id(91820266000000080)
+,p_process_sequence=>20
+,p_process_point=>'AFTER_SUBMIT'
+,p_process_type=>'NATIVE_PLSQL'
+,p_process_name=>'Open Next Year'
+,p_process_sql_clob=>wwv_flow_string.join(wwv_flow_t_varchar2(
+'declare l number; begin l := noona_gl_pkg.open_next_year; end;'))
+,p_process_clob_language=>'PLSQL'
+,p_error_display_location=>'INLINE_IN_NOTIFICATION'
+,p_process_when_button_id=>wwv_flow_imp.id(91820266000000079)
+,p_process_success_message=>'تم فتح السنة المالية التالية بفتراتها الاثنتي عشرة وترقيمها'
+,p_internal_uid=>91820266000000080
+);
+wwv_flow_imp_page.create_page_branch(
+ p_id=>wwv_flow_imp.id(91820266000000081)
 ,p_branch_action=>'f?p=&APP_ID.:11:&SESSION.::&DEBUG.:::&success_msg=#SUCCESS_MSG#'
 ,p_branch_point=>'AFTER_PROCESSING'
 ,p_branch_type=>'REDIRECT_URL'

@@ -109,7 +109,7 @@ p.branch(10, url(10, clear='10') + '&success_msg=#SUCCESS_MSG#')
 
 # =============================================================== 11) الفترات المحاسبية
 p = app.page(11, 'Periods', 'PERIODS', 'الفترات المحاسبية', scheme=TENANT)
-p.ir('الفترات المحاسبية', 10, [
+r = p.ir('الفترات المحاسبية', 10, [
     "select p.id, y.name_ar as fiscal_year, p.period_no, p.name_ar, to_char(p.start_date, 'YYYY-MM-DD') as start_date,",
     "       to_char(p.end_date, 'YYYY-MM-DD') as end_date,",
     "       decode(s.status_code, 'OPEN', '<span class=\"nn-badge is-success\">مفتوحة</span>',",
@@ -130,6 +130,10 @@ p.select('P11_STATUS', f, 20, 'الحالة الجديدة', null_text=None, lov
 b = p.button(f, 10, 'APPLY', 'تطبيق', hot=True)
 p.process(10, 'AFTER_SUBMIT', 'Period Status', 'noona_gl_pkg.set_period_status(:P11_PERIOD, :P11_STATUS);',
           when_button=b, success='تم تغيير حالة الفترة')
+# السنة التالية: فترات شهرية مفتوحة وترقيم سنوي جديد للقيود والسندات (لا تفتح أكثر من سنة مقدماً)
+bn = p.button(r, 20, 'OPEN_NEXT_YEAR', 'فتح السنة المالية التالية', position='RIGHT_OF_IR_SEARCH_BAR')
+p.process(20, 'AFTER_SUBMIT', 'Open Next Year', 'declare l number; begin l := noona_gl_pkg.open_next_year; end;',
+          when_button=bn, success='تم فتح السنة المالية التالية بفتراتها الاثنتي عشرة وترقيمها')
 p.branch(10, url(11) + '&success_msg=#SUCCESS_MSG#')
 
 # =============================================================== 20) القيود اليومية
