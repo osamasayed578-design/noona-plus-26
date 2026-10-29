@@ -21,7 +21,7 @@ wwv_flow_imp_shared.create_list_item(
  p_id=>wwv_flow_imp.id(91820272000000368)
 ,p_list_item_display_sequence=>10
 ,p_list_item_link_text=>'اللوحة'
-,p_list_item_link_target=>'f?p=&APP_ID.:1:&APP_SESSION.::&DEBUG.:::'
+,p_list_item_link_target=>'f?p=&APP_ID.:1:&APP_SESSION.::&DEBUG.:1::'
 ,p_list_item_icon=>'fa-home'
 ,p_list_item_current_type=>'TARGET_PAGE'
 );
@@ -37,7 +37,7 @@ wwv_flow_imp_shared.create_list_item(
  p_id=>wwv_flow_imp.id(91820272000000370)
 ,p_list_item_display_sequence=>21
 ,p_list_item_link_text=>'ملفات الموظفين'
-,p_list_item_link_target=>'f?p=&APP_ID.:10:&APP_SESSION.::&DEBUG.:::'
+,p_list_item_link_target=>'f?p=&APP_ID.:10:&APP_SESSION.::&DEBUG.:10::'
 ,p_list_item_icon=>'fa-id-card-o'
 ,p_parent_list_item_id=>wwv_flow_imp.id(91820272000000369)
 ,p_security_scheme=>wwv_flow_imp.id(91820272000000010)
@@ -64,7 +64,7 @@ wwv_flow_imp_shared.create_list_item(
  p_id=>wwv_flow_imp.id(91820272000000373)
 ,p_list_item_display_sequence=>31
 ,p_list_item_link_text=>'الإجازات واعتمادها'
-,p_list_item_link_target=>'f?p=&APP_ID.:20:&APP_SESSION.::&DEBUG.:::'
+,p_list_item_link_target=>'f?p=&APP_ID.:20:&APP_SESSION.::&DEBUG.:20::'
 ,p_list_item_icon=>'fa-plane'
 ,p_parent_list_item_id=>wwv_flow_imp.id(91820272000000372)
 ,p_security_scheme=>wwv_flow_imp.id(91820272000000010)
@@ -83,7 +83,7 @@ wwv_flow_imp_shared.create_list_item(
  p_id=>wwv_flow_imp.id(91820272000000375)
 ,p_list_item_display_sequence=>33
 ,p_list_item_link_text=>'الحضور والإضافي'
-,p_list_item_link_target=>'f?p=&APP_ID.:25:&APP_SESSION.::&DEBUG.:::'
+,p_list_item_link_target=>'f?p=&APP_ID.:25:&APP_SESSION.::&DEBUG.:25::'
 ,p_list_item_icon=>'fa-clock-o'
 ,p_parent_list_item_id=>wwv_flow_imp.id(91820272000000372)
 ,p_security_scheme=>wwv_flow_imp.id(91820272000000010)
@@ -101,7 +101,7 @@ wwv_flow_imp_shared.create_list_item(
  p_id=>wwv_flow_imp.id(91820272000000377)
 ,p_list_item_display_sequence=>41
 ,p_list_item_link_text=>'تشغيلات الرواتب'
-,p_list_item_link_target=>'f?p=&APP_ID.:40:&APP_SESSION.::&DEBUG.:::'
+,p_list_item_link_target=>'f?p=&APP_ID.:40:&APP_SESSION.::&DEBUG.:40::'
 ,p_list_item_icon=>'fa-calculator'
 ,p_parent_list_item_id=>wwv_flow_imp.id(91820272000000376)
 ,p_security_scheme=>wwv_flow_imp.id(91820272000000009)
@@ -111,7 +111,7 @@ wwv_flow_imp_shared.create_list_item(
  p_id=>wwv_flow_imp.id(91820272000000378)
 ,p_list_item_display_sequence=>42
 ,p_list_item_link_text=>'المدخلات المتغيرة'
-,p_list_item_link_target=>'f?p=&APP_ID.:42:&APP_SESSION.::&DEBUG.:::'
+,p_list_item_link_target=>'f?p=&APP_ID.:42:&APP_SESSION.::&DEBUG.:42::'
 ,p_list_item_icon=>'fa-pencil-square-o'
 ,p_parent_list_item_id=>wwv_flow_imp.id(91820272000000376)
 ,p_security_scheme=>wwv_flow_imp.id(91820272000000009)
@@ -121,7 +121,7 @@ wwv_flow_imp_shared.create_list_item(
  p_id=>wwv_flow_imp.id(91820272000000379)
 ,p_list_item_display_sequence=>43
 ,p_list_item_link_text=>'السلف والقروض'
-,p_list_item_link_target=>'f?p=&APP_ID.:30:&APP_SESSION.::&DEBUG.:::'
+,p_list_item_link_target=>'f?p=&APP_ID.:30:&APP_SESSION.::&DEBUG.:30::'
 ,p_list_item_icon=>'fa-credit-card'
 ,p_parent_list_item_id=>wwv_flow_imp.id(91820272000000376)
 ,p_security_scheme=>wwv_flow_imp.id(91820272000000009)
@@ -140,7 +140,7 @@ wwv_flow_imp_shared.create_list_item(
  p_id=>wwv_flow_imp.id(91820272000000381)
 ,p_list_item_display_sequence=>50
 ,p_list_item_link_text=>'التقارير'
-,p_list_item_link_target=>'f?p=&APP_ID.:60:&APP_SESSION.::&DEBUG.:::'
+,p_list_item_link_target=>'f?p=&APP_ID.:60:&APP_SESSION.::&DEBUG.:60::'
 ,p_list_item_icon=>'fa-bar-chart'
 ,p_list_item_current_type=>'TARGET_PAGE'
 );
@@ -148,7 +148,7 @@ wwv_flow_imp_shared.create_list_item(
  p_id=>wwv_flow_imp.id(91820272000000382)
 ,p_list_item_display_sequence=>60
 ,p_list_item_link_text=>'الإعدادات'
-,p_list_item_link_target=>'f?p=&APP_ID.:70:&APP_SESSION.::&DEBUG.:::'
+,p_list_item_link_target=>'f?p=&APP_ID.:70:&APP_SESSION.::&DEBUG.:70::'
 ,p_list_item_icon=>'fa-cog'
 ,p_security_scheme=>wwv_flow_imp.id(91820272000000009)
 ,p_list_item_current_type=>'TARGET_PAGE'

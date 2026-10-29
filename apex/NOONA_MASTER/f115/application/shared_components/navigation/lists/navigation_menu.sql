@@ -21,7 +21,7 @@ wwv_flow_imp_shared.create_list_item(
  p_id=>wwv_flow_imp.id(91820263000000021)
 ,p_list_item_display_sequence=>10
 ,p_list_item_link_text=>'الأنظمة'
-,p_list_item_link_target=>'f?p=&APP_ID.:1:&APP_SESSION.::&DEBUG.:::'
+,p_list_item_link_target=>'f?p=&APP_ID.:1:&APP_SESSION.::&DEBUG.:1::'
 ,p_list_item_icon=>'fa-th'
 ,p_list_item_current_type=>'TARGET_PAGE'
 );
@@ -29,7 +29,7 @@ wwv_flow_imp_shared.create_list_item(
  p_id=>wwv_flow_imp.id(91820263000000022)
 ,p_list_item_display_sequence=>20
 ,p_list_item_link_text=>'تغيير كلمة المرور'
-,p_list_item_link_target=>'f?p=&APP_ID.:10:&APP_SESSION.::&DEBUG.:::'
+,p_list_item_link_target=>'f?p=&APP_ID.:10:&APP_SESSION.::&DEBUG.:10::'
 ,p_list_item_icon=>'fa-key'
 ,p_list_item_current_type=>'TARGET_PAGE'
 );

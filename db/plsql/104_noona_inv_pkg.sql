@@ -635,7 +635,10 @@ CREATE OR REPLACE PACKAGE BODY NOONA_INV_PKG AS
                    u.code uom, CASE WHEN i.item_type IN ('SERVICE', 'NON_STOCK') THEN 'N' ELSE 'Y' END stocked,
                    (SELECT NVL(SUM(o.on_hand_qty), 0) FROM inv_onhand o WHERE o.item_id = i.id AND o.company_id = l_co
                        AND (p_warehouse_id IS NULL OR o.warehouse_id = p_warehouse_id)) qty,
-                   CASE WHEN p_purpose = 'PURCHASE' THEN c.last_purchase_price END cost,
+                   -- الشراء: آخر سعر شراء؛ التصنيع والمخزون (ALL): متوسط التكلفة المرجح لتظهر تكلفة المكون عند إضافته
+                   CASE WHEN p_purpose = 'PURCHASE' THEN c.last_purchase_price
+                        WHEN p_purpose = 'ALL' THEN (SELECT MAX(k.average_cost) FROM inv_item_cost k
+                                                      WHERE k.item_id = i.id AND k.company_id = l_co AND k.warehouse_id IS NULL) END cost,
                    CASE WHEN i.item_no = l_t OR i.item_code = l_t OR UPPER(i.manufacturer_part_no) = UPPER(l_t)
                           OR EXISTS (SELECT 1 FROM inv_item_barcode b WHERE b.item_id = i.id AND b.barcode = l_t) THEN 0 ELSE 1 END rnk
               FROM inv_item i JOIN inv_uom u ON u.id = i.base_uom_id

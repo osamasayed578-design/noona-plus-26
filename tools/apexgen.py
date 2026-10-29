@@ -291,7 +291,8 @@ class App:
         items = ''
         for nid, label, page, icon, seq, parent, scheme in self.nav:
             # page: رقم صفحة، أو رابط كامل (مثل صفحة بمعامل: سند قبض جديد)
-            target = page if isinstance(page, str) else (f"f?p=&APP_ID.:{page}:&APP_SESSION.::&DEBUG.:::" if page is not None else '')
+            # رابط القائمة يمسح ذاكرة الصفحة: «صنف جديد» بعد فتح صنف يفتح بطاقة فارغة لا الصنف السابق (كان الحفظ يكتب فوقه)
+            target = page if isinstance(page, str) else (f"f?p=&APP_ID.:{page}:&APP_SESSION.::&DEBUG.:{page}::" if page is not None else '')
             items += f"""wwv_flow_imp_shared.create_list_item(
  p_id=>wwv_flow_imp.id({nid})
 ,p_list_item_display_sequence=>{seq}

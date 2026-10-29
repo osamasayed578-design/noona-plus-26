@@ -21,7 +21,7 @@ wwv_flow_imp_shared.create_list_item(
  p_id=>wwv_flow_imp.id(91820268000000319)
 ,p_list_item_display_sequence=>10
 ,p_list_item_link_text=>'لوحة سلسلة الإمداد'
-,p_list_item_link_target=>'f?p=&APP_ID.:1:&APP_SESSION.::&DEBUG.:::'
+,p_list_item_link_target=>'f?p=&APP_ID.:1:&APP_SESSION.::&DEBUG.:1::'
 ,p_list_item_icon=>'fa-truck'
 ,p_list_item_current_type=>'TARGET_PAGE'
 );
@@ -36,7 +36,7 @@ wwv_flow_imp_shared.create_list_item(
  p_id=>wwv_flow_imp.id(91820268000000321)
 ,p_list_item_display_sequence=>21
 ,p_list_item_link_text=>'الأصناف'
-,p_list_item_link_target=>'f?p=&APP_ID.:10:&APP_SESSION.::&DEBUG.:::'
+,p_list_item_link_target=>'f?p=&APP_ID.:10:&APP_SESSION.::&DEBUG.:10::'
 ,p_list_item_icon=>'fa-cube'
 ,p_parent_list_item_id=>wwv_flow_imp.id(91820268000000320)
 ,p_list_item_current_type=>'TARGET_PAGE'
@@ -45,7 +45,7 @@ wwv_flow_imp_shared.create_list_item(
  p_id=>wwv_flow_imp.id(91820268000000322)
 ,p_list_item_display_sequence=>22
 ,p_list_item_link_text=>'صنف جديد'
-,p_list_item_link_target=>'f?p=&APP_ID.:11:&APP_SESSION.::&DEBUG.:::'
+,p_list_item_link_target=>'f?p=&APP_ID.:11:&APP_SESSION.::&DEBUG.:11::'
 ,p_list_item_icon=>'fa-plus'
 ,p_parent_list_item_id=>wwv_flow_imp.id(91820268000000320)
 ,p_list_item_current_type=>'TARGET_PAGE'
@@ -54,7 +54,7 @@ wwv_flow_imp_shared.create_list_item(
  p_id=>wwv_flow_imp.id(91820268000000323)
 ,p_list_item_display_sequence=>23
 ,p_list_item_link_text=>'حركات المخزون'
-,p_list_item_link_target=>'f?p=&APP_ID.:20:&APP_SESSION.::&DEBUG.:::'
+,p_list_item_link_target=>'f?p=&APP_ID.:20:&APP_SESSION.::&DEBUG.:20::'
 ,p_list_item_icon=>'fa-exchange'
 ,p_parent_list_item_id=>wwv_flow_imp.id(91820268000000320)
 ,p_list_item_current_type=>'TARGET_PAGE'
@@ -63,7 +63,7 @@ wwv_flow_imp_shared.create_list_item(
  p_id=>wwv_flow_imp.id(91820268000000324)
 ,p_list_item_display_sequence=>24
 ,p_list_item_link_text=>'مستند مخزون جديد'
-,p_list_item_link_target=>'f?p=&APP_ID.:21:&APP_SESSION.::&DEBUG.:::'
+,p_list_item_link_target=>'f?p=&APP_ID.:21:&APP_SESSION.::&DEBUG.:21::'
 ,p_list_item_icon=>'fa-file-o'
 ,p_parent_list_item_id=>wwv_flow_imp.id(91820268000000320)
 ,p_list_item_current_type=>'TARGET_PAGE'
@@ -72,7 +72,7 @@ wwv_flow_imp_shared.create_list_item(
  p_id=>wwv_flow_imp.id(91820268000000325)
 ,p_list_item_display_sequence=>25
 ,p_list_item_link_text=>'قائمة المواد والإنتاج'
-,p_list_item_link_target=>'f?p=&APP_ID.:13:&APP_SESSION.::&DEBUG.:::'
+,p_list_item_link_target=>'f?p=&APP_ID.:13:&APP_SESSION.::&DEBUG.:13::'
 ,p_list_item_icon=>'fa-industry'
 ,p_parent_list_item_id=>wwv_flow_imp.id(91820268000000320)
 ,p_list_item_current_type=>'TARGET_PAGE'
@@ -81,7 +81,7 @@ wwv_flow_imp_shared.create_list_item(
  p_id=>wwv_flow_imp.id(91820268000000326)
 ,p_list_item_display_sequence=>26
 ,p_list_item_link_text=>'الفئات وحساباتها'
-,p_list_item_link_target=>'f?p=&APP_ID.:12:&APP_SESSION.::&DEBUG.:::'
+,p_list_item_link_target=>'f?p=&APP_ID.:12:&APP_SESSION.::&DEBUG.:12::'
 ,p_list_item_icon=>'fa-tags'
 ,p_parent_list_item_id=>wwv_flow_imp.id(91820268000000320)
 ,p_list_item_current_type=>'TARGET_PAGE'
@@ -90,7 +90,7 @@ wwv_flow_imp_shared.create_list_item(
  p_id=>wwv_flow_imp.id(91820268000000327)
 ,p_list_item_display_sequence=>27
 ,p_list_item_link_text=>'المستودعات'
-,p_list_item_link_target=>'f?p=&APP_ID.:14:&APP_SESSION.::&DEBUG.:::'
+,p_list_item_link_target=>'f?p=&APP_ID.:14:&APP_SESSION.::&DEBUG.:14::'
 ,p_list_item_icon=>'fa-building-o'
 ,p_parent_list_item_id=>wwv_flow_imp.id(91820268000000320)
 ,p_list_item_current_type=>'TARGET_PAGE'
@@ -106,7 +106,7 @@ wwv_flow_imp_shared.create_list_item(
  p_id=>wwv_flow_imp.id(91820268000000329)
 ,p_list_item_display_sequence=>31
 ,p_list_item_link_text=>'فاتورة مشتريات جديدة'
-,p_list_item_link_target=>'f?p=&APP_ID.:35:&APP_SESSION.::&DEBUG.:::'
+,p_list_item_link_target=>'f?p=&APP_ID.:35:&APP_SESSION.::&DEBUG.:35::'
 ,p_list_item_icon=>'fa-plus'
 ,p_parent_list_item_id=>wwv_flow_imp.id(91820268000000328)
 ,p_list_item_current_type=>'TARGET_PAGE'
@@ -115,7 +115,7 @@ wwv_flow_imp_shared.create_list_item(
  p_id=>wwv_flow_imp.id(91820268000000330)
 ,p_list_item_display_sequence=>32
 ,p_list_item_link_text=>'فواتير المشتريات والمرتجعات'
-,p_list_item_link_target=>'f?p=&APP_ID.:34:&APP_SESSION.::&DEBUG.:::'
+,p_list_item_link_target=>'f?p=&APP_ID.:34:&APP_SESSION.::&DEBUG.:34::'
 ,p_list_item_icon=>'fa-files-o'
 ,p_parent_list_item_id=>wwv_flow_imp.id(91820268000000328)
 ,p_list_item_current_type=>'TARGET_PAGE'
@@ -124,7 +124,7 @@ wwv_flow_imp_shared.create_list_item(
  p_id=>wwv_flow_imp.id(91820268000000331)
 ,p_list_item_display_sequence=>33
 ,p_list_item_link_text=>'أوامر الشراء'
-,p_list_item_link_target=>'f?p=&APP_ID.:32:&APP_SESSION.::&DEBUG.:::'
+,p_list_item_link_target=>'f?p=&APP_ID.:32:&APP_SESSION.::&DEBUG.:32::'
 ,p_list_item_icon=>'fa-file-text-o'
 ,p_parent_list_item_id=>wwv_flow_imp.id(91820268000000328)
 ,p_list_item_current_type=>'TARGET_PAGE'
@@ -133,7 +133,7 @@ wwv_flow_imp_shared.create_list_item(
  p_id=>wwv_flow_imp.id(91820268000000332)
 ,p_list_item_display_sequence=>34
 ,p_list_item_link_text=>'الموردون'
-,p_list_item_link_target=>'f?p=&APP_ID.:30:&APP_SESSION.::&DEBUG.:::'
+,p_list_item_link_target=>'f?p=&APP_ID.:30:&APP_SESSION.::&DEBUG.:30::'
 ,p_list_item_icon=>'fa-users'
 ,p_parent_list_item_id=>wwv_flow_imp.id(91820268000000328)
 ,p_list_item_current_type=>'TARGET_PAGE'
@@ -142,7 +142,7 @@ wwv_flow_imp_shared.create_list_item(
  p_id=>wwv_flow_imp.id(91820268000000333)
 ,p_list_item_display_sequence=>35
 ,p_list_item_link_text=>'سداد الموردين'
-,p_list_item_link_target=>'f?p=&APP_ID.:37:&APP_SESSION.::&DEBUG.:::'
+,p_list_item_link_target=>'f?p=&APP_ID.:37:&APP_SESSION.::&DEBUG.:37::'
 ,p_list_item_icon=>'fa-money'
 ,p_parent_list_item_id=>wwv_flow_imp.id(91820268000000328)
 ,p_list_item_current_type=>'TARGET_PAGE'
@@ -151,7 +151,7 @@ wwv_flow_imp_shared.create_list_item(
  p_id=>wwv_flow_imp.id(91820268000000334)
 ,p_list_item_display_sequence=>40
 ,p_list_item_link_text=>'التقارير'
-,p_list_item_link_target=>'f?p=&APP_ID.:50:&APP_SESSION.::&DEBUG.:::'
+,p_list_item_link_target=>'f?p=&APP_ID.:50:&APP_SESSION.::&DEBUG.:50::'
 ,p_list_item_icon=>'fa-bar-chart'
 ,p_list_item_current_type=>'TARGET_PAGE'
 );
