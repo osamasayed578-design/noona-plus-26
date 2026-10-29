@@ -428,7 +428,7 @@ wwv_flow_imp_page.create_page_process(
 );
 wwv_flow_imp_page.create_page_plug(
  p_id=>wwv_flow_imp.id(91820275000000176)
-,p_plug_name=>'Initial examination - الكشف المبدئي'
+,p_plug_name=>'الكشف المبدئي'
 ,p_region_template_options=>'#DEFAULT#'
 ,p_plug_template=>4072358936313175081
 ,p_plug_display_sequence=>20
@@ -445,7 +445,7 @@ wwv_flow_imp_page.create_page_item(
 ,p_name=>'P31_VITALS'
 ,p_item_sequence=>10
 ,p_item_plug_id=>wwv_flow_imp.id(91820275000000176)
-,p_prompt=>'Vital signs (BP, Temp, Pulse, RR, SpO2, Weight)'
+,p_prompt=>'العلامات الحيوية (الضغط، الحرارة، النبض، التنفس، الأكسجين، الوزن)'
 ,p_display_as=>'NATIVE_TEXT_FIELD'
 ,p_cSize=>40
 ,p_cMaxlength=>1000
@@ -462,7 +462,7 @@ wwv_flow_imp_page.create_page_item(
 ,p_name=>'P31_COMPLAINT'
 ,p_item_sequence=>20
 ,p_item_plug_id=>wwv_flow_imp.id(91820275000000176)
-,p_prompt=>'Chief complaint & history'
+,p_prompt=>'الشكوى الرئيسية والتاريخ المرضي'
 ,p_display_as=>'NATIVE_TEXTAREA'
 ,p_cSize=>60
 ,p_cMaxlength=>1000
@@ -480,7 +480,7 @@ wwv_flow_imp_page.create_page_item(
 ,p_name=>'P31_DIAG'
 ,p_item_sequence=>30
 ,p_item_plug_id=>wwv_flow_imp.id(91820275000000176)
-,p_prompt=>'Diagnosis'
+,p_prompt=>'التشخيص (Diagnosis)'
 ,p_display_as=>'NATIVE_TEXTAREA'
 ,p_cSize=>60
 ,p_cMaxlength=>1000
@@ -498,7 +498,7 @@ wwv_flow_imp_page.create_page_item(
 ,p_name=>'P31_ICD'
 ,p_item_sequence=>40
 ,p_item_plug_id=>wwv_flow_imp.id(91820275000000176)
-,p_prompt=>'ICD-10 code'
+,p_prompt=>'رمز التشخيص ICD-10'
 ,p_display_as=>'NATIVE_TEXT_FIELD'
 ,p_cSize=>15
 ,p_cMaxlength=>100
@@ -515,7 +515,7 @@ wwv_flow_imp_page.create_page_item(
 ,p_name=>'P31_DNOTES'
 ,p_item_sequence=>50
 ,p_item_plug_id=>wwv_flow_imp.id(91820275000000176)
-,p_prompt=>'Examination findings / Plan'
+,p_prompt=>'نتائج الفحص والخطة العلاجية'
 ,p_display_as=>'NATIVE_TEXTAREA'
 ,p_cSize=>60
 ,p_cMaxlength=>1000
@@ -536,7 +536,7 @@ wwv_flow_imp_page.create_page_button(
 ,p_button_action=>'SUBMIT'
 ,p_button_template_options=>'#DEFAULT#'
 ,p_button_template_id=>4072362960822175091
-,p_button_image_alt=>'Save examination'
+,p_button_image_alt=>'حفظ الكشف'
 ,p_button_position=>'NEXT'
 );
 wwv_flow_imp_page.create_page_process(
@@ -947,8 +947,8 @@ wwv_flow_imp_page.create_page_plug(
 ,p_plug_display_sequence=>45
 ,p_query_type=>'SQL'
 ,p_plug_source=>wwv_flow_string.join(wwv_flow_t_varchar2(
-'select o.id, noona_his_pkg.service_name(s.id) as service, d.name_ar as dept, case o.result_flag when ''CRITICAL'' then ''Critical'' when ''ABNORMAL'' then ''Abnormal''',
-'       else ''Normal'' end as flag, to_char(o.completed_at, ''YYYY-MM-DD HH24:MI'') as done_at,',
+'select o.id, noona_his_pkg.service_name(s.id) as service, d.name_ar as dept, case o.result_flag when ''CRITICAL'' then ''حرج'' when ''ABNORMAL'' then ''غير طبيعي''',
+'       else ''طبيعي'' end as flag, to_char(o.completed_at, ''YYYY-MM-DD HH24:MI'') as done_at,',
 '       ''<span class="fa fa-file-text-o" aria-hidden="true"></span> التقرير'' as rpt',
 '  from his_order o join his_service s on s.id = o.service_id join his_department d on d.id = o.department_id',
 ' where o.visit_id = :P31_ID and o.status_code = ''COMPLETED'' order by o.line_no'))

@@ -39,7 +39,7 @@ def build(app, url, link, scheme, L):
 
     # =========================================================== 33) الوصفة الطبية
     p = app.page(33, 'Prescription', 'PRESCRIPTION', 'Prescription - الوصفة الطبية', scheme=scheme, protection='N')
-    f = p.static('Prescription', 10)
+    f = p.static('الوصفة الطبية', 10)
     p.select('P33_VISIT', f, 5, 'Visit', lov_sql=OPEN_VISIT_LOV, required=True)
     for k in (1, 2, 3):
         p.select(f'P33_D{k}', f, 10 * k, f'Medicine {k}', lov_sql=MED_LOV, null_text='-')
@@ -65,7 +65,7 @@ def build(app, url, link, scheme, L):
         "    select json_object('visit' value to_number(:P33_VISIT), 'valid_days' value to_number(:P33_VALID),",
         "           'lines' value nvl(l_lines, to_clob('[]')) format json returning clob) into l_doc from dual;",
         '    :P33_RX := noona_his_care_pkg.prescribe(l_doc);', 'end;'], when_button=b, success='Prescription sent - أرسلت الوصفة (الصرف من صيدلية المستشفى اختياري)')
-    p.ir('Prescriptions of the visit', 20, [
+    p.ir('وصفات الزيارة', 20, [
         "select x.id, x.rx_no, to_char(x.rx_at, 'YYYY-MM-DD HH24:MI') as rx_at, nvl(i.name_en, i.name_ar) as medicine, l.dose, l.frequency, l.duration_days,",
         "       l.quantity, l.dispensed_qty, case x.status_code when 'ACTIVE' then 'Sent' when 'PARTIAL' then 'Partial' when 'DISPENSED' then 'Dispensed'",
         "       when 'EXTERNAL' then 'Outside pharmacy' when 'EXPIRED' then 'Expired' else 'Cancelled' end as status, x.erx_no,",
@@ -239,7 +239,7 @@ def build(app, url, link, scheme, L):
 
     # =========================================================== 64) مكونات التحاليل والقوالب
     p = app.page(64, 'Lab Setup', 'LAB-SETUP', 'Lab parameters & report templates', scheme=scheme)
-    fp = p.static('Test parameters', 10)
+    fp = p.static('مكونات التحليل', 10)
     p.select('P64_SRV', fp, 10, 'Test', lov_sql=LAB_SRV_LOV, submit=True)
     p.text('P64_CODE', fp, 20, 'Code (e.g. HB)', maxlen=30, width=10)
     p.text('P64_NAME_EN', fp, 30, 'Name (English)', maxlen=200)
@@ -259,13 +259,13 @@ def build(app, url, link, scheme, L):
         '    l := noona_his_care_pkg.set_lab_param(to_number(:P64_SRV), :P64_CODE, nvl(:P64_NAME_AR, :P64_NAME_EN), :P64_UNIT, to_number(:P64_LOW),',
         '         to_number(:P64_HIGH), to_number(:P64_CLOW), to_number(:P64_CHIGH), :P64_GENDER, null, null, :P64_REF, :P64_NAME_EN);',
         '    :P64_CODE := null; :P64_NAME_EN := null; :P64_NAME_AR := null;', 'end;'], when_button=b_pa, success='Parameter saved')
-    p.ir('Parameters', 15, [
+    p.ir('المكونات', 15, [
         "select p.id, p.code, p.name_en, p.name_ar, p.unit, decode(p.gender, 'M', 'Male', 'F', 'Female', 'All') as sex, p.ref_low, p.ref_high,",
         "       p.crit_low, p.crit_high, p.ref_text from his_lab_param p where p.service_id = :P64_SRV order by p.sort_order, p.gender"],
         [('ID', '#', {'hidden': True, 'type': 'NUMBER'}), ('CODE', 'Code', {}), ('NAME_EN', 'Name', {}), ('NAME_AR', 'الاسم', {}), ('UNIT', 'Unit', {}),
          ('SEX', 'Sex', {}), ('REF_LOW', 'Low', {'type': 'NUMBER'}), ('REF_HIGH', 'High', {'type': 'NUMBER'}), ('CRIT_LOW', 'Crit. low', {'type': 'NUMBER'}),
          ('CRIT_HIGH', 'Crit. high', {'type': 'NUMBER'}), ('REF_TEXT', 'Text ref.', {})], titled=True, rows=40)
-    ft = p.static('Report templates (radiology / cardiology)', 20)
+    ft = p.static('قوالب التقارير (الأشعة / القلب)', 20)
     p.text('P64_TCODE', ft, 10, 'Template code', maxlen=30, width=12)
     p.text('P64_TNAME', ft, 20, 'Name', maxlen=200)
     p.select('P64_TMOD', ft, 30, 'Modality', lov_sql=MODALITY_LOV)
@@ -274,7 +274,7 @@ def build(app, url, link, scheme, L):
     p.process(20, 'AFTER_SUBMIT', 'Template', ['declare l number;', 'begin',
         '    l := noona_his_care_pkg.save_template(null, :P64_TCODE, :P64_TNAME, null, :P64_TMOD, :P64_TBODY);', 'end;'], when_button=b_tp,
         success='Template saved')
-    p.ir('Templates', 25, [f"select t.id, t.code, t.name_ar, noona_his_pkg.modality_label(t.modality) as modality, substr(t.body, 1, 200) as body "
+    p.ir('القوالب', 25, [f"select t.id, t.code, t.name_ar, noona_his_pkg.modality_label(t.modality) as modality, substr(t.body, 1, 200) as body "
                            f"from his_report_template t where t.company_id = {CO} order by t.code"],
          [('ID', '#', {'hidden': True, 'type': 'NUMBER'}), ('CODE', 'Code', {}), ('NAME_AR', 'Name', {}), ('MODALITY', 'Modality', {}), ('BODY', 'Text', {})],
          titled=True, rows=20)

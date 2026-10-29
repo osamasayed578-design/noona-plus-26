@@ -25,7 +25,7 @@ wwv_flow_imp_page.create_page(
 );
 wwv_flow_imp_page.create_page_plug(
  p_id=>wwv_flow_imp.id(91820275000000896)
-,p_plug_name=>'Issue'
+,p_plug_name=>'إصدار تقرير أو إجازة'
 ,p_region_template_options=>'#DEFAULT#'
 ,p_plug_template=>4072358936313175081
 ,p_plug_display_sequence=>10
@@ -213,7 +213,7 @@ wwv_flow_imp_page.create_page_process(
 );
 wwv_flow_imp_page.create_page_plug(
  p_id=>wwv_flow_imp.id(91820275000000908)
-,p_plug_name=>'Cancel'
+,p_plug_name=>'إلغاء تقرير'
 ,p_region_template_options=>'#DEFAULT#'
 ,p_plug_template=>4072358936313175081
 ,p_plug_display_sequence=>15
@@ -284,7 +284,7 @@ wwv_flow_imp_page.create_page_process(
 );
 wwv_flow_imp_page.create_page_plug(
  p_id=>wwv_flow_imp.id(91820275000000913)
-,p_plug_name=>'Certificates'
+,p_plug_name=>'التقارير والإجازات الصادرة'
 ,p_region_template_options=>'#DEFAULT#:t-Region--scrollBody'
 ,p_component_template_options=>'#DEFAULT#'
 ,p_plug_template=>4072358936313175081
@@ -298,7 +298,7 @@ wwv_flow_imp_page.create_page_plug(
 '  from his_certificate c join his_visit v on v.id = c.visit_id join his_patient p on p.id = v.patient_id left join his_doctor d on d.id = c.doctor_id',
 ' where c.company_id = noona_his_pkg.company and (:P36_VISIT is null or c.visit_id = :P36_VISIT) order by c.id desc'))
 ,p_plug_source_type=>'NATIVE_IR'
-,p_prn_page_header=>'Certificates'
+,p_prn_page_header=>'التقارير والإجازات الصادرة'
 );
 wwv_flow_imp_page.create_worksheet(
  p_id=>wwv_flow_imp.id(91820275000000914)

@@ -301,13 +301,13 @@ p.process(20, 'AFTER_SUBMIT', 'Approve', "noona_his_pkg.set_approval(:P31_ORDER,
 p.process(21, 'AFTER_SUBMIT', 'Reject', "noona_his_pkg.set_approval(:P31_ORDER, :P31_APPROVAL, 'N');", when_button=b_rej,
           success='سجل الرفض وتحولت الخدمة على المريض')
 p.process(22, 'AFTER_SUBMIT', 'Cancel Order', 'noona_his_pkg.cancel_order(:P31_ORDER, :P31_APPROVAL);', when_button=b_cno, success='ألغي الطلب')
-fd = p.static('Initial examination - الكشف المبدئي', 20, condition=OPEN)
-p.text('P31_VITALS', fd, 10, 'Vital signs (BP, Temp, Pulse, RR, SpO2, Weight)', maxlen=1000)
-p.textarea('P31_COMPLAINT', fd, 20, 'Chief complaint & history')
-p.textarea('P31_DIAG', fd, 30, 'Diagnosis')
-p.text('P31_ICD', fd, 40, 'ICD-10 code', maxlen=100, width=15)
-p.textarea('P31_DNOTES', fd, 50, 'Examination findings / Plan', rows=4)
-b_notes = p.button(fd, 10, 'SAVE_NOTES', 'Save examination')
+fd = p.static('الكشف المبدئي', 20, condition=OPEN)
+p.text('P31_VITALS', fd, 10, 'العلامات الحيوية (الضغط، الحرارة، النبض، التنفس، الأكسجين، الوزن)', maxlen=1000)
+p.textarea('P31_COMPLAINT', fd, 20, 'الشكوى الرئيسية والتاريخ المرضي')
+p.textarea('P31_DIAG', fd, 30, 'التشخيص (Diagnosis)')
+p.text('P31_ICD', fd, 40, 'رمز التشخيص ICD-10', maxlen=100, width=15)
+p.textarea('P31_DNOTES', fd, 50, 'نتائج الفحص والخطة العلاجية', rows=4)
+b_notes = p.button(fd, 10, 'SAVE_NOTES', 'حفظ الكشف')
 p.onload("$('#P31_VITALS,#P31_COMPLAINT,#P31_DIAG,#P31_ICD,#P31_DNOTES').attr('dir', 'ltr');")
 p.process(4, 'BEFORE_HEADER', 'Load', ['begin', '    select vitals, chief_complaint, diagnosis, icd10, doctor_notes, bill_to',
     '      into :P31_VITALS, :P31_COMPLAINT, :P31_DIAG, :P31_ICD, :P31_DNOTES, :P31_BILLTO', f'      from his_visit where id = :P31_ID and company_id = {CO};',
@@ -348,8 +348,8 @@ p.ir('فواتير الزيارة', 40, [
      ('PAYMENT_METHOD', 'الطريقة', {}), ('STATUS', 'الحالة', {}),
      ('PRN', 'طباعة', {'html': True, 'link': ('f?p=&APP_ID.:41:&SESSION.::&DEBUG.:RP,41:P41_ID:#ID#', '#PRN#')})], titled=True, rows=10)
 p.ir('نتائج الزيارة', 45, [
-    "select o.id, noona_his_pkg.service_name(s.id) as service, d.name_ar as dept, case o.result_flag when 'CRITICAL' then 'Critical' when 'ABNORMAL' then 'Abnormal'",
-    "       else 'Normal' end as flag, to_char(o.completed_at, 'YYYY-MM-DD HH24:MI') as done_at,",
+    "select o.id, noona_his_pkg.service_name(s.id) as service, d.name_ar as dept, case o.result_flag when 'CRITICAL' then 'حرج' when 'ABNORMAL' then 'غير طبيعي'",
+    "       else 'طبيعي' end as flag, to_char(o.completed_at, 'YYYY-MM-DD HH24:MI') as done_at,",
     "       '<span class=\"fa fa-file-text-o\" aria-hidden=\"true\"></span> التقرير' as rpt",
     "  from his_order o join his_service s on s.id = o.service_id join his_department d on d.id = o.department_id",
     " where o.visit_id = :P31_ID and o.status_code = 'COMPLETED' order by o.line_no"],
@@ -430,7 +430,7 @@ p.ir('الطلبات', 10, [
     "        or (:P50_SHOW = 'DONE' and o.status_code = 'COMPLETED' and o.completed_at >= trunc(sysdate)))",
     " order by v.visit_at"],
     [('ID', '#', {'hidden': True, 'type': 'NUMBER'}), ('VISIT_NO', 'الزيارة', {}), ('PATIENT', 'المريض', {}), ('MRN', 'الرقم الطبي', {}),
-     ('GENDER', 'الجنس', {}), ('AGE', 'العمر', {'type': 'NUMBER'}), ('SERVICE', 'Test / Exam', {}), ('DEPT', 'القسم', {}), ('MODALITY', 'الجهاز', {}),
+     ('GENDER', 'الجنس', {}), ('AGE', 'العمر', {'type': 'NUMBER'}), ('SERVICE', 'الفحص (Test / Exam)', {}), ('DEPT', 'القسم', {}), ('MODALITY', 'الجهاز', {}),
      ('SAMPLE_NO', 'العينة', {}), ('STATUS', 'الحالة', {}), ('PAID', 'مسدد', {}), ('ORDERED_AT', 'الطلب', {}), ('DOCTOR', 'الطبيب', {})],
     link=link(51, 'P51_ID'))
 p.branch(10, url(50, 'P50_DEPT,P50_SHOW', '&P50_DEPT.,&P50_SHOW.'))
@@ -452,7 +452,7 @@ p.dynamic('الطلب', 5, [
     '    return l;', 'exception when no_data_found then return null;', 'end;'], hide_header=True)
 p.textarea('P51_RESULT', f, 10, 'Result / Report (English)', rows=10)
 p.onload("$('#P51_RESULT, input[name=f01]').attr('dir', 'ltr');")
-p.select('P51_FLAG', f, 20, 'Assessment', lov_sql='STATIC2:Normal;NORMAL,Abnormal;ABNORMAL,Critical;CRITICAL', null_text=None)
+p.select('P51_FLAG', f, 20, 'التقييم', lov_sql='STATIC2:طبيعي (Normal);NORMAL,غير طبيعي (Abnormal);ABNORMAL,حرج (Critical);CRITICAL', null_text=None)
 p.select('P51_BY', f, 30, 'المنفذ/المعتمد', lov_sql=DOCTOR_LOV, null_text='- المستخدم الحالي -')
 b_smp = p.button(f, 10, 'SAMPLE', 'سحب العينة')
 b_st = p.button(f, 20, 'START', 'بدء التنفيذ')
@@ -464,10 +464,10 @@ p.process(5, 'BEFORE_HEADER', 'Load', ['begin', '    select result_text, nvl(res
                                         'exception when no_data_found then null;', 'end;'])
 # التحاليل ذات المكونات: جدول القيم بالمعدلات والتقييم الآلي
 LAB = "noona_his_care_pkg.has_params(:P51_ID) = 'Y'"
-fl = p.static('Laboratory results', 8, condition=LAB)
+fl = p.static('نتائج المختبر', 8, condition=LAB)
 p.dynamic('Parameters', 7, 'return noona_his_care_pkg.lab_grid_html(:P51_ID);', hide_header=True, condition=LAB)
-b_lsave = p.button(fl, 10, 'LAB_SAVE', 'Save values')
-b_ldone = p.button(fl, 20, 'LAB_DONE', 'Validate & release results', hot=True)
+b_lsave = p.button(fl, 10, 'LAB_SAVE', 'حفظ القيم')
+b_ldone = p.button(fl, 20, 'LAB_DONE', 'اعتماد النتائج وإصدارها', hot=True)
 LAB_JSON = ['declare l clob;', 'begin', "    l := '[';",
             '    for i in 1 .. apex_application.g_f02.count loop',
             "        l := l || case when i > 1 then ',' end || json_object('p' value to_number(apex_application.g_f02(i)),",
@@ -476,9 +476,9 @@ LAB_JSON = ['declare l clob;', 'begin', "    l := '[';",
             "             't' value case when not regexp_like(trim(apex_application.g_f01(i)), '^-?[0-9]+([.][0-9]+)?$') then trim(apex_application.g_f01(i)) end);",
             '    end loop;', "    l := l || ']';"]
 p.process(25, 'AFTER_SUBMIT', 'Lab Save', LAB_JSON + ["    noona_his_care_pkg.save_lab_results(:P51_ID, l, 'N');", 'end;'], when_button=b_lsave,
-          success='Values saved')
+          success='حفظت القيم')
 p.process(26, 'AFTER_SUBMIT', 'Lab Release', LAB_JSON + ["    noona_his_care_pkg.save_lab_results(:P51_ID, l, 'Y', to_number(:P51_BY), :P51_RESULT);", 'end;'],
-          when_button=b_ldone, success='Results released')
+          when_button=b_ldone, success='اعتمدت النتائج وأُنجز الطلب')
 p.process(10, 'AFTER_SUBMIT', 'Sample', ['declare l varchar2(30);', 'begin', '    l := noona_his_pkg.collect_sample(:P51_ID);', "    apex_application.g_print_success_message := 'رقم العينة ' || l;", 'end;'],
           when_button=b_smp)
 p.process(20, 'AFTER_SUBMIT', 'Start', 'noona_his_pkg.start_order(:P51_ID);', when_button=b_st, success='بدأ التنفيذ')

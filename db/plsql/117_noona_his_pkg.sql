@@ -554,6 +554,10 @@ CREATE OR REPLACE PACKAGE BODY NOONA_HIS_PKG AS
     guard('HIS_PATIENT.' || CASE WHEN l_id IS NULL THEN 'CREATE' ELSE 'UPDATE' END);
     NOONA_CORE_PKG.assert(l_name IS NOT NULL AND l_g IN ('M', 'F'), 'NOONA-HIS-030', 'اسم المريض والجنس إلزاميان', 'Name and gender are required');
     NOONA_CORE_PKG.assert(l_b IS NULL OR l_b <= TRUNC(SYSDATE), 'NOONA-HIS-031', 'تاريخ الميلاد في المستقبل', 'Birth date is in the future');
+    -- الهوية الوطنية لمواطني دولة المنشأة: الجنسية من دولة الشركة إن لم تحدد (تبنى عليها ضريبة الخدمات الصحية للمواطن)
+    IF l_nat IS NULL AND l_it = 'NATIONAL_ID' THEN
+      l_nat := company_country;
+    END IF;
     IF l_nat IS NOT NULL THEN
       SELECT COUNT(*) INTO l_n FROM ref_country WHERE country_code = l_nat;
       NOONA_CORE_PKG.assert(l_n = 1, 'NOONA-HIS-032', 'رمز الجنسية غير معروف: ' || l_nat, 'Unknown nationality');

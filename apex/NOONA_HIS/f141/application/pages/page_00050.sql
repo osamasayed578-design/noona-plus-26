@@ -171,7 +171,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_db_column_name=>'SERVICE'
 ,p_display_order=>70
 ,p_column_identifier=>'G'
-,p_column_label=>'Test / Exam'
+,p_column_label=>'الفحص (Test / Exam)'
 ,p_column_type=>'STRING'
 ,p_heading_alignment=>'CENTER'
 ,p_use_as_row_header=>'N'

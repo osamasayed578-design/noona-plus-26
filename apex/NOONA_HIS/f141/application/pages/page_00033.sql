@@ -25,7 +25,7 @@ wwv_flow_imp_page.create_page(
 );
 wwv_flow_imp_page.create_page_plug(
  p_id=>wwv_flow_imp.id(91820275000000533)
-,p_plug_name=>'Prescription'
+,p_plug_name=>'الوصفة الطبية'
 ,p_region_template_options=>'#DEFAULT#'
 ,p_plug_template=>4072358936313175081
 ,p_plug_display_sequence=>10
@@ -482,7 +482,7 @@ wwv_flow_imp_page.create_page_process(
 );
 wwv_flow_imp_page.create_page_plug(
  p_id=>wwv_flow_imp.id(91820275000000562)
-,p_plug_name=>'Prescriptions of the visit'
+,p_plug_name=>'وصفات الزيارة'
 ,p_region_template_options=>'#DEFAULT#:t-Region--scrollBody'
 ,p_component_template_options=>'#DEFAULT#'
 ,p_plug_template=>4072358936313175081
@@ -496,7 +496,7 @@ wwv_flow_imp_page.create_page_plug(
 '  from his_prescription x join his_prescription_line l on l.prescription_id = x.id join inv_item i on i.id = l.item_id',
 ' where x.visit_id = :P33_VISIT order by x.id desc, l.line_no'))
 ,p_plug_source_type=>'NATIVE_IR'
-,p_prn_page_header=>'Prescriptions of the visit'
+,p_prn_page_header=>'وصفات الزيارة'
 );
 wwv_flow_imp_page.create_worksheet(
  p_id=>wwv_flow_imp.id(91820275000000563)

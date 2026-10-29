@@ -84,7 +84,7 @@ def build(app, url, link, scheme, L):
 
     # =========================================================== 36) التقارير الطبية والإجازات
     p = app.page(36, 'Medical Certificates', 'CERTIFICATES', 'Medical reports & sick leave - التقارير الطبية', scheme=scheme, protection='N')
-    f = p.static('Issue', 10)
+    f = p.static('إصدار تقرير أو إجازة', 10)
     p.select('P36_VISIT', f, 10, 'الزيارة', lov_sql=VISIT_LOV, required=True)
     p.select('P36_TYPE', f, 20, 'Type', lov_sql='STATIC2:Sick leave;SICK_LEAVE,Medical report;MEDICAL_REPORT,Referral letter;REFERRAL,'
              'Fitness certificate;FITNESS,Companion certificate;COMPANION', null_text=None)
@@ -99,14 +99,14 @@ def build(app, url, link, scheme, L):
         "    select json_object('visit' value to_number(:P36_VISIT), 'type' value :P36_TYPE, 'from' value :P36_FROM, 'to' value :P36_TO,",
         "           'referral_to' value :P36_REF, 'doctor' value to_number(:P36_DOCTOR), 'body' value :P36_BODY returning clob) into l_doc from dual;",
         '    :P36_ID := noona_his_clin_pkg.issue_certificate(l_doc);', 'end;'], when_button=b_i, success='Issued')
-    fc = p.static('Cancel', 15)
+    fc = p.static('إلغاء تقرير', 15)
     p.select('P36_CERT', fc, 10, 'Certificate', lov_sql=(
         "select c.cert_no || ' - ' || noona_his_clin_pkg.cert_type_label(c.cert_type) d, c.id r from his_certificate c "
         f"where c.company_id = {CO} and c.status_code = 'ISSUED' and c.visit_id = :P36_VISIT order by c.id desc"))
     p.text('P36_REASON', fc, 20, 'Reason', maxlen=200)
     b_c = p.button(fc, 10, 'CANCEL_CERT', 'Cancel certificate')
     p.process(20, 'AFTER_SUBMIT', 'Cancel', 'noona_his_clin_pkg.cancel_certificate(:P36_CERT, :P36_REASON);', when_button=b_c, success='Cancelled')
-    p.ir('Certificates', 20, [
+    p.ir('التقارير والإجازات الصادرة', 20, [
         "select c.id, c.cert_no, noona_his_clin_pkg.cert_type_label(c.cert_type) as cert_type, c.issued_on, p.name_ar as patient, p.mrn,",
         "       c.from_date, c.to_date, c.days, c.referral_to, d.name_ar as doctor, c.verify_code,",
         "       case c.status_code when 'ISSUED' then 'Issued' else 'Cancelled' end as status,",

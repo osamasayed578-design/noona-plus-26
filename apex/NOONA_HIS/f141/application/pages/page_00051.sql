@@ -90,9 +90,9 @@ wwv_flow_imp_page.create_page_item(
 ,p_name=>'P51_FLAG'
 ,p_item_sequence=>20
 ,p_item_plug_id=>wwv_flow_imp.id(91820275000000293)
-,p_prompt=>'Assessment'
+,p_prompt=>'التقييم'
 ,p_display_as=>'NATIVE_SELECT_LIST'
-,p_lov=>'STATIC2:Normal;NORMAL,Abnormal;ABNORMAL,Critical;CRITICAL'
+,p_lov=>'STATIC2:طبيعي (Normal);NORMAL,غير طبيعي (Abnormal);ABNORMAL,حرج (Critical);CRITICAL'
 ,p_cHeight=>1
 ,p_lov_display_extra=>'NO'
 ,p_field_template=>1609121967514267634
@@ -183,7 +183,7 @@ wwv_flow_imp_page.create_page_process(
 );
 wwv_flow_imp_page.create_page_plug(
  p_id=>wwv_flow_imp.id(91820275000000304)
-,p_plug_name=>'Laboratory results'
+,p_plug_name=>'نتائج المختبر'
 ,p_region_template_options=>'#DEFAULT#'
 ,p_plug_template=>4072358936313175081
 ,p_plug_display_sequence=>8
@@ -217,7 +217,7 @@ wwv_flow_imp_page.create_page_button(
 ,p_button_action=>'SUBMIT'
 ,p_button_template_options=>'#DEFAULT#'
 ,p_button_template_id=>4072362960822175091
-,p_button_image_alt=>'Save values'
+,p_button_image_alt=>'حفظ القيم'
 ,p_button_position=>'NEXT'
 );
 wwv_flow_imp_page.create_page_button(
@@ -229,7 +229,7 @@ wwv_flow_imp_page.create_page_button(
 ,p_button_template_options=>'#DEFAULT#'
 ,p_button_template_id=>4072362960822175091
 ,p_button_is_hot=>'Y'
-,p_button_image_alt=>'Validate & release results'
+,p_button_image_alt=>'اعتماد النتائج وإصدارها'
 ,p_button_position=>'NEXT'
 );
 wwv_flow_imp_page.create_page_process(
@@ -254,7 +254,7 @@ wwv_flow_imp_page.create_page_process(
 ,p_process_clob_language=>'PLSQL'
 ,p_error_display_location=>'INLINE_IN_NOTIFICATION'
 ,p_process_when_button_id=>wwv_flow_imp.id(91820275000000306)
-,p_process_success_message=>'Values saved'
+,p_process_success_message=>'حفظت القيم'
 ,p_internal_uid=>91820275000000308
 );
 wwv_flow_imp_page.create_page_process(
@@ -279,7 +279,7 @@ wwv_flow_imp_page.create_page_process(
 ,p_process_clob_language=>'PLSQL'
 ,p_error_display_location=>'INLINE_IN_NOTIFICATION'
 ,p_process_when_button_id=>wwv_flow_imp.id(91820275000000307)
-,p_process_success_message=>'Results released'
+,p_process_success_message=>'اعتمدت النتائج وأُنجز الطلب'
 ,p_internal_uid=>91820275000000309
 );
 wwv_flow_imp_page.create_page_process(

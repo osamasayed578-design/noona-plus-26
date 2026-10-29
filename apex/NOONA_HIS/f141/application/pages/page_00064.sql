@@ -25,7 +25,7 @@ wwv_flow_imp_page.create_page(
 );
 wwv_flow_imp_page.create_page_plug(
  p_id=>wwv_flow_imp.id(91820275000000700)
-,p_plug_name=>'Test parameters'
+,p_plug_name=>'مكونات التحليل'
 ,p_region_template_options=>'#DEFAULT#'
 ,p_plug_template=>4072358936313175081
 ,p_plug_display_sequence=>10
@@ -275,7 +275,7 @@ wwv_flow_imp_page.create_page_process(
 );
 wwv_flow_imp_page.create_page_plug(
  p_id=>wwv_flow_imp.id(91820275000000716)
-,p_plug_name=>'Parameters'
+,p_plug_name=>'المكونات'
 ,p_region_template_options=>'#DEFAULT#:t-Region--scrollBody'
 ,p_component_template_options=>'#DEFAULT#'
 ,p_plug_template=>4072358936313175081
@@ -285,7 +285,7 @@ wwv_flow_imp_page.create_page_plug(
 'select p.id, p.code, p.name_en, p.name_ar, p.unit, decode(p.gender, ''M'', ''Male'', ''F'', ''Female'', ''All'') as sex, p.ref_low, p.ref_high,',
 '       p.crit_low, p.crit_high, p.ref_text from his_lab_param p where p.service_id = :P64_SRV order by p.sort_order, p.gender'))
 ,p_plug_source_type=>'NATIVE_IR'
-,p_prn_page_header=>'Parameters'
+,p_prn_page_header=>'المكونات'
 );
 wwv_flow_imp_page.create_worksheet(
  p_id=>wwv_flow_imp.id(91820275000000717)
@@ -424,7 +424,7 @@ wwv_flow_imp_page.create_worksheet_rpt(
 );
 wwv_flow_imp_page.create_page_plug(
  p_id=>wwv_flow_imp.id(91820275000000730)
-,p_plug_name=>'Report templates (radiology / cardiology)'
+,p_plug_name=>'قوالب التقارير (الأشعة / القلب)'
 ,p_region_template_options=>'#DEFAULT#'
 ,p_plug_template=>4072358936313175081
 ,p_plug_display_sequence=>20
@@ -533,7 +533,7 @@ wwv_flow_imp_page.create_page_process(
 );
 wwv_flow_imp_page.create_page_plug(
  p_id=>wwv_flow_imp.id(91820275000000737)
-,p_plug_name=>'Templates'
+,p_plug_name=>'القوالب'
 ,p_region_template_options=>'#DEFAULT#:t-Region--scrollBody'
 ,p_component_template_options=>'#DEFAULT#'
 ,p_plug_template=>4072358936313175081
@@ -542,7 +542,7 @@ wwv_flow_imp_page.create_page_plug(
 ,p_plug_source=>wwv_flow_string.join(wwv_flow_t_varchar2(
 'select t.id, t.code, t.name_ar, noona_his_pkg.modality_label(t.modality) as modality, substr(t.body, 1, 200) as body from his_report_template t where t.company_id = noona_his_pkg.company order by t.code'))
 ,p_plug_source_type=>'NATIVE_IR'
-,p_prn_page_header=>'Templates'
+,p_prn_page_header=>'القوالب'
 );
 wwv_flow_imp_page.create_worksheet(
  p_id=>wwv_flow_imp.id(91820275000000738)
