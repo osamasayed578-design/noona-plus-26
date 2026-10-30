@@ -11,7 +11,7 @@ console.log('USERS ' + T.admin + ' ' + T.user);
   const v = await video('noona_platform', out, 'v00_foundation');
   const { page } = v;
   await page.goto('http://localhost:8090/ords/r/noonaplus/noona_master/home'); await v.settle();
-  await v.card('التأسيس في نونا بلس', ['تسجيل المؤسسة والشركة الأم', 'ثم الفروع والشركة الثانية والمستخدمين'], 4500, 'فيديو 1 · إدخال حقيقي');
+  await v.card('التأسيس في نونا بلس', ['تسجيل المؤسسة والشركة الأم', 'ثم الفروع والشركة الثانية والمستخدمين'], 4500, 'الفيديو القصير 1 · إدخال حقيقي سريع');
 
   // ------------------------------------------------ 1) مسؤول المنصة
   await v.setStep('1 · لوحة المنصة');

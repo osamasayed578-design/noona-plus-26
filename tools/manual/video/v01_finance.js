@@ -3,6 +3,7 @@
    PW_PATH=... NOONA_VADMIN=... NOONA_VACC=... NOONA_VPWD=... node tools/manual/video/v01_finance.js <outDir> */
 'use strict';
 const video = require('./vlib.js');
+const coa = require('./coa_scene.js');
 const out = process.argv[2];
 const ADMIN = process.env.NOONA_VADMIN, ACC = process.env.NOONA_VACC, PWD = process.env.NOONA_VPWD;
 
@@ -22,7 +23,7 @@ const ADMIN = process.env.NOONA_VADMIN, ACC = process.env.NOONA_VACC, PWD = proc
   }
 
   await page.goto('http://localhost:8090/ords/r/noonaplus/noona_master/home'); await v.settle();
-  await v.card('المالية في نونا بلس', ['تجهيز الأستاذ العام والنقدية', 'سند قبض · سند مصروفات · قيد يومية · الاعتماد · التقارير'], 4500, 'فيديو 2 · إدخال حقيقي · مجموعة النور');
+  await v.card('المالية في نونا بلس', ['تجهيز الأستاذ العام والنقدية', 'سند قبض · سند مصروفات · قيد يومية · الاعتماد · التقارير'], 4500, 'الفيديو القصير 2 · إدخال حقيقي سريع · مجموعة النور');
 
   // ------------------------------------------------ 1) المدير: التجهيز
   await v.setStep('1 · تجهيز المالية (المدير)');
@@ -33,7 +34,9 @@ const ADMIN = process.env.NOONA_VADMIN, ACC = process.env.NOONA_VACC, PWD = proc
   await v.click(page.getByRole('button', { name: /تجهيز النقدية/ }).first(), '<b>تجهيز النقدية</b>: الصندوق الرئيسي وترقيم السندات');
   await v.say('تم التجهيز. لوحة المالية تعرض الأستاذ العام والصناديق', 3500);
   await v.nav('دليل الحسابات');
-  await v.say('<b>دليل الحسابات</b> جاهز بمستوياته، ويمكن إضافة حسابات فرعية', 3500);
+  await v.say('<b>دليل الحسابات</b> جاهز بمستوياته، ونضيف عليه يدوياً ومن ملف', 3500);
+  await coa(v, process.env.LONG === '1');
+  await v.setStep('1 · تجهيز المالية (المدير)');
   await v.nav('الفترات المحاسبية');
   await v.say('التجهيز أنشأ <b>السنة المالية 2026</b>: تقويم ميلادي و12 فترة شهرية مفتوحة للترحيل', 4500);
   await v.say('بعد مراجعة الشهر تقفل فترته من «تغيير حالة فترة»: <b>مقفلة مبدئياً</b> تمنع الترحيل فيها', 4000);

@@ -13,7 +13,7 @@ const ADMIN = process.env.NOONA_VADMIN, PWD = process.env.NOONA_VPWD;
   const tab = (t) => page.locator('button').filter({ hasText: new RegExp('^\\s*' + t + '\\s*$') }).first();
 
   await page.goto('http://localhost:8090/ords/r/noonaplus/noona_master/home'); await v.settle();
-  await v.card('التصنيع في نونا بلس', ['مركز العمل · قائمة المواد · مسار التصنيع', 'أمر الإنتاج: صرف، تشغيل، استلام، تكلفة فعلية وانحرافات'], 4500, 'فيديو 5 · إدخال حقيقي · مجموعة النور');
+  await v.card('التصنيع في نونا بلس', ['مركز العمل · قائمة المواد · مسار التصنيع', 'أمر الإنتاج: صرف، تشغيل، استلام، تكلفة فعلية وانحرافات'], 4500, 'الفيديو القصير 5 · إدخال حقيقي سريع · مجموعة النور');
 
   // ------------------------------------------------ 1) التجهيز
   await v.setStep('1 · تجهيز التصنيع');

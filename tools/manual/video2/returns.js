@@ -65,7 +65,16 @@ async function tradeReturn(v, s, t, o) {
   if (o.check) await o.check(v);
 }
 
+const coa = require('../video/coa_scene.js');
+
 module.exports = {
+  // دليل الحسابات: شرح الشاشة ثم إدخال يدوي (رئيسي وفرعي) واستيراد من ملف CSV
+  'fin-accounts': async (v, s, t) => {
+    await t.open(s);
+    await v.say(`<b>${s.title || 'دليل الحسابات'}</b>`, 2600);
+    await v.say(s.purpose);
+    await coa(v, true);
+  },
   // ---------------------------------------------------------------- مرتجع المشتريات
   'scm-preturn': (v, s, t) => tradeReturn(v, s, t, {
     list: 'PURCHASES', listName: 'فواتير المشتريات والمرتجعات',
