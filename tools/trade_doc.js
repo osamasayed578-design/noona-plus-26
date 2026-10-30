@@ -43,6 +43,8 @@
         h += '<div class="nn-td-scan"><span class="fa fa-barcode" aria-hidden="true"></span>'
            + '<input type="search" class="nn-td-find" placeholder="امسح الباركود أو اكتب رقم الصنف / الكود / رقم القطعة / الاسم / المادة الفعالة ثم Enter" autocomplete="off">'
            + (cf.free ? '<button type="button" class="t-Button nn-td-free">بند بدون صنف (خدمة / مصروف)</button>' : '')
+           + (cf.promo ? '<input class="nn-td-coupon" placeholder="كوبون" autocomplete="off"><button type="button" class="t-Button nn-td-promo">'
+                       + '<span class="fa fa-percent" aria-hidden="true"></span> تطبيق العروض</button>' : '')
            + '<div class="nn-td-results" hidden></div></div>';
     }
     h += '<div class="nn-td-wrap"><table class="nn-td-table"><thead></thead><tbody></tbody><tfoot></tfoot></table></div>'
@@ -168,6 +170,32 @@
     }
     var free = root.querySelector('.nn-td-free');
     if (free) free.addEventListener('click', function () { lines.push({i: null, d: '', q: 1, p: '', tc: 'VAT15', inc: 'N', acc: cf.defAcc || ''}); render(); });
+    // العروض من محرك التسعير: خصم كل سطر صنف، ثم عرض قيمة الفاتورة موزعاً على الأسطر بنسبة صافيها
+    var promoBtn = root.querySelector('.nn-td-promo');
+    if (promoBtn) promoBtn.addEventListener('click', function () {
+        var msg = root.querySelector('.nn-doc-msg'), cpn = root.querySelector('.nn-td-coupon');
+        var idx = [], req = {coupon: (cpn && cpn.value.trim()) || null, lines: []};
+        lines.forEach(function (l, i) { if (l.i) { idx.push(i); req.lines.push({k: i, t: 'ITEM', id: l.i, q: num(l.q), p: num(l.p)}); } });
+        if (!req.lines.length) return;
+        apex.server.process('QUOTE', {p_clob_01: JSON.stringify(req)}, {dataType: 'json'}).done(function (r) {
+            if (!r || r.ok === false) { msg.className = 'nn-doc-msg is-bad'; msg.textContent = (r && r.msg) || 'تعذر حساب العروض'; return; }
+            var names = [];
+            (r.lines || []).forEach(function (x) { lines[x.k].disc = num(x.disc) ? num(x.disc).toFixed(2) : ''; if (x.promo && names.indexOf(x.promo) < 0) names.push(x.promo); });
+            var dd = num(r.docDisc);
+            if (dd > 0) {
+                var base = idx.map(function (i) { return Math.max(num(lines[i].q) * num(lines[i].p) - num(lines[i].disc), 0); }), sum = 0, done = 0;
+                base.forEach(function (b) { sum += b; });
+                idx.forEach(function (i, k) {
+                    var v = k === idx.length - 1 ? Math.round((dd - done) * 100) / 100 : Math.round(dd * base[k] / sum * 100) / 100;
+                    done += v; lines[i].disc = (num(lines[i].disc) + v).toFixed(2);
+                });
+                names.push(r.doc.name);
+            }
+            render();
+            msg.className = 'nn-doc-msg is-ok';
+            msg.textContent = names.length ? 'تم تطبيق: ' + names.join('، ') + ' - إجمالي الخصم ' + money(num(r.lineDisc) + dd) : 'لا توجد عروض سارية على هذه الأصناف';
+        });
+    });
     root.addEventListener('input', function (e) {
         var c = e.target.dataset.c; if (c == null || e.target.dataset.l == null) return;
         var l = lines[+e.target.dataset.l];

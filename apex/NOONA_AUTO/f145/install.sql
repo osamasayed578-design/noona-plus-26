@@ -11,8 +11,6 @@ prompt --install
 @@application/shared_components/files/icons_app_icon_192_png.sql
 @@application/shared_components/files/icons_app_icon_256_rounded_png.sql
 @@application/shared_components/files/icons_app_icon_512_png.sql
-@@application/shared_components/files/noona_21.sql
-@@application/shared_components/files/noona_22.sql
 @@application/shared_components/files/noona_1.sql
 @@application/shared_components/files/noona_2.sql
 @@application/shared_components/files/noona_3.sql
@@ -20,6 +18,8 @@ prompt --install
 @@application/shared_components/files/noona_5.sql
 @@application/shared_components/files/noona_6.sql
 @@application/shared_components/files/noona_7.sql
+@@application/shared_components/files/noona_21.sql
+@@application/shared_components/files/noona_22.sql
 @@application/shared_components/logic/application_processes/noona_company_logo.sql
 @@application/plugin_settings.sql
 @@application/shared_components/security/authorizations/administration_rights.sql
@@ -66,5 +66,10 @@ prompt --install
 @@application/pages/page_00010.sql
 @@application/pages/page_00011.sql
 @@application/pages/page_00012.sql
+@@application/pages/page_00020.sql
+@@application/pages/page_00021.sql
+@@application/pages/page_00022.sql
+@@application/pages/page_00023.sql
+@@application/pages/page_00024.sql
 @@application/pages/page_09999.sql
 @@application/end_environment.sql

@@ -146,7 +146,7 @@ p.process(10, 'BEFORE_HEADER', 'Load', [
     '      from sal_invoice where id = :P21_ID and company_id = noona_sal_pkg.company;',
     'end if;'])
 p.dynamic('فاتورة المبيعات', 10, trade_region(
-    {'kind': 'SI', 'title': 'فاتورة مبيعات', 'purpose': 'SALE', 'cols': ['d', 'q', 'p', 'inc', 'disc', 'tc'], 'free': True, 'lots': False,
+    {'kind': 'SI', 'title': 'فاتورة مبيعات', 'purpose': 'SALE', 'cols': ['d', 'q', 'p', 'inc', 'disc', 'tc'], 'free': True, 'lots': False, 'promo': 'SALES',
      'header': [{'k': 'cust', 'l': 'العميل', 't': 'select', 'o': 'custs', 'req': True}, {'k': 'date', 'l': 'التاريخ', 't': 'date'},
                 {'k': 'mode', 'l': 'طريقة البيع', 't': 'select', 'o': [{'v': 'CASH', 'n': 'نقدي / فوري'}, {'v': 'CREDIT', 'n': 'آجل (على حساب العميل)'}], 'req': True},
                 {'k': 'place', 'l': 'التحصيل في', 't': 'select', 'o': 'places', 'show': 'mode=CASH'},
@@ -161,6 +161,7 @@ p.dynamic('الفاتورة', 12, 'return noona_sal_pkg.invoice_print(:P21_ID);'
           opts='#DEFAULT#:t-Region--scrollBody:nn-print-area', condition=":P21_ID is not null and :P21_STATUS <> 'DRAFT'")
 p.process(1, 'ON_DEMAND', 'SAVE_DOC', save_ajax('noona_sal_pkg.save_invoice', 21))
 p.process(2, 'ON_DEMAND', 'FIND_ITEMS', FIND_ITEMS)
+p.process(3, 'ON_DEMAND', 'QUOTE', clob_ajax("noona_prc_pkg.quote_cart(apex_application.g_clob_01, 'SALES')"))
 ac = p.static('الإجراءات', 30, condition=':P21_ID is not null')
 p.button(ac, 10, 'PRINT', 'طباعة', redirect='javascript:window.print();', condition=":P21_STATUS <> 'DRAFT'")
 p.button(ac, 20, 'RETURN', 'مرتجع من الفاتورة', redirect=url(22, 'P22_INV', '&P21_ID.', 'RP,22'),
@@ -251,12 +252,15 @@ p.dynamic('نقطة البيع', 10, [
     'begin',
     "    if :P31_TERM is null then return '<div class=\"nn-empty\">اختر نقطة البيع من قائمة نقاط البيع</div>'; end if;",
     "    return '<script type=\"application/json\" id=\"nnPosBoot\">' || replace(noona_pos_pkg.boot_json(:P31_TERM), '</', '<\\/') || '</script>'",
+    "        || '<script type=\"application/json\" id=\"nnPosPrc\">{\"bundles\":' || replace(noona_prc_pkg.bundles_json('POS'), '</', '<\\/') || '}</script>'",
     "        || '<div id=\"nnPos\" class=\"nn-pos\"></div>';",
     'end;'], hide_header=True, opts='#DEFAULT#:t-Region--noUI')
 p.process(1, 'ON_DEMAND', 'SALE', clob_ajax('noona_pos_pkg.sale(apex_application.g_clob_01)'))
 p.process(2, 'ON_DEMAND', 'RETURN', clob_ajax('noona_pos_pkg.return_sale(apex_application.g_clob_01)'))
 p.process(3, 'ON_DEMAND', 'FIND_RECEIPT', clob_ajax('noona_pos_pkg.find_receipt(apex_application.g_x01)'))
 p.process(4, 'ON_DEMAND', 'FIND_CUST', clob_ajax("'{\"list\":' || noona_sal_pkg.customers_json(apex_application.g_x01) || '}'"))
+p.process(6, 'ON_DEMAND', 'QUOTE', clob_ajax("noona_prc_pkg.quote_cart(apex_application.g_clob_01, 'POS')"))
+p.process(7, 'ON_DEMAND', 'BUNDLE', clob_ajax('noona_prc_pkg.bundle_json(to_number(apex_application.g_x01))'))
 p.process(5, 'ON_DEMAND', 'OPEN_SHIFT', clob_ajax(
     "'{\"shift\":' || noona_pos_pkg.open_shift(to_number(apex_application.g_x02), to_number(nvl(apex_application.g_x01, '0'))) || '}'"))
 ac = p.static('الوردية', 30, condition=':P31_TERM is not null')
@@ -377,6 +381,10 @@ p.onload([
 from rst_pages import build as rst_pages
 rst_pages(app, url, TENANT)
 
+# =============================================================== 80-84) التسعير والعروض والباقات
+import prc_pages
+prc_pages.build(app, url, TENANT, 80, ('ITEMS',), 'POS')
+
 # =============================================================== القائمة
 app.nav_item('لوحة المبيعات', 1, 'fa-line-chart', 10)
 app.nav_item('نقطة البيع', 30, 'fa-shopping-basket', 15)
@@ -389,6 +397,7 @@ po = app.nav_item('إدارة نقاط البيع', None, 'fa-desktop', 30)
 app.nav_item('تقرير الوردية وإقفالها', 32, 'fa-lock', 31, parent=po)
 app.nav_item('إعداد نقاط البيع', 40, 'fa-cogs', 32, parent=po)
 app.nav_item('التقارير', 50, 'fa-bar-chart', 40)
+prc_pages.nav(app, 80, 35)
 
 app.finalize()
 print('NOONA_POS built:', len(app.pages), 'pages')

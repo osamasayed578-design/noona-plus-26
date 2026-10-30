@@ -93,5 +93,10 @@ prompt --install
 @@application/pages/page_00074.sql
 @@application/pages/page_00075.sql
 @@application/pages/page_00076.sql
+@@application/pages/page_00090.sql
+@@application/pages/page_00091.sql
+@@application/pages/page_00092.sql
+@@application/pages/page_00093.sql
+@@application/pages/page_00094.sql
 @@application/pages/page_09999.sql
 @@application/end_environment.sql

@@ -22,7 +22,7 @@ wwv_flow_imp_page.create_page(
 ,p_protection_level=>'C'
 );
 wwv_flow_imp_page.create_page_plug(
- p_id=>wwv_flow_imp.id(91820269000000104)
+ p_id=>wwv_flow_imp.id(91820269000000105)
 ,p_plug_name=>'التحصيلات'
 ,p_region_template_options=>'#DEFAULT#'
 ,p_component_template_options=>'#DEFAULT#'
@@ -39,7 +39,7 @@ wwv_flow_imp_page.create_page_plug(
 ,p_prn_page_header=>'التحصيلات'
 );
 wwv_flow_imp_page.create_worksheet(
- p_id=>wwv_flow_imp.id(91820269000000105)
+ p_id=>wwv_flow_imp.id(91820269000000106)
 ,p_max_row_count=>'1000000'
 ,p_no_data_found_message=>'لا توجد بيانات'
 ,p_pagination_type=>'ROWS_X_TO_Y'
@@ -51,10 +51,10 @@ wwv_flow_imp_page.create_worksheet(
 ,p_download_formats=>'CSV:HTML:XLSX:PDF'
 ,p_enable_mail_download=>'N'
 ,p_owner=>'NOONA'
-,p_internal_uid=>91820269000000105
+,p_internal_uid=>91820269000000106
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820269000000107)
+ p_id=>wwv_flow_imp.id(91820269000000108)
 ,p_db_column_name=>'ID'
 ,p_display_order=>10
 ,p_column_identifier=>'A'
@@ -65,7 +65,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820269000000108)
+ p_id=>wwv_flow_imp.id(91820269000000109)
 ,p_db_column_name=>'DOC_NO'
 ,p_display_order=>20
 ,p_column_identifier=>'B'
@@ -75,7 +75,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820269000000109)
+ p_id=>wwv_flow_imp.id(91820269000000110)
 ,p_db_column_name=>'DOC_DATE'
 ,p_display_order=>30
 ,p_column_identifier=>'C'
@@ -85,7 +85,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820269000000110)
+ p_id=>wwv_flow_imp.id(91820269000000111)
 ,p_db_column_name=>'CUSTOMER'
 ,p_display_order=>40
 ,p_column_identifier=>'D'
@@ -95,7 +95,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820269000000111)
+ p_id=>wwv_flow_imp.id(91820269000000112)
 ,p_db_column_name=>'METHOD'
 ,p_display_order=>50
 ,p_column_identifier=>'E'
@@ -105,7 +105,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820269000000112)
+ p_id=>wwv_flow_imp.id(91820269000000113)
 ,p_db_column_name=>'EXTERNAL_REFERENCE'
 ,p_display_order=>60
 ,p_column_identifier=>'F'
@@ -115,7 +115,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820269000000113)
+ p_id=>wwv_flow_imp.id(91820269000000114)
 ,p_db_column_name=>'PLACE'
 ,p_display_order=>70
 ,p_column_identifier=>'G'
@@ -125,7 +125,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820269000000114)
+ p_id=>wwv_flow_imp.id(91820269000000115)
 ,p_db_column_name=>'AMOUNT'
 ,p_display_order=>80
 ,p_column_identifier=>'H'
@@ -135,7 +135,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820269000000115)
+ p_id=>wwv_flow_imp.id(91820269000000116)
 ,p_db_column_name=>'UNAPPLIED_AMOUNT'
 ,p_display_order=>90
 ,p_column_identifier=>'I'
@@ -145,7 +145,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820269000000116)
+ p_id=>wwv_flow_imp.id(91820269000000117)
 ,p_db_column_name=>'STATUS_HTML'
 ,p_display_order=>100
 ,p_column_identifier=>'J'
@@ -156,18 +156,18 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_rpt(
- p_id=>wwv_flow_imp.id(91820269000000106)
+ p_id=>wwv_flow_imp.id(91820269000000107)
 ,p_application_user=>'APXWS_DEFAULT'
 ,p_report_seq=>10
-,p_report_alias=>'106'
+,p_report_alias=>'107'
 ,p_status=>'PUBLIC'
 ,p_is_default=>'Y'
 ,p_report_columns=>'DOC_NO:DOC_DATE:CUSTOMER:METHOD:EXTERNAL_REFERENCE:PLACE:AMOUNT:UNAPPLIED_AMOUNT:STATUS_HTML'
 );
 wwv_flow_imp_page.create_page_button(
- p_id=>wwv_flow_imp.id(91820269000000117)
+ p_id=>wwv_flow_imp.id(91820269000000118)
 ,p_button_sequence=>10
-,p_button_plug_id=>wwv_flow_imp.id(91820269000000104)
+,p_button_plug_id=>wwv_flow_imp.id(91820269000000105)
 ,p_button_name=>'NEW'
 ,p_button_action=>'REDIRECT_URL'
 ,p_button_template_options=>'#DEFAULT#'
@@ -178,7 +178,7 @@ wwv_flow_imp_page.create_page_button(
 ,p_button_redirect_url=>'f?p=&APP_ID.:24:&SESSION.::&DEBUG.:RP,24::'
 );
 wwv_flow_imp_page.create_page_plug(
- p_id=>wwv_flow_imp.id(91820269000000118)
+ p_id=>wwv_flow_imp.id(91820269000000119)
 ,p_plug_name=>'عكس تحصيل (شيك مرتد أو خطأ)'
 ,p_region_template_options=>'#DEFAULT#'
 ,p_plug_template=>4072358936313175081
@@ -189,10 +189,10 @@ wwv_flow_imp_page.create_page_plug(
   'show_line_breaks', 'Y')).to_clob
 );
 wwv_flow_imp_page.create_page_item(
- p_id=>wwv_flow_imp.id(91820269000000119)
+ p_id=>wwv_flow_imp.id(91820269000000120)
 ,p_name=>'P23_RCP'
 ,p_item_sequence=>10
-,p_item_plug_id=>wwv_flow_imp.id(91820269000000118)
+,p_item_plug_id=>wwv_flow_imp.id(91820269000000119)
 ,p_prompt=>'التحصيل'
 ,p_display_as=>'NATIVE_SELECT_LIST'
 ,p_lov=>'select doc_no || '' - '' || noona_sal_pkg.customer_label(customer_account_id) || '' - '' || amount d, id r from ar_receipt where company_id = noona_sal_pkg.company and status_code = ''CONFIRMED'' order by id desc'
@@ -206,10 +206,10 @@ wwv_flow_imp_page.create_page_item(
   'page_action_on_selection', 'NONE')).to_clob
 );
 wwv_flow_imp_page.create_page_item(
- p_id=>wwv_flow_imp.id(91820269000000120)
+ p_id=>wwv_flow_imp.id(91820269000000121)
 ,p_name=>'P23_REASON'
 ,p_item_sequence=>20
-,p_item_plug_id=>wwv_flow_imp.id(91820269000000118)
+,p_item_plug_id=>wwv_flow_imp.id(91820269000000119)
 ,p_prompt=>'السبب'
 ,p_display_as=>'NATIVE_TEXT_FIELD'
 ,p_cSize=>40
@@ -224,20 +224,20 @@ wwv_flow_imp_page.create_page_item(
   'trim_spaces', 'BOTH')).to_clob
 );
 wwv_flow_imp_page.create_page_validation(
- p_id=>wwv_flow_imp.id(91820269000000122)
+ p_id=>wwv_flow_imp.id(91820269000000123)
 ,p_validation_name=>'P23_REASON required (REVERSE)'
 ,p_validation_sequence=>16
 ,p_validation=>'P23_REASON'
 ,p_validation_type=>'ITEM_NOT_NULL'
 ,p_error_message=>'#LABEL#: قيمة مطلوبة'
-,p_when_button_pressed=>wwv_flow_imp.id(91820269000000121)
-,p_associated_item=>wwv_flow_imp.id(91820269000000120)
+,p_when_button_pressed=>wwv_flow_imp.id(91820269000000122)
+,p_associated_item=>wwv_flow_imp.id(91820269000000121)
 ,p_error_display_location=>'INLINE_WITH_FIELD_AND_NOTIFICATION'
 );
 wwv_flow_imp_page.create_page_button(
- p_id=>wwv_flow_imp.id(91820269000000121)
+ p_id=>wwv_flow_imp.id(91820269000000122)
 ,p_button_sequence=>10
-,p_button_plug_id=>wwv_flow_imp.id(91820269000000118)
+,p_button_plug_id=>wwv_flow_imp.id(91820269000000119)
 ,p_button_name=>'REVERSE'
 ,p_button_action=>'SUBMIT'
 ,p_button_template_options=>'#DEFAULT#'
@@ -246,7 +246,7 @@ wwv_flow_imp_page.create_page_button(
 ,p_button_position=>'NEXT'
 );
 wwv_flow_imp_page.create_page_process(
- p_id=>wwv_flow_imp.id(91820269000000123)
+ p_id=>wwv_flow_imp.id(91820269000000124)
 ,p_process_sequence=>10
 ,p_process_point=>'AFTER_SUBMIT'
 ,p_process_type=>'NATIVE_PLSQL'
@@ -258,12 +258,12 @@ wwv_flow_imp_page.create_page_process(
 'end;'))
 ,p_process_clob_language=>'PLSQL'
 ,p_error_display_location=>'INLINE_IN_NOTIFICATION'
-,p_process_when_button_id=>wwv_flow_imp.id(91820269000000121)
+,p_process_when_button_id=>wwv_flow_imp.id(91820269000000122)
 ,p_process_success_message=>'تم عكس التحصيل وإعادة فتح الذمم'
-,p_internal_uid=>91820269000000123
+,p_internal_uid=>91820269000000124
 );
 wwv_flow_imp_page.create_page_branch(
- p_id=>wwv_flow_imp.id(91820269000000124)
+ p_id=>wwv_flow_imp.id(91820269000000125)
 ,p_branch_action=>'f?p=&APP_ID.:23:&SESSION.::&DEBUG.:23::&success_msg=#SUCCESS_MSG#'
 ,p_branch_point=>'AFTER_PROCESSING'
 ,p_branch_type=>'REDIRECT_URL'

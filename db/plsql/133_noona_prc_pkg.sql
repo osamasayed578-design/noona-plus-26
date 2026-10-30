@@ -50,6 +50,10 @@ CREATE OR REPLACE PACKAGE NOONA_PRC_PKG AUTHID DEFINER AS
   --  coupon, priority, stackable, from, to, status, targets:[{type, id, code}]}
   FUNCTION save_promotion(p_doc IN CLOB, p_id IN NUMBER DEFAULT NULL) RETURN NUMBER;
   PROCEDURE set_promotion_status(p_id IN NUMBER, p_status IN VARCHAR2);
+  -- الهدف بصيغة النوع-المعرف (ITEM-5، ITEM_CATEGORY-3، ALL_ITEMS، HIS_SERVICE_TYPE-LAB ...) كما في قوائم الاختيار
+  PROCEDURE add_promotion_target(p_promo IN NUMBER, p_target IN VARCHAR2);
+  PROCEDURE remove_promotion_target(p_target_id IN NUMBER);
+  FUNCTION target_label(p_type IN VARCHAR2, p_id IN NUMBER, p_code IN VARCHAR2 DEFAULT NULL) RETURN VARCHAR2;
   FUNCTION promotion_text(p_id IN NUMBER) RETURN VARCHAR2;
   -- أفضل عرض للسطر: {promoId, name, discount (لإجمالي السطر), freeQty, net (إجمالي السطر بعد الخصم)} أو {} بلا عرض
   FUNCTION line_promo(p_type IN VARCHAR2, p_id IN NUMBER, p_qty IN NUMBER, p_unit_price IN NUMBER, p_channel IN VARCHAR2,
@@ -73,6 +77,9 @@ CREATE OR REPLACE PACKAGE NOONA_PRC_PKG AUTHID DEFINER AS
   -- {code, name, desc, channels, method, value, incl, from, to, status, lines:[{type, id, qty}]}
   FUNCTION save_bundle(p_doc IN CLOB, p_id IN NUMBER DEFAULT NULL) RETURN NUMBER;
   PROCEDURE set_bundle_status(p_id IN NUMBER, p_status IN VARCHAR2);
+  PROCEDURE add_bundle_line(p_bundle IN NUMBER, p_target IN VARCHAR2, p_qty IN NUMBER DEFAULT 1);
+  PROCEDURE remove_bundle_line(p_line_id IN NUMBER);
+  FUNCTION bundle_text(p_id IN NUMBER) RETURN VARCHAR2;
   -- السعر = list_total ثم bundle_price والتوفير، والمكونات بسعر الوحدة الأصلي والموزع:
   -- {id, code, name, listTotal, price, saving, lines:[{type, id, name, qty, unitList, unitNet, lineNet}]}
   FUNCTION bundle_json(p_id IN NUMBER) RETURN CLOB;
@@ -809,6 +816,48 @@ CREATE OR REPLACE PACKAGE BODY NOONA_PRC_PKG AS
     NOONA_CORE_PKG.assert(SQL%ROWCOUNT = 1, 'NOONA-PRC-040', 'العرض غير موجود أو منتهٍ', 'Promotion not found or ended');
   END set_promotion_status;
 
+  FUNCTION target_label(p_type IN VARCHAR2, p_id IN NUMBER, p_code IN VARCHAR2 DEFAULT NULL) RETURN VARCHAR2 IS
+  BEGIN
+    RETURN type_label(p_type, p_code) || CASE WHEN p_id IS NOT NULL THEN ': ' || target_name(p_type, p_id) END;
+  END target_label;
+
+  PROCEDURE split_target(p_target VARCHAR2, o_type OUT VARCHAR2, o_id OUT NUMBER, o_code OUT VARCHAR2) IS
+    l_rest VARCHAR2(100);
+  BEGIN
+    o_type := UPPER(REGEXP_SUBSTR(p_target, '^[A-Za-z_]+'));      -- النوع-المعرف أو النوع:المعرف
+    l_rest := SUBSTR(p_target, LENGTH(o_type) + 2);
+    o_id := NULL; o_code := NULL;
+    IF o_type = 'HIS_SERVICE_TYPE' THEN o_code := l_rest;
+    ELSIF l_rest IS NOT NULL THEN o_id := TO_NUMBER(l_rest);
+    END IF;
+  EXCEPTION WHEN VALUE_ERROR THEN
+    NOONA_CORE_PKG.raise_error('NOONA-PRC-041', 'نوع هدف العرض غير معروف', 'Unknown target');
+  END split_target;
+
+  PROCEDURE add_promotion_target(p_promo IN NUMBER, p_target IN VARCHAR2) IS
+    l_tt VARCHAR2(30); l_id NUMBER; l_cd VARCHAR2(50); l_n NUMBER;
+  BEGIN
+    guard('SAL_PROMOTION.UPDATE');
+    NOONA_CORE_PKG.assert(p_promo IS NOT NULL AND p_target IS NOT NULL, 'NOONA-PRC-044', 'اختر العرض والصنف أو الخدمة', 'Choose the promotion and target');
+    SELECT COUNT(*) INTO l_n FROM sal_promotion WHERE id = p_promo AND company_id = company;
+    NOONA_CORE_PKG.assert(l_n = 1, 'NOONA-PRC-040', 'العرض غير موجود', 'Promotion not found');
+    split_target(p_target, l_tt, l_id, l_cd);
+    NOONA_CORE_PKG.assert(l_tt IN ('ITEM', 'ITEM_CATEGORY', 'ALL_ITEMS', 'HIS_SERVICE', 'HIS_SERVICE_TYPE', 'ALL_HIS', 'AUT_SERVICE',
+      'AUT_CATEGORY', 'ALL_AUT'), 'NOONA-PRC-041', 'نوع هدف العرض غير معروف', 'Unknown promotion target');
+    IF l_tt IN ('ITEM', 'HIS_SERVICE', 'AUT_SERVICE') THEN check_target(l_tt, l_id); END IF;
+    SELECT COUNT(*) INTO l_n FROM sal_promotion_target
+     WHERE promotion_id = p_promo AND target_type = l_tt AND NVL(target_id, -1) = NVL(l_id, -1) AND NVL(target_code, '-') = NVL(l_cd, '-');
+    NOONA_CORE_PKG.assert(l_n = 0, 'NOONA-PRC-045', 'مضاف للعرض مسبقاً', 'Already in the promotion');
+    INSERT INTO sal_promotion_target (company_id, promotion_id, target_type, target_id, target_code) VALUES (company, p_promo, l_tt, l_id, l_cd);
+  END add_promotion_target;
+
+  PROCEDURE remove_promotion_target(p_target_id IN NUMBER) IS
+  BEGIN
+    guard('SAL_PROMOTION.UPDATE');
+    DELETE FROM sal_promotion_target WHERE id = p_target_id AND company_id = company;
+    NOONA_CORE_PKG.assert(SQL%ROWCOUNT = 1, 'NOONA-PRC-046', 'السطر غير موجود', 'Target not found');
+  END remove_promotion_target;
+
   -- هل العرض ساري الآن للقناة والفرع والكوبون؟ (الأحد = 1)
   FUNCTION promo_live(p sal_promotion%ROWTYPE, p_channel VARCHAR2, p_coupon VARCHAR2, p_at DATE, p_branch NUMBER) RETURN BOOLEAN IS
     l_day VARCHAR2(1) := TO_CHAR(MOD(TRUNC(p_at) - TRUNC(p_at, 'IW') + 1, 7) + 1);
@@ -1054,6 +1103,49 @@ CREATE OR REPLACE PACKAGE BODY NOONA_PRC_PKG AS
     UPDATE sal_bundle SET status_code = p_status WHERE id = p_id AND company_id = company;
     NOONA_CORE_PKG.assert(SQL%ROWCOUNT = 1, 'NOONA-PRC-053', 'الباقة غير موجودة', 'Bundle not found');
   END set_bundle_status;
+
+  PROCEDURE add_bundle_line(p_bundle IN NUMBER, p_target IN VARCHAR2, p_qty IN NUMBER DEFAULT 1) IS
+    l_tt VARCHAR2(30); l_id NUMBER; l_cd VARCHAR2(50); l_n NUMBER; l_so NUMBER;
+  BEGIN
+    guard('SAL_BUNDLE.UPDATE');
+    NOONA_CORE_PKG.assert(p_bundle IS NOT NULL AND p_target IS NOT NULL, 'NOONA-PRC-059', 'اختر الباقة والمكون', 'Choose the bundle and component');
+    SELECT COUNT(*) INTO l_n FROM sal_bundle WHERE id = p_bundle AND company_id = company;
+    NOONA_CORE_PKG.assert(l_n = 1, 'NOONA-PRC-053', 'الباقة غير موجودة', 'Bundle not found');
+    split_target(p_target, l_tt, l_id, l_cd);
+    NOONA_CORE_PKG.assert(l_tt IN ('ITEM', 'HIS_SERVICE', 'AUT_SERVICE'), 'NOONA-PRC-054', 'مكون الباقة صنف أو خدمة', 'Component must be an item or service');
+    check_target(l_tt, l_id);
+    NOONA_CORE_PKG.assert(NVL(p_qty, 1) > 0, 'NOONA-PRC-055', 'كمية المكون أكبر من صفر', 'Quantity must be positive');
+    SELECT COUNT(*), NVL(MAX(sort_order), 0) + 1 INTO l_n, l_so FROM sal_bundle_line WHERE bundle_id = p_bundle AND target_type = l_tt AND target_id = l_id;
+    IF l_n > 0 THEN
+      UPDATE sal_bundle_line SET quantity = quantity + NVL(p_qty, 1) WHERE bundle_id = p_bundle AND target_type = l_tt AND target_id = l_id;
+    ELSE
+      SELECT NVL(MAX(sort_order), 0) + 1 INTO l_so FROM sal_bundle_line WHERE bundle_id = p_bundle;
+      INSERT INTO sal_bundle_line (company_id, bundle_id, target_type, target_id, quantity, sort_order)
+      VALUES (company, p_bundle, l_tt, l_id, NVL(p_qty, 1), l_so);
+    END IF;
+  END add_bundle_line;
+
+  PROCEDURE remove_bundle_line(p_line_id IN NUMBER) IS
+    l_b NUMBER; l_n NUMBER;
+  BEGIN
+    guard('SAL_BUNDLE.UPDATE');
+    SELECT MAX(bundle_id) INTO l_b FROM sal_bundle_line WHERE id = p_line_id AND company_id = company;
+    NOONA_CORE_PKG.assert(l_b IS NOT NULL, 'NOONA-PRC-046', 'السطر غير موجود', 'Line not found');
+    SELECT COUNT(*) INTO l_n FROM sal_bundle_line WHERE bundle_id = l_b;
+    NOONA_CORE_PKG.assert(l_n > 2, 'NOONA-PRC-056', 'الباقة تضم مكونين على الأقل', 'A bundle needs at least two components');
+    DELETE FROM sal_bundle_line WHERE id = p_line_id;
+  END remove_bundle_line;
+
+  FUNCTION bundle_text(p_id IN NUMBER) RETURN VARCHAR2 IS
+    l VARCHAR2(400);
+  BEGIN
+    FOR b IN (SELECT pricing_method, pricing_value FROM sal_bundle WHERE id = p_id AND company_id = company) LOOP
+      l := CASE b.pricing_method WHEN 'FIXED_PRICE' THEN 'سعر ثابت ' || fmt(b.pricing_value)
+                                 WHEN 'PCT_OFF' THEN 'خصم ' || pct(b.pricing_value) || ' من مجموع المكونات'
+                                 ELSE 'خصم ' || fmt(b.pricing_value) || ' من مجموع المكونات' END;
+    END LOOP;
+    RETURN l;
+  END bundle_text;
 
   -- سعر الباقة ومجموع أسعار مكوناتها
   PROCEDURE bundle_totals(p_id NUMBER, o_list OUT NUMBER, o_price OUT NUMBER) IS

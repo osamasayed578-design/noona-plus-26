@@ -1541,3 +1541,13 @@ pre.nn-einv-xml { direction: ltr; text-align: left; max-height: 480px; overflow:
   .apex-item-option label, .t-Form-fieldContainer .apex-item-checkbox label { min-height: 24px; display: inline-flex; align-items: center; }
   a.fa, button.fa, .nn-fd-ib, .nn-mail-ib { min-width: 32px; min-height: 32px; display: inline-flex; align-items: center; justify-content: center; }
 }
+
+/* العروض والباقات في نقطة البيع */
+.nn-pos-promo { display: flex; gap: 6px; }
+.nn-pos-promo .nn-pos-coupon { flex: 1; height: 38px; padding: 0 10px; border: 1px dashed #94a3b8; border-radius: 8px; text-transform: uppercase; }
+.nn-pos-sum .is-disc b { color: #4ade80; }
+.nn-pos-blist { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 8px; margin: 10px 0; }
+.nn-pos-blist button { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; padding: 12px; text-align: start; }
+.nn-pos-blist s { color: #94a3b8; font-size: .85rem; }
+.nn-rpt tr.nn-bad td { background: #fef2f2; color: #b91c1c; }
+.nn-td-coupon { width: 120px; height: 34px; padding: 0 8px; border: 1px dashed #94a3b8; border-radius: 6px; text-transform: uppercase; }

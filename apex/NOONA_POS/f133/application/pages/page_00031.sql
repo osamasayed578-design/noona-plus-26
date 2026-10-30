@@ -22,7 +22,8 @@ wwv_flow_imp_page.create_page(
 ,p_javascript_code_onload=>wwv_flow_string.join(wwv_flow_t_varchar2(
 '// شاشة نقطة البيع السريعة: الأصناف والأسعار والباركودات محملة مرة واحدة (بحث فوري في المتصفح بلا انتظار)،',
 '// البيع بطلب واحد بمفتاح منع تكرار (إعادة الإرسال آمنة عند انقطاع الشبكة)، سداد مختلط، العميل العام افتراضياً،',
-'// مرتجع بالإيصال، طباعة الإيصال الحراري برمز ZATCA. اختصارات: Enter إضافة، F2 الكمية، F4 العميل، F8 مرتجع، F9 الدفع، Esc إلغاء.',
+'// مرتجع بالإيصال، طباعة الإيصال الحراري برمز ZATCA، العروض والخصومات تلقائياً من محرك التسعير (الكوبون وعرض قيمة الفاتورة)،',
+'// والباقات تضاف بمكوناتها وسعرها الموزع. اختصارات: Enter إضافة، F2 الكمية، F4 العميل، F8 مرتجع، F9 الدفع، Esc إلغاء.',
 '(function () {',
 '    var root = document.getElementById(''nnPos''); if (!root) return;',
 '    var boot; try { boot = JSON.parse(document.getElementById(''nnPosBoot'').textContent); } catch (e) { boot = {}; }',
@@ -30,13 +31,15 @@ wwv_flow_imp_page.create_page(
 '    var num = function (v) { var n = parseFloat(v); return isNaN(n) ? 0 : n; };',
 '    var r2 = function (v) { return Math.round(v * 100) / 100; };',
 '    var money = function (v) { return num(v).toLocaleString(''en-US'', {minimumFractionDigits: 2, maximumFractionDigits: 2}); };',
+'    var prc; try { prc = JSON.parse((document.getElementById(''nnPosPrc'') || {}).textContent || ''{}''); } catch (e) { prc = {}; }',
+'    var bundles = prc.bundles || [];',
 '    var items = boot.items || [], methods = boot.methods || [], idx = {};',
 '    items.forEach(function (it) {',
 '        String(it.b || '''').split('' '').forEach(function (b) { if (b) idx[b] = it; });',
 '        if (it.no) idx[it.no] = idx[it.no] || it;',
 '        if (it.c) idx[it.c] = idx[it.c] || it;',
 '    });',
-'    var state = {cart: [], cust: boot.walkIn, custName: boot.walkInName, rx: '''', key: null, pays: {}, mode: ''SALE'', ret: null};',
+'    var state = {cart: [], cust: boot.walkIn, custName: boot.walkInName, rx: '''', key: null, pays: {}, mode: ''SALE'', ret: null, coupon: '''', docDisc: 0, docName: ''''};',
 '    var newKey = function () { return (window.crypto && crypto.randomUUID) ? crypto.randomUUID() : ''K'' + Date.now() + Math.random().toString(16).slice(2); };',
 '',
 '    root.innerHTML =',
@@ -46,7 +49,10 @@ wwv_flow_imp_page.create_page(
 '      + ''<button type="button" class="t-Button nn-pos-retbtn" title="F8"><span class="fa fa-undo"></span> مرتجع</button></div>''',
 '      + ''<div class="nn-pos-body"><div class="nn-pos-cart"><table><thead><tr><th>الصنف</th><th>الكمية</th><th>السعر</th><th>الخصم</th><th>الإجمالي</th><th></th></tr></thead><tbody></tbody></table>''',
 '      + ''<div class="nn-pos-rx" hidden><label>رقم الوصفة الطبية <input class="nn-pos-rxno" autocomplete="off"></label></div></div>''',
-'      + ''<div class="nn-pos-side"><div class="nn-pos-results"></div><div class="nn-pos-sum"></div>''',
+'      + ''<div class="nn-pos-side"><div class="nn-pos-results"></div>''',
+'      + ''<div class="nn-pos-promo"><input class="nn-pos-coupon" autocomplete="off" placeholder="كود الكوبون">''',
+'      + (bundles.length ? ''<button type="button" class="t-Button nn-pos-bundles"><span class="fa fa-gift"></span> الباقات</button>'' : '''') + ''</div>''',
+'      + ''<div class="nn-pos-sum"></div>''',
 '      + ''<button type="button" class="t-Button t-Button--hot t-Button--large nn-pos-pay" title="F9">الدفع (F9)</button>''',
 '      + ''<button type="button" class="t-Button nn-pos-clear">إلغاء السلة</button></div></div>''',
 '      + ''<div class="nn-pos-modal" hidden><div class="nn-pos-dlg"></div></div>''',
@@ -54,15 +60,27 @@ wwv_flow_imp_page.create_page(
 '    var $ = function (s) { return root.querySelector(s); };',
 '    var scan = $(''#nnPosScan''), tbody = $(''.nn-pos-cart tbody''), modal = $(''.nn-pos-modal''), dlg = $(''.nn-pos-dlg'');',
 '',
-'    function priceOf(l) {',
-'        var gross = l.q * l.p, disc = num(l.disc), net, tax;',
+'    // خصم عرض قيمة الفاتورة يوزع على الأسطر بنسبة صافيها (الأخير يأخذ فرق التقريب) فتحسب الضريبة بعده',
+'    function shares() {',
+'        var base = state.cart.map(function (l) { return Math.max(l.q * l.p - num(l.disc), 0); }), sum = 0, out = [], done = 0;',
+'        base.forEach(function (b) { sum += b; });',
+'        state.cart.forEach(function (l, i) {',
+'            var v = (!state.docDisc || !sum) ? 0 : (i === state.cart.length - 1 ? r2(state.docDisc - done) : r2(state.docDisc * base[i] / sum));',
+'            done += v; out.push(v);',
+'        });',
+'        return out;',
+'    }',
+'    function priceOf(l, extra) {',
+'        var gross = l.q * l.p, disc = num(l.disc) + num(extra), net, tax;',
 '        if (l.inc === ''Y'') { net = r2((gross - disc) / (1 + l.t / 100)); tax = r2(gross - disc - net); }',
 '        else { net = r2(gross - disc); tax = r2(net * l.t / 100); }',
 '        return {net: net, tax: tax, total: r2(net + tax)};',
 '    }',
 '    function totals() {',
 '        var s = {net: 0, tax: 0, total: 0, qty: 0};',
-'        state.cart.forEach(function (l) { var p = priceOf(l); s.net += p.net; s.tax += p.tax; s.total += p.total; s.qty += l.q; });',
+'        var sh = shares(); s.disc = 0;',
+'        state.cart.forEach(function (l, i) { var p = priceOf(l, sh[i]); s.net += p.net; s.tax += p.tax; s.total += p.total; s.qty += l.q; s.disc += num(l.disc) + sh[i]; });',
+'        s.disc = r2(s.disc);',
 '        s.net = r2(s.net); s.tax = r2(s.tax); s.total = r2(s.total);',
 '        return s;',
 '    }',
@@ -70,6 +88,7 @@ wwv_flow_imp_page.create_page(
 '        tbody.innerHTML = state.cart.map(function (l, i) {',
 '            var p = priceOf(l);',
 '            return ''<tr'' + (i === state.cart.length - 1 ? '' class="is-last"'' : '''') + ''><td><b>'' + esc(l.n) + ''</b>'' + (l.rx === ''Y'' ? '' <span class="nn-badge is-danger">وصفة</span>'' : '''')',
+'                 + (l.promo ? '' <span class="nn-badge is-success" title="عرض">'' + esc(l.promo) + ''</span>'' : '''')',
 '                 + (l.st === ''Y'' && l.q > l.oh ? '' <span class="nn-badge is-warning">الرصيد '' + l.oh + ''</span>'' : '''') + ''</td>''',
 '                 + ''<td class="nn-pos-qty"><button type="button" data-dec="'' + i + ''">−</button><input type="number" step="any" min="0" data-q="'' + i + ''" value="'' + l.q + ''"><button type="button" data-inc="'' + i + ''">+</button></td>''',
 '                 + ''<td>'' + money(l.p) + ''</td><td><input type="number" step="any" min="0" class="nn-pos-disc" data-disc="'' + i + ''" value="'' + (l.disc || '''') + ''"></td>''',
@@ -77,14 +96,37 @@ wwv_flow_imp_page.create_page(
 '        }).join('''') || ''<tr><td colspan="6" class="nn-td-empty">السلة فارغة - امسح الباركود للبدء</td></tr>'';',
 '        var t = totals();',
 '        $(''.nn-pos-sum'').innerHTML = ''<div><span>عدد القطع</span><b>'' + t.qty + ''</b></div><div><span>قبل الضريبة</span><b>'' + money(t.net) + ''</b></div>''',
+'            + (t.disc > 0 ? ''<div class="is-disc"><span>الخصومات والعروض</span><b>'' + money(t.disc) + ''</b></div>'' : '''')',
+'            + (state.docDisc > 0 ? ''<div class="is-disc"><span>'' + esc(state.docName) + ''</span><b>'' + money(state.docDisc) + ''</b></div>'' : '''')',
 '            + ''<div><span>الضريبة</span><b>'' + money(t.tax) + ''</b></div><div class="is-grand"><span>الإجمالي</span><b>'' + money(t.total) + ''</b></div>'';',
 '        $(''.nn-pos-custname'').textContent = state.custName || ''عميل نقدي عام'';',
 '        var needRx = state.cart.some(function (l) { return l.rx === ''Y''; });',
 '        $(''.nn-pos-rx'').hidden = !needRx;',
+'        if (!quiet) requote();',
+'    }',
+'    // العروض من الخادم (محرك التسعير) بعد كل تغيير في السلة؛ السطر المعدل خصمه يدوياً أو سطر الباقة لا يأخذ عرضاً تلقائياً',
+'    var quiet = false, qTimer = null, qSeq = 0;',
+'    function requote() {',
+'        clearTimeout(qTimer);',
+'        qTimer = setTimeout(function () {',
+'            var seq = ++qSeq;',
+'            if (!state.cart.length && !state.docDisc) return;',
+'            var doc = {coupon: state.coupon || null, lines: state.cart.map(function (l, i) {',
+'                return {k: i, t: ''ITEM'', id: l.i, q: l.q, p: l.p, man: (l.man || l.bun) ? ''Y'' : ''N'', disc: num(l.disc)}; })};',
+'            call(''QUOTE'', {p_clob_01: JSON.stringify(doc)}).then(function (r) {',
+'                if (seq !== qSeq) return;',
+'                (r.lines || []).forEach(function (x) {',
+'                    var l = state.cart[x.k]; if (!l || l.man || l.bun) return;',
+'                    l.disc = num(x.disc) || 0; l.promo = x.promo || '''';',
+'                });',
+'                state.docDisc = num(r.docDisc); state.docName = (r.doc && r.doc.name) || '''';',
+'                quiet = true; draw(); quiet = false;',
+'            }, function () { /* بلا اتصال: البيع بالأسعار دون عروض */ });',
+'        }, 250);',
 '    }',
 '    function add(it, qty) {',
 '        if (!it) return;',
-'        var l = state.cart.filter(function (x) { return x.i === it.id && !x.disc; })[0];',
+'        var l = state.cart.filter(function (x) { return x.i === it.id && !x.man && !x.bun; })[0];',
 '        if (l) { l.q = r2(l.q + (qty || 1)); state.cart.splice(state.cart.indexOf(l), 1); state.cart.push(l); }',
 '        else state.cart.push({i: it.id, n: it.n, q: qty || 1, p: num(it.p), inc: it.inc || ''N'', t: num(it.t), rx: it.rx, st: it.st, oh: num(it.q), b: it._b});',
 '        draw();',
@@ -127,16 +169,19 @@ wwv_flow_imp_page.create_page(
 '        else if (t.classList.contains(''nn-pos-clear'')) { if (!state.cart.length || confirm(''إلغاء السلة؟'')) reset(); }',
 '        else if (t.classList.contains(''nn-pos-cust'')) openCust();',
 '        else if (t.classList.contains(''nn-pos-retbtn'')) openReturn();',
+'        else if (t.classList.contains(''nn-pos-bundles'')) openBundles();',
 '    });',
 '    tbody.addEventListener(''change'', function (e) {',
 '        var t = e.target;',
 '        if (t.dataset.q != null) { var q = num(t.value); if (q <= 0) state.cart.splice(+t.dataset.q, 1); else state.cart[+t.dataset.q].q = q; draw(); }',
-'        if (t.dataset.disc != null) { state.cart[+t.dataset.disc].disc = num(t.value); draw(); }',
+'        if (t.dataset.disc != null) { var dl = state.cart[+t.dataset.disc]; dl.disc = num(t.value); dl.man = true; dl.promo = ''''; draw(); }',
 '    });',
+'    $(''.nn-pos-coupon'').addEventListener(''change'', function (e) { state.coupon = e.target.value.trim(); draw(); });',
 '    $(''.nn-pos-rxno'').addEventListener(''input'', function (e) { state.rx = e.target.value; });',
 '    function reset() {',
 '        state.cart = []; state.pays = {}; state.key = null; state.rx = ''''; state.cust = boot.walkIn; state.custName = boot.walkInName;',
-'        $(''.nn-pos-rxno'').value = ''''; draw(); scan.focus();',
+'        state.coupon = ''''; state.docDisc = 0; state.docName = '''';',
+'        $(''.nn-pos-rxno'').value = ''''; $(''.nn-pos-coupon'').value = ''''; draw(); scan.focus();',
 '    }',
 '    function close() { modal.hidden = true; scan.focus(); }',
 '    function show(html) { dlg.oninput = null; dlg.onclick = null; dlg.innerHTML = html; modal.hidden = false; }',
@@ -192,7 +237,8 @@ wwv_flow_imp_page.create_page(
 '        dlg.querySelectorAll(''[data-ref]'').forEach(function (el) { refs[el.dataset.ref] = el.value; });',
 '        Object.keys(state.pays).forEach(function (m) { if (num(state.pays[m]) > 0) pays.push({m: m, a: r2(num(state.pays[m])), ref: refs[m] || null}); });',
 '        var doc = {key: state.key, shift: boot.shift, cust: state.cust === boot.walkIn ? null : state.cust, rx: state.rx || null, pays: pays,',
-'                   lines: state.cart.map(function (l) { return {i: l.i, q: l.q, disc: num(l.disc) || 0, b: l.b || null}; })};',
+'                   lines: (function () { var sh = shares();',
+'                       return state.cart.map(function (l, i) { return {i: l.i, q: l.q, disc: r2(num(l.disc) + sh[i]) || 0, b: l.b || null}; }); })()};',
 '        var btn = dlg.querySelector(''[data-do="pay"]''), print = (dlg.querySelector(''[data-print]'') || {}).checked;',
 '        btn.disabled = true;',
 '        call(''SALE'', {p_clob_01: JSON.stringify(doc)}).then(function (r) {',
@@ -214,6 +260,28 @@ wwv_flow_imp_page.create_page(
 '    function printReceipt(id) {',
 '        var f = root.querySelector(''.nn-pos-print'');',
 '        f.src = ''f?p='' + apex.env.APP_ID + '':33:'' + apex.env.APP_SESSION + ''::NO:RP,33:P33_ID,P33_AUTO:'' + id + '',Y'';',
+'    }',
+'',
+'    // ------------------------------------------------------------ الباقات',
+'    function openBundles() {',
+'        show(''<h3>الباقات</h3><div class="nn-pos-blist">'' + bundles.map(function (b) {',
+'            return ''<button type="button" class="t-Button" data-bundle="'' + b.id + ''"><b>'' + esc(b.name) + ''</b><span>'' + money(b.price)',
+'                 + (num(b.listTotal) > num(b.price) ? '' <s>'' + money(b.listTotal) + ''</s>'' : '''') + ''</span></button>'';',
+'        }).join('''') + ''</div><div class="nn-pos-msg" role="alert"></div><div class="nn-pos-actions"><button type="button" class="t-Button" data-do="close">رجوع (Esc)</button></div>'');',
+'        dlg.onclick = function (e) {',
+'            var b = e.target.closest(''button''); if (!b) return;',
+'            if (b.dataset.do === ''close'') close();',
+'            if (b.dataset.bundle) call(''BUNDLE'', {x01: b.dataset.bundle}).then(function (r) {',
+'                var miss = (r.lines || []).filter(function (c) { return c.type !== ''ITEM'' || !byId(c.id); });',
+'                if (miss.length) { fail(''الباقة تحتوي خدمات أو أصنافاً غير متاحة في نقطة البيع''); return; }',
+'                r.lines.forEach(function (c) {',
+'                    var it = byId(c.id);',
+'                    state.cart.push({i: it.id, n: it.n, q: num(c.qty), p: num(c.unitList), inc: it.inc || ''N'', t: num(it.t), rx: it.rx, st: it.st, oh: num(it.q),',
+'                                     bun: true, disc: r2(num(c.qty) * num(c.unitList) - num(c.lineNet)), promo: r.name});',
+'                });',
+'                close(); draw();',
+'            }, function (m) { fail(m === ''NET'' ? ''انقطع الاتصال'' : m); });',
+'        };',
 '    }',
 '',
 '    // ------------------------------------------------------------ العميل',
@@ -305,7 +373,7 @@ wwv_flow_imp_page.create_page(
 ,p_protection_level=>'N'
 );
 wwv_flow_imp_page.create_page_plug(
- p_id=>wwv_flow_imp.id(91820269000000159)
+ p_id=>wwv_flow_imp.id(91820269000000160)
 ,p_plug_name=>'المحطة'
 ,p_region_template_options=>'#DEFAULT#:t-Region--noUI:t-Region--removeHeader js-removeLandmark'
 ,p_plug_template=>4072358936313175081
@@ -316,17 +384,17 @@ wwv_flow_imp_page.create_page_plug(
   'show_line_breaks', 'Y')).to_clob
 );
 wwv_flow_imp_page.create_page_item(
- p_id=>wwv_flow_imp.id(91820269000000160)
+ p_id=>wwv_flow_imp.id(91820269000000161)
 ,p_name=>'P31_TERM'
 ,p_item_sequence=>1
-,p_item_plug_id=>wwv_flow_imp.id(91820269000000159)
+,p_item_plug_id=>wwv_flow_imp.id(91820269000000160)
 ,p_display_as=>'NATIVE_HIDDEN'
 ,p_protection_level=>'N'
 ,p_attributes=>wwv_flow_t_plugin_attributes(wwv_flow_t_varchar2(
   'value_protected', 'N')).to_clob
 );
 wwv_flow_imp_page.create_page_plug(
- p_id=>wwv_flow_imp.id(91820269000000161)
+ p_id=>wwv_flow_imp.id(91820269000000162)
 ,p_plug_name=>'نقطة البيع'
 ,p_region_template_options=>'#DEFAULT#:t-Region--noUI:t-Region--removeHeader js-removeLandmark:t-Region--noUI'
 ,p_plug_template=>4072358936313175081
@@ -336,12 +404,13 @@ wwv_flow_imp_page.create_page_plug(
 'begin',
 '    if :P31_TERM is null then return ''<div class="nn-empty">اختر نقطة البيع من قائمة نقاط البيع</div>''; end if;',
 '    return ''<script type="application/json" id="nnPosBoot">'' || replace(noona_pos_pkg.boot_json(:P31_TERM), ''</'', ''<\/'') || ''</script>''',
+'        || ''<script type="application/json" id="nnPosPrc">{"bundles":'' || replace(noona_prc_pkg.bundles_json(''POS''), ''</'', ''<\/'') || ''}</script>''',
 '        || ''<div id="nnPos" class="nn-pos"></div>'';',
 'end;'))
 ,p_plug_source_type=>'NATIVE_DYNAMIC_CONTENT'
 );
 wwv_flow_imp_page.create_page_process(
- p_id=>wwv_flow_imp.id(91820269000000162)
+ p_id=>wwv_flow_imp.id(91820269000000163)
 ,p_process_sequence=>1
 ,p_process_point=>'ON_DEMAND'
 ,p_process_type=>'NATIVE_PLSQL'
@@ -358,10 +427,10 @@ wwv_flow_imp_page.create_page_process(
 'end;'))
 ,p_process_clob_language=>'PLSQL'
 ,p_error_display_location=>'INLINE_IN_NOTIFICATION'
-,p_internal_uid=>91820269000000162
+,p_internal_uid=>91820269000000163
 );
 wwv_flow_imp_page.create_page_process(
- p_id=>wwv_flow_imp.id(91820269000000163)
+ p_id=>wwv_flow_imp.id(91820269000000164)
 ,p_process_sequence=>2
 ,p_process_point=>'ON_DEMAND'
 ,p_process_type=>'NATIVE_PLSQL'
@@ -378,10 +447,10 @@ wwv_flow_imp_page.create_page_process(
 'end;'))
 ,p_process_clob_language=>'PLSQL'
 ,p_error_display_location=>'INLINE_IN_NOTIFICATION'
-,p_internal_uid=>91820269000000163
+,p_internal_uid=>91820269000000164
 );
 wwv_flow_imp_page.create_page_process(
- p_id=>wwv_flow_imp.id(91820269000000164)
+ p_id=>wwv_flow_imp.id(91820269000000165)
 ,p_process_sequence=>3
 ,p_process_point=>'ON_DEMAND'
 ,p_process_type=>'NATIVE_PLSQL'
@@ -398,10 +467,10 @@ wwv_flow_imp_page.create_page_process(
 'end;'))
 ,p_process_clob_language=>'PLSQL'
 ,p_error_display_location=>'INLINE_IN_NOTIFICATION'
-,p_internal_uid=>91820269000000164
+,p_internal_uid=>91820269000000165
 );
 wwv_flow_imp_page.create_page_process(
- p_id=>wwv_flow_imp.id(91820269000000165)
+ p_id=>wwv_flow_imp.id(91820269000000166)
 ,p_process_sequence=>4
 ,p_process_point=>'ON_DEMAND'
 ,p_process_type=>'NATIVE_PLSQL'
@@ -418,10 +487,50 @@ wwv_flow_imp_page.create_page_process(
 'end;'))
 ,p_process_clob_language=>'PLSQL'
 ,p_error_display_location=>'INLINE_IN_NOTIFICATION'
-,p_internal_uid=>91820269000000165
+,p_internal_uid=>91820269000000166
 );
 wwv_flow_imp_page.create_page_process(
- p_id=>wwv_flow_imp.id(91820269000000166)
+ p_id=>wwv_flow_imp.id(91820269000000167)
+,p_process_sequence=>6
+,p_process_point=>'ON_DEMAND'
+,p_process_type=>'NATIVE_PLSQL'
+,p_process_name=>'QUOTE'
+,p_process_sql_clob=>wwv_flow_string.join(wwv_flow_t_varchar2(
+'begin',
+'    apex_util.prn(noona_prc_pkg.quote_cart(apex_application.g_clob_01, ''POS''), false);',
+'exception when others then',
+'    rollback;',
+'    apex_json.open_object;',
+'    apex_json.write(''ok'', false);',
+'    apex_json.write(''msg'', nvl(trim(regexp_substr(sqlerrm, ''NOONA-[A-Z]+-[0-9]+: [^['' || chr(10) || '']+'')), sqlerrm));',
+'    apex_json.close_object;',
+'end;'))
+,p_process_clob_language=>'PLSQL'
+,p_error_display_location=>'INLINE_IN_NOTIFICATION'
+,p_internal_uid=>91820269000000167
+);
+wwv_flow_imp_page.create_page_process(
+ p_id=>wwv_flow_imp.id(91820269000000168)
+,p_process_sequence=>7
+,p_process_point=>'ON_DEMAND'
+,p_process_type=>'NATIVE_PLSQL'
+,p_process_name=>'BUNDLE'
+,p_process_sql_clob=>wwv_flow_string.join(wwv_flow_t_varchar2(
+'begin',
+'    apex_util.prn(noona_prc_pkg.bundle_json(to_number(apex_application.g_x01)), false);',
+'exception when others then',
+'    rollback;',
+'    apex_json.open_object;',
+'    apex_json.write(''ok'', false);',
+'    apex_json.write(''msg'', nvl(trim(regexp_substr(sqlerrm, ''NOONA-[A-Z]+-[0-9]+: [^['' || chr(10) || '']+'')), sqlerrm));',
+'    apex_json.close_object;',
+'end;'))
+,p_process_clob_language=>'PLSQL'
+,p_error_display_location=>'INLINE_IN_NOTIFICATION'
+,p_internal_uid=>91820269000000168
+);
+wwv_flow_imp_page.create_page_process(
+ p_id=>wwv_flow_imp.id(91820269000000169)
 ,p_process_sequence=>5
 ,p_process_point=>'ON_DEMAND'
 ,p_process_type=>'NATIVE_PLSQL'
@@ -438,10 +547,10 @@ wwv_flow_imp_page.create_page_process(
 'end;'))
 ,p_process_clob_language=>'PLSQL'
 ,p_error_display_location=>'INLINE_IN_NOTIFICATION'
-,p_internal_uid=>91820269000000166
+,p_internal_uid=>91820269000000169
 );
 wwv_flow_imp_page.create_page_plug(
- p_id=>wwv_flow_imp.id(91820269000000167)
+ p_id=>wwv_flow_imp.id(91820269000000170)
 ,p_plug_name=>'الوردية'
 ,p_region_template_options=>'#DEFAULT#'
 ,p_plug_template=>4072358936313175081
@@ -455,9 +564,9 @@ wwv_flow_imp_page.create_page_plug(
   'show_line_breaks', 'Y')).to_clob
 );
 wwv_flow_imp_page.create_page_button(
- p_id=>wwv_flow_imp.id(91820269000000168)
+ p_id=>wwv_flow_imp.id(91820269000000171)
 ,p_button_sequence=>10
-,p_button_plug_id=>wwv_flow_imp.id(91820269000000167)
+,p_button_plug_id=>wwv_flow_imp.id(91820269000000170)
 ,p_button_name=>'CLOSE_SHIFT'
 ,p_button_action=>'REDIRECT_URL'
 ,p_button_template_options=>'#DEFAULT#'

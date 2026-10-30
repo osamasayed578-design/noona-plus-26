@@ -622,5 +622,10 @@ app.nav_item('الخدمات وقطعها', 10, 'fa-th-large', 1, parent=st, sch
 app.nav_item('الرافعات والفنيون', 11, 'fa-users', 2, parent=st, scheme=SETUP)
 app.nav_item('شركات التأمين', 9, 'fa-building', 3, parent=st, scheme=SETUP)
 
+# التسعير والعروض والباقات لخدمات السيارات وقطعها (20-24)
+import prc_pages
+prc_pages.build(app, url, SETUP, 20, ('AUT', 'ITEMS'), 'AUT')
+prc_pages.nav(app, 20, 75)
+
 app.finalize()
 print('NOONA_AUTO built:', len(app.pages), 'pages')

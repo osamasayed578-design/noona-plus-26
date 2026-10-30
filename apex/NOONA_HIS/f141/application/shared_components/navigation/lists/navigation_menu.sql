@@ -317,6 +317,58 @@ wwv_flow_imp_shared.create_list_item(
 ,p_parent_list_item_id=>wwv_flow_imp.id(91820275000000525)
 ,p_list_item_current_type=>'TARGET_PAGE'
 );
+wwv_flow_imp_shared.create_list_item(
+ p_id=>wwv_flow_imp.id(91820275000001347)
+,p_list_item_display_sequence=>70
+,p_list_item_link_text=>'التسعير والعروض'
+,p_list_item_link_target=>''
+,p_list_item_icon=>'fa-tags'
+);
+wwv_flow_imp_shared.create_list_item(
+ p_id=>wwv_flow_imp.id(91820275000001348)
+,p_list_item_display_sequence=>71
+,p_list_item_link_text=>'العروض والتخفيضات'
+,p_list_item_link_target=>'f?p=&APP_ID.:93:&APP_SESSION.::&DEBUG.:93::'
+,p_list_item_icon=>'fa-percent'
+,p_parent_list_item_id=>wwv_flow_imp.id(91820275000001347)
+,p_list_item_current_type=>'TARGET_PAGE'
+);
+wwv_flow_imp_shared.create_list_item(
+ p_id=>wwv_flow_imp.id(91820275000001349)
+,p_list_item_display_sequence=>72
+,p_list_item_link_text=>'الباقات'
+,p_list_item_link_target=>'f?p=&APP_ID.:94:&APP_SESSION.::&DEBUG.:94::'
+,p_list_item_icon=>'fa-gift'
+,p_parent_list_item_id=>wwv_flow_imp.id(91820275000001347)
+,p_list_item_current_type=>'TARGET_PAGE'
+);
+wwv_flow_imp_shared.create_list_item(
+ p_id=>wwv_flow_imp.id(91820275000001350)
+,p_list_item_display_sequence=>73
+,p_list_item_link_text=>'سياسات التسعير'
+,p_list_item_link_target=>'f?p=&APP_ID.:90:&APP_SESSION.::&DEBUG.:90::'
+,p_list_item_icon=>'fa-calculator'
+,p_parent_list_item_id=>wwv_flow_imp.id(91820275000001347)
+,p_list_item_current_type=>'TARGET_PAGE'
+);
+wwv_flow_imp_shared.create_list_item(
+ p_id=>wwv_flow_imp.id(91820275000001351)
+,p_list_item_display_sequence=>74
+,p_list_item_link_text=>'بطاقات التكلفة'
+,p_list_item_link_target=>'f?p=&APP_ID.:91:&APP_SESSION.::&DEBUG.:91::'
+,p_list_item_icon=>'fa-list-alt'
+,p_parent_list_item_id=>wwv_flow_imp.id(91820275000001347)
+,p_list_item_current_type=>'TARGET_PAGE'
+);
+wwv_flow_imp_shared.create_list_item(
+ p_id=>wwv_flow_imp.id(91820275000001352)
+,p_list_item_display_sequence=>75
+,p_list_item_link_text=>'إعادة التسعير والهوامش'
+,p_list_item_link_target=>'f?p=&APP_ID.:92:&APP_SESSION.::&DEBUG.:92::'
+,p_list_item_icon=>'fa-refresh'
+,p_parent_list_item_id=>wwv_flow_imp.id(91820275000001347)
+,p_list_item_current_type=>'TARGET_PAGE'
+);
 wwv_flow_imp.component_end;
 end;
 /

@@ -747,5 +747,10 @@ app.nav_item('عمولات الأطباء', 73, 'fa-percent', 61)
 app.nav_item('الربط الإلكتروني', 67, 'fa-plug', 57, parent=st)
 app.nav_item('سجل رسائل الربط', 68, 'fa-exchange', 58, parent=st)
 
+# التسعير والعروض والباقات للخدمات الطبية والأصناف (90-94)
+import prc_pages
+prc_pages.build(app, url, HIS, 90, ('HIS', 'ITEMS'), 'HIS')
+prc_pages.nav(app, 90, 70)
+
 app.finalize()
 print('NOONA_HIS built:', len(app.pages), 'pages')

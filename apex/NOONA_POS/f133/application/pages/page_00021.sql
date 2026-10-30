@@ -65,6 +65,8 @@ wwv_flow_imp_page.create_page(
 '        h += ''<div class="nn-td-scan"><span class="fa fa-barcode" aria-hidden="true"></span>''',
 '           + ''<input type="search" class="nn-td-find" placeholder="امسح الباركود أو اكتب رقم الصنف / الكود / رقم القطعة / الاسم / المادة الفعالة ثم Enter" autocomplete="off">''',
 '           + (cf.free ? ''<button type="button" class="t-Button nn-td-free">بند بدون صنف (خدمة / مصروف)</button>'' : '''')',
+'           + (cf.promo ? ''<input class="nn-td-coupon" placeholder="كوبون" autocomplete="off"><button type="button" class="t-Button nn-td-promo">''',
+'                       + ''<span class="fa fa-percent" aria-hidden="true"></span> تطبيق العروض</button>'' : '''')',
 '           + ''<div class="nn-td-results" hidden></div></div>'';',
 '    }',
 '    h += ''<div class="nn-td-wrap"><table class="nn-td-table"><thead></thead><tbody></tbody><tfoot></tfoot></table></div>''',
@@ -190,6 +192,32 @@ wwv_flow_imp_page.create_page(
 '    }',
 '    var free = root.querySelector(''.nn-td-free'');',
 '    if (free) free.addEventListener(''click'', function () { lines.push({i: null, d: '''', q: 1, p: '''', tc: ''VAT15'', inc: ''N'', acc: cf.defAcc || ''''}); render(); });',
+'    // العروض من محرك التسعير: خصم كل سطر صنف، ثم عرض قيمة الفاتورة موزعاً على الأسطر بنسبة صافيها',
+'    var promoBtn = root.querySelector(''.nn-td-promo'');',
+'    if (promoBtn) promoBtn.addEventListener(''click'', function () {',
+'        var msg = root.querySelector(''.nn-doc-msg''), cpn = root.querySelector(''.nn-td-coupon'');',
+'        var idx = [], req = {coupon: (cpn && cpn.value.trim()) || null, lines: []};',
+'        lines.forEach(function (l, i) { if (l.i) { idx.push(i); req.lines.push({k: i, t: ''ITEM'', id: l.i, q: num(l.q), p: num(l.p)}); } });',
+'        if (!req.lines.length) return;',
+'        apex.server.process(''QUOTE'', {p_clob_01: JSON.stringify(req)}, {dataType: ''json''}).done(function (r) {',
+'            if (!r || r.ok === false) { msg.className = ''nn-doc-msg is-bad''; msg.textContent = (r && r.msg) || ''تعذر حساب العروض''; return; }',
+'            var names = [];',
+'            (r.lines || []).forEach(function (x) { lines[x.k].disc = num(x.disc) ? num(x.disc).toFixed(2) : ''''; if (x.promo && names.indexOf(x.promo) < 0) names.push(x.promo); });',
+'            var dd = num(r.docDisc);',
+'            if (dd > 0) {',
+'                var base = idx.map(function (i) { return Math.max(num(lines[i].q) * num(lines[i].p) - num(lines[i].disc), 0); }), sum = 0, done = 0;',
+'                base.forEach(function (b) { sum += b; });',
+'                idx.forEach(function (i, k) {',
+'                    var v = k === idx.length - 1 ? Math.round((dd - done) * 100) / 100 : Math.round(dd * base[k] / sum * 100) / 100;',
+'                    done += v; lines[i].disc = (num(lines[i].disc) + v).toFixed(2);',
+'                });',
+'                names.push(r.doc.name);',
+'            }',
+'            render();',
+'            msg.className = ''nn-doc-msg is-ok'';',
+'            msg.textContent = names.length ? ''تم تطبيق: '' + names.join(''، '') + '' - إجمالي الخصم '' + money(num(r.lineDisc) + dd) : ''لا توجد عروض سارية على هذه الأصناف'';',
+'        });',
+'    });',
 '    root.addEventListener(''input'', function (e) {',
 '        var c = e.target.dataset.c; if (c == null || e.target.dataset.l == null) return;',
 '        var l = lines[+e.target.dataset.l];',
@@ -323,7 +351,7 @@ wwv_flow_imp_page.create_page_plug(
 '    function js(p clob) return clob is begin return replace(p, ''</'', ''<\/''); end;',
 'begin',
 '    return ''<script type="application/json" id="nnTdData">'' || js(noona_sal_pkg.invoice_json(:P21_ID)) || ''</script>''',
-'        || ''<script type="application/json" id="nnTdConf">'' || js(q''~{"kind": "SI", "title": "فاتورة مبيعات", "purpose": "SALE", "cols": ["d", "q", "p", "inc", "disc", "tc"], "free": true, "lots": false, "header": [{"k": "cust", "l": "العميل", "t": "select", "o": "custs", "req": true}, {"k": "date", "l": "التاريخ", "t": "date"}, {"k": "mode", "l": "طريقة البيع", "t": "select", "o": [{"v": "CASH", "n": "نقدي / فوري"}, {"v": "CREDIT", "n": "آجل (على حساب العميل)"}], "req": true}, {"k": "place", "l": "التحصيل في", "t": "select", "o": "places", "show": "mode=CASH"}, {"k": "wh", "l": "مستودع الصرف", "t": "select", "o": "whs"}, {"k": "cc", "l": "مركز الربحية", "t": "select", "o": "ccs"}, {"k": "name", "l": "اسم العميل على الفاتورة (للعميل العام)", "t": "text"}, {"k": "taxNo", "l": "الرقم الضريبي للعميل", "t": "text"}, {"k": "rx", "l": "رقم الوصفة الطبية (للأدوية الوصفية)", "t": "text"}], "actions": [{"a": "SAVE", "n": "حفظ مسودة"}, {"a": "POST", "n": "ترحيل الفاتورة", "hot": true, "confirm": "سيتم صرف الأصناف من المخزون وترحيل القيد. متابعة؟"}]}~'') || ''</script>''',
+'        || ''<script type="application/json" id="nnTdConf">'' || js(q''~{"kind": "SI", "title": "فاتورة مبيعات", "purpose": "SALE", "cols": ["d", "q", "p", "inc", "disc", "tc"], "free": true, "lots": false, "promo": "SALES", "header": [{"k": "cust", "l": "العميل", "t": "select", "o": "custs", "req": true}, {"k": "date", "l": "التاريخ", "t": "date"}, {"k": "mode", "l": "طريقة البيع", "t": "select", "o": [{"v": "CASH", "n": "نقدي / فوري"}, {"v": "CREDIT", "n": "آجل (على حساب العميل)"}], "req": true}, {"k": "place", "l": "التحصيل في", "t": "select", "o": "places", "show": "mode=CASH"}, {"k": "wh", "l": "مستودع الصرف", "t": "select", "o": "whs"}, {"k": "cc", "l": "مركز الربحية", "t": "select", "o": "ccs"}, {"k": "name", "l": "اسم العميل على الفاتورة (للعميل العام)", "t": "text"}, {"k": "taxNo", "l": "الرقم الضريبي للعميل", "t": "text"}, {"k": "rx", "l": "رقم الوصفة الطبية (للأدوية الوصفية)", "t": "text"}], "actions": [{"a": "SAVE", "n": "حفظ مسودة"}, {"a": "POST", "n": "ترحيل الفاتورة", "hot": true, "confirm": "سيتم صرف الأصناف من المخزون وترحيل القيد. متابعة؟"}]}~'') || ''</script>''',
 '        || ''<script type="application/json" id="nnTdLists">'' || js(noona_inv_pkg.lists_json(''custs,whs,taxes,ccs,places,revs'')) || ''</script>''',
 '        || ''<div id="nnTd" class="nn-doc nn-td" data-ro="'' || l_ro || ''" data-co="''',
 '        || apex_escape.html_attribute(noona_apex_pkg.company_name) || ''"></div>'';',
@@ -391,8 +419,28 @@ wwv_flow_imp_page.create_page_process(
 ,p_error_display_location=>'INLINE_IN_NOTIFICATION'
 ,p_internal_uid=>91820269000000092
 );
-wwv_flow_imp_page.create_page_plug(
+wwv_flow_imp_page.create_page_process(
  p_id=>wwv_flow_imp.id(91820269000000093)
+,p_process_sequence=>3
+,p_process_point=>'ON_DEMAND'
+,p_process_type=>'NATIVE_PLSQL'
+,p_process_name=>'QUOTE'
+,p_process_sql_clob=>wwv_flow_string.join(wwv_flow_t_varchar2(
+'begin',
+'    apex_util.prn(noona_prc_pkg.quote_cart(apex_application.g_clob_01, ''SALES''), false);',
+'exception when others then',
+'    rollback;',
+'    apex_json.open_object;',
+'    apex_json.write(''ok'', false);',
+'    apex_json.write(''msg'', nvl(trim(regexp_substr(sqlerrm, ''NOONA-[A-Z]+-[0-9]+: [^['' || chr(10) || '']+'')), sqlerrm));',
+'    apex_json.close_object;',
+'end;'))
+,p_process_clob_language=>'PLSQL'
+,p_error_display_location=>'INLINE_IN_NOTIFICATION'
+,p_internal_uid=>91820269000000093
+);
+wwv_flow_imp_page.create_page_plug(
+ p_id=>wwv_flow_imp.id(91820269000000094)
 ,p_plug_name=>'الإجراءات'
 ,p_region_template_options=>'#DEFAULT#'
 ,p_plug_template=>4072358936313175081
@@ -406,9 +454,9 @@ wwv_flow_imp_page.create_page_plug(
   'show_line_breaks', 'Y')).to_clob
 );
 wwv_flow_imp_page.create_page_button(
- p_id=>wwv_flow_imp.id(91820269000000094)
+ p_id=>wwv_flow_imp.id(91820269000000095)
 ,p_button_sequence=>10
-,p_button_plug_id=>wwv_flow_imp.id(91820269000000093)
+,p_button_plug_id=>wwv_flow_imp.id(91820269000000094)
 ,p_button_name=>'PRINT'
 ,p_button_action=>'REDIRECT_URL'
 ,p_button_template_options=>'#DEFAULT#'
@@ -421,9 +469,9 @@ wwv_flow_imp_page.create_page_button(
 ,p_button_condition_type=>'EXPRESSION'
 );
 wwv_flow_imp_page.create_page_button(
- p_id=>wwv_flow_imp.id(91820269000000095)
+ p_id=>wwv_flow_imp.id(91820269000000096)
 ,p_button_sequence=>20
-,p_button_plug_id=>wwv_flow_imp.id(91820269000000093)
+,p_button_plug_id=>wwv_flow_imp.id(91820269000000094)
 ,p_button_name=>'RETURN'
 ,p_button_action=>'REDIRECT_URL'
 ,p_button_template_options=>'#DEFAULT#'
@@ -436,9 +484,9 @@ wwv_flow_imp_page.create_page_button(
 ,p_button_condition_type=>'EXPRESSION'
 );
 wwv_flow_imp_page.create_page_button(
- p_id=>wwv_flow_imp.id(91820269000000096)
+ p_id=>wwv_flow_imp.id(91820269000000097)
 ,p_button_sequence=>30
-,p_button_plug_id=>wwv_flow_imp.id(91820269000000093)
+,p_button_plug_id=>wwv_flow_imp.id(91820269000000094)
 ,p_button_name=>'RECEIVE'
 ,p_button_action=>'REDIRECT_URL'
 ,p_button_template_options=>'#DEFAULT#'
@@ -452,9 +500,9 @@ wwv_flow_imp_page.create_page_button(
 ,p_button_condition_type=>'EXPRESSION'
 );
 wwv_flow_imp_page.create_page_button(
- p_id=>wwv_flow_imp.id(91820269000000097)
+ p_id=>wwv_flow_imp.id(91820269000000098)
 ,p_button_sequence=>40
-,p_button_plug_id=>wwv_flow_imp.id(91820269000000093)
+,p_button_plug_id=>wwv_flow_imp.id(91820269000000094)
 ,p_button_name=>'CANCEL_INV'
 ,p_button_action=>'SUBMIT'
 ,p_button_template_options=>'#DEFAULT#'
@@ -466,7 +514,7 @@ wwv_flow_imp_page.create_page_button(
 ,p_button_condition_type=>'EXPRESSION'
 );
 wwv_flow_imp_page.create_page_process(
- p_id=>wwv_flow_imp.id(91820269000000098)
+ p_id=>wwv_flow_imp.id(91820269000000099)
 ,p_process_sequence=>20
 ,p_process_point=>'AFTER_SUBMIT'
 ,p_process_type=>'NATIVE_PLSQL'
@@ -475,12 +523,12 @@ wwv_flow_imp_page.create_page_process(
 'noona_sal_pkg.cancel_invoice(:P21_ID);'))
 ,p_process_clob_language=>'PLSQL'
 ,p_error_display_location=>'INLINE_IN_NOTIFICATION'
-,p_process_when_button_id=>wwv_flow_imp.id(91820269000000097)
+,p_process_when_button_id=>wwv_flow_imp.id(91820269000000098)
 ,p_process_success_message=>'تم إلغاء المسودة'
-,p_internal_uid=>91820269000000098
+,p_internal_uid=>91820269000000099
 );
 wwv_flow_imp_page.create_page_branch(
- p_id=>wwv_flow_imp.id(91820269000000099)
+ p_id=>wwv_flow_imp.id(91820269000000100)
 ,p_branch_action=>'f?p=&APP_ID.:21:&SESSION.::&DEBUG.:21:P21_ID:&P21_ID.&success_msg=#SUCCESS_MSG#'
 ,p_branch_point=>'AFTER_PROCESSING'
 ,p_branch_type=>'REDIRECT_URL'

@@ -65,6 +65,8 @@ wwv_flow_imp_page.create_page(
 '        h += ''<div class="nn-td-scan"><span class="fa fa-barcode" aria-hidden="true"></span>''',
 '           + ''<input type="search" class="nn-td-find" placeholder="امسح الباركود أو اكتب رقم الصنف / الكود / رقم القطعة / الاسم / المادة الفعالة ثم Enter" autocomplete="off">''',
 '           + (cf.free ? ''<button type="button" class="t-Button nn-td-free">بند بدون صنف (خدمة / مصروف)</button>'' : '''')',
+'           + (cf.promo ? ''<input class="nn-td-coupon" placeholder="كوبون" autocomplete="off"><button type="button" class="t-Button nn-td-promo">''',
+'                       + ''<span class="fa fa-percent" aria-hidden="true"></span> تطبيق العروض</button>'' : '''')',
 '           + ''<div class="nn-td-results" hidden></div></div>'';',
 '    }',
 '    h += ''<div class="nn-td-wrap"><table class="nn-td-table"><thead></thead><tbody></tbody><tfoot></tfoot></table></div>''',
@@ -190,6 +192,32 @@ wwv_flow_imp_page.create_page(
 '    }',
 '    var free = root.querySelector(''.nn-td-free'');',
 '    if (free) free.addEventListener(''click'', function () { lines.push({i: null, d: '''', q: 1, p: '''', tc: ''VAT15'', inc: ''N'', acc: cf.defAcc || ''''}); render(); });',
+'    // العروض من محرك التسعير: خصم كل سطر صنف، ثم عرض قيمة الفاتورة موزعاً على الأسطر بنسبة صافيها',
+'    var promoBtn = root.querySelector(''.nn-td-promo'');',
+'    if (promoBtn) promoBtn.addEventListener(''click'', function () {',
+'        var msg = root.querySelector(''.nn-doc-msg''), cpn = root.querySelector(''.nn-td-coupon'');',
+'        var idx = [], req = {coupon: (cpn && cpn.value.trim()) || null, lines: []};',
+'        lines.forEach(function (l, i) { if (l.i) { idx.push(i); req.lines.push({k: i, t: ''ITEM'', id: l.i, q: num(l.q), p: num(l.p)}); } });',
+'        if (!req.lines.length) return;',
+'        apex.server.process(''QUOTE'', {p_clob_01: JSON.stringify(req)}, {dataType: ''json''}).done(function (r) {',
+'            if (!r || r.ok === false) { msg.className = ''nn-doc-msg is-bad''; msg.textContent = (r && r.msg) || ''تعذر حساب العروض''; return; }',
+'            var names = [];',
+'            (r.lines || []).forEach(function (x) { lines[x.k].disc = num(x.disc) ? num(x.disc).toFixed(2) : ''''; if (x.promo && names.indexOf(x.promo) < 0) names.push(x.promo); });',
+'            var dd = num(r.docDisc);',
+'            if (dd > 0) {',
+'                var base = idx.map(function (i) { return Math.max(num(lines[i].q) * num(lines[i].p) - num(lines[i].disc), 0); }), sum = 0, done = 0;',
+'                base.forEach(function (b) { sum += b; });',
+'                idx.forEach(function (i, k) {',
+'                    var v = k === idx.length - 1 ? Math.round((dd - done) * 100) / 100 : Math.round(dd * base[k] / sum * 100) / 100;',
+'                    done += v; lines[i].disc = (num(lines[i].disc) + v).toFixed(2);',
+'                });',
+'                names.push(r.doc.name);',
+'            }',
+'            render();',
+'            msg.className = ''nn-doc-msg is-ok'';',
+'            msg.textContent = names.length ? ''تم تطبيق: '' + names.join(''، '') + '' - إجمالي الخصم '' + money(num(r.lineDisc) + dd) : ''لا توجد عروض سارية على هذه الأصناف'';',
+'        });',
+'    });',
 '    root.addEventListener(''input'', function (e) {',
 '        var c = e.target.dataset.c; if (c == null || e.target.dataset.l == null) return;',
 '        var l = lines[+e.target.dataset.l];',
@@ -239,7 +267,7 @@ wwv_flow_imp_page.create_page(
 ,p_protection_level=>'N'
 );
 wwv_flow_imp_page.create_page_plug(
- p_id=>wwv_flow_imp.id(91820269000000100)
+ p_id=>wwv_flow_imp.id(91820269000000101)
 ,p_plug_name=>'المرتجع'
 ,p_region_template_options=>'#DEFAULT#:t-Region--noUI:t-Region--removeHeader js-removeLandmark'
 ,p_plug_template=>4072358936313175081
@@ -250,17 +278,17 @@ wwv_flow_imp_page.create_page_plug(
   'show_line_breaks', 'Y')).to_clob
 );
 wwv_flow_imp_page.create_page_item(
- p_id=>wwv_flow_imp.id(91820269000000101)
+ p_id=>wwv_flow_imp.id(91820269000000102)
 ,p_name=>'P22_INV'
 ,p_item_sequence=>1
-,p_item_plug_id=>wwv_flow_imp.id(91820269000000100)
+,p_item_plug_id=>wwv_flow_imp.id(91820269000000101)
 ,p_display_as=>'NATIVE_HIDDEN'
 ,p_protection_level=>'N'
 ,p_attributes=>wwv_flow_t_plugin_attributes(wwv_flow_t_varchar2(
   'value_protected', 'N')).to_clob
 );
 wwv_flow_imp_page.create_page_plug(
- p_id=>wwv_flow_imp.id(91820269000000102)
+ p_id=>wwv_flow_imp.id(91820269000000103)
 ,p_plug_name=>'مرتجع المبيعات'
 ,p_region_template_options=>'#DEFAULT#:t-Region--noUI:t-Region--removeHeader js-removeLandmark:t-Region--noUI'
 ,p_plug_template=>4072358936313175081
@@ -280,7 +308,7 @@ wwv_flow_imp_page.create_page_plug(
 ,p_plug_source_type=>'NATIVE_DYNAMIC_CONTENT'
 );
 wwv_flow_imp_page.create_page_process(
- p_id=>wwv_flow_imp.id(91820269000000103)
+ p_id=>wwv_flow_imp.id(91820269000000104)
 ,p_process_sequence=>1
 ,p_process_point=>'ON_DEMAND'
 ,p_process_type=>'NATIVE_PLSQL'
@@ -304,7 +332,7 @@ wwv_flow_imp_page.create_page_process(
 'end;'))
 ,p_process_clob_language=>'PLSQL'
 ,p_error_display_location=>'INLINE_IN_NOTIFICATION'
-,p_internal_uid=>91820269000000103
+,p_internal_uid=>91820269000000104
 );
 
 wwv_flow_imp.component_end;
