@@ -139,6 +139,7 @@ async function outcome(page, errs) {
     const queue = [...targets];
     while (queue.length) {
       const t = queue.shift();
+      try {
       errs.length = 0;
       await page.goto(t.h, { timeout: 60000 }).catch(() => {}); await page.waitForLoadState('networkidle', { timeout: 30000 }).catch(() => {});
       const open = await outcome(page, errs);
@@ -166,6 +167,12 @@ async function outcome(page, errs) {
         const o = await outcome(page, errs);
         results.push({ app: app[0], appName: app[1], screen: t.t, step: (r.title || 'نموذج') + ' ← ' + r.btn, filled, ...o });
         console.log(`  ${o.k === 'ok' ? '✓' : o.k === 'rejected' ? '·' : '✗'} ${t.t} | ${r.title} ← ${r.btn} [${filled}] ${o.k}: ${o.msg.slice(0, 110)}`);
+      }
+      } catch (e) {
+        // شاشة تعطلت (نافذة أغلقت أو مهلة): تسجل وتكمل المراجعة
+        results.push({ app: app[0], appName: app[1], screen: t.t, step: 'المراجعة', k: 'technical', msg: 'تعطل أثناء المراجعة: ' + String(e.message).slice(0, 200) });
+        console.log(`  ✗ ${t.t}: crashed ${String(e.message).slice(0, 120)}`);
+        if (page.isClosed()) { delete sessions[user]; break; }               // الجلسة التالية تبدأ بدخول جديد
       }
     }
   }
