@@ -274,6 +274,16 @@ b_add = p.button(fo, 10, 'ADD', 'إضافة الطلب', hot=True)
 p.process(10, 'AFTER_SUBMIT', 'Add Order', ['declare l number;', 'begin',
     '    l := noona_his_pkg.add_order(:P31_ID, to_number(:P31_SERVICE), nvl(to_number(:P31_QTY), 1), null, :P31_ONOTES);',
     '    :P31_SERVICE := null; :P31_QTY := null; :P31_ONOTES := null;', 'end;'], when_button=b_add, success='أضيف الطلب')
+fb = p.static('باقة خدمات (فحص شامل، متابعة، باقات العروض)', 11, condition=OPEN + " and exists (select 1 from sal_bundle where company_id = noona_prc_pkg.company and status_code = 'ACTIVE')")
+p.select('P31_BUNDLE', fb, 10, 'الباقة', lov_sql=(
+    "select name_ar || ' - ' || to_char(noona_prc_pkg.bundle_price(id), 'FM999,990.00') d, id r from sal_bundle "
+    "where company_id = noona_prc_pkg.company and status_code = 'ACTIVE' and trunc(sysdate) between effective_from and nvl(effective_to, trunc(sysdate)) "
+    "and (channels is null or instr(',' || channels || ',', ',HIS,') > 0) order by name_ar"))
+b_bnd = p.button(fb, 10, 'ADD_BUNDLE', 'إضافة الباقة')
+p.process(11, 'AFTER_SUBMIT', 'Add Bundle', ['declare l number;', 'begin',
+    '    l := noona_his_pkg.add_bundle(:P31_ID, to_number(:P31_BUNDLE));',
+    "    apex_application.g_print_success_message := 'أضيفت الباقة: ' || l || ' خدمات بسعر الباقة';", '    :P31_BUNDLE := null;', 'end;'],
+    when_button=b_bnd)
 fpay = p.static('طريقة الدفع والتأمين (اختياري)', 12, condition=OPEN)
 p.select('P31_BILLTO', fpay, 10, 'الدفع', lov_sql='STATIC2:نقدي بدون تأمين;CASH,على التأمين/الجهة;PAYER', null_text=None)
 b_bt = p.button(fpay, 10, 'SET_BILLING', 'تغيير طريقة الدفع (يعاد تسعير غير المفوتر)')

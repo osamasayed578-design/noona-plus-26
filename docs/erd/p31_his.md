@@ -4,7 +4,7 @@
 
 الأقسام والعيادات والمعامل والأشعة والصيدليات الداخلية والوحدات العلاجية كأقسام مستقلة بمستودعاتها ومراكز تكلفتها، الأطباء وساعات العمل، دليل الخدمات الطبية ومواد كل فحص، شركات التأمين والجهات المتعاقدة بفئاتها وأسعارها، المرضى والحجوزات والزيارات والطلبات الطبية ونتائجها، والفواتير بحصة المريض وحصة الجهة والقيد المحاسبي.
 
-الجداول الخارجية المرتبطة (من حزم أخرى): `ACE_ACCOUNTING_EVENT`, `AR_CUSTOMER_ACCOUNT`, `FA_ASSET`, `GL_ACCOUNT`, `GL_COST_CENTER`, `HR_EMPLOYEE`, `INV_ITEM`, `INV_TRANSACTION`, `INV_WAREHOUSE`, `ORG_BRANCH`, `ORG_COMPANY`, `REF_COUNTRY`
+الجداول الخارجية المرتبطة (من حزم أخرى): `ACE_ACCOUNTING_EVENT`, `AR_CUSTOMER_ACCOUNT`, `FA_ASSET`, `GL_ACCOUNT`, `GL_COST_CENTER`, `HR_EMPLOYEE`, `INV_ITEM`, `INV_TRANSACTION`, `INV_WAREHOUSE`, `ORG_BRANCH`, `ORG_COMPANY`, `REF_COUNTRY`, `SAL_BUNDLE`
 
 ```mermaid
 erDiagram
@@ -139,6 +139,7 @@ erDiagram
     NUMBER DEPARTMENT_ID FK
     NUMBER ORDERED_BY_ID FK
     NUMBER PERFORMED_BY_ID FK
+    NUMBER BUNDLE_ID FK
     NUMBER INVOICE_ID FK
     NUMBER MATERIAL_TXN_ID FK
     NUMBER COMMISSION_ID FK
@@ -405,6 +406,9 @@ erDiagram
   ACE_ACCOUNTING_EVENT {
     NUMBER ID PK
   }
+  SAL_BUNDLE {
+    NUMBER ID PK
+  }
   INV_TRANSACTION {
     NUMBER ID PK
   }
@@ -553,6 +557,7 @@ erDiagram
   ORG_COMPANY ||--o{ HIS_VISIT : "COMPANY_ID"
   ORG_COMPANY ||--o{ HIS_VITAL_SIGN : "COMPANY_ID"
   REF_COUNTRY |o--o{ HIS_PATIENT : "NATIONALITY"
+  SAL_BUNDLE |o--o{ HIS_ORDER : "BUNDLE_ID"
 ```
 
 ## الجداول

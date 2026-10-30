@@ -54,5 +54,5 @@
 | 31 | المستشفيات والمراكز الطبية | Hospital & Clinics | `NOONA_HIS_PKG` | 40 | [p31_his](p31_his.md) |
 | 32 | مراكز خدمة السيارات | Auto Service Centers | `NOONA_AUT_PKG` | 10 | [p32_aut](p32_aut.md) |
 
-**الإجمالي:** 644 جدول · 11369 عمود.
+**الإجمالي:** 644 جدول · 11371 عمود.
 

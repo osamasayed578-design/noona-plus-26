@@ -58,7 +58,7 @@ wwv_flow_imp_page.create_page(
 ,p_protection_level=>'N'
 );
 wwv_flow_imp_page.create_page_plug(
- p_id=>wwv_flow_imp.id(91820275000001090)
+ p_id=>wwv_flow_imp.id(91820275000001094)
 ,p_plug_name=>'الجناح'
 ,p_region_template_options=>'#DEFAULT#:nn-rpt-filters:t-Region--removeHeader js-removeLandmark'
 ,p_plug_template=>4072358936313175081
@@ -69,10 +69,10 @@ wwv_flow_imp_page.create_page_plug(
   'show_line_breaks', 'Y')).to_clob
 );
 wwv_flow_imp_page.create_page_item(
- p_id=>wwv_flow_imp.id(91820275000001091)
+ p_id=>wwv_flow_imp.id(91820275000001095)
 ,p_name=>'P75_WARD'
 ,p_item_sequence=>10
-,p_item_plug_id=>wwv_flow_imp.id(91820275000001090)
+,p_item_plug_id=>wwv_flow_imp.id(91820275000001094)
 ,p_prompt=>'الجناح'
 ,p_display_as=>'NATIVE_SELECT_LIST'
 ,p_lov=>'select name_ar d, id r from his_department where company_id = noona_his_pkg.company and dept_type in (''INPATIENT_WARD'', ''EMERGENCY'', ''NURSING'') order by name_ar'
@@ -86,10 +86,10 @@ wwv_flow_imp_page.create_page_item(
   'page_action_on_selection', 'SUBMIT')).to_clob
 );
 wwv_flow_imp_page.create_page_item(
- p_id=>wwv_flow_imp.id(91820275000001092)
+ p_id=>wwv_flow_imp.id(91820275000001096)
 ,p_name=>'P75_HOURS'
 ,p_item_sequence=>20
-,p_item_plug_id=>wwv_flow_imp.id(91820275000001090)
+,p_item_plug_id=>wwv_flow_imp.id(91820275000001094)
 ,p_prompt=>'المستحق خلال'
 ,p_display_as=>'NATIVE_SELECT_LIST'
 ,p_lov=>'STATIC2:ساعة;1,ساعتين;2,4 ساعات;4,8 ساعات;8,24 ساعة;24'
@@ -102,9 +102,9 @@ wwv_flow_imp_page.create_page_item(
   'page_action_on_selection', 'SUBMIT')).to_clob
 );
 wwv_flow_imp_page.create_page_button(
- p_id=>wwv_flow_imp.id(91820275000001093)
+ p_id=>wwv_flow_imp.id(91820275000001097)
 ,p_button_sequence=>10
-,p_button_plug_id=>wwv_flow_imp.id(91820275000001090)
+,p_button_plug_id=>wwv_flow_imp.id(91820275000001094)
 ,p_button_name=>'ENABLE_SOUND'
 ,p_button_action=>'REDIRECT_URL'
 ,p_button_template_options=>'#DEFAULT#'
@@ -114,7 +114,7 @@ wwv_flow_imp_page.create_page_button(
 ,p_button_redirect_url=>'javascript:nnNurseEnable();'
 );
 wwv_flow_imp_page.create_page_process(
- p_id=>wwv_flow_imp.id(91820275000001094)
+ p_id=>wwv_flow_imp.id(91820275000001098)
 ,p_process_sequence=>2
 ,p_process_point=>'BEFORE_HEADER'
 ,p_process_type=>'NATIVE_PLSQL'
@@ -126,10 +126,10 @@ wwv_flow_imp_page.create_page_process(
 'end;'))
 ,p_process_clob_language=>'PLSQL'
 ,p_error_display_location=>'INLINE_IN_NOTIFICATION'
-,p_internal_uid=>91820275000001094
+,p_internal_uid=>91820275000001098
 );
 wwv_flow_imp_page.create_page_plug(
- p_id=>wwv_flow_imp.id(91820275000001095)
+ p_id=>wwv_flow_imp.id(91820275000001099)
 ,p_plug_name=>'التنبيهات'
 ,p_region_template_options=>'#DEFAULT#:t-Region--scrollBody:t-Region--removeHeader js-removeLandmark:t-Region--noUI'
 ,p_plug_template=>4072358936313175081
@@ -143,7 +143,7 @@ wwv_flow_imp_page.create_page_plug(
 ,p_plug_source_type=>'NATIVE_DYNAMIC_CONTENT'
 );
 wwv_flow_imp_page.create_page_plug(
- p_id=>wwv_flow_imp.id(91820275000001096)
+ p_id=>wwv_flow_imp.id(91820275000001100)
 ,p_plug_name=>'المناوبون'
 ,p_region_template_options=>'#DEFAULT#:t-Region--scrollBody:t-Region--removeHeader js-removeLandmark:t-Region--noUI'
 ,p_plug_template=>4072358936313175081
@@ -157,7 +157,7 @@ wwv_flow_imp_page.create_page_plug(
 ,p_plug_source_type=>'NATIVE_DYNAMIC_CONTENT'
 );
 wwv_flow_imp_page.create_page_plug(
- p_id=>wwv_flow_imp.id(91820275000001097)
+ p_id=>wwv_flow_imp.id(91820275000001101)
 ,p_plug_name=>'المرضى'
 ,p_region_template_options=>'#DEFAULT#:t-Region--scrollBody:t-Region--removeHeader js-removeLandmark:t-Region--noUI'
 ,p_plug_template=>4072358936313175081
@@ -171,7 +171,7 @@ wwv_flow_imp_page.create_page_plug(
 ,p_plug_source_type=>'NATIVE_DYNAMIC_CONTENT'
 );
 wwv_flow_imp_page.create_page_plug(
- p_id=>wwv_flow_imp.id(91820275000001098)
+ p_id=>wwv_flow_imp.id(91820275000001102)
 ,p_plug_name=>'المستحق من الجرعات والمتابعة'
 ,p_region_template_options=>'#DEFAULT#:t-Region--scrollBody'
 ,p_plug_template=>4072358936313175081
@@ -185,7 +185,7 @@ wwv_flow_imp_page.create_page_plug(
 ,p_plug_source_type=>'NATIVE_DYNAMIC_CONTENT'
 );
 wwv_flow_imp_page.create_page_process(
- p_id=>wwv_flow_imp.id(91820275000001099)
+ p_id=>wwv_flow_imp.id(91820275000001103)
 ,p_process_sequence=>1
 ,p_process_point=>'ON_DEMAND'
 ,p_process_type=>'NATIVE_PLSQL'
@@ -200,10 +200,10 @@ wwv_flow_imp_page.create_page_process(
 'end;'))
 ,p_process_clob_language=>'PLSQL'
 ,p_error_display_location=>'INLINE_IN_NOTIFICATION'
-,p_internal_uid=>91820275000001099
+,p_internal_uid=>91820275000001103
 );
 wwv_flow_imp_page.create_page_branch(
- p_id=>wwv_flow_imp.id(91820275000001100)
+ p_id=>wwv_flow_imp.id(91820275000001104)
 ,p_branch_action=>'f?p=&APP_ID.:75:&SESSION.::&DEBUG.::P75_WARD,P75_HOURS:&P75_WARD.,&P75_HOURS.'
 ,p_branch_point=>'AFTER_PROCESSING'
 ,p_branch_type=>'REDIRECT_URL'

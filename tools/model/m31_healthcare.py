@@ -192,7 +192,9 @@ ORDERED_BY_ID   ID   >HIS_DOCTOR | الطبيب الطالب
 PERFORMED_BY_ID ID   >HIS_DOCTOR | المنفذ
 UNIT_PRICE      AMT  NN          | سعر الوحدة (نقدي أو سعر العقد)
 GROSS_AMOUNT    AMT  NN          | الإجمالي
-DISCOUNT_AMOUNT AMT  NN D=0      | خصم العقد
+DISCOUNT_AMOUNT AMT  NN D=0      | خصم العقد أو العرض أو الباقة
+BUNDLE_ID       ID   >SAL_BUNDLE | الباقة (الخدمة ضمن باقة)
+BUNDLE_NET      AMT              | صافي الخدمة داخل الباقة (سعر الباقة الموزع)
 PATIENT_NET     AMT  NN D=0      | حصة المريض قبل الضريبة
 PAYER_NET       AMT  NN D=0      | حصة الجهة قبل الضريبة
 VAT_RATE        PCT  NN D=0      | نسبة الضريبة

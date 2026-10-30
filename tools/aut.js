@@ -208,7 +208,8 @@
       + '<div class="nn-aut-results" hidden></div>'
       + '<div class="nn-aut-tabs">' + cats.map(function (c) {
         return '<button type="button" data-cat="' + c.id + '" class="' + (c.id === S.cat ? 'is-on' : '') + '">' + icon(c.icon || 'fa-wrench') + ' ' + esc(c.name) + '</button>';
-      }).join('') + '</div><div class="nn-aut-cards"></div>';
+      }).join('') + ((BOOT.bundles || []).length ? '<button type="button" data-cat="-1" class="' + (S.cat === -1 ? 'is-on' : '') + '">' + icon('fa-gift') + ' الباقات</button>' : '')
+      + '</div><div class="nn-aut-cards"></div>';
     drawCards();
     var q = cat.querySelector('#nnAutQ');
     q.addEventListener('input', function () {
@@ -228,6 +229,14 @@
   function drawCards() {
     var c = (BOOT.cats || []).filter(function (x) { return x.id === S.cat; })[0];
     var box = cat.querySelector('.nn-aut-cards');
+    // الباقات من التسعير الموحد: خدمات وقطع بسعر الباقة
+    if (S.cat === -1) {
+      box.innerHTML = (BOOT.bundles || []).map(function (b) {
+        return '<button type="button" class="nn-aut-card" style="--c:#16a34a" data-bnd="' + b.id + '">' + icon('fa-gift') + '<b>' + esc(b.name) + '</b><span>'
+          + money(b.price) + '</span><small>' + (Number(b.listTotal) > Number(b.price) ? 'بدلاً من ' + money(b.listTotal) : '') + '</small></button>';
+      }).join('');
+      return;
+    }
     if (!c) { box.innerHTML = '<div class="nn-empty">لا توجد خدمات؛ أضفها من إعداد الخدمات</div>'; return; }
     box.innerHTML = (c.services || []).map(function (s) {
       return '<button type="button" class="nn-aut-card" style="--c:' + esc(c.color || '#0067c0') + '" data-svc="' + s.id + '">' + icon(s.icon || 'fa-wrench')
@@ -319,6 +328,11 @@
     if ((t = e.target.closest('[data-svc]'))) {
       t.disabled = true;
       call('ADDSVC', [JOB, t.dataset.svc]).then(function (r) { t.disabled = false; load(r); toast('أضيفت الخدمة وقطعها'); }, function () { t.disabled = false; });
+      return;
+    }
+    if ((t = e.target.closest('[data-bnd]'))) {
+      t.disabled = true;
+      call('ADDBND', [JOB, t.dataset.bnd]).then(function (r) { t.disabled = false; load(r); toast('أضيفت الباقة بخدماتها وقطعها'); }, function () { t.disabled = false; });
       return;
     }
     if ((t = e.target.closest('[data-part]'))) { addPart(t.dataset.part, 1); return; }

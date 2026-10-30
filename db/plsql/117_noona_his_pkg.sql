@@ -62,6 +62,8 @@ CREATE OR REPLACE PACKAGE NOONA_HIS_PKG AUTHID DEFINER AS
   PROCEDURE update_visit(p_doc IN CLOB);
   FUNCTION add_order(p_visit_id IN NUMBER, p_service_id IN NUMBER, p_qty IN NUMBER DEFAULT 1, p_ordered_by IN NUMBER DEFAULT NULL,
                      p_notes IN VARCHAR2 DEFAULT NULL) RETURN NUMBER;
+  -- باقة خدمات من التسعير الموحد بسعرها الموزع على الخدمات
+  FUNCTION add_bundle(p_visit_id IN NUMBER, p_bundle_id IN NUMBER) RETURN NUMBER;
   PROCEDURE cancel_order(p_order_id IN NUMBER, p_reason IN VARCHAR2);
   PROCEDURE set_approval(p_order_id IN NUMBER, p_approval_no IN VARCHAR2, p_approved IN VARCHAR2 DEFAULT 'Y');
   -- توزيع حصص الطلبات غير المفوترة (السعر، التغطية، نسبة المريض وحده الأعلى، الضريبة)
@@ -742,6 +744,7 @@ CREATE OR REPLACE PACKAGE BODY NOONA_HIS_PKG AS
     l_net  NUMBER;
     l_pt   NUMBER;
     l_py   NUMBER;
+    l_disc NUMBER;
   BEGIN
     SELECT * INTO l_v FROM his_visit WHERE id = p_visit_id;
     SELECT * INTO l_p FROM his_patient WHERE id = l_v.patient_id;
@@ -754,11 +757,20 @@ CREATE OR REPLACE PACKAGE BODY NOONA_HIS_PKG AS
       SELECT NVL(SUM(patient_net), 0) INTO l_used FROM his_order
        WHERE visit_id = p_visit_id AND invoice_id IS NOT NULL AND covered = 'Y' AND status_code <> 'CANCELLED';
     END IF;
-    FOR o IN (SELECT id, service_id, quantity, status_code, approval_no FROM his_order
+    FOR o IN (SELECT id, service_id, quantity, status_code, approval_no, bundle_id, bundle_net FROM his_order
                WHERE visit_id = p_visit_id AND invoice_id IS NULL AND status_code <> 'CANCELLED' ORDER BY line_no FOR UPDATE) LOOP
       l_pr := price_of(o.service_id, l_v.payer_plan_id, l_v.bill_to, l_p.insurance_expiry);
       l_gross := ROUND(l_pr.unit * o.quantity, 2);
-      l_net := l_gross;
+      -- الخدمة على المريض بالسعر النقدي: سعرها داخل الباقة، أو أفضل عرض ساري لقناة المستشفيات؛ المغطاة بسعر العقد
+      l_disc := 0;
+      IF l_pr.covered = 'N' THEN
+        IF o.bundle_id IS NOT NULL AND o.bundle_net IS NOT NULL THEN
+          l_disc := GREATEST(LEAST(l_gross - o.bundle_net, l_gross), 0);
+        ELSE
+          l_disc := NOONA_PRC_PKG.line_discount('HIS_SERVICE', o.service_id, o.quantity, l_pr.unit, 'HIS');
+        END IF;
+      END IF;
+      l_net := l_gross - l_disc;
       IF l_pr.covered = 'Y' THEN
         l_pt := ROUND(l_net * l_pr.pct / 100, 2);
         IF l_cap IS NOT NULL THEN
@@ -769,7 +781,7 @@ CREATE OR REPLACE PACKAGE BODY NOONA_HIS_PKG AS
       ELSE
         l_pt := l_net; l_py := 0;
       END IF;
-      UPDATE his_order SET unit_price = l_pr.unit, gross_amount = l_gross, discount_amount = 0, patient_net = l_pt, payer_net = l_py,
+      UPDATE his_order SET unit_price = l_pr.unit, gross_amount = l_gross, discount_amount = l_disc, patient_net = l_pt, payer_net = l_py,
                            vat_rate = l_rate, patient_vat = ROUND(l_pt * l_rate / 100, 2), payer_vat = ROUND(l_py * l_rate / 100, 2),
                            covered = l_pr.covered,
                            status_code = CASE WHEN o.status_code IN ('ORDERED', 'APPROVAL_PENDING')
@@ -817,6 +829,36 @@ CREATE OR REPLACE PACKAGE BODY NOONA_HIS_PKG AS
     recalc_visit(p_visit_id);
     RETURN l_id;
   END add_order;
+
+  -- باقة خدمات (فحص شامل، متابعة حمل...) من التسعير الموحد: طلب لكل خدمة بسعرها الموزع داخل الباقة؛ يعيد عدد الخدمات
+  FUNCTION add_bundle(p_visit_id IN NUMBER, p_bundle_id IN NUMBER) RETURN NUMBER IS
+    l_v   his_visit%ROWTYPE := get_visit(p_visit_id);
+    l_b   JSON_OBJECT_T;
+    l_ls  JSON_ARRAY_T;
+    l_l   JSON_OBJECT_T;
+    l_id  NUMBER;
+    l_n   PLS_INTEGER := 0;
+    l_net NUMBER;
+  BEGIN
+    guard('HIS_ORDER.CREATE');
+    NOONA_CORE_PKG.assert(l_v.status_code = 'OPEN', 'NOONA-HIS-051', 'الزيارة مقفلة', 'Visit is closed');
+    l_b := JSON_OBJECT_T.parse(NOONA_PRC_PKG.bundle_json(p_bundle_id));
+    l_ls := l_b.get_array('lines');
+    FOR i IN 0 .. l_ls.get_size - 1 LOOP
+      l_l := TREAT(l_ls.get(i) AS JSON_OBJECT_T);
+      NOONA_CORE_PKG.assert(l_l.get_string('type') = 'HIS_SERVICE', 'NOONA-HIS-058',
+        'باقة الزيارة تضم خدمات طبية فقط؛ الأدوية والمستلزمات تصرف من الصيدلية', 'Visit bundles contain medical services only');
+    END LOOP;
+    FOR i IN 0 .. l_ls.get_size - 1 LOOP
+      l_l := TREAT(l_ls.get(i) AS JSON_OBJECT_T);
+      l_net := l_l.get_number('lineNet');
+      l_id := add_order(p_visit_id, l_l.get_number('id'), l_l.get_number('qty'), NULL, 'باقة: ' || l_b.get_string('name'));
+      UPDATE his_order SET bundle_id = p_bundle_id, bundle_net = l_net WHERE id = l_id;
+      l_n := l_n + 1;
+    END LOOP;
+    recalc_visit(p_visit_id);
+    RETURN l_n;
+  END add_bundle;
 
   FUNCTION open_visit(p_doc IN CLOB) RETURN NUMBER IS
     l_o    JSON_OBJECT_T := JSON_OBJECT_T.parse(p_doc);

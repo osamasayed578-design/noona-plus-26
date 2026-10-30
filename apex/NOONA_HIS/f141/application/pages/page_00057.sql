@@ -24,7 +24,7 @@ wwv_flow_imp_page.create_page(
 ,p_protection_level=>'N'
 );
 wwv_flow_imp_page.create_page_plug(
- p_id=>wwv_flow_imp.id(91820275000000644)
+ p_id=>wwv_flow_imp.id(91820275000000648)
 ,p_plug_name=>'اليوم'
 ,p_region_template_options=>'#DEFAULT#:nn-rpt-filters:t-Region--removeHeader js-removeLandmark'
 ,p_plug_template=>4072358936313175081
@@ -35,10 +35,10 @@ wwv_flow_imp_page.create_page_plug(
   'show_line_breaks', 'Y')).to_clob
 );
 wwv_flow_imp_page.create_page_item(
- p_id=>wwv_flow_imp.id(91820275000000645)
+ p_id=>wwv_flow_imp.id(91820275000000649)
 ,p_name=>'P57_DATE'
 ,p_item_sequence=>10
-,p_item_plug_id=>wwv_flow_imp.id(91820275000000644)
+,p_item_plug_id=>wwv_flow_imp.id(91820275000000648)
 ,p_prompt=>'التاريخ'
 ,p_display_as=>'NATIVE_DATE_PICKER_APEX'
 ,p_cSize=>20
@@ -54,9 +54,9 @@ wwv_flow_imp_page.create_page_item(
   'use_defaults', 'Y')).to_clob
 );
 wwv_flow_imp_page.create_page_button(
- p_id=>wwv_flow_imp.id(91820275000000646)
+ p_id=>wwv_flow_imp.id(91820275000000650)
 ,p_button_sequence=>10
-,p_button_plug_id=>wwv_flow_imp.id(91820275000000644)
+,p_button_plug_id=>wwv_flow_imp.id(91820275000000648)
 ,p_button_name=>'SHOW'
 ,p_button_action=>'SUBMIT'
 ,p_button_template_options=>'#DEFAULT#'
@@ -66,7 +66,7 @@ wwv_flow_imp_page.create_page_button(
 ,p_button_position=>'NEXT'
 );
 wwv_flow_imp_page.create_page_process(
- p_id=>wwv_flow_imp.id(91820275000000647)
+ p_id=>wwv_flow_imp.id(91820275000000651)
 ,p_process_sequence=>5
 ,p_process_point=>'BEFORE_HEADER'
 ,p_process_type=>'NATIVE_PLSQL'
@@ -75,10 +75,10 @@ wwv_flow_imp_page.create_page_process(
 ':P57_DATE := nvl(:P57_DATE, to_char(sysdate, ''YYYY-MM-DD''));'))
 ,p_process_clob_language=>'PLSQL'
 ,p_error_display_location=>'INLINE_IN_NOTIFICATION'
-,p_internal_uid=>91820275000000647
+,p_internal_uid=>91820275000000651
 );
 wwv_flow_imp_page.create_page_plug(
- p_id=>wwv_flow_imp.id(91820275000000648)
+ p_id=>wwv_flow_imp.id(91820275000000652)
 ,p_plug_name=>'غرف العمليات'
 ,p_region_template_options=>'#DEFAULT#:t-Region--scrollBody:t-Region--removeHeader js-removeLandmark:t-Region--noUI'
 ,p_plug_template=>4072358936313175081
@@ -89,7 +89,7 @@ wwv_flow_imp_page.create_page_plug(
 ,p_plug_source_type=>'NATIVE_DYNAMIC_CONTENT'
 );
 wwv_flow_imp_page.create_page_plug(
- p_id=>wwv_flow_imp.id(91820275000000649)
+ p_id=>wwv_flow_imp.id(91820275000000653)
 ,p_plug_name=>'جدولة عملية'
 ,p_region_template_options=>'#DEFAULT#'
 ,p_plug_template=>4072358936313175081
@@ -100,10 +100,10 @@ wwv_flow_imp_page.create_page_plug(
   'show_line_breaks', 'Y')).to_clob
 );
 wwv_flow_imp_page.create_page_item(
- p_id=>wwv_flow_imp.id(91820275000000650)
+ p_id=>wwv_flow_imp.id(91820275000000654)
 ,p_name=>'P57_VISIT'
 ,p_item_sequence=>10
-,p_item_plug_id=>wwv_flow_imp.id(91820275000000649)
+,p_item_plug_id=>wwv_flow_imp.id(91820275000000653)
 ,p_prompt=>'الزيارة (المنوم أو الإقامة اليومية)'
 ,p_display_as=>'NATIVE_SELECT_LIST'
 ,p_lov=>'select v.visit_no || '' - '' || p.name_ar || '' ('' || p.mrn || '')'' d, v.id r from his_visit v join his_patient p on p.id = v.patient_id where v.company_id = noona_his_pkg.company and v.status_code = ''OPEN'' order by v.visit_at desc'
@@ -117,10 +117,10 @@ wwv_flow_imp_page.create_page_item(
   'page_action_on_selection', 'NONE')).to_clob
 );
 wwv_flow_imp_page.create_page_item(
- p_id=>wwv_flow_imp.id(91820275000000651)
+ p_id=>wwv_flow_imp.id(91820275000000655)
 ,p_name=>'P57_SRV'
 ,p_item_sequence=>20
-,p_item_plug_id=>wwv_flow_imp.id(91820275000000649)
+,p_item_plug_id=>wwv_flow_imp.id(91820275000000653)
 ,p_prompt=>'الإجراء'
 ,p_display_as=>'NATIVE_SELECT_LIST'
 ,p_lov=>'select s.name_ar || nvl2(s.name_en, '' · '' || s.name_en, '''') || '' ('' || to_char(s.price, ''FM999G990D00'') || '')'' d, s.id r from his_service s where s.company_id = noona_his_pkg.company and s.status_code = ''ACTIVE'' and s.service_type in (''MINOR_SURGERY'', ''MAJOR_SURGERY'', ''PROCEDURE'') order by 1'
@@ -135,10 +135,10 @@ wwv_flow_imp_page.create_page_item(
   'page_action_on_selection', 'NONE')).to_clob
 );
 wwv_flow_imp_page.create_page_item(
- p_id=>wwv_flow_imp.id(91820275000000652)
+ p_id=>wwv_flow_imp.id(91820275000000656)
 ,p_name=>'P57_THEATER'
 ,p_item_sequence=>30
-,p_item_plug_id=>wwv_flow_imp.id(91820275000000649)
+,p_item_plug_id=>wwv_flow_imp.id(91820275000000653)
 ,p_prompt=>'غرفة العمليات'
 ,p_display_as=>'NATIVE_TEXT_FIELD'
 ,p_cSize=>8
@@ -152,10 +152,10 @@ wwv_flow_imp_page.create_page_item(
   'trim_spaces', 'BOTH')).to_clob
 );
 wwv_flow_imp_page.create_page_item(
- p_id=>wwv_flow_imp.id(91820275000000653)
+ p_id=>wwv_flow_imp.id(91820275000000657)
 ,p_name=>'P57_SURGEON'
 ,p_item_sequence=>40
-,p_item_plug_id=>wwv_flow_imp.id(91820275000000649)
+,p_item_plug_id=>wwv_flow_imp.id(91820275000000653)
 ,p_prompt=>'الجراح'
 ,p_display_as=>'NATIVE_SELECT_LIST'
 ,p_lov=>'select d.name_ar || '' - '' || p.name_ar d, d.id r from his_doctor d join his_department p on p.id = d.department_id where d.company_id = noona_his_pkg.company and d.status_code = ''ACTIVE'' order by p.sort_order, p.name_ar, d.name_ar'
@@ -170,10 +170,10 @@ wwv_flow_imp_page.create_page_item(
   'page_action_on_selection', 'NONE')).to_clob
 );
 wwv_flow_imp_page.create_page_item(
- p_id=>wwv_flow_imp.id(91820275000000654)
+ p_id=>wwv_flow_imp.id(91820275000000658)
 ,p_name=>'P57_ANES'
 ,p_item_sequence=>50
-,p_item_plug_id=>wwv_flow_imp.id(91820275000000649)
+,p_item_plug_id=>wwv_flow_imp.id(91820275000000653)
 ,p_prompt=>'طبيب التخدير'
 ,p_display_as=>'NATIVE_SELECT_LIST'
 ,p_lov=>'select d.name_ar || '' - '' || p.name_ar d, d.id r from his_doctor d join his_department p on p.id = d.department_id where d.company_id = noona_his_pkg.company and d.status_code = ''ACTIVE'' order by p.sort_order, p.name_ar, d.name_ar'
@@ -187,10 +187,10 @@ wwv_flow_imp_page.create_page_item(
   'page_action_on_selection', 'NONE')).to_clob
 );
 wwv_flow_imp_page.create_page_item(
- p_id=>wwv_flow_imp.id(91820275000000655)
+ p_id=>wwv_flow_imp.id(91820275000000659)
 ,p_name=>'P57_ANTYPE'
 ,p_item_sequence=>60
-,p_item_plug_id=>wwv_flow_imp.id(91820275000000649)
+,p_item_plug_id=>wwv_flow_imp.id(91820275000000653)
 ,p_prompt=>'التخدير'
 ,p_display_as=>'NATIVE_SELECT_LIST'
 ,p_lov=>'STATIC2:عام;GENERAL,نصفي (Spinal);SPINAL,موضعي;LOCAL,تهدئة;SEDATION'
@@ -205,10 +205,10 @@ wwv_flow_imp_page.create_page_item(
   'page_action_on_selection', 'NONE')).to_clob
 );
 wwv_flow_imp_page.create_page_item(
- p_id=>wwv_flow_imp.id(91820275000000656)
+ p_id=>wwv_flow_imp.id(91820275000000660)
 ,p_name=>'P57_SDATE'
 ,p_item_sequence=>70
-,p_item_plug_id=>wwv_flow_imp.id(91820275000000649)
+,p_item_plug_id=>wwv_flow_imp.id(91820275000000653)
 ,p_prompt=>'التاريخ'
 ,p_display_as=>'NATIVE_DATE_PICKER_APEX'
 ,p_cSize=>20
@@ -224,10 +224,10 @@ wwv_flow_imp_page.create_page_item(
   'use_defaults', 'Y')).to_clob
 );
 wwv_flow_imp_page.create_page_item(
- p_id=>wwv_flow_imp.id(91820275000000657)
+ p_id=>wwv_flow_imp.id(91820275000000661)
 ,p_name=>'P57_STIME'
 ,p_item_sequence=>80
-,p_item_plug_id=>wwv_flow_imp.id(91820275000000649)
+,p_item_plug_id=>wwv_flow_imp.id(91820275000000653)
 ,p_prompt=>'الوقت (HH24:MI)'
 ,p_display_as=>'NATIVE_TEXT_FIELD'
 ,p_cSize=>8
@@ -242,10 +242,10 @@ wwv_flow_imp_page.create_page_item(
   'trim_spaces', 'BOTH')).to_clob
 );
 wwv_flow_imp_page.create_page_item(
- p_id=>wwv_flow_imp.id(91820275000000658)
+ p_id=>wwv_flow_imp.id(91820275000000662)
 ,p_name=>'P57_DUR'
 ,p_item_sequence=>90
-,p_item_plug_id=>wwv_flow_imp.id(91820275000000649)
+,p_item_plug_id=>wwv_flow_imp.id(91820275000000653)
 ,p_prompt=>'المدة بالدقائق'
 ,p_display_as=>'NATIVE_NUMBER_FIELD'
 ,p_cSize=>20
@@ -256,9 +256,9 @@ wwv_flow_imp_page.create_page_item(
   'virtual_keyboard', 'decimal')).to_clob
 );
 wwv_flow_imp_page.create_page_button(
- p_id=>wwv_flow_imp.id(91820275000000659)
+ p_id=>wwv_flow_imp.id(91820275000000663)
 ,p_button_sequence=>10
-,p_button_plug_id=>wwv_flow_imp.id(91820275000000649)
+,p_button_plug_id=>wwv_flow_imp.id(91820275000000653)
 ,p_button_name=>'SCHEDULE'
 ,p_button_action=>'SUBMIT'
 ,p_button_template_options=>'#DEFAULT#'
@@ -268,7 +268,7 @@ wwv_flow_imp_page.create_page_button(
 ,p_button_position=>'NEXT'
 );
 wwv_flow_imp_page.create_page_process(
- p_id=>wwv_flow_imp.id(91820275000000660)
+ p_id=>wwv_flow_imp.id(91820275000000664)
 ,p_process_sequence=>10
 ,p_process_point=>'AFTER_SUBMIT'
 ,p_process_type=>'NATIVE_PLSQL'
@@ -284,12 +284,12 @@ wwv_flow_imp_page.create_page_process(
 'end;'))
 ,p_process_clob_language=>'PLSQL'
 ,p_error_display_location=>'INLINE_IN_NOTIFICATION'
-,p_process_when_button_id=>wwv_flow_imp.id(91820275000000659)
+,p_process_when_button_id=>wwv_flow_imp.id(91820275000000663)
 ,p_process_success_message=>'جدولت العملية'
-,p_internal_uid=>91820275000000660
+,p_internal_uid=>91820275000000664
 );
 wwv_flow_imp_page.create_page_plug(
- p_id=>wwv_flow_imp.id(91820275000000661)
+ p_id=>wwv_flow_imp.id(91820275000000665)
 ,p_plug_name=>'تنفيذ العملية'
 ,p_region_template_options=>'#DEFAULT#'
 ,p_plug_template=>4072358936313175081
@@ -300,10 +300,10 @@ wwv_flow_imp_page.create_page_plug(
   'show_line_breaks', 'Y')).to_clob
 );
 wwv_flow_imp_page.create_page_item(
- p_id=>wwv_flow_imp.id(91820275000000662)
+ p_id=>wwv_flow_imp.id(91820275000000666)
 ,p_name=>'P57_SURGERY'
 ,p_item_sequence=>10
-,p_item_plug_id=>wwv_flow_imp.id(91820275000000661)
+,p_item_plug_id=>wwv_flow_imp.id(91820275000000665)
 ,p_prompt=>'العملية'
 ,p_display_as=>'NATIVE_SELECT_LIST'
 ,p_lov=>'select to_char(s.start_at, ''YYYY-MM-DD HH24:MI'') || '' - '' || (select x.name_ar from his_service x where x.id = s.service_id) || '' - '' || p.name_ar d, s.id r from his_surgery s join his_visit v on v.id = s.visit_id join his_patient p on p.id = v.patient_id where s.company_id = noona_his_pkg.company and s.status_code in (''SCHEDULED'', ''IN_PROGRESS'') order by s.start_at'
@@ -317,10 +317,10 @@ wwv_flow_imp_page.create_page_item(
   'page_action_on_selection', 'NONE')).to_clob
 );
 wwv_flow_imp_page.create_page_item(
- p_id=>wwv_flow_imp.id(91820275000000663)
+ p_id=>wwv_flow_imp.id(91820275000000667)
 ,p_name=>'P57_NOTES'
 ,p_item_sequence=>20
-,p_item_plug_id=>wwv_flow_imp.id(91820275000000661)
+,p_item_plug_id=>wwv_flow_imp.id(91820275000000665)
 ,p_prompt=>'ملاحظات العملية (بالإنجليزية) / سبب الإلغاء'
 ,p_display_as=>'NATIVE_TEXTAREA'
 ,p_cSize=>60
@@ -335,9 +335,9 @@ wwv_flow_imp_page.create_page_item(
   'trim_spaces', 'BOTH')).to_clob
 );
 wwv_flow_imp_page.create_page_button(
- p_id=>wwv_flow_imp.id(91820275000000664)
+ p_id=>wwv_flow_imp.id(91820275000000668)
 ,p_button_sequence=>10
-,p_button_plug_id=>wwv_flow_imp.id(91820275000000661)
+,p_button_plug_id=>wwv_flow_imp.id(91820275000000665)
 ,p_button_name=>'START'
 ,p_button_action=>'SUBMIT'
 ,p_button_template_options=>'#DEFAULT#'
@@ -346,9 +346,9 @@ wwv_flow_imp_page.create_page_button(
 ,p_button_position=>'NEXT'
 );
 wwv_flow_imp_page.create_page_button(
- p_id=>wwv_flow_imp.id(91820275000000665)
+ p_id=>wwv_flow_imp.id(91820275000000669)
 ,p_button_sequence=>20
-,p_button_plug_id=>wwv_flow_imp.id(91820275000000661)
+,p_button_plug_id=>wwv_flow_imp.id(91820275000000665)
 ,p_button_name=>'FINISH'
 ,p_button_action=>'SUBMIT'
 ,p_button_template_options=>'#DEFAULT#'
@@ -358,9 +358,9 @@ wwv_flow_imp_page.create_page_button(
 ,p_button_position=>'NEXT'
 );
 wwv_flow_imp_page.create_page_button(
- p_id=>wwv_flow_imp.id(91820275000000666)
+ p_id=>wwv_flow_imp.id(91820275000000670)
 ,p_button_sequence=>30
-,p_button_plug_id=>wwv_flow_imp.id(91820275000000661)
+,p_button_plug_id=>wwv_flow_imp.id(91820275000000665)
 ,p_button_name=>'CANCEL'
 ,p_button_action=>'SUBMIT'
 ,p_button_template_options=>'#DEFAULT#'
@@ -369,7 +369,7 @@ wwv_flow_imp_page.create_page_button(
 ,p_button_position=>'NEXT'
 );
 wwv_flow_imp_page.create_page_process(
- p_id=>wwv_flow_imp.id(91820275000000667)
+ p_id=>wwv_flow_imp.id(91820275000000671)
 ,p_process_sequence=>20
 ,p_process_point=>'AFTER_SUBMIT'
 ,p_process_type=>'NATIVE_PLSQL'
@@ -378,12 +378,12 @@ wwv_flow_imp_page.create_page_process(
 'noona_his_care_pkg.start_surgery(:P57_SURGERY);'))
 ,p_process_clob_language=>'PLSQL'
 ,p_error_display_location=>'INLINE_IN_NOTIFICATION'
-,p_process_when_button_id=>wwv_flow_imp.id(91820275000000664)
+,p_process_when_button_id=>wwv_flow_imp.id(91820275000000668)
 ,p_process_success_message=>'بدأت العملية'
-,p_internal_uid=>91820275000000667
+,p_internal_uid=>91820275000000671
 );
 wwv_flow_imp_page.create_page_process(
- p_id=>wwv_flow_imp.id(91820275000000668)
+ p_id=>wwv_flow_imp.id(91820275000000672)
 ,p_process_sequence=>30
 ,p_process_point=>'AFTER_SUBMIT'
 ,p_process_type=>'NATIVE_PLSQL'
@@ -392,12 +392,12 @@ wwv_flow_imp_page.create_page_process(
 'noona_his_care_pkg.finish_surgery(:P57_SURGERY, :P57_NOTES);'))
 ,p_process_clob_language=>'PLSQL'
 ,p_error_display_location=>'INLINE_IN_NOTIFICATION'
-,p_process_when_button_id=>wwv_flow_imp.id(91820275000000665)
+,p_process_when_button_id=>wwv_flow_imp.id(91820275000000669)
 ,p_process_success_message=>'أنهيت العملية'
-,p_internal_uid=>91820275000000668
+,p_internal_uid=>91820275000000672
 );
 wwv_flow_imp_page.create_page_process(
- p_id=>wwv_flow_imp.id(91820275000000669)
+ p_id=>wwv_flow_imp.id(91820275000000673)
 ,p_process_sequence=>40
 ,p_process_point=>'AFTER_SUBMIT'
 ,p_process_type=>'NATIVE_PLSQL'
@@ -406,12 +406,12 @@ wwv_flow_imp_page.create_page_process(
 'noona_his_care_pkg.cancel_surgery(:P57_SURGERY, :P57_NOTES);'))
 ,p_process_clob_language=>'PLSQL'
 ,p_error_display_location=>'INLINE_IN_NOTIFICATION'
-,p_process_when_button_id=>wwv_flow_imp.id(91820275000000666)
+,p_process_when_button_id=>wwv_flow_imp.id(91820275000000670)
 ,p_process_success_message=>'ألغيت العملية'
-,p_internal_uid=>91820275000000669
+,p_internal_uid=>91820275000000673
 );
 wwv_flow_imp_page.create_page_branch(
- p_id=>wwv_flow_imp.id(91820275000000670)
+ p_id=>wwv_flow_imp.id(91820275000000674)
 ,p_branch_action=>'f?p=&APP_ID.:57:&SESSION.::&DEBUG.::P57_DATE:&P57_DATE.&success_msg=#SUCCESS_MSG#'
 ,p_branch_point=>'AFTER_PROCESSING'
 ,p_branch_type=>'REDIRECT_URL'

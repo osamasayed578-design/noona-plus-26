@@ -385,6 +385,8 @@ wwv_flow_imp_page.create_page_process(
 '        when ''JOB'' then l_c := noona_aut_pkg.job_json(n(apex_application.g_x02));',
 '        when ''ADDSVC'' then l_id := noona_aut_pkg.add_service(n(apex_application.g_x02), n(apex_application.g_x03));',
 '            l_c := noona_aut_pkg.job_json(n(apex_application.g_x02));',
+'        when ''ADDBND'' then l_id := noona_aut_pkg.add_bundle(n(apex_application.g_x02), n(apex_application.g_x03));',
+'            l_c := noona_aut_pkg.job_json(n(apex_application.g_x02));',
 '        when ''ADDPART'' then l_id := noona_aut_pkg.add_part(n(apex_application.g_x02), n(apex_application.g_x03), n(apex_application.g_x04));',
 '            l_c := noona_aut_pkg.job_json(n(apex_application.g_x02));',
 '        when ''ADDLINE'' then l_id := noona_aut_pkg.add_line(apex_application.g_clob_01);',

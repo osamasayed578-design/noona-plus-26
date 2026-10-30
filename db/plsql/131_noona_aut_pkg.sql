@@ -75,6 +75,8 @@ CREATE OR REPLACE PACKAGE NOONA_AUT_PKG AUTHID DEFINER AS
                     p_payer IN VARCHAR2 DEFAULT NULL) RETURN NUMBER;
   -- عمل خارجي أو خدمة غير مسجلة: {"job","type":"SUBLET|SERVICE","desc","qty","price","inc","payer","tech"}
   FUNCTION add_line(p_doc IN CLOB) RETURN NUMBER;
+  -- باقة خدمات وقطع من التسعير الموحد بسعرها الموزع؛ يعيد عدد البنود
+  FUNCTION add_bundle(p_job_id IN NUMBER, p_bundle_id IN NUMBER) RETURN NUMBER;
   -- {"id","qty","price","disc","payer","tech","minutes","notes"}
   PROCEDURE update_line(p_doc IN CLOB);
   PROCEDURE remove_line(p_line_id IN NUMBER);
@@ -646,9 +648,11 @@ CREATE OR REPLACE PACKAGE BODY NOONA_AUT_PKG AS
     IF l_price IS NULL THEN
       SELECT MAX(sale_price), MAX(prices_include_tax) INTO l_price, l_inc FROM inv_item_company WHERE item_id = p_item AND company_id = company;
     END IF;
-    -- خصم القطع المتفق عليه مع شركة التأمين
+    -- خصم القطع المتفق عليه مع شركة التأمين؛ وعلى العميل: أفضل عرض ساري لقناة خدمة السيارات (بسعر القائمة فقط)
     IF default_payer(j, p_payer) = 'INSURANCE' AND j.insurer_id IS NOT NULL THEN
       SELECT ROUND(NVL(MAX(parts_discount_pct), 0) / 100 * p_qty * NVL(l_price, 0), 2) INTO l_disc FROM aut_insurer WHERE id = j.insurer_id;
+    ELSIF default_payer(j, p_payer) = 'CUSTOMER' AND p_price IS NULL THEN
+      l_disc := NOONA_PRC_PKG.line_discount('ITEM', p_item, p_qty, NVL(l_price, 0), 'AUT');
     END IF;
     g_no := next_line_no(j.id);
     g_pay := default_payer(j, p_payer);
@@ -677,6 +681,8 @@ CREATE OR REPLACE PACKAGE BODY NOONA_AUT_PKG AS
     END;
     IF default_payer(j, p_payer) = 'INSURANCE' AND j.insurer_id IS NOT NULL THEN
       SELECT ROUND(NVL(MAX(labor_discount_pct), 0) / 100 * s.price, 2) INTO l_disc FROM aut_insurer WHERE id = j.insurer_id;
+    ELSIF default_payer(j, p_payer) = 'CUSTOMER' THEN
+      l_disc := NOONA_PRC_PKG.line_discount('AUT_SERVICE', s.id, 1, s.price, 'AUT');
     END IF;
     g_no := next_line_no(j.id);
     g_pay := default_payer(j, p_payer);
@@ -704,6 +710,52 @@ CREATE OR REPLACE PACKAGE BODY NOONA_AUT_PKG AS
     recalc(j.id);
     RETURN l_id;
   END add_part;
+
+  -- باقة من محرك التسعير: خدماتها وقطعها بأسعارها الأصلية وخصم يساوي فرق السعر الموزع للباقة (قطع الخدمة الافتراضية لا تضاف؛ الباقة تحدد مكوناتها)
+  FUNCTION add_bundle(p_job_id IN NUMBER, p_bundle_id IN NUMBER) RETURN NUMBER IS
+    j     aut_job_card%ROWTYPE;
+    l_b   JSON_OBJECT_T;
+    l_ls  JSON_ARRAY_T;
+    l_l   JSON_OBJECT_T;
+    l_id  NUMBER;
+    l_n   PLS_INTEGER := 0;
+    l_q   NUMBER;
+    l_u   NUMBER;
+    l_d   NUMBER;
+    s     aut_service%ROWTYPE;
+    l_nm  VARCHAR2(300);
+    l_tid NUMBER;
+  BEGIN
+    guard('AUT_JOB_CARD.UPDATE');
+    j := get_job(p_job_id, TRUE);
+    assert_editable(j);
+    l_b := JSON_OBJECT_T.parse(NOONA_PRC_PKG.bundle_json(p_bundle_id));
+    l_nm := 'باقة: ' || l_b.get_string('name');
+    l_ls := l_b.get_array('lines');
+    g_pay := default_payer(j, NULL);
+    FOR i IN 0 .. l_ls.get_size - 1 LOOP
+      l_l := TREAT(l_ls.get(i) AS JSON_OBJECT_T);
+      l_q := l_l.get_number('qty'); l_u := l_l.get_number('unitList');
+      l_d := ROUND(l_q * l_u - l_l.get_number('lineNet'), 2);
+      l_tid := l_l.get_number('id');
+      IF l_l.get_string('type') = 'AUT_SERVICE' THEN
+        SELECT * INTO s FROM aut_service WHERE id = l_tid AND company_id = company;
+        g_no := next_line_no(j.id);
+        INSERT INTO aut_job_line (company_id, job_card_id, line_no, line_type, service_id, description, quantity, unit_price, price_includes_tax,
+                                  discount_amount, payer, work_minutes, line_status, notes)
+        VALUES (company, j.id, g_no, 'SERVICE', s.id, s.name_ar, l_q, l_u, s.price_includes_tax, NULLIF(l_d, 0), g_pay,
+                s.standard_minutes * l_q, 'PENDING', l_nm);
+      ELSIF l_l.get_string('type') = 'ITEM' THEN
+        l_id := insert_part(j, l_tid, l_q, l_u, NULL, NULL);
+        UPDATE aut_job_line SET discount_amount = NULLIF(l_d, 0), notes = l_nm WHERE id = l_id;
+      ELSE
+        NOONA_CORE_PKG.raise_error('NOONA-AUT-037', 'الباقة تحتوي خدمات من نظام آخر', 'Bundle has components from another system');
+      END IF;
+      l_n := l_n + 1;
+    END LOOP;
+    recalc(j.id);
+    RETURN l_n;
+  END add_bundle;
 
   FUNCTION add_line(p_doc IN CLOB) RETURN NUMBER IS
     l_o   JSON_OBJECT_T := JSON_OBJECT_T.parse(p_doc);
@@ -1260,7 +1312,8 @@ CREATE OR REPLACE PACKAGE BODY NOONA_AUT_PKG AS
     SELECT JSON_ARRAYAGG(JSON_OBJECT('id' VALUE id, 'name' VALUE name_ar) ORDER BY name_ar RETURNING CLOB)
       INTO l_ins FROM aut_insurer WHERE company_id = company AND status_code = 'ACTIVE';
     RETURN '{"cats":' || NVL(l_cat, '[]') || ',"techs":' || NVL(l_tech, '[]') || ',"bays":' || NVL(l_bay, '[]') || ',"insurers":' || NVL(l_ins, '[]')
-        || ',"places":' || NOONA_CSH_PKG.places_json || ',"methods":' || NOONA_PUR_PKG.payment_methods_json || '}';
+        || ',"places":' || NOONA_CSH_PKG.places_json || ',"methods":' || NOONA_PUR_PKG.payment_methods_json
+        || ',"bundles":' || NOONA_PRC_PKG.bundles_json('AUT') || '}';
   END boot_json;
 
   FUNCTION job_json(p_job_id IN NUMBER) RETURN CLOB IS

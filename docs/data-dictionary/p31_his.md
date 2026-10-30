@@ -525,34 +525,36 @@
 | 10 | `PERFORMED_BY_ID` | معرف | `NUMBER(19)` |  |  | FK→HIS_DOCTOR |  | إدخال المستخدم |  | المنفذ |
 | 11 | `UNIT_PRICE` | مبلغ | `NUMBER(24,6)` | ✔ |  |  |  | إدخال المستخدم |  | سعر الوحدة (نقدي أو سعر العقد) |
 | 12 | `GROSS_AMOUNT` | مبلغ | `NUMBER(24,6)` | ✔ |  |  |  | إدخال المستخدم |  | الإجمالي |
-| 13 | `DISCOUNT_AMOUNT` | مبلغ | `NUMBER(24,6)` | ✔ | 0 |  |  | إدخال المستخدم |  | خصم العقد |
-| 14 | `PATIENT_NET` | مبلغ | `NUMBER(24,6)` | ✔ | 0 |  |  | إدخال المستخدم |  | حصة المريض قبل الضريبة |
-| 15 | `PAYER_NET` | مبلغ | `NUMBER(24,6)` | ✔ | 0 |  |  | إدخال المستخدم |  | حصة الجهة قبل الضريبة |
-| 16 | `VAT_RATE` | نسبة | `NUMBER(9,6)` | ✔ | 0 |  |  | إدخال المستخدم |  | نسبة الضريبة |
-| 17 | `PATIENT_VAT` | مبلغ | `NUMBER(24,6)` | ✔ | 0 |  |  | إدخال المستخدم |  | ضريبة حصة المريض |
-| 18 | `PAYER_VAT` | مبلغ | `NUMBER(24,6)` | ✔ | 0 |  |  | إدخال المستخدم |  | ضريبة حصة الجهة |
-| 19 | `COVERED` | منطقي Y/N | `CHAR(1 CHAR)` | ✔ | 'N' |  | Y, N | إدخال المستخدم |  | مغطاة من الجهة |
-| 20 | `APPROVAL_NO` | نص | `VARCHAR2(50 CHAR)` |  |  |  |  | إدخال المستخدم |  | رقم موافقة التأمين |
-| 21 | `INVOICE_ID` | معرف | `NUMBER(19)` |  |  | FK→HIS_INVOICE |  | إدخال المستخدم |  | الفاتورة |
-| 22 | `SAMPLE_NO` | نص | `VARCHAR2(30 CHAR)` |  |  |  |  | إدخال المستخدم |  | رقم العينة |
-| 23 | `SAMPLE_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` |  |  |  |  | إدخال المستخدم |  | وقت سحب العينة |
-| 24 | `STARTED_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` |  |  |  |  | إدخال المستخدم |  | بدء التنفيذ |
-| 25 | `COMPLETED_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` |  |  |  |  | إدخال المستخدم |  | الإنجاز |
-| 26 | `RESULT_TEXT` | نص طويل | `CLOB` |  |  |  |  | إدخال المستخدم |  | النتيجة / التقرير |
-| 27 | `RESULT_FLAG` | رمز | `VARCHAR2(30 CHAR)` |  |  |  | NORMAL, ABNORMAL, CRITICAL | إدخال المستخدم |  | تقييم النتيجة |
-| 28 | `RESULT_BY` | اسم مستخدم | `VARCHAR2(128 CHAR)` |  |  |  |  | إدخال المستخدم |  | معتمد النتيجة |
-| 29 | `MATERIAL_TXN_ID` | معرف | `NUMBER(19)` |  |  | FK→INV_TRANSACTION |  | إدخال المستخدم |  | حركة صرف المواد |
-| 30 | `MATERIAL_COST` | مبلغ | `NUMBER(24,6)` |  |  |  |  | إدخال المستخدم |  | تكلفة المواد |
-| 31 | `NOTES` | نص | `VARCHAR2(500 CHAR)` |  |  |  |  | إدخال المستخدم |  | ملاحظات الطلب |
-| 32 | `PREAUTH_STATUS` | رمز | `VARCHAR2(30 CHAR)` |  |  |  | REQUESTED, PENDING, APPROVED, REJECTED, ERROR | إدخال المستخدم |  | حالة طلب الموافقة الإلكتروني |
-| 33 | `PREAUTH_REF` | نص | `VARCHAR2(100 CHAR)` |  |  |  |  | إدخال المستخدم |  | مرجع طلب الموافقة لدى الجهة |
-| 34 | `COMMISSION_ID` | معرف | `NUMBER(19)` |  |  | FK→HIS_COMMISSION |  | إدخال المستخدم |  | تسوية عمولة الطبيب |
-| 35 | `STATUS_CODE` | رمز | `VARCHAR2(30 CHAR)` | ✔ | 'ORDERED' |  | ORDERED, APPROVAL_PENDING, IN_PROGRESS, COMPLETED, CANCELLED | النظام/الحزمة |  | الحالة ضمن دورة الحياة المعتمدة |
-| 36 | `ROW_VERSION` | عدد صحيح | `NUMBER(10)` | ✔ | 1 |  |  | Trigger |  | رقم الإصدار للتحكم في التزامن المتفائل |
-| 37 | `CREATED_BY` | اسم مستخدم | `VARCHAR2(128 CHAR)` | ✔ |  |  |  | Trigger |  | منشئ السجل |
-| 38 | `CREATED_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` | ✔ | SYSTIMESTAMP |  |  | Trigger |  | وقت الإنشاء |
-| 39 | `UPDATED_BY` | اسم مستخدم | `VARCHAR2(128 CHAR)` |  |  |  |  | Trigger |  | آخر من عدل السجل |
-| 40 | `UPDATED_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` |  |  |  |  | Trigger |  | وقت آخر تعديل |
+| 13 | `DISCOUNT_AMOUNT` | مبلغ | `NUMBER(24,6)` | ✔ | 0 |  |  | إدخال المستخدم |  | خصم العقد أو العرض أو الباقة |
+| 14 | `BUNDLE_ID` | معرف | `NUMBER(19)` |  |  | FK→SAL_BUNDLE |  | إدخال المستخدم |  | الباقة (الخدمة ضمن باقة) |
+| 15 | `BUNDLE_NET` | مبلغ | `NUMBER(24,6)` |  |  |  |  | إدخال المستخدم |  | صافي الخدمة داخل الباقة (سعر الباقة الموزع) |
+| 16 | `PATIENT_NET` | مبلغ | `NUMBER(24,6)` | ✔ | 0 |  |  | إدخال المستخدم |  | حصة المريض قبل الضريبة |
+| 17 | `PAYER_NET` | مبلغ | `NUMBER(24,6)` | ✔ | 0 |  |  | إدخال المستخدم |  | حصة الجهة قبل الضريبة |
+| 18 | `VAT_RATE` | نسبة | `NUMBER(9,6)` | ✔ | 0 |  |  | إدخال المستخدم |  | نسبة الضريبة |
+| 19 | `PATIENT_VAT` | مبلغ | `NUMBER(24,6)` | ✔ | 0 |  |  | إدخال المستخدم |  | ضريبة حصة المريض |
+| 20 | `PAYER_VAT` | مبلغ | `NUMBER(24,6)` | ✔ | 0 |  |  | إدخال المستخدم |  | ضريبة حصة الجهة |
+| 21 | `COVERED` | منطقي Y/N | `CHAR(1 CHAR)` | ✔ | 'N' |  | Y, N | إدخال المستخدم |  | مغطاة من الجهة |
+| 22 | `APPROVAL_NO` | نص | `VARCHAR2(50 CHAR)` |  |  |  |  | إدخال المستخدم |  | رقم موافقة التأمين |
+| 23 | `INVOICE_ID` | معرف | `NUMBER(19)` |  |  | FK→HIS_INVOICE |  | إدخال المستخدم |  | الفاتورة |
+| 24 | `SAMPLE_NO` | نص | `VARCHAR2(30 CHAR)` |  |  |  |  | إدخال المستخدم |  | رقم العينة |
+| 25 | `SAMPLE_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` |  |  |  |  | إدخال المستخدم |  | وقت سحب العينة |
+| 26 | `STARTED_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` |  |  |  |  | إدخال المستخدم |  | بدء التنفيذ |
+| 27 | `COMPLETED_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` |  |  |  |  | إدخال المستخدم |  | الإنجاز |
+| 28 | `RESULT_TEXT` | نص طويل | `CLOB` |  |  |  |  | إدخال المستخدم |  | النتيجة / التقرير |
+| 29 | `RESULT_FLAG` | رمز | `VARCHAR2(30 CHAR)` |  |  |  | NORMAL, ABNORMAL, CRITICAL | إدخال المستخدم |  | تقييم النتيجة |
+| 30 | `RESULT_BY` | اسم مستخدم | `VARCHAR2(128 CHAR)` |  |  |  |  | إدخال المستخدم |  | معتمد النتيجة |
+| 31 | `MATERIAL_TXN_ID` | معرف | `NUMBER(19)` |  |  | FK→INV_TRANSACTION |  | إدخال المستخدم |  | حركة صرف المواد |
+| 32 | `MATERIAL_COST` | مبلغ | `NUMBER(24,6)` |  |  |  |  | إدخال المستخدم |  | تكلفة المواد |
+| 33 | `NOTES` | نص | `VARCHAR2(500 CHAR)` |  |  |  |  | إدخال المستخدم |  | ملاحظات الطلب |
+| 34 | `PREAUTH_STATUS` | رمز | `VARCHAR2(30 CHAR)` |  |  |  | REQUESTED, PENDING, APPROVED, REJECTED, ERROR | إدخال المستخدم |  | حالة طلب الموافقة الإلكتروني |
+| 35 | `PREAUTH_REF` | نص | `VARCHAR2(100 CHAR)` |  |  |  |  | إدخال المستخدم |  | مرجع طلب الموافقة لدى الجهة |
+| 36 | `COMMISSION_ID` | معرف | `NUMBER(19)` |  |  | FK→HIS_COMMISSION |  | إدخال المستخدم |  | تسوية عمولة الطبيب |
+| 37 | `STATUS_CODE` | رمز | `VARCHAR2(30 CHAR)` | ✔ | 'ORDERED' |  | ORDERED, APPROVAL_PENDING, IN_PROGRESS, COMPLETED, CANCELLED | النظام/الحزمة |  | الحالة ضمن دورة الحياة المعتمدة |
+| 38 | `ROW_VERSION` | عدد صحيح | `NUMBER(10)` | ✔ | 1 |  |  | Trigger |  | رقم الإصدار للتحكم في التزامن المتفائل |
+| 39 | `CREATED_BY` | اسم مستخدم | `VARCHAR2(128 CHAR)` | ✔ |  |  |  | Trigger |  | منشئ السجل |
+| 40 | `CREATED_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` | ✔ | SYSTIMESTAMP |  |  | Trigger |  | وقت الإنشاء |
+| 41 | `UPDATED_BY` | اسم مستخدم | `VARCHAR2(128 CHAR)` |  |  |  |  | Trigger |  | آخر من عدل السجل |
+| 42 | `UPDATED_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` |  |  |  |  | Trigger |  | وقت آخر تعديل |
 
 ## HIS_LAB_PARAM
 

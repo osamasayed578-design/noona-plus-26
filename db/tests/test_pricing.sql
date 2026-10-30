@@ -224,6 +224,60 @@ BEGIN
     ok('bundle html shows saving', DBMS_LOB.INSTR(NOONA_PRC_PKG.bundle_html(l_b), 'التوفير') > 0);
   END IF;
 
+  -- ---------------------------------------------------------------- المستشفيات: العرض على الخدمة النقدية وباقة الزيارة
+  DECLARE
+    l_visit NUMBER; l_svc2 NUMBER; l_o NUMBER; l_d NUMBER; l_g NUMBER; l_k NUMBER;
+  BEGIN
+    SELECT MIN(v.id) INTO l_visit FROM his_visit v WHERE v.company_id = NOONA_PRC_PKG.company AND v.status_code = 'OPEN' AND v.bill_to = 'CASH';
+    SELECT MIN(id) INTO l_svc2 FROM his_service WHERE company_id = NOONA_PRC_PKG.company AND status_code = 'ACTIVE' AND id <> l_svc AND price > 0;
+    IF l_visit IS NOT NULL AND l_svc2 IS NOT NULL THEN
+      UPDATE sal_promotion SET status_code = 'PAUSED' WHERE company_id = NOONA_PRC_PKG.company AND status_code = 'ACTIVE';
+      l_pr := NOONA_PRC_PKG.save_promotion('{"code":"HPR' || l_sfx || '","name":"خصم الكشف","type":"PCT_OFF","value":25,"channels":"HIS",'
+            || '"targets":[{"type":"HIS_SERVICE","id":' || l_svc2 || '}]}');
+      l_o := NOONA_HIS_PKG.add_order(l_visit, l_svc2, 2);
+      SELECT gross_amount, discount_amount INTO l_g, l_d FROM his_order WHERE id = l_o;
+      ok('HIS cash order gets 25% promotion', l_d = ROUND(l_g * 0.25, 2) AND l_d > 0, l_g || ' / ' || l_d);
+      UPDATE sal_promotion SET status_code = 'PAUSED' WHERE id = l_pr;
+      UPDATE his_service SET price = 100 WHERE id = l_svc2;
+      UPDATE his_service SET price = 300 WHERE id = l_svc;
+      l_b := NOONA_PRC_PKG.save_bundle('{"code":"HB' || l_sfx || '","name":"فحص شامل","method":"FIXED_PRICE","value":320,"channels":"HIS",'
+           || '"lines":[{"type":"HIS_SERVICE","id":' || l_svc || '},{"type":"HIS_SERVICE","id":' || l_svc2 || '}]}');
+      l_k := NOONA_HIS_PKG.add_bundle(l_visit, l_b);
+      SELECT SUM(gross_amount - discount_amount), COUNT(*) INTO l_g, l_n FROM his_order WHERE visit_id = l_visit AND bundle_id = l_b;
+      ok('HIS bundle adds its services at the bundle price', l_k = 2 AND l_n = 2 AND l_g = 320, l_k || ' ' || l_n || ' ' || l_g);
+      rejects('item in a visit bundle rejected', 'NOONA-HIS-058', 'DECLARE n NUMBER; BEGIN n := NOONA_HIS_PKG.add_bundle(' || l_visit || ', '
+        || NOONA_PRC_PKG.save_bundle('{"code":"HX' || l_sfx || '","name":"x","method":"PCT_OFF","value":5,"lines":[{"type":"HIS_SERVICE","id":' || l_svc
+        || '},{"type":"ITEM","id":' || l_item2 || '}]}') || '); END;');
+    ELSE
+      ok('open cash visit exists for HIS checks (skipped)', TRUE);
+    END IF;
+  END;
+
+  -- ---------------------------------------------------------------- خدمة السيارات: العرض على الخدمة وباقة أمر الإصلاح
+  DECLARE
+    l_job NUMBER; l_as NUMBER; l_as2 NUMBER; l_ln NUMBER; l_d NUMBER; l_k NUMBER; l_net NUMBER;
+  BEGIN
+    SELECT MIN(id) INTO l_job FROM aut_job_card WHERE company_id = NOONA_PRC_PKG.company AND status_code IN ('OPEN', 'IN_PROGRESS')
+       AND payer_type = 'CUSTOMER';
+    SELECT MIN(id), MAX(id) INTO l_as, l_as2 FROM aut_service WHERE company_id = NOONA_PRC_PKG.company AND is_active = 'Y' AND price > 0;
+    IF l_job IS NOT NULL AND l_as <> l_as2 THEN
+      UPDATE sal_promotion SET status_code = 'PAUSED' WHERE company_id = NOONA_PRC_PKG.company AND status_code = 'ACTIVE';
+      l_pr := NOONA_PRC_PKG.save_promotion('{"code":"APR' || l_sfx || '","name":"خصم الصيانة","type":"AMOUNT_OFF","value":20,"channels":"AUT",'
+            || '"targets":[{"type":"ALL_AUT"}]}');
+      l_ln := NOONA_AUT_PKG.add_service(l_job, l_as);
+      SELECT discount_amount INTO l_d FROM aut_job_line WHERE id = l_ln;
+      ok('AUT customer service line gets promotion 20', l_d = 20, l_d);
+      UPDATE sal_promotion SET status_code = 'PAUSED' WHERE id = l_pr;
+      l_b := NOONA_PRC_PKG.save_bundle('{"code":"AB' || l_sfx || '","name":"باقة الصيانة","method":"PCT_OFF","value":10,"channels":"AUT",'
+           || '"lines":[{"type":"AUT_SERVICE","id":' || l_as || '},{"type":"AUT_SERVICE","id":' || l_as2 || '}]}');
+      l_k := NOONA_AUT_PKG.add_bundle(l_job, l_b);
+      SELECT SUM(quantity * unit_price - NVL(discount_amount, 0)) INTO l_net FROM aut_job_line WHERE job_card_id = l_job AND notes = 'باقة: باقة الصيانة';
+      ok('AUT bundle lines at bundle price', l_k = 2 AND ABS(l_net - NOONA_PRC_PKG.bundle_price(l_b)) < 0.01, l_k || ' ' || l_net);
+    ELSE
+      ok('open customer job card exists for AUT checks (skipped)', TRUE);
+    END IF;
+  END;
+
   ROLLBACK;
   DBMS_OUTPUT.PUT_LINE('========== pricing: ' || g_pass || ' passed, ' || g_fail || ' failed');
 EXCEPTION WHEN OTHERS THEN
