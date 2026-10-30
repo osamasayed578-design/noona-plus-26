@@ -128,8 +128,14 @@ module.exports = async function video(app, outDir, name, opts = {}) {
     await wait(ms);
     await page.evaluate(() => { const c = document.getElementById('nnv-card'); if (c) c.remove(); });
   }
+  // قراءة رسالة النتيجة؛ تعاد المحاولة إن كانت الصفحة ما زالت تنتقل بعد الحفظ
   async function alerts() {
-    return ((await page.locator('#t_Alert_Notification, #t_Alert_Success').allInnerTexts()).join(' | ')).replace(/\s+/g, ' ').slice(0, 200);
+    for (let i = 0; i < 3; i++) {
+      try { return ((await page.locator('#t_Alert_Notification, #t_Alert_Success').allInnerTexts()).join(' | ')).replace(/\s+/g, ' ').slice(0, 200); }
+      catch (e) { await page.waitForLoadState('networkidle').catch(() => {}); await wait(800); }
+    }
+    await ensure();
+    return '';
   }
   async function done() {
     const vp = await page.video().path();
