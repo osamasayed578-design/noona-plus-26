@@ -84,7 +84,7 @@ BEGIN
   -- التأمينات الاجتماعية: الأساس (الأساسي + السكن) بحد أدنى 1500 وأعلى 45000؛ السعودي 9.75% موظف و11.75% منشأة،
   -- وغير السعودي 2% منشأة (الأخطار المهنية). النسب تعدل بإصدار جديد للقاعدة دون تغيير التشغيلات السابقة.
   MERGE INTO pay_element_rule r
-  USING (SELECT e.id element_id, x.cat, x.ver, x.prm
+  USING (SELECT e.id element_id, e.code, x.cat, x.ver, x.prm
            FROM (SELECT 'GOSI_EE' code, 'SAUDI' cat, 1 ver, '{"pct":9.75,"base":["BASIC","HOUSING"],"min":1500,"max":45000}' prm FROM dual
                  UNION ALL SELECT 'GOSI_EE', 'NON_SAUDI', 2, '{"pct":0,"base":["BASIC","HOUSING"],"min":1500,"max":45000}' FROM dual
                  UNION ALL SELECT 'GOSI_ER', 'SAUDI', 1, '{"pct":11.75,"base":["BASIC","HOUSING"],"min":1500,"max":45000}' FROM dual
