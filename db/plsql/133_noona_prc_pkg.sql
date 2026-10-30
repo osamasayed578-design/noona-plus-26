@@ -84,6 +84,8 @@ CREATE OR REPLACE PACKAGE NOONA_PRC_PKG AUTHID DEFINER AS
   -- {id, code, name, listTotal, price, saving, lines:[{type, id, name, qty, unitList, unitNet, lineNet}]}
   FUNCTION bundle_json(p_id IN NUMBER) RETURN CLOB;
   FUNCTION bundle_price(p_id IN NUMBER) RETURN NUMBER;
+  -- خصم الباقة المعتمد لصنف داخلها بكمية معينة (سعره الأصلي - سعره الموزع) × الكمية؛ لتجاوز أدنى سعر البيع بموافقة الباقة
+  FUNCTION bundle_allowance(p_bundle IN NUMBER, p_type IN VARCHAR2, p_id IN NUMBER, p_qty IN NUMBER) RETURN NUMBER;
   FUNCTION bundles_json(p_channel IN VARCHAR2) RETURN CLOB;
   FUNCTION bundle_html(p_id IN NUMBER) RETURN CLOB;
 END NOONA_PRC_PKG;
@@ -1199,6 +1201,22 @@ CREATE OR REPLACE PACKAGE BODY NOONA_PRC_PKG AS
     END LOOP;
     RETURN l || ']}';
   END bundle_json;
+
+  FUNCTION bundle_allowance(p_bundle IN NUMBER, p_type IN VARCHAR2, p_id IN NUMBER, p_qty IN NUMBER) RETURN NUMBER IS
+    l_ls JSON_ARRAY_T;
+    l_l  JSON_OBJECT_T;
+  BEGIN
+    IF p_bundle IS NULL THEN RETURN 0; END IF;
+    l_ls := JSON_OBJECT_T.parse(bundle_json(p_bundle)).get_array('lines');
+    FOR i IN 0 .. l_ls.get_size - 1 LOOP
+      l_l := TREAT(l_ls.get(i) AS JSON_OBJECT_T);
+      IF l_l.get_string('type') = p_type AND l_l.get_number('id') = p_id THEN
+        RETURN ROUND(GREATEST(l_l.get_number('unitList') - l_l.get_number('unitNet'), 0) * NVL(p_qty, 0), 2);
+      END IF;
+    END LOOP;
+    RETURN 0;
+  EXCEPTION WHEN OTHERS THEN RETURN 0;
+  END bundle_allowance;
 
   FUNCTION bundles_json(p_channel IN VARCHAR2) RETURN CLOB IS
     l CLOB := '[';

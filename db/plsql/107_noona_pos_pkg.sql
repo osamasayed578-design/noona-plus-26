@@ -310,6 +310,11 @@ CREATE OR REPLACE PACKAGE BODY NOONA_POS_PKG AS
     l_txn   NUMBER;
     l_rno   VARCHAR2(50);
     l_line  NUMBER;
+    l_cpn   VARCHAR2(50) := JSON_VALUE(p_doc, '$.coupon');
+    l_appr  NUMBER;
+    l_base  NUMBER := 0;
+    l_dsum  NUMBER := 0;
+    l_dok   CLOB;
     l_co    NUMBER := company;
   BEGIN
     guard('POS_SALE.CREATE');
@@ -326,11 +331,29 @@ CREATE OR REPLACE PACKAGE BODY NOONA_POS_PKG AS
                           sale_at, is_offline, sync_idempotency_key, prescription_no, status_code)
     VALUES (company, l_t.branch_id, NOONA_GL_PKG.ledger_currency, 1, l_shift, l_t.id, l_rno, 'SALE', l_cust, SYSTIMESTAMP, 'N', l_key, l_rx, 'OPEN')
     RETURNING id INTO l_id;
+    -- حصة كل سطر من خصم الكوبون/عرض قيمة الفاتورة (ds) لا تتجاوز في مجموعها ما يسمح به العرض الساري
     FOR r IN (SELECT * FROM JSON_TABLE(p_doc, '$.lines[*]' COLUMNS (i NUMBER PATH '$.i', q NUMBER PATH '$.q', p NUMBER PATH '$.p',
-                inc VARCHAR2(1) PATH '$.inc', disc NUMBER PATH '$.disc', b VARCHAR2(100) PATH '$.b'))) LOOP
+                disc NUMBER PATH '$.disc', ds NUMBER PATH '$.ds'))) LOOP
+      CONTINUE WHEN r.i IS NULL;
+      SELECT NVL(r.p, MAX(sale_price)) INTO l_p FROM inv_item_company WHERE item_id = r.i AND company_id = company;
+      l_base := l_base + r.q * NVL(l_p, 0) - (NVL(r.disc, 0) - NVL(r.ds, 0));
+      l_dsum := l_dsum + NVL(r.ds, 0);
+    END LOOP;
+    IF l_dsum > 0 THEN
+      l_dok := NOONA_PRC_PKG.doc_promo('POS', l_base, l_cpn);
+      NOONA_CORE_PKG.assert(l_dok <> '{}' AND l_dsum <= JSON_VALUE(l_dok, '$.discount' RETURNING NUMBER) + 0.05, 'NOONA-POS-030',
+        'خصم الفاتورة أكبر من العرض أو الكوبون الساري', 'Document discount exceeds the active promotion');
+    END IF;
+    FOR r IN (SELECT * FROM JSON_TABLE(p_doc, '$.lines[*]' COLUMNS (i NUMBER PATH '$.i', q NUMBER PATH '$.q', p NUMBER PATH '$.p',
+                inc VARCHAR2(1) PATH '$.inc', disc NUMBER PATH '$.disc', b VARCHAR2(100) PATH '$.b', ds NUMBER PATH '$.ds',
+                bun NUMBER PATH '$.bun'))) LOOP
       CONTINUE WHEN r.i IS NULL;
       l_p := r.p; l_inc := CASE WHEN r.p IS NOT NULL THEN r.inc END; l_tc := NULL;
-      NOONA_SAL_PKG.price_line(r.i, r.q, l_p, r.disc, l_inc, l_tc, TRUNC(SYSDATE), l_net, l_tx);
+      -- الخصم المعتمد (لا يقيده أدنى سعر البيع): العرض الساري للصنف + خصم الباقة + حصة خصم الفاتورة
+      SELECT NVL(r.p, MAX(sale_price)) INTO l_appr FROM inv_item_company WHERE item_id = r.i AND company_id = company;
+      l_appr := NOONA_PRC_PKG.line_discount('ITEM', r.i, r.q, l_appr, 'POS', l_cpn, SYSDATE, l_t.branch_id)
+              + NOONA_PRC_PKG.bundle_allowance(r.bun, 'ITEM', r.i, r.q) + NVL(r.ds, 0);
+      NOONA_SAL_PKG.price_line(r.i, r.q, l_p, r.disc, l_inc, l_tc, TRUNC(SYSDATE), l_net, l_tx, l_appr);
       SELECT base_uom_id, l_rxn + CASE WHEN requires_prescription = 'Y' THEN 1 ELSE 0 END INTO l_uom, l_rxn FROM inv_item WHERE id = r.i;
       l_no := l_no + 1;
       INSERT INTO pos_sale_line (company_id, sale_id, line_no, item_id, barcode_scanned, quantity, uom_id, unit_price, discount_amount, tax_code_id,

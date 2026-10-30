@@ -32,7 +32,7 @@ CREATE OR REPLACE PACKAGE NOONA_SAL_PKG AUTHID DEFINER AS
   -- ---------------------------------------------------------- التسعير والضريبة (مشترك مع نقاط البيع)
   -- يحسب صافي وضريبة سطر: السعر شامل الضريبة أو غير شامل
   PROCEDURE price_line(p_item_id IN NUMBER, p_qty IN NUMBER, p_price IN OUT NUMBER, p_disc IN NUMBER, p_incl IN OUT VARCHAR2,
-                       p_tax_code IN OUT NUMBER, p_date IN DATE, p_net OUT NUMBER, p_tax OUT NUMBER);
+                       p_tax_code IN OUT NUMBER, p_date IN DATE, p_net OUT NUMBER, p_tax OUT NUMBER, p_approved IN NUMBER DEFAULT 0);
   FUNCTION seller_vat RETURN VARCHAR2;
   FUNCTION seller_name RETURN VARCHAR2;
   -- رمز ZATCA (المرحلة الأولى): البائع، الرقم الضريبي، الوقت، الإجمالي، الضريبة بترميز TLV ثم Base64
@@ -394,7 +394,7 @@ CREATE OR REPLACE PACKAGE BODY NOONA_SAL_PKG AS
 
   -- ================================================================ التسعير والضريبة
   PROCEDURE price_line(p_item_id IN NUMBER, p_qty IN NUMBER, p_price IN OUT NUMBER, p_disc IN NUMBER, p_incl IN OUT VARCHAR2,
-                       p_tax_code IN OUT NUMBER, p_date IN DATE, p_net OUT NUMBER, p_tax OUT NUMBER) IS
+                       p_tax_code IN OUT NUMBER, p_date IN DATE, p_net OUT NUMBER, p_tax OUT NUMBER, p_approved IN NUMBER DEFAULT 0) IS
     l_sale NUMBER;
     l_min  NUMBER;
     l_inc  VARCHAR2(1);
@@ -428,8 +428,9 @@ CREATE OR REPLACE PACKAGE BODY NOONA_SAL_PKG AS
       p_tax := ROUND(p_net * l_rate / 100, 2);
     END IF;
     -- الحد الأدنى للسعر بنفس أساس سعر الصنف
+    -- الحد الأدنى يقيد الخصم اليدوي فقط؛ خصم العرض أو الباقة أو الكوبون المعتمد (p_approved، يتحقق منه المستدعي) مستثنى
     IF l_min IS NOT NULL THEN
-      l_unit := (l_gross - NVL(p_disc, 0)) / p_qty;
+      l_unit := (l_gross - GREATEST(NVL(p_disc, 0) - NVL(p_approved, 0), 0)) / p_qty;
       IF NVL(l_inc, 'N') = 'Y' AND p_incl = 'N' THEN l_unit := l_unit * (1 + l_rate / 100);
       ELSIF NVL(l_inc, 'N') = 'N' AND p_incl = 'Y' THEN l_unit := l_unit / (1 + l_rate / 100);
       END IF;
@@ -493,6 +494,11 @@ CREATE OR REPLACE PACKAGE BODY NOONA_SAL_PKG AS
     l_dis   NUMBER := 0;
     l_net   NUMBER;
     l_tx    NUMBER;
+    l_cpn   VARCHAR2(50) := JSON_VALUE(p_doc, '$.coupon');
+    l_appr  NUMBER;
+    l_base  NUMBER := 0;
+    l_dsum  NUMBER := 0;
+    l_dok   CLOB;
     l_tc    NUMBER;
     l_p     NUMBER;
     l_inc   VARCHAR2(1);
@@ -533,12 +539,28 @@ CREATE OR REPLACE PACKAGE BODY NOONA_SAL_PKG AS
        WHERE id = l_id;
       DELETE FROM sal_invoice_line WHERE invoice_id = l_id;
     END IF;
+    -- حصة كل سطر من خصم الكوبون/عرض قيمة الفاتورة (sh) لا تتجاوز في مجموعها ما يسمح به العرض الساري
+    FOR r IN (SELECT * FROM JSON_TABLE(p_doc, '$.lines[*]' COLUMNS (i NUMBER PATH '$.i', q NUMBER PATH '$.q', p NUMBER PATH '$.p',
+                disc NUMBER PATH '$.disc', sh NUMBER PATH '$.sh'))) LOOP
+      l_base := l_base + NVL(r.q, 0) * NVL(r.p, 0) - (NVL(r.disc, 0) - NVL(r.sh, 0));
+      l_dsum := l_dsum + NVL(r.sh, 0);
+    END LOOP;
+    IF l_dsum > 0 THEN
+      l_dok := NOONA_PRC_PKG.doc_promo('SALES', l_base, l_cpn);
+      NOONA_CORE_PKG.assert(l_dok <> '{}' AND l_dsum <= JSON_VALUE(l_dok, '$.discount' RETURNING NUMBER) + 0.05, 'NOONA-SAL-016',
+        'خصم الفاتورة أكبر من العرض أو الكوبون الساري', 'Document discount exceeds the active promotion');
+    END IF;
     FOR r IN (SELECT * FROM JSON_TABLE(p_doc, '$.lines[*]' COLUMNS (i NUMBER PATH '$.i', ds VARCHAR2(1000) PATH '$.d',
                 q NUMBER PATH '$.q', p NUMBER PATH '$.p', inc VARCHAR2(1) PATH '$.inc', disc NUMBER PATH '$.disc',
-                tc VARCHAR2(30) PATH '$.tc', acc VARCHAR2(30) PATH '$.acc', cc NUMBER PATH '$.cc'))) LOOP
+                tc VARCHAR2(30) PATH '$.tc', acc VARCHAR2(30) PATH '$.acc', cc NUMBER PATH '$.cc', sh NUMBER PATH '$.sh'))) LOOP
       CONTINUE WHEN r.i IS NULL AND TRIM(r.ds) IS NULL;
       l_p := r.p; l_inc := r.inc; l_tc := CASE WHEN r.tc IS NOT NULL THEN NOONA_INV_PKG.tax_id(r.tc) END;
-      price_line(r.i, r.q, l_p, r.disc, l_inc, l_tc, l_date, l_net, l_tx);
+      -- الخصم المعتمد (لا يقيده أدنى سعر البيع): العرض الساري للصنف في قناة الفواتير + حصة خصم الفاتورة
+      l_appr := NVL(r.sh, 0);
+      IF r.i IS NOT NULL AND r.p IS NOT NULL THEN
+        l_appr := l_appr + NOONA_PRC_PKG.line_discount('ITEM', r.i, r.q, r.p, 'SALES', l_cpn, l_date);
+      END IF;
+      price_line(r.i, r.q, l_p, r.disc, l_inc, l_tc, l_date, l_net, l_tx, l_appr);
       IF r.i IS NOT NULL THEN
         SELECT base_uom_id, name_ar, CASE WHEN item_type IN ('SERVICE', 'NON_STOCK') THEN 'SERVICE' ELSE 'ITEM' END
           INTO l_uom, l_desc, l_type FROM inv_item WHERE id = r.i;

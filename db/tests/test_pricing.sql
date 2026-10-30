@@ -120,6 +120,19 @@ BEGIN
     'DECLARE n NUMBER; BEGIN n := NOONA_PRC_PKG.save_policy(''{"code":"X' || l_sfx || '","name":"x","targetType":"ALL_ITEMS","method":"MARGIN_PCT","value":100}''); END;');
   rejects('multiplier below 1 rejected', 'NOONA-PRC-015',
     'DECLARE n NUMBER; BEGIN n := NOONA_PRC_PKG.save_policy(''{"code":"Y' || l_sfx || '","name":"x","targetType":"ALL_ITEMS","method":"MULTIPLIER","value":0.8}''); END;');
+  -- أدنى سعر البيع: يقيد الخصم اليدوي، ولا يقيد خصم العرض/الباقة/الكوبون المعتمد
+  DECLARE l_pp NUMBER; l_ii VARCHAR2(1); l_tc NUMBER; l_nn NUMBER; l_tt NUMBER; BEGIN
+    UPDATE inv_item_company SET sale_price = 100, min_sale_price = 90 WHERE item_id = l_item AND company_id = NOONA_PRC_PKG.company;
+    l_pp := 100; l_ii := 'N';
+    NOONA_SAL_PKG.price_line(l_item, 1, l_pp, 20, l_ii, l_tc, TRUNC(SYSDATE), l_nn, l_tt, 20);
+    ok('approved promotion discount may go below the minimum price', l_nn = 80);
+    BEGIN
+      l_pp := 100; l_tc := NULL;
+      NOONA_SAL_PKG.price_line(l_item, 1, l_pp, 20, l_ii, l_tc, TRUNC(SYSDATE), l_nn, l_tt, 5);
+      ok('manual part of the discount still respects the minimum price', FALSE, 'accepted');
+    EXCEPTION WHEN OTHERS THEN ok('manual part of the discount still respects the minimum price', INSTR(SQLERRM, 'NOONA-SAL-015') > 0, SQLERRM);
+    END;
+  END;
   ok('margin report lists items', DBMS_LOB.INSTR(NOONA_PRC_PKG.margin_html('ITEMS'), 'nn-rpt') > 0);
 
   -- ---------------------------------------------------------------- تكلفة الخدمة الطبية ببطاقة التكلفة

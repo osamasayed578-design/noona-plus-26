@@ -601,8 +601,11 @@ CREATE OR REPLACE PACKAGE BODY NOONA_AUT_PKG AS
       l_price := CASE WHEN l.payer = 'WARRANTY' THEN 0 ELSE l.unit_price END;
       l_inc := l.price_includes_tax; l_tc := NULL;
       l_item := CASE WHEN l.line_type = 'PART' THEN l.item_id END;
+      -- خصم العرض الساري للقطعة أو خصم الباقة معتمدان فلا يقيدهما أدنى سعر البيع
       NOONA_SAL_PKG.price_line(l_item, l.quantity, l_price, CASE WHEN l.payer = 'WARRANTY' THEN 0 ELSE l.discount_amount END, l_inc, l_tc,
-                               TRUNC(SYSDATE), l_net, l_tax);
+                               TRUNC(SYSDATE), l_net, l_tax,
+                               CASE WHEN l_item IS NULL THEN 0 WHEN l.notes LIKE 'باقة: %' THEN NVL(l.discount_amount, 0)
+                                    ELSE NOONA_PRC_PKG.line_discount('ITEM', l_item, l.quantity, l.unit_price, 'AUT') END);
       UPDATE aut_job_line SET net_amount = l_net, tax_amount = l_tax WHERE id = l.id;
     END LOOP;
     UPDATE aut_job_card j SET
