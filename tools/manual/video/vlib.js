@@ -53,8 +53,11 @@ module.exports = async function video(app, outDir, name, opts = {}) {
     }, { css: CSS, step, cap, cur }).catch(() => {});
   }
   // الشرح: يبقى ظاهراً حتى التالي؛ المدة تقديرية للقراءة
+  let shotN = 0;
   async function say(html, ms) {
     cap = html; await ensure();
+    // تشخيص: VDBG=<مجلد> يحفظ لقطة عند كل شرح لمعرفة موضع التوقف
+    if (process.env.VDBG) await page.screenshot({ path: path.join(process.env.VDBG, String(++shotN).padStart(3, '0') + '.png') }).catch(() => {});
     const words = html.replace(/<[^>]+>/g, '').split(/\s+/).length;
     await wait(ms || Math.min(7000, 1400 + words * 330));
   }
@@ -114,7 +117,8 @@ module.exports = async function video(app, outDir, name, opts = {}) {
   async function nav(text) {
     const href = await page.evaluate((t) => { try { apex.jQuery('#t_TreeNav').treeView('expandAll'); } catch (e) { /* القائمة مطوية */ }
       const a = [...document.querySelectorAll('#t_TreeNav a')].find((x) => x.textContent.trim() === t); return a ? a.href : null; }, text);
-    if (href) { await page.goto(href); await settle(); }
+    // ERR_ABORTED يحدث إن كانت الصفحة السابقة ما زالت تعيد التوجيه: ننتظر ونعيد المحاولة مرة
+    if (href) { await page.goto(href).catch(async () => { await settle(); await page.goto(href); }); await settle(); }
   }
   async function switchApp(newApp) { base = `http://localhost:${port}/ords/r/noonaplus/${newApp}`; await page.goto(`${base}/home?session=${sess}`); await settle(); }
   async function logout() { cap = ''; step = ''; await ctx.clearCookies(); }
