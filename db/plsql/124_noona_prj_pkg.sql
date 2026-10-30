@@ -402,7 +402,7 @@ CREATE OR REPLACE PACKAGE BODY NOONA_PRJ_PKG AS
       NOONA_CORE_PKG.assert(l_id IS NULL OR l_parent <> l_id, 'NOONA-PRJ-012', 'البند لا يكون أباً لنفسه', 'An item cannot be its own parent');
     END IF;
     IF l_code IS NULL THEN
-      SELECT COUNT(*) + 1 INTO l_n FROM prj_wbs WHERE project_id = l_prj;
+      SELECT NVL(MAX(TO_NUMBER(REGEXP_SUBSTR(code, '^(\d+)$', 1, 1, NULL, 1))), 0) + 1 INTO l_n FROM prj_wbs WHERE project_id = l_prj;
       l_code := LPAD(l_n, 2, '0');
     END IF;
     IF l_id IS NULL THEN

@@ -268,7 +268,8 @@ CREATE OR REPLACE PACKAGE BODY NOONA_HIS_CARE_PKG AS
   FUNCTION template_for(p_order_id IN NUMBER) RETURN VARCHAR2 IS
     l VARCHAR2(4000);
   BEGIN
-    SELECT MAX(t.body) KEEP (DENSE_RANK FIRST ORDER BY CASE WHEN t.service_id = o.service_id THEN 0 ELSE 1 END)
+    -- قالب الخدمة نفسها أولاً، ثم أحدث قالب لنوع الفحص (اختيار ثابت عند تعدد القوالب)
+    SELECT MAX(t.body) KEEP (DENSE_RANK FIRST ORDER BY CASE WHEN t.service_id = o.service_id THEN 0 ELSE 1 END, t.id DESC)
       INTO l
       FROM his_order o JOIN his_service s ON s.id = o.service_id
       JOIN his_report_template t ON t.company_id = o.company_id AND t.is_active = 'Y' AND (t.service_id = o.service_id OR (t.service_id IS NULL AND t.modality = s.modality))

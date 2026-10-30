@@ -376,7 +376,9 @@ CREATE OR REPLACE PACKAGE BODY NOONA_HIS_PKG AS
     guard('HIS_DOCTOR.' || CASE WHEN l_id IS NULL THEN 'CREATE' ELSE 'UPDATE' END);
     NOONA_CORE_PKG.assert(l_name IS NOT NULL AND l_dept IS NOT NULL, 'NOONA-HIS-016', 'اسم الطبيب والقسم إلزاميان', 'Name and department are required');
     IF l_code IS NULL THEN
-      SELECT 'DR' || LPAD(COUNT(*) + 1, 3, '0') INTO l_code FROM his_doctor WHERE company_id = company;
+      -- التالي بعد أكبر رقم (العد يتصادم إن وجد رمز يدوي أو محذوف)
+      SELECT 'DR' || LPAD(NVL(MAX(TO_NUMBER(REGEXP_SUBSTR(code, '^DR(\d+)$', 1, 1, NULL, 1))), 0) + 1, 3, '0') INTO l_code
+        FROM his_doctor WHERE company_id = company;
     END IF;
     SELECT COUNT(*) INTO l_n FROM his_doctor WHERE company_id = company AND code = l_code AND id <> NVL(l_id, -1);
     NOONA_CORE_PKG.assert(l_n = 0, 'NOONA-HIS-017', 'رمز الطبيب مستخدم: ' || l_code, 'Doctor code already exists');

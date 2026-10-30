@@ -63,6 +63,7 @@ sqlplus -S -L NOONA_APP/"%APP_PWD%"@%CONN% @tests/test_tenant_admin.sql < nul | 
 sqlplus -S -L NOONA_APP/"%APP_PWD%"@%CONN% @tests/test_correspondence.sql < nul | findstr /c:"RESULT" /c:"FAIL" /c:"ORA-"
 sqlplus -S -L NOONA_APP/"%APP_PWD%"@%CONN% @tests/test_cor_delivery.sql < nul | findstr /c:"RESULT" /c:"FAIL" /c:"ORA-"
 sqlplus -S -L NOONA_APP/"%APP_PWD%"@%CONN% @tests/test_cor_hierarchy.sql < nul | findstr /c:"RESULT" /c:"FAIL" /c:"ORA-"
+sqlplus -S -L NOONA_APP/"%APP_PWD%"@%CONN% @tests/test_coa_import.sql < nul | findstr /c:"RESULT" /c:"FAIL" /c:"ORA-"
 sqlplus -S -L NOONA_APP/"%APP_PWD%"@%CONN% @tests/test_hr_payroll.sql < nul | findstr /c:"RESULT" /c:"FAIL" /c:"ORA-"
 sqlplus -S -L NOONA_APP/"%APP_PWD%"@%CONN% @tests/test_pay_allowances.sql < nul | findstr /c:"RESULT" /c:"FAIL" /c:"ORA-"
 sqlplus -S -L NOONA_APP/"%APP_PWD%"@%CONN% @tests/test_fixed_assets.sql < nul | findstr /c:"RESULT" /c:"FAIL" /c:"ORA-"

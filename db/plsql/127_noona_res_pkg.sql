@@ -286,7 +286,8 @@ CREATE OR REPLACE PACKAGE BODY NOONA_RES_PKG AS
     guard('RE_PRICE_LIST.' || CASE WHEN l_id IS NULL THEN 'CREATE' ELSE 'UPDATE' END);
     NOONA_CORE_PKG.assert(l_prop IS NOT NULL AND l_name IS NOT NULL, 'NOONA-RES-010', 'اختر العقار واسم القائمة', 'Property and name are required');
     IF l_id IS NULL THEN
-      SELECT COUNT(*) + 1 INTO l_n FROM re_price_list WHERE company_id = company AND property_id = l_prop;
+      SELECT NVL(MAX(TO_NUMBER(REGEXP_SUBSTR(code, '^PL-' || l_prop || '-(\d+)$', 1, 1, NULL, 1))), 0) + 1 INTO l_n
+        FROM re_price_list WHERE company_id = company AND property_id = l_prop;
       INSERT INTO re_price_list (company_id, code, name_ar, currency_code, property_id, phase_code, status_code, effective_from)
       VALUES (company, NVL(l_code, 'PL-' || l_prop || '-' || l_n), l_name, NOONA_GL_PKG.ledger_currency, l_prop, l_phase, 'DRAFT', l_from)
       RETURNING id INTO l_id;

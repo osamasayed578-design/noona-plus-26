@@ -124,7 +124,12 @@ BEGIN
      AND INSTR(l_c, 'dir="ltr"') > 0 AND INSTR(l_c, 'Test Patient') > 0);
   -- قالب التقرير
   l_o := NOONA_HIS_PKG.add_order(l_v, srv('XR-CHEST'));
-  ok('X-ray template by modality', INSTR(NOONA_HIS_CARE_PKG.template_for(l_o), 'Findings') > 0);
+  ok('X-ray template by modality', NOONA_HIS_CARE_PKG.template_for(l_o) IS NOT NULL);
+  -- قالب خاص بالخدمة يتقدم على قوالب نوع الفحص مهما تعددت
+  INSERT INTO his_report_template (company_id, code, name_ar, modality, service_id, body, is_active)
+  SELECT o.company_id, 'TT' || l_sfx, 'قالب خدمة', s.modality, o.service_id, 'Service specific findings', 'Y'
+    FROM his_order o JOIN his_service s ON s.id = o.service_id WHERE o.id = l_o;
+  ok('service template wins over modality templates', NOONA_HIS_CARE_PKG.template_for(l_o) = 'Service specific findings');
   NOONA_HIS_PKG.cancel_order(l_o, 'test');
 
   -- ======================================================== الصيدلية الداخلية

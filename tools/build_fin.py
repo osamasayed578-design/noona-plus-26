@@ -112,6 +112,7 @@ p.hidden('P10_JOB', imf, 90)
 b_imp = p.button(imf, 10, 'IMPORT_ACCOUNTS', 'استيراد الحسابات')
 p.process(15, 'AFTER_SUBMIT', 'Import Accounts', [
     'declare l_blob blob; l_name varchar2(400); l_csv clob; l_job number; l_ok number; l_bad number;', 'begin',
+    "    if :P10_FILE is null then raise_application_error(-20500, 'NOONA-CON-025: اختر ملف الحسابات أولاً'); end if;",
     "    select blob_content, filename into l_blob, l_name from apex_application_temp_files where name = :P10_FILE;",
     "    l_csv := apex_util.blob_to_clob(p_blob => l_blob, p_charset => 'AL32UTF8');",
     "    l_job := noona_conn_pkg.import_csv('ACCOUNTS', l_name, l_csv);",

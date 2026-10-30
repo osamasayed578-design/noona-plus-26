@@ -88,6 +88,8 @@ BEGIN
   l_box := NOONA_CSH_PKG.create_cash_box('AB' || SUBSTR(l_sfx, 1, 6), 'صندوق اختبار الواجهات');
   l_n := NOONA_CSH_PKG.seed_defaults;
   SELECT MIN(id) INTO l_bank FROM csh_bank_account WHERE company_id = l_co AND status_code = 'ACTIVE';
+  -- حد الدفع المعرف للحساب في بيانات الشركة لا يقيد الاختبار (يتراجع في النهاية)
+  UPDATE csh_bank_account SET max_payment_amount = NULL WHERE id = l_bank;
 
   -- ======================================================== العميل وحساب الخدمة
   l_role := NOONA_SEC_ADMIN_PKG.create_role('API_T' || l_sfx, 'دور تكامل اختبار');

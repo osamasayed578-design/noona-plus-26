@@ -97,6 +97,8 @@ BEGIN
   UPDATE dms_archive_rule SET is_active = 'N';
   l_box := NOONA_CSH_PKG.create_cash_box('SB' || SUBSTR(l_sfx, 1, 6), 'صندوق مبيعات اختبار');
   SELECT MIN(id) INTO l_bank FROM csh_bank_account WHERE company_id = NOONA_SAL_PKG.company AND status_code = 'ACTIVE';
+  -- حد الدفع المعرف للحساب في بيانات الشركة لا يقيد الاختبار (يتراجع في النهاية)
+  UPDATE csh_bank_account SET max_payment_amount = NULL WHERE id = l_bank;
 
   -- العميل العام والعملاء
   l_walk := NOONA_SAL_PKG.walk_in_customer;
@@ -191,7 +193,8 @@ BEGIN
   ok('sales by item with margin', INSTR(NOONA_SAL_PKG.sales_by_item(TRUNC(SYSDATE), TRUNC(SYSDATE)), 'بطارية سيارة 70 أمبير اختبار') > 0);
 
   -- ======================================================== نقاط البيع
-  SELECT MIN(id), MIN(cash_box_id) INTO l_term, l_dbox FROM pos_terminal WHERE company_id = NOONA_SAL_PKG.company AND status_code = 'ACTIVE';
+  SELECT MIN(id) INTO l_term FROM pos_terminal WHERE company_id = NOONA_SAL_PKG.company AND status_code = 'ACTIVE';
+  SELECT MAX(cash_box_id) INTO l_dbox FROM pos_terminal WHERE id = l_term;
   ok('default POS terminal with cash drawer', l_term IS NOT NULL AND l_dbox IS NOT NULL);
   -- وردية مفتوحة سابقاً في بيانات التجربة تقفل أولاً
   FOR o IN (SELECT id FROM pos_shift WHERE terminal_id = l_term AND status_code = 'OPEN') LOOP

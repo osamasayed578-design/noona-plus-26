@@ -11,6 +11,7 @@ EVENTS = ('STATIC2:كل الأحداث;*,فاتورة مبيعات مرحلة;SA
 
 # قراءة ملف مرفوع (APEX_APPLICATION_TEMP_FILES) نصاً UTF-8
 READ_FILE = [
+    "    if {item} is null then raise_application_error(-20500, 'NOONA-CON-025: اختر الملف أولاً'); end if;",
     "    select blob_content, filename into l_blob, l_name from apex_application_temp_files where name = {item};",
     "    l_csv := apex_util.blob_to_clob(p_blob => l_blob, p_charset => 'AL32UTF8');",
 ]

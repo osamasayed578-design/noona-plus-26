@@ -108,6 +108,8 @@ BEGIN
   l_box := NOONA_CSH_PKG.create_cash_box('PB' || SUBSTR(l_sfx, 1, 6), 'صندوق مشتريات اختبار');
   l_box2 := NOONA_CSH_PKG.create_cash_box('PE' || SUBSTR(l_sfx, 1, 6), 'صندوق فارغ اختبار');
   SELECT MIN(id) INTO l_bank FROM csh_bank_account WHERE company_id = NOONA_PUR_PKG.company AND status_code = 'ACTIVE';
+  -- حد الدفع المعرف للحساب في بيانات الشركة لا يقيد الاختبار (يتراجع في النهاية)
+  UPDATE csh_bank_account SET max_payment_amount = NULL WHERE id = l_bank;
   -- الحساب البنكي في قاعدة جديدة بلا رصيد: تسهيل سحب على المكشوف للاختبار (يتراجع بنهاية الاختبار)
   NOONA_CSH_PKG.set_overdraft(l_bank, 100000);
   l_user := 'PUA' || l_sfx;
