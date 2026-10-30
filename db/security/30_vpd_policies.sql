@@ -536,6 +536,9 @@ BEGIN
   NOONA_VPD_PKG.add_tenant_policy('RST_ORDER');
   NOONA_VPD_PKG.add_tenant_policy('RST_ORDER_LINE');
   NOONA_VPD_PKG.add_tenant_policy('RST_TABLE');
+  NOONA_VPD_PKG.add_tenant_policy('SAL_BUNDLE');
+  NOONA_VPD_PKG.add_tenant_policy('SAL_BUNDLE_LINE');
+  NOONA_VPD_PKG.add_tenant_policy('SAL_COST_ELEMENT');
   NOONA_VPD_PKG.add_tenant_policy('SAL_DELIVERY');
   NOONA_VPD_PKG.add_tenant_policy('SAL_DELIVERY_LINE');
   NOONA_VPD_PKG.add_tenant_policy('SAL_DISCOUNT_RULE');
@@ -543,8 +546,14 @@ BEGIN
   NOONA_VPD_PKG.add_tenant_policy('SAL_INVOICE_LINE');
   NOONA_VPD_PKG.add_tenant_policy('SAL_ORDER');
   NOONA_VPD_PKG.add_tenant_policy('SAL_ORDER_LINE');
+  NOONA_VPD_PKG.add_tenant_policy('SAL_PRICE_HISTORY');
   NOONA_VPD_PKG.add_tenant_policy('SAL_PRICE_LIST');
   NOONA_VPD_PKG.add_tenant_policy('SAL_PRICE_LIST_LINE');
+  NOONA_VPD_PKG.add_tenant_policy('SAL_PRICE_RUN');
+  NOONA_VPD_PKG.add_tenant_policy('SAL_PRICE_RUN_LINE');
+  NOONA_VPD_PKG.add_tenant_policy('SAL_PRICING_POLICY');
+  NOONA_VPD_PKG.add_tenant_policy('SAL_PROMOTION');
+  NOONA_VPD_PKG.add_tenant_policy('SAL_PROMOTION_TARGET');
   NOONA_VPD_PKG.add_tenant_policy('SAL_QUOTATION');
   NOONA_VPD_PKG.add_tenant_policy('SAL_QUOTATION_LINE');
   NOONA_VPD_PKG.add_tenant_policy('SAL_RETURN_AUTH');

@@ -11,6 +11,15 @@ Quotation → Sales Order → Reservation → Delivery → Sales Invoice → Col
 | [`SAL_PRICE_LIST`](#sal_price_list) | قوائم الأسعار | Price Lists | C | INTERNAL |
 | [`SAL_PRICE_LIST_LINE`](#sal_price_list_line) | أسعار الأصناف | Price List Lines | C | INTERNAL |
 | [`SAL_DISCOUNT_RULE`](#sal_discount_rule) | قواعد الخصومات والعروض | Discount & Promotion Rules | C | INTERNAL |
+| [`SAL_COST_ELEMENT`](#sal_cost_element) | عناصر تكلفة الخدمة | Service Cost Elements | C | INTERNAL |
+| [`SAL_PRICING_POLICY`](#sal_pricing_policy) | سياسات التسعير | Pricing Policies | C | INTERNAL |
+| [`SAL_PRICE_RUN`](#sal_price_run) | تشغيلات إعادة التسعير | Repricing Runs | C | INTERNAL |
+| [`SAL_PRICE_RUN_LINE`](#sal_price_run_line) | أسطر إعادة التسعير | Repricing Run Lines | C | INTERNAL |
+| [`SAL_PRICE_HISTORY`](#sal_price_history) | سجل تغيير الأسعار | Price Change History | C | INTERNAL |
+| [`SAL_PROMOTION`](#sal_promotion) | العروض والتخفيضات | Promotions & Discounts | C | INTERNAL |
+| [`SAL_PROMOTION_TARGET`](#sal_promotion_target) | أصناف وخدمات العرض | Promotion Targets | C | INTERNAL |
+| [`SAL_BUNDLE`](#sal_bundle) | الباقات | Bundles & Packages | C | INTERNAL |
+| [`SAL_BUNDLE_LINE`](#sal_bundle_line) | مكونات الباقة | Bundle Components | C | INTERNAL |
 | [`SAL_QUOTATION`](#sal_quotation) | عروض الأسعار | Sales Quotations | C | INTERNAL |
 | [`SAL_QUOTATION_LINE`](#sal_quotation_line) | أسطر عروض الأسعار | Quotation Lines | C | INTERNAL |
 | [`SAL_ORDER`](#sal_order) | أوامر البيع | Sales Orders | C | INTERNAL |
@@ -135,6 +144,306 @@ Quotation → Sales Order → Reservation → Delivery → Sales Invoice → Col
 | 18 | `CREATED_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` | ✔ | SYSTIMESTAMP |  |  | Trigger |  | وقت الإنشاء |
 | 19 | `UPDATED_BY` | اسم مستخدم | `VARCHAR2(128 CHAR)` |  |  |  |  | Trigger |  | آخر من عدل السجل |
 | 20 | `UPDATED_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` |  |  |  |  | Trigger |  | وقت آخر تعديل |
+
+## SAL_COST_ELEMENT
+
+| البند | القيمة |
+|---|---|
+| الاسم العربي | عناصر تكلفة الخدمة |
+| English | Service Cost Elements |
+| الحزمة المالكة | 13 — `NOONA_SALES_PKG` |
+| نطاق الملكية | `C` — مملوك للشركة Company-Owned |
+| الحساسية | INTERNAL |
+| النمط | قابل للتعديل وفق دورة الحياة |
+| الغرض | تكلفة الخدمة = مواد الخدمة المعرفة في موديولها + هذه العناصر (مواد إضافية، عمالة بالدقائق، أعباء ثابتة أو نسبة) |
+| قيود أعمال | NVL(QUANTITY, 0) >= 0<br>NVL(AMOUNT, 0) >= 0 |
+
+| # | العمود | النوع المنطقي | Oracle Type | إلزامي | افتراضي | مفاتيح | القيم المقبولة | المصدر | PII | الوصف |
+|---:|---|---|---|:---:|---|---|---|---|:---:|---|
+| 1 | `ID` | معرف | `NUMBER(19)` | ✔ |  | PK |  | النظام/الحزمة |  | المفتاح الداخلي الثابت (Identity) - لا يعاد استخدامه |
+| 2 | `TENANT_ID` | معرف | `NUMBER(19)` | ✔ |  | FK→PLT_TENANT |  | Security Context |  | المؤسسة المالكة؛ يملأ من Security Context الموثوق لا من مدخلات المستخدم |
+| 3 | `COMPANY_ID` | معرف | `NUMBER(19)` | ✔ |  | FK→ORG_COMPANY |  | Security Context |  | الشركة (الكيان القانوني) المالكة للسجل |
+| 4 | `TARGET_TYPE` | رمز | `VARCHAR2(30 CHAR)` | ✔ |  |  | HIS_SERVICE, AUT_SERVICE, ITEM | إدخال المستخدم |  | الخدمة أو الصنف |
+| 5 | `TARGET_ID` | معرف | `NUMBER(19)` | ✔ |  |  |  | إدخال المستخدم |  | المعرف |
+| 6 | `ELEMENT_TYPE` | رمز | `VARCHAR2(30 CHAR)` | ✔ |  |  | MATERIAL, LABOR, OVERHEAD_AMOUNT, OVERHEAD_PCT, OTHER | إدخال المستخدم |  | نوع العنصر |
+| 7 | `DESCRIPTION` | نص | `VARCHAR2(200 CHAR)` |  |  |  |  | إدخال المستخدم |  | البيان |
+| 8 | `ITEM_ID` | معرف | `NUMBER(19)` |  |  | FK→INV_ITEM |  | إدخال المستخدم |  | المادة (للمواد) |
+| 9 | `QUANTITY` | كمية | `NUMBER(24,6)` |  |  |  |  | إدخال المستخدم |  | الكمية (للمواد) |
+| 10 | `MINUTES` | رقم | `NUMBER` |  |  |  |  | إدخال المستخدم |  | الدقائق (للعمالة) |
+| 11 | `HOURLY_RATE` | مبلغ | `NUMBER(24,6)` |  |  |  |  | إدخال المستخدم |  | تكلفة الساعة (للعمالة) |
+| 12 | `AMOUNT` | مبلغ | `NUMBER(24,6)` |  |  |  |  | إدخال المستخدم |  | المبلغ (أعباء ثابتة وأخرى) |
+| 13 | `PCT` | نسبة | `NUMBER(9,6)` |  |  |  |  | إدخال المستخدم |  | النسبة من التكلفة المباشرة (أعباء نسبية) |
+| 14 | `SORT_ORDER` | عدد صحيح | `NUMBER(10)` |  |  |  |  | إدخال المستخدم |  | ترتيب العرض |
+| 15 | `ROW_VERSION` | عدد صحيح | `NUMBER(10)` | ✔ | 1 |  |  | Trigger |  | رقم الإصدار للتحكم في التزامن المتفائل |
+| 16 | `CREATED_BY` | اسم مستخدم | `VARCHAR2(128 CHAR)` | ✔ |  |  |  | Trigger |  | منشئ السجل |
+| 17 | `CREATED_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` | ✔ | SYSTIMESTAMP |  |  | Trigger |  | وقت الإنشاء |
+| 18 | `UPDATED_BY` | اسم مستخدم | `VARCHAR2(128 CHAR)` |  |  |  |  | Trigger |  | آخر من عدل السجل |
+| 19 | `UPDATED_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` |  |  |  |  | Trigger |  | وقت آخر تعديل |
+
+## SAL_PRICING_POLICY
+
+| البند | القيمة |
+|---|---|
+| الاسم العربي | سياسات التسعير |
+| English | Pricing Policies |
+| الحزمة المالكة | 13 — `NOONA_SALES_PKG` |
+| نطاق الملكية | `C` — مملوك للشركة Company-Owned |
+| الحساسية | INTERNAL |
+| النمط | قابل للتعديل وفق دورة الحياة |
+| مفاتيح فريدة | UK2: (TENANT_ID, COMPANY_ID, CODE) |
+| قيود أعمال | EFFECTIVE_TO IS NULL OR EFFECTIVE_TO >= EFFECTIVE_FROM<br>METHOD_VALUE >= 0<br>METHOD <> 'MARGIN_PCT' OR METHOD_VALUE < 100 |
+
+| # | العمود | النوع المنطقي | Oracle Type | إلزامي | افتراضي | مفاتيح | القيم المقبولة | المصدر | PII | الوصف |
+|---:|---|---|---|:---:|---|---|---|---|:---:|---|
+| 1 | `ID` | معرف | `NUMBER(19)` | ✔ |  | PK |  | النظام/الحزمة |  | المفتاح الداخلي الثابت (Identity) - لا يعاد استخدامه |
+| 2 | `TENANT_ID` | معرف | `NUMBER(19)` | ✔ |  | FK→PLT_TENANT UK2 |  | Security Context |  | المؤسسة المالكة؛ يملأ من Security Context الموثوق لا من مدخلات المستخدم |
+| 3 | `COMPANY_ID` | معرف | `NUMBER(19)` | ✔ |  | FK→ORG_COMPANY UK2 |  | Security Context |  | الشركة (الكيان القانوني) المالكة للسجل |
+| 4 | `CODE` | نص | `VARCHAR2(50 CHAR)` | ✔ |  | UK2 |  | إدخال المستخدم |  | الرمز الفريد ضمن النطاق |
+| 5 | `NAME_AR` | اسم | `VARCHAR2(200 CHAR)` | ✔ |  |  |  | إدخال المستخدم |  | الاسم بالعربية |
+| 6 | `NAME_EN` | اسم | `VARCHAR2(200 CHAR)` |  |  |  |  | إدخال المستخدم |  | الاسم بالإنجليزية |
+| 7 | `TARGET_TYPE` | رمز | `VARCHAR2(30 CHAR)` | ✔ |  |  | ITEM, ITEM_CATEGORY, ALL_ITEMS, HIS_SERVICE, HIS_SERVICE_TYPE, ALL_HIS, AUT_SERVICE, AUT_CATEGORY, ALL_AUT | إدخال المستخدم |  | ينطبق على |
+| 8 | `TARGET_ID` | معرف | `NUMBER(19)` |  |  |  |  | إدخال المستخدم |  | الصنف/الفئة/الخدمة |
+| 9 | `TARGET_CODE` | نص | `VARCHAR2(50 CHAR)` |  |  |  |  | إدخال المستخدم |  | النوع (لأنواع الخدمات الطبية) |
+| 10 | `COST_BASIS` | رمز | `VARCHAR2(30 CHAR)` | ✔ | 'AVERAGE' |  | AVERAGE, LAST_PURCHASE, STANDARD, COST_SHEET | إدخال المستخدم |  | أساس التكلفة |
+| 11 | `METHOD` | رمز | `VARCHAR2(30 CHAR)` | ✔ | 'MARKUP_PCT' |  | MARKUP_PCT, MARGIN_PCT, FIXED_AMOUNT, MULTIPLIER | إدخال المستخدم |  | طريقة حساب سعر البيع |
+| 12 | `METHOD_VALUE` | رقم | `NUMBER` | ✔ |  |  |  | إدخال المستخدم |  | النسبة أو المبلغ أو المعامل |
+| 13 | `MIN_MARGIN_PCT` | نسبة | `NUMBER(9,6)` |  |  |  |  | إدخال المستخدم |  | أدنى هامش (يحدد أدنى سعر بيع دون موافقة) |
+| 14 | `ROUNDING` | رمز | `VARCHAR2(30 CHAR)` | ✔ | 'NONE' |  | NONE, R005, R025, R050, R1, R5, R10, END99 | إدخال المستخدم |  | التقريب |
+| 15 | `PRIORITY_NO` | عدد صحيح | `NUMBER(10)` | ✔ | 100 |  |  | إدخال المستخدم |  | الأولوية (الأصغر أولاً عند التعارض) |
+| 16 | `STATUS_CODE` | رمز | `VARCHAR2(30 CHAR)` | ✔ | 'ACTIVE' |  | ACTIVE, INACTIVE | النظام/الحزمة |  | الحالة ضمن دورة الحياة المعتمدة |
+| 17 | `EFFECTIVE_FROM` | تاريخ | `DATE` | ✔ | TRUNC(SYSDATE) |  |  | إدخال المستخدم |  | تاريخ بداية السريان |
+| 18 | `EFFECTIVE_TO` | تاريخ | `DATE` |  |  |  |  | إدخال المستخدم |  | تاريخ نهاية السريان (فارغ = مفتوح) |
+| 19 | `ROW_VERSION` | عدد صحيح | `NUMBER(10)` | ✔ | 1 |  |  | Trigger |  | رقم الإصدار للتحكم في التزامن المتفائل |
+| 20 | `CREATED_BY` | اسم مستخدم | `VARCHAR2(128 CHAR)` | ✔ |  |  |  | Trigger |  | منشئ السجل |
+| 21 | `CREATED_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` | ✔ | SYSTIMESTAMP |  |  | Trigger |  | وقت الإنشاء |
+| 22 | `UPDATED_BY` | اسم مستخدم | `VARCHAR2(128 CHAR)` |  |  |  |  | Trigger |  | آخر من عدل السجل |
+| 23 | `UPDATED_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` |  |  |  |  | Trigger |  | وقت آخر تعديل |
+
+## SAL_PRICE_RUN
+
+| البند | القيمة |
+|---|---|
+| الاسم العربي | تشغيلات إعادة التسعير |
+| English | Repricing Runs |
+| الحزمة المالكة | 13 — `NOONA_SALES_PKG` |
+| نطاق الملكية | `C` — مملوك للشركة Company-Owned |
+| الحساسية | INTERNAL |
+| النمط | قابل للتعديل وفق دورة الحياة |
+| مفاتيح فريدة | UK2: (TENANT_ID, COMPANY_ID, DOC_NO) |
+
+| # | العمود | النوع المنطقي | Oracle Type | إلزامي | افتراضي | مفاتيح | القيم المقبولة | المصدر | PII | الوصف |
+|---:|---|---|---|:---:|---|---|---|---|:---:|---|
+| 1 | `ID` | معرف | `NUMBER(19)` | ✔ |  | PK |  | النظام/الحزمة |  | المفتاح الداخلي الثابت (Identity) - لا يعاد استخدامه |
+| 2 | `TENANT_ID` | معرف | `NUMBER(19)` | ✔ |  | FK→PLT_TENANT UK2 |  | Security Context |  | المؤسسة المالكة؛ يملأ من Security Context الموثوق لا من مدخلات المستخدم |
+| 3 | `COMPANY_ID` | معرف | `NUMBER(19)` | ✔ |  | FK→ORG_COMPANY UK2 |  | Security Context |  | الشركة (الكيان القانوني) المالكة للسجل |
+| 4 | `DOC_NO` | نص | `VARCHAR2(50 CHAR)` | ✔ |  | UK2 |  | النظام/الحزمة |  | رقم المستند من تسلسل REF_DOC_SEQUENCE (فريد ضمن الشركة) |
+| 5 | `DOC_DATE` | تاريخ | `DATE` | ✔ | TRUNC(SYSDATE) |  |  | إدخال المستخدم |  | تاريخ المستند (تاريخ الأعمال) |
+| 6 | `SCOPE_TYPE` | رمز | `VARCHAR2(30 CHAR)` | ✔ |  |  | ITEMS, HIS, AUT, ALL | إدخال المستخدم |  | النطاق |
+| 7 | `ONLY_CHANGED` | منطقي Y/N | `CHAR(1 CHAR)` | ✔ | 'Y' |  | Y, N | إدخال المستخدم |  | الأسطر التي يتغير سعرها فقط |
+| 8 | `LINES_COUNT` | عدد صحيح | `NUMBER(10)` | ✔ | 0 |  |  | إدخال المستخدم |  | عدد الأسطر |
+| 9 | `APPLIED_COUNT` | عدد صحيح | `NUMBER(10)` | ✔ | 0 |  |  | إدخال المستخدم |  | المطبق |
+| 10 | `APPLIED_BY` | اسم مستخدم | `VARCHAR2(128 CHAR)` |  |  |  |  | إدخال المستخدم |  | طبقها |
+| 11 | `APPLIED_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` |  |  |  |  | إدخال المستخدم |  | وقت التطبيق |
+| 12 | `STATUS_CODE` | رمز | `VARCHAR2(30 CHAR)` | ✔ | 'DRAFT' |  | DRAFT, APPLIED, CANCELLED | النظام/الحزمة |  | الحالة ضمن دورة الحياة المعتمدة |
+| 13 | `ROW_VERSION` | عدد صحيح | `NUMBER(10)` | ✔ | 1 |  |  | Trigger |  | رقم الإصدار للتحكم في التزامن المتفائل |
+| 14 | `CREATED_BY` | اسم مستخدم | `VARCHAR2(128 CHAR)` | ✔ |  |  |  | Trigger |  | منشئ السجل |
+| 15 | `CREATED_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` | ✔ | SYSTIMESTAMP |  |  | Trigger |  | وقت الإنشاء |
+| 16 | `UPDATED_BY` | اسم مستخدم | `VARCHAR2(128 CHAR)` |  |  |  |  | Trigger |  | آخر من عدل السجل |
+| 17 | `UPDATED_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` |  |  |  |  | Trigger |  | وقت آخر تعديل |
+
+## SAL_PRICE_RUN_LINE
+
+| البند | القيمة |
+|---|---|
+| الاسم العربي | أسطر إعادة التسعير |
+| English | Repricing Run Lines |
+| الحزمة المالكة | 13 — `NOONA_SALES_PKG` |
+| نطاق الملكية | `C` — مملوك للشركة Company-Owned |
+| الحساسية | INTERNAL |
+| النمط | قابل للتعديل وفق دورة الحياة |
+| مفاتيح فريدة | UK1: (RUN_ID, TARGET_TYPE, TARGET_ID) |
+
+| # | العمود | النوع المنطقي | Oracle Type | إلزامي | افتراضي | مفاتيح | القيم المقبولة | المصدر | PII | الوصف |
+|---:|---|---|---|:---:|---|---|---|---|:---:|---|
+| 1 | `ID` | معرف | `NUMBER(19)` | ✔ |  | PK |  | النظام/الحزمة |  | المفتاح الداخلي الثابت (Identity) - لا يعاد استخدامه |
+| 2 | `TENANT_ID` | معرف | `NUMBER(19)` | ✔ |  | FK→PLT_TENANT |  | Security Context |  | المؤسسة المالكة؛ يملأ من Security Context الموثوق لا من مدخلات المستخدم |
+| 3 | `COMPANY_ID` | معرف | `NUMBER(19)` | ✔ |  | FK→ORG_COMPANY |  | Security Context |  | الشركة (الكيان القانوني) المالكة للسجل |
+| 4 | `RUN_ID` | معرف | `NUMBER(19)` | ✔ |  | FK→SAL_PRICE_RUN UK1 |  | إدخال المستخدم |  | التشغيل |
+| 5 | `TARGET_TYPE` | رمز | `VARCHAR2(30 CHAR)` | ✔ |  | UK1 | ITEM, HIS_SERVICE, AUT_SERVICE | إدخال المستخدم |  | النوع |
+| 6 | `TARGET_ID` | معرف | `NUMBER(19)` | ✔ |  | UK1 |  | إدخال المستخدم |  | المعرف |
+| 7 | `POLICY_ID` | معرف | `NUMBER(19)` |  |  | FK→SAL_PRICING_POLICY |  | إدخال المستخدم |  | السياسة |
+| 8 | `COST_AMOUNT` | مبلغ | `NUMBER(24,6)` |  |  |  |  | إدخال المستخدم |  | التكلفة |
+| 9 | `OLD_PRICE` | مبلغ | `NUMBER(24,6)` |  |  |  |  | إدخال المستخدم |  | السعر الحالي |
+| 10 | `NEW_PRICE` | مبلغ | `NUMBER(24,6)` |  |  |  |  | إدخال المستخدم |  | السعر المقترح |
+| 11 | `NEW_MIN_PRICE` | مبلغ | `NUMBER(24,6)` |  |  |  |  | إدخال المستخدم |  | أدنى سعر مقترح |
+| 12 | `MARGIN_PCT` | نسبة | `NUMBER(9,6)` |  |  |  |  | إدخال المستخدم |  | الهامش بالسعر المقترح |
+| 13 | `IS_SELECTED` | منطقي Y/N | `CHAR(1 CHAR)` | ✔ | 'Y' |  | Y, N | إدخال المستخدم |  | يطبق |
+| 14 | `ROW_VERSION` | عدد صحيح | `NUMBER(10)` | ✔ | 1 |  |  | Trigger |  | رقم الإصدار للتحكم في التزامن المتفائل |
+| 15 | `CREATED_BY` | اسم مستخدم | `VARCHAR2(128 CHAR)` | ✔ |  |  |  | Trigger |  | منشئ السجل |
+| 16 | `CREATED_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` | ✔ | SYSTIMESTAMP |  |  | Trigger |  | وقت الإنشاء |
+| 17 | `UPDATED_BY` | اسم مستخدم | `VARCHAR2(128 CHAR)` |  |  |  |  | Trigger |  | آخر من عدل السجل |
+| 18 | `UPDATED_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` |  |  |  |  | Trigger |  | وقت آخر تعديل |
+
+## SAL_PRICE_HISTORY
+
+| البند | القيمة |
+|---|---|
+| الاسم العربي | سجل تغيير الأسعار |
+| English | Price Change History |
+| الحزمة المالكة | 13 — `NOONA_SALES_PKG` |
+| نطاق الملكية | `C` — مملوك للشركة Company-Owned |
+| الحساسية | INTERNAL |
+| النمط | Append-only (غير قابل للتعديل) |
+
+| # | العمود | النوع المنطقي | Oracle Type | إلزامي | افتراضي | مفاتيح | القيم المقبولة | المصدر | PII | الوصف |
+|---:|---|---|---|:---:|---|---|---|---|:---:|---|
+| 1 | `ID` | معرف | `NUMBER(19)` | ✔ |  | PK |  | النظام/الحزمة |  | المفتاح الداخلي الثابت (Identity) - لا يعاد استخدامه |
+| 2 | `TENANT_ID` | معرف | `NUMBER(19)` | ✔ |  | FK→PLT_TENANT |  | Security Context |  | المؤسسة المالكة؛ يملأ من Security Context الموثوق لا من مدخلات المستخدم |
+| 3 | `COMPANY_ID` | معرف | `NUMBER(19)` | ✔ |  | FK→ORG_COMPANY |  | Security Context |  | الشركة (الكيان القانوني) المالكة للسجل |
+| 4 | `TARGET_TYPE` | رمز | `VARCHAR2(30 CHAR)` | ✔ |  |  | ITEM, HIS_SERVICE, AUT_SERVICE | إدخال المستخدم |  | النوع |
+| 5 | `TARGET_ID` | معرف | `NUMBER(19)` | ✔ |  |  |  | إدخال المستخدم |  | المعرف |
+| 6 | `OLD_PRICE` | مبلغ | `NUMBER(24,6)` |  |  |  |  | إدخال المستخدم |  | السعر السابق |
+| 7 | `NEW_PRICE` | مبلغ | `NUMBER(24,6)` |  |  |  |  | إدخال المستخدم |  | السعر الجديد |
+| 8 | `COST_AMOUNT` | مبلغ | `NUMBER(24,6)` |  |  |  |  | إدخال المستخدم |  | التكلفة وقت التغيير |
+| 9 | `SOURCE_CODE` | رمز | `VARCHAR2(30 CHAR)` | ✔ |  |  | RUN, MANUAL | إدخال المستخدم |  | المصدر |
+| 10 | `RUN_ID` | معرف | `NUMBER(19)` |  |  | FK→SAL_PRICE_RUN |  | إدخال المستخدم |  | تشغيل إعادة التسعير |
+| 11 | `CREATED_BY` | اسم مستخدم | `VARCHAR2(128 CHAR)` | ✔ |  |  |  | Trigger |  | منشئ السجل |
+| 12 | `CREATED_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` | ✔ | SYSTIMESTAMP |  |  | Trigger |  | وقت الإنشاء UTC |
+
+## SAL_PROMOTION
+
+| البند | القيمة |
+|---|---|
+| الاسم العربي | العروض والتخفيضات |
+| English | Promotions & Discounts |
+| الحزمة المالكة | 13 — `NOONA_SALES_PKG` |
+| نطاق الملكية | `C` — مملوك للشركة Company-Owned |
+| الحساسية | INTERNAL |
+| النمط | قابل للتعديل وفق دورة الحياة |
+| مفاتيح فريدة | UK2: (TENANT_ID, COMPANY_ID, CODE) |
+| قيود أعمال | EFFECTIVE_TO IS NULL OR EFFECTIVE_TO >= EFFECTIVE_FROM<br>PROMO_VALUE >= 0<br>PROMO_TYPE NOT IN ('PCT_OFF','SPEND_PCT') OR PROMO_VALUE <= 100<br>PROMO_TYPE <> 'BUY_X_GET_Y' OR (BUY_QTY > 0 AND GET_QTY > 0)<br>HOUR_FROM IS NULL OR HOUR_FROM BETWEEN 0 AND 23<br>HOUR_TO IS NULL OR HOUR_TO BETWEEN 0 AND 24 |
+
+| # | العمود | النوع المنطقي | Oracle Type | إلزامي | افتراضي | مفاتيح | القيم المقبولة | المصدر | PII | الوصف |
+|---:|---|---|---|:---:|---|---|---|---|:---:|---|
+| 1 | `ID` | معرف | `NUMBER(19)` | ✔ |  | PK |  | النظام/الحزمة |  | المفتاح الداخلي الثابت (Identity) - لا يعاد استخدامه |
+| 2 | `TENANT_ID` | معرف | `NUMBER(19)` | ✔ |  | FK→PLT_TENANT UK2 |  | Security Context |  | المؤسسة المالكة؛ يملأ من Security Context الموثوق لا من مدخلات المستخدم |
+| 3 | `COMPANY_ID` | معرف | `NUMBER(19)` | ✔ |  | FK→ORG_COMPANY UK2 |  | Security Context |  | الشركة (الكيان القانوني) المالكة للسجل |
+| 4 | `CODE` | نص | `VARCHAR2(50 CHAR)` | ✔ |  | UK2 |  | إدخال المستخدم |  | الرمز الفريد ضمن النطاق |
+| 5 | `NAME_AR` | اسم | `VARCHAR2(200 CHAR)` | ✔ |  |  |  | إدخال المستخدم |  | الاسم بالعربية |
+| 6 | `NAME_EN` | اسم | `VARCHAR2(200 CHAR)` |  |  |  |  | إدخال المستخدم |  | الاسم بالإنجليزية |
+| 7 | `PROMO_TYPE` | رمز | `VARCHAR2(30 CHAR)` | ✔ |  |  | PCT_OFF, AMOUNT_OFF, FIXED_PRICE, BUY_X_GET_Y, SPEND_PCT, SPEND_AMOUNT | إدخال المستخدم |  | النوع |
+| 8 | `PROMO_VALUE` | رقم | `NUMBER` | ✔ | 0 |  |  | إدخال المستخدم |  | النسبة أو المبلغ أو السعر الخاص |
+| 9 | `BUY_QTY` | كمية | `NUMBER(24,6)` |  |  |  |  | إدخال المستخدم |  | اشتر (كمية) |
+| 10 | `GET_QTY` | كمية | `NUMBER(24,6)` |  |  |  |  | إدخال المستخدم |  | واحصل مجاناً على (كمية) |
+| 11 | `MIN_QTY` | كمية | `NUMBER(24,6)` |  |  |  |  | إدخال المستخدم |  | أدنى كمية للسطر |
+| 12 | `MIN_AMOUNT` | مبلغ | `NUMBER(24,6)` |  |  |  |  | إدخال المستخدم |  | أدنى قيمة للفاتورة (لعروض قيمة الشراء) |
+| 13 | `MAX_DISCOUNT` | مبلغ | `NUMBER(24,6)` |  |  |  |  | إدخال المستخدم |  | أقصى خصم للعملية |
+| 14 | `CHANNELS` | نص | `VARCHAR2(200 CHAR)` |  |  |  |  | إدخال المستخدم |  | القنوات (POS,SALES,HIS,AUT,RST) فارغ = الكل |
+| 15 | `BRANCH_ID` | معرف | `NUMBER(19)` |  |  | FK→ORG_BRANCH |  | إدخال المستخدم |  | الفرع (فارغ = كل الفروع) |
+| 16 | `DAYS_OF_WEEK` | نص | `VARCHAR2(20 CHAR)` |  |  |  |  | إدخال المستخدم |  | أيام الأسبوع 1-7 (1 = الأحد) فارغ = كل الأيام |
+| 17 | `HOUR_FROM` | عدد صحيح | `NUMBER(10)` |  |  |  |  | إدخال المستخدم |  | من الساعة |
+| 18 | `HOUR_TO` | عدد صحيح | `NUMBER(10)` |  |  |  |  | إدخال المستخدم |  | إلى الساعة |
+| 19 | `COUPON_CODE` | نص | `VARCHAR2(50 CHAR)` |  |  |  |  | إدخال المستخدم |  | كود الكوبون (فارغ = تلقائي) |
+| 20 | `PRIORITY_NO` | عدد صحيح | `NUMBER(10)` | ✔ | 100 |  |  | إدخال المستخدم |  | الأولوية |
+| 21 | `STACKABLE` | منطقي Y/N | `CHAR(1 CHAR)` | ✔ | 'N' |  | Y, N | إدخال المستخدم |  | يجمع مع عروض أخرى |
+| 22 | `STATUS_CODE` | رمز | `VARCHAR2(30 CHAR)` | ✔ | 'DRAFT' |  | DRAFT, ACTIVE, PAUSED, EXPIRED, CANCELLED | النظام/الحزمة |  | الحالة ضمن دورة الحياة المعتمدة |
+| 23 | `EFFECTIVE_FROM` | تاريخ | `DATE` | ✔ | TRUNC(SYSDATE) |  |  | إدخال المستخدم |  | تاريخ بداية السريان |
+| 24 | `EFFECTIVE_TO` | تاريخ | `DATE` |  |  |  |  | إدخال المستخدم |  | تاريخ نهاية السريان (فارغ = مفتوح) |
+| 25 | `ROW_VERSION` | عدد صحيح | `NUMBER(10)` | ✔ | 1 |  |  | Trigger |  | رقم الإصدار للتحكم في التزامن المتفائل |
+| 26 | `CREATED_BY` | اسم مستخدم | `VARCHAR2(128 CHAR)` | ✔ |  |  |  | Trigger |  | منشئ السجل |
+| 27 | `CREATED_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` | ✔ | SYSTIMESTAMP |  |  | Trigger |  | وقت الإنشاء |
+| 28 | `UPDATED_BY` | اسم مستخدم | `VARCHAR2(128 CHAR)` |  |  |  |  | Trigger |  | آخر من عدل السجل |
+| 29 | `UPDATED_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` |  |  |  |  | Trigger |  | وقت آخر تعديل |
+
+## SAL_PROMOTION_TARGET
+
+| البند | القيمة |
+|---|---|
+| الاسم العربي | أصناف وخدمات العرض |
+| English | Promotion Targets |
+| الحزمة المالكة | 13 — `NOONA_SALES_PKG` |
+| نطاق الملكية | `C` — مملوك للشركة Company-Owned |
+| الحساسية | INTERNAL |
+| النمط | قابل للتعديل وفق دورة الحياة |
+
+| # | العمود | النوع المنطقي | Oracle Type | إلزامي | افتراضي | مفاتيح | القيم المقبولة | المصدر | PII | الوصف |
+|---:|---|---|---|:---:|---|---|---|---|:---:|---|
+| 1 | `ID` | معرف | `NUMBER(19)` | ✔ |  | PK |  | النظام/الحزمة |  | المفتاح الداخلي الثابت (Identity) - لا يعاد استخدامه |
+| 2 | `TENANT_ID` | معرف | `NUMBER(19)` | ✔ |  | FK→PLT_TENANT |  | Security Context |  | المؤسسة المالكة؛ يملأ من Security Context الموثوق لا من مدخلات المستخدم |
+| 3 | `COMPANY_ID` | معرف | `NUMBER(19)` | ✔ |  | FK→ORG_COMPANY |  | Security Context |  | الشركة (الكيان القانوني) المالكة للسجل |
+| 4 | `PROMOTION_ID` | معرف | `NUMBER(19)` | ✔ |  | FK→SAL_PROMOTION |  | إدخال المستخدم |  | العرض |
+| 5 | `TARGET_TYPE` | رمز | `VARCHAR2(30 CHAR)` | ✔ |  |  | ITEM, ITEM_CATEGORY, ALL_ITEMS, HIS_SERVICE, HIS_SERVICE_TYPE, ALL_HIS, AUT_SERVICE, AUT_CATEGORY, ALL_AUT | إدخال المستخدم |  | النوع |
+| 6 | `TARGET_ID` | معرف | `NUMBER(19)` |  |  |  |  | إدخال المستخدم |  | المعرف |
+| 7 | `TARGET_CODE` | نص | `VARCHAR2(50 CHAR)` |  |  |  |  | إدخال المستخدم |  | النوع (لأنواع الخدمات الطبية) |
+| 8 | `ROW_VERSION` | عدد صحيح | `NUMBER(10)` | ✔ | 1 |  |  | Trigger |  | رقم الإصدار للتحكم في التزامن المتفائل |
+| 9 | `CREATED_BY` | اسم مستخدم | `VARCHAR2(128 CHAR)` | ✔ |  |  |  | Trigger |  | منشئ السجل |
+| 10 | `CREATED_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` | ✔ | SYSTIMESTAMP |  |  | Trigger |  | وقت الإنشاء |
+| 11 | `UPDATED_BY` | اسم مستخدم | `VARCHAR2(128 CHAR)` |  |  |  |  | Trigger |  | آخر من عدل السجل |
+| 12 | `UPDATED_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` |  |  |  |  | Trigger |  | وقت آخر تعديل |
+
+## SAL_BUNDLE
+
+| البند | القيمة |
+|---|---|
+| الاسم العربي | الباقات |
+| English | Bundles & Packages |
+| الحزمة المالكة | 13 — `NOONA_SALES_PKG` |
+| نطاق الملكية | `C` — مملوك للشركة Company-Owned |
+| الحساسية | INTERNAL |
+| النمط | قابل للتعديل وفق دورة الحياة |
+| مفاتيح فريدة | UK2: (TENANT_ID, COMPANY_ID, CODE) |
+| قيود أعمال | EFFECTIVE_TO IS NULL OR EFFECTIVE_TO >= EFFECTIVE_FROM<br>PRICING_VALUE >= 0<br>PRICING_METHOD <> 'PCT_OFF' OR PRICING_VALUE <= 100 |
+
+| # | العمود | النوع المنطقي | Oracle Type | إلزامي | افتراضي | مفاتيح | القيم المقبولة | المصدر | PII | الوصف |
+|---:|---|---|---|:---:|---|---|---|---|:---:|---|
+| 1 | `ID` | معرف | `NUMBER(19)` | ✔ |  | PK |  | النظام/الحزمة |  | المفتاح الداخلي الثابت (Identity) - لا يعاد استخدامه |
+| 2 | `TENANT_ID` | معرف | `NUMBER(19)` | ✔ |  | FK→PLT_TENANT UK2 |  | Security Context |  | المؤسسة المالكة؛ يملأ من Security Context الموثوق لا من مدخلات المستخدم |
+| 3 | `COMPANY_ID` | معرف | `NUMBER(19)` | ✔ |  | FK→ORG_COMPANY UK2 |  | Security Context |  | الشركة (الكيان القانوني) المالكة للسجل |
+| 4 | `CODE` | نص | `VARCHAR2(50 CHAR)` | ✔ |  | UK2 |  | إدخال المستخدم |  | الرمز الفريد ضمن النطاق |
+| 5 | `NAME_AR` | اسم | `VARCHAR2(200 CHAR)` | ✔ |  |  |  | إدخال المستخدم |  | الاسم بالعربية |
+| 6 | `NAME_EN` | اسم | `VARCHAR2(200 CHAR)` |  |  |  |  | إدخال المستخدم |  | الاسم بالإنجليزية |
+| 7 | `DESCRIPTION` | نص | `VARCHAR2(4000 CHAR)` |  |  |  |  | إدخال المستخدم |  | الوصف |
+| 8 | `CHANNELS` | نص | `VARCHAR2(200 CHAR)` |  |  |  |  | إدخال المستخدم |  | القنوات (POS,SALES,HIS,AUT,RST) فارغ = الكل |
+| 9 | `PRICING_METHOD` | رمز | `VARCHAR2(30 CHAR)` | ✔ | 'FIXED_PRICE' |  | FIXED_PRICE, PCT_OFF, AMOUNT_OFF | إدخال المستخدم |  | طريقة سعر الباقة |
+| 10 | `PRICING_VALUE` | رقم | `NUMBER` | ✔ |  |  |  | إدخال المستخدم |  | السعر أو النسبة أو المبلغ |
+| 11 | `PRICE_INCLUDES_TAX` | منطقي Y/N | `CHAR(1 CHAR)` | ✔ | 'N' |  | Y, N | إدخال المستخدم |  | السعر شامل الضريبة |
+| 12 | `STATUS_CODE` | رمز | `VARCHAR2(30 CHAR)` | ✔ | 'DRAFT' |  | DRAFT, ACTIVE, INACTIVE | النظام/الحزمة |  | الحالة ضمن دورة الحياة المعتمدة |
+| 13 | `EFFECTIVE_FROM` | تاريخ | `DATE` | ✔ | TRUNC(SYSDATE) |  |  | إدخال المستخدم |  | تاريخ بداية السريان |
+| 14 | `EFFECTIVE_TO` | تاريخ | `DATE` |  |  |  |  | إدخال المستخدم |  | تاريخ نهاية السريان (فارغ = مفتوح) |
+| 15 | `ROW_VERSION` | عدد صحيح | `NUMBER(10)` | ✔ | 1 |  |  | Trigger |  | رقم الإصدار للتحكم في التزامن المتفائل |
+| 16 | `CREATED_BY` | اسم مستخدم | `VARCHAR2(128 CHAR)` | ✔ |  |  |  | Trigger |  | منشئ السجل |
+| 17 | `CREATED_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` | ✔ | SYSTIMESTAMP |  |  | Trigger |  | وقت الإنشاء |
+| 18 | `UPDATED_BY` | اسم مستخدم | `VARCHAR2(128 CHAR)` |  |  |  |  | Trigger |  | آخر من عدل السجل |
+| 19 | `UPDATED_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` |  |  |  |  | Trigger |  | وقت آخر تعديل |
+
+## SAL_BUNDLE_LINE
+
+| البند | القيمة |
+|---|---|
+| الاسم العربي | مكونات الباقة |
+| English | Bundle Components |
+| الحزمة المالكة | 13 — `NOONA_SALES_PKG` |
+| نطاق الملكية | `C` — مملوك للشركة Company-Owned |
+| الحساسية | INTERNAL |
+| النمط | قابل للتعديل وفق دورة الحياة |
+| مفاتيح فريدة | UK1: (BUNDLE_ID, TARGET_TYPE, TARGET_ID) |
+| قيود أعمال | QUANTITY > 0 |
+
+| # | العمود | النوع المنطقي | Oracle Type | إلزامي | افتراضي | مفاتيح | القيم المقبولة | المصدر | PII | الوصف |
+|---:|---|---|---|:---:|---|---|---|---|:---:|---|
+| 1 | `ID` | معرف | `NUMBER(19)` | ✔ |  | PK |  | النظام/الحزمة |  | المفتاح الداخلي الثابت (Identity) - لا يعاد استخدامه |
+| 2 | `TENANT_ID` | معرف | `NUMBER(19)` | ✔ |  | FK→PLT_TENANT |  | Security Context |  | المؤسسة المالكة؛ يملأ من Security Context الموثوق لا من مدخلات المستخدم |
+| 3 | `COMPANY_ID` | معرف | `NUMBER(19)` | ✔ |  | FK→ORG_COMPANY |  | Security Context |  | الشركة (الكيان القانوني) المالكة للسجل |
+| 4 | `BUNDLE_ID` | معرف | `NUMBER(19)` | ✔ |  | FK→SAL_BUNDLE UK1 |  | إدخال المستخدم |  | الباقة |
+| 5 | `TARGET_TYPE` | رمز | `VARCHAR2(30 CHAR)` | ✔ |  | UK1 | ITEM, HIS_SERVICE, AUT_SERVICE | إدخال المستخدم |  | النوع |
+| 6 | `TARGET_ID` | معرف | `NUMBER(19)` | ✔ |  | UK1 |  | إدخال المستخدم |  | الصنف أو الخدمة |
+| 7 | `QUANTITY` | كمية | `NUMBER(24,6)` | ✔ | 1 |  |  | إدخال المستخدم |  | الكمية |
+| 8 | `SORT_ORDER` | عدد صحيح | `NUMBER(10)` |  |  |  |  | إدخال المستخدم |  | ترتيب العرض |
+| 9 | `ROW_VERSION` | عدد صحيح | `NUMBER(10)` | ✔ | 1 |  |  | Trigger |  | رقم الإصدار للتحكم في التزامن المتفائل |
+| 10 | `CREATED_BY` | اسم مستخدم | `VARCHAR2(128 CHAR)` | ✔ |  |  |  | Trigger |  | منشئ السجل |
+| 11 | `CREATED_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` | ✔ | SYSTIMESTAMP |  |  | Trigger |  | وقت الإنشاء |
+| 12 | `UPDATED_BY` | اسم مستخدم | `VARCHAR2(128 CHAR)` |  |  |  |  | Trigger |  | آخر من عدل السجل |
+| 13 | `UPDATED_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` |  |  |  |  | Trigger |  | وقت آخر تعديل |
 
 ## SAL_QUOTATION
 

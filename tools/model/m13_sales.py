@@ -31,6 +31,108 @@ STACKABLE       YN   NN D='N'    | قابل للجمع
 COUPON_CODE     V50              | كود الكوبون
 ''', area='pricing')
 
+# =============================================================== التسعير الموحد: التكلفة، سياسات سعر البيع، إعادة التسعير، العروض، الباقات
+# الهدف (TARGET_TYPE): صنف، فئة أصناف، خدمة طبية، نوع خدمة طبية، خدمة سيارات، فئة خدمات سيارات، الكل
+table('SAL_COST_ELEMENT', 'عناصر تكلفة الخدمة', 'Service Cost Elements', scope='C', mix='sort', cols='''
+TARGET_TYPE     CODE NN IN:HIS_SERVICE,AUT_SERVICE,ITEM | الخدمة أو الصنف
+TARGET_ID       ID   NN          | المعرف
+ELEMENT_TYPE    CODE NN IN:MATERIAL,LABOR,OVERHEAD_AMOUNT,OVERHEAD_PCT,OTHER | نوع العنصر
+DESCRIPTION     V200             | البيان
+ITEM_ID         ID   >INV_ITEM   | المادة (للمواد)
+QUANTITY        QTY              | الكمية (للمواد)
+MINUTES         NUM              | الدقائق (للعمالة)
+HOURLY_RATE     AMT              | تكلفة الساعة (للعمالة)
+AMOUNT          AMT              | المبلغ (أعباء ثابتة وأخرى)
+PCT             PCT              | النسبة من التكلفة المباشرة (أعباء نسبية)
+''', ix=[('TENANT_ID', 'COMPANY_ID', 'TARGET_TYPE', 'TARGET_ID')], chk=['NVL(QUANTITY, 0) >= 0', 'NVL(AMOUNT, 0) >= 0'], area='pricing',
+      purpose='تكلفة الخدمة = مواد الخدمة المعرفة في موديولها + هذه العناصر (مواد إضافية، عمالة بالدقائق، أعباء ثابتة أو نسبة)')
+
+table('SAL_PRICING_POLICY', 'سياسات التسعير', 'Pricing Policies', scope='C', mix='code names eff status', status='ACTIVE INACTIVE', cols='''
+TARGET_TYPE     CODE NN IN:ITEM,ITEM_CATEGORY,ALL_ITEMS,HIS_SERVICE,HIS_SERVICE_TYPE,ALL_HIS,AUT_SERVICE,AUT_CATEGORY,ALL_AUT | ينطبق على
+TARGET_ID       ID               | الصنف/الفئة/الخدمة
+TARGET_CODE     V50              | النوع (لأنواع الخدمات الطبية)
+COST_BASIS      CODE NN D='AVERAGE' IN:AVERAGE,LAST_PURCHASE,STANDARD,COST_SHEET | أساس التكلفة
+METHOD          CODE NN D='MARKUP_PCT' IN:MARKUP_PCT,MARGIN_PCT,FIXED_AMOUNT,MULTIPLIER | طريقة حساب سعر البيع
+METHOD_VALUE    NUM  NN          | النسبة أو المبلغ أو المعامل
+MIN_MARGIN_PCT  PCT              | أدنى هامش (يحدد أدنى سعر بيع دون موافقة)
+ROUNDING        CODE NN D='NONE' IN:NONE,R005,R025,R050,R1,R5,R10,END99 | التقريب
+PRIORITY_NO     INT  NN D=100    | الأولوية (الأصغر أولاً عند التعارض)
+''', chk=['METHOD_VALUE >= 0', "METHOD <> 'MARGIN_PCT' OR METHOD_VALUE < 100"], area='pricing')
+
+table('SAL_PRICE_RUN', 'تشغيلات إعادة التسعير', 'Repricing Runs', scope='C', mix='doc status', status='DRAFT APPLIED CANCELLED', cols='''
+SCOPE_TYPE      CODE NN IN:ITEMS,HIS,AUT,ALL | النطاق
+ONLY_CHANGED    YN   NN D='Y'    | الأسطر التي يتغير سعرها فقط
+LINES_COUNT     INT  NN D=0      | عدد الأسطر
+APPLIED_COUNT   INT  NN D=0      | المطبق
+APPLIED_BY      USR              | طبقها
+APPLIED_AT      TS               | وقت التطبيق
+''', area='pricing')
+
+table('SAL_PRICE_RUN_LINE', 'أسطر إعادة التسعير', 'Repricing Run Lines', scope='C', cols='''
+RUN_ID          ID   NN >SAL_PRICE_RUN | التشغيل
+TARGET_TYPE     CODE NN IN:ITEM,HIS_SERVICE,AUT_SERVICE | النوع
+TARGET_ID       ID   NN          | المعرف
+POLICY_ID       ID   >SAL_PRICING_POLICY | السياسة
+COST_AMOUNT     AMT              | التكلفة
+OLD_PRICE       AMT              | السعر الحالي
+NEW_PRICE       AMT              | السعر المقترح
+NEW_MIN_PRICE   AMT              | أدنى سعر مقترح
+MARGIN_PCT      PCT              | الهامش بالسعر المقترح
+IS_SELECTED     YN   NN D='Y'    | يطبق
+''', uk=[('RUN_ID', 'TARGET_TYPE', 'TARGET_ID')], area='pricing')
+
+table('SAL_PRICE_HISTORY', 'سجل تغيير الأسعار', 'Price Change History', scope='C', append=True, cols='''
+TARGET_TYPE     CODE NN IN:ITEM,HIS_SERVICE,AUT_SERVICE | النوع
+TARGET_ID       ID   NN          | المعرف
+OLD_PRICE       AMT              | السعر السابق
+NEW_PRICE       AMT              | السعر الجديد
+COST_AMOUNT     AMT              | التكلفة وقت التغيير
+SOURCE_CODE     CODE NN IN:RUN,MANUAL | المصدر
+RUN_ID          ID   >SAL_PRICE_RUN | تشغيل إعادة التسعير
+''', ix=[('TENANT_ID', 'COMPANY_ID', 'TARGET_TYPE', 'TARGET_ID')], area='pricing')
+
+table('SAL_PROMOTION', 'العروض والتخفيضات', 'Promotions & Discounts', scope='C', mix='code names eff status',
+      status='DRAFT ACTIVE PAUSED EXPIRED CANCELLED', cols='''
+PROMO_TYPE      CODE NN IN:PCT_OFF,AMOUNT_OFF,FIXED_PRICE,BUY_X_GET_Y,SPEND_PCT,SPEND_AMOUNT | النوع
+PROMO_VALUE     NUM  NN D=0      | النسبة أو المبلغ أو السعر الخاص
+BUY_QTY         QTY              | اشتر (كمية)
+GET_QTY         QTY              | واحصل مجاناً على (كمية)
+MIN_QTY         QTY              | أدنى كمية للسطر
+MIN_AMOUNT      AMT              | أدنى قيمة للفاتورة (لعروض قيمة الشراء)
+MAX_DISCOUNT    AMT              | أقصى خصم للعملية
+CHANNELS        V200             | القنوات (POS,SALES,HIS,AUT,RST) فارغ = الكل
+BRANCH_ID       ID   >ORG_BRANCH | الفرع (فارغ = كل الفروع)
+DAYS_OF_WEEK    V20              | أيام الأسبوع 1-7 (1 = الأحد) فارغ = كل الأيام
+HOUR_FROM       INT              | من الساعة
+HOUR_TO         INT              | إلى الساعة
+COUPON_CODE     V50              | كود الكوبون (فارغ = تلقائي)
+PRIORITY_NO     INT  NN D=100    | الأولوية
+STACKABLE       YN   NN D='N'    | يجمع مع عروض أخرى
+''', chk=['PROMO_VALUE >= 0', "PROMO_TYPE NOT IN ('PCT_OFF','SPEND_PCT') OR PROMO_VALUE <= 100",
+            "PROMO_TYPE <> 'BUY_X_GET_Y' OR (BUY_QTY > 0 AND GET_QTY > 0)", 'HOUR_FROM IS NULL OR HOUR_FROM BETWEEN 0 AND 23',
+            'HOUR_TO IS NULL OR HOUR_TO BETWEEN 0 AND 24'], area='pricing')
+
+table('SAL_PROMOTION_TARGET', 'أصناف وخدمات العرض', 'Promotion Targets', scope='C', cols='''
+PROMOTION_ID    ID   NN >SAL_PROMOTION | العرض
+TARGET_TYPE     CODE NN IN:ITEM,ITEM_CATEGORY,ALL_ITEMS,HIS_SERVICE,HIS_SERVICE_TYPE,ALL_HIS,AUT_SERVICE,AUT_CATEGORY,ALL_AUT | النوع
+TARGET_ID       ID               | المعرف
+TARGET_CODE     V50              | النوع (لأنواع الخدمات الطبية)
+''', ix=[('TENANT_ID', 'COMPANY_ID', 'PROMOTION_ID')], area='pricing')
+
+table('SAL_BUNDLE', 'الباقات', 'Bundles & Packages', scope='C', mix='code names desc eff status', status='DRAFT ACTIVE INACTIVE', cols='''
+CHANNELS        V200             | القنوات (POS,SALES,HIS,AUT,RST) فارغ = الكل
+PRICING_METHOD  CODE NN D='FIXED_PRICE' IN:FIXED_PRICE,PCT_OFF,AMOUNT_OFF | طريقة سعر الباقة
+PRICING_VALUE   NUM  NN          | السعر أو النسبة أو المبلغ
+PRICE_INCLUDES_TAX YN NN D='N'   | السعر شامل الضريبة
+''', chk=['PRICING_VALUE >= 0', "PRICING_METHOD <> 'PCT_OFF' OR PRICING_VALUE <= 100"], area='pricing')
+
+table('SAL_BUNDLE_LINE', 'مكونات الباقة', 'Bundle Components', scope='C', mix='sort', cols='''
+BUNDLE_ID       ID   NN >SAL_BUNDLE | الباقة
+TARGET_TYPE     CODE NN IN:ITEM,HIS_SERVICE,AUT_SERVICE | النوع
+TARGET_ID       ID   NN          | الصنف أو الخدمة
+QUANTITY        QTY  NN D=1      | الكمية
+''', uk=[('BUNDLE_ID', 'TARGET_TYPE', 'TARGET_ID')], chk=['QUANTITY > 0'], area='pricing')
+
 table('SAL_QUOTATION', 'عروض الأسعار', 'Sales Quotations', scope='C', mix='pub branch doc cur wf status',
       status='DRAFT SUBMITTED APPROVED SENT ACCEPTED REJECTED EXPIRED CONVERTED CANCELLED', cols='''
 CUSTOMER_ACCOUNT_ID ID NN >AR_CUSTOMER_ACCOUNT | العميل

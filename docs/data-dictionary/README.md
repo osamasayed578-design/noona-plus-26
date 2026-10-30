@@ -33,7 +33,7 @@
 | 10 | النقدية والبنوك | Cash & Banks | `NOONA_CASH_PKG` | 13 | [p10_csh](p10_csh.md) |
 | 11 | المخزون والبيانات السلعية | Inventory & Item Master | `NOONA_INVENTORY_PKG` | 25 | [p11_inv](p11_inv.md) |
 | 12 | المشتريات | Procurement | `NOONA_PROCUREMENT_PKG` | 17 | [p12_pur](p12_pur.md) |
-| 13 | المبيعات ونقاط البيع | Sales & Point of Sale | `NOONA_SALES_PKG` | 24 | [p13_sal](p13_sal.md) |
+| 13 | المبيعات ونقاط البيع | Sales & Point of Sale | `NOONA_SALES_PKG` | 33 | [p13_sal](p13_sal.md) |
 | 14 | الأصول الثابتة | Fixed Assets | `NOONA_ASSETS_PKG` | 11 | [p14_fa](p14_fa.md) |
 | 15 | المشروعات والمقاولات والإنشاءات | Projects, Contracting & Construction | `NOONA_PROJECTS_PKG` | 15 | [p15_prj](p15_prj.md) |
 | 16 | التطوير العقاري وبيع الوحدات | Real Estate Development & Unit Sales | `NOONA_REAL_ESTATE_PKG` | 17 | [p16_re](p16_re.md) |
@@ -54,5 +54,5 @@
 | 31 | المستشفيات والمراكز الطبية | Hospital & Clinics | `NOONA_HIS_PKG` | 40 | [p31_his](p31_his.md) |
 | 32 | مراكز خدمة السيارات | Auto Service Centers | `NOONA_AUT_PKG` | 10 | [p32_aut](p32_aut.md) |
 
-**الإجمالي:** 635 جدول · 11207 عمود.
+**الإجمالي:** 644 جدول · 11369 عمود.
 
