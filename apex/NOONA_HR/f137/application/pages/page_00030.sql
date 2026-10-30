@@ -22,7 +22,7 @@ wwv_flow_imp_page.create_page(
 ,p_protection_level=>'C'
 );
 wwv_flow_imp_page.create_page_plug(
- p_id=>wwv_flow_imp.id(91820272000000197)
+ p_id=>wwv_flow_imp.id(91820272000000201)
 ,p_plug_name=>'سلفة / قرض جديد'
 ,p_region_template_options=>'#DEFAULT#'
 ,p_plug_template=>4072358936313175081
@@ -35,10 +35,10 @@ wwv_flow_imp_page.create_page_plug(
   'show_line_breaks', 'Y')).to_clob
 );
 wwv_flow_imp_page.create_page_item(
- p_id=>wwv_flow_imp.id(91820272000000198)
+ p_id=>wwv_flow_imp.id(91820272000000202)
 ,p_name=>'P30_EMP'
 ,p_item_sequence=>10
-,p_item_plug_id=>wwv_flow_imp.id(91820272000000197)
+,p_item_plug_id=>wwv_flow_imp.id(91820272000000201)
 ,p_prompt=>'الموظف'
 ,p_display_as=>'NATIVE_SELECT_LIST'
 ,p_lov=>'select noona_hr_pkg.employment_label(m.id) d, m.id r from hr_employment m where m.company_id = noona_hr_pkg.company and m.status_code in (''ACTIVE'', ''NOTICE_PERIOD'', ''SUSPENDED'') and exists (select 1 from pay_employee_element x where x.employment_id = m.id) order by 1'
@@ -52,10 +52,10 @@ wwv_flow_imp_page.create_page_item(
   'page_action_on_selection', 'NONE')).to_clob
 );
 wwv_flow_imp_page.create_page_item(
- p_id=>wwv_flow_imp.id(91820272000000199)
+ p_id=>wwv_flow_imp.id(91820272000000203)
 ,p_name=>'P30_TYPE'
 ,p_item_sequence=>20
-,p_item_plug_id=>wwv_flow_imp.id(91820272000000197)
+,p_item_plug_id=>wwv_flow_imp.id(91820272000000201)
 ,p_prompt=>'النوع'
 ,p_display_as=>'NATIVE_SELECT_LIST'
 ,p_lov=>'STATIC2:سلفة راتب;SALARY_ADVANCE,قرض;LOAN,سلفة سكن;HOUSING_ADVANCE,أخرى;OTHER'
@@ -68,10 +68,10 @@ wwv_flow_imp_page.create_page_item(
   'page_action_on_selection', 'NONE')).to_clob
 );
 wwv_flow_imp_page.create_page_item(
- p_id=>wwv_flow_imp.id(91820272000000200)
+ p_id=>wwv_flow_imp.id(91820272000000204)
 ,p_name=>'P30_AMOUNT'
 ,p_item_sequence=>30
-,p_item_plug_id=>wwv_flow_imp.id(91820272000000197)
+,p_item_plug_id=>wwv_flow_imp.id(91820272000000201)
 ,p_prompt=>'المبلغ'
 ,p_display_as=>'NATIVE_NUMBER_FIELD'
 ,p_cSize=>20
@@ -82,10 +82,10 @@ wwv_flow_imp_page.create_page_item(
   'virtual_keyboard', 'decimal')).to_clob
 );
 wwv_flow_imp_page.create_page_item(
- p_id=>wwv_flow_imp.id(91820272000000201)
+ p_id=>wwv_flow_imp.id(91820272000000205)
 ,p_name=>'P30_COUNT'
 ,p_item_sequence=>40
-,p_item_plug_id=>wwv_flow_imp.id(91820272000000197)
+,p_item_plug_id=>wwv_flow_imp.id(91820272000000201)
 ,p_prompt=>'عدد الأقساط'
 ,p_display_as=>'NATIVE_NUMBER_FIELD'
 ,p_cSize=>20
@@ -97,10 +97,10 @@ wwv_flow_imp_page.create_page_item(
   'virtual_keyboard', 'decimal')).to_clob
 );
 wwv_flow_imp_page.create_page_item(
- p_id=>wwv_flow_imp.id(91820272000000202)
+ p_id=>wwv_flow_imp.id(91820272000000206)
 ,p_name=>'P30_PERIOD'
 ,p_item_sequence=>50
-,p_item_plug_id=>wwv_flow_imp.id(91820272000000197)
+,p_item_plug_id=>wwv_flow_imp.id(91820272000000201)
 ,p_prompt=>'بداية الخصم'
 ,p_display_as=>'NATIVE_SELECT_LIST'
 ,p_lov=>'select p.period_code || case when exists (select 1 from pay_run r where r.period_id = p.id and r.run_type = ''REGULAR'') then '' (له تشغيل)'' end d, p.id r from pay_period p where p.company_id = noona_pay_pkg.company and p.payroll_group_id = noona_pay_pkg.default_group order by p.start_date desc'
@@ -114,42 +114,42 @@ wwv_flow_imp_page.create_page_item(
   'page_action_on_selection', 'NONE')).to_clob
 );
 wwv_flow_imp_page.create_page_validation(
- p_id=>wwv_flow_imp.id(91820272000000204)
+ p_id=>wwv_flow_imp.id(91820272000000208)
 ,p_validation_name=>'P30_EMP required (CREATE_LOAN)'
 ,p_validation_sequence=>6
 ,p_validation=>'P30_EMP'
 ,p_validation_type=>'ITEM_NOT_NULL'
 ,p_error_message=>'#LABEL#: قيمة مطلوبة'
-,p_when_button_pressed=>wwv_flow_imp.id(91820272000000203)
-,p_associated_item=>wwv_flow_imp.id(91820272000000198)
+,p_when_button_pressed=>wwv_flow_imp.id(91820272000000207)
+,p_associated_item=>wwv_flow_imp.id(91820272000000202)
 ,p_error_display_location=>'INLINE_WITH_FIELD_AND_NOTIFICATION'
 );
 wwv_flow_imp_page.create_page_validation(
- p_id=>wwv_flow_imp.id(91820272000000205)
+ p_id=>wwv_flow_imp.id(91820272000000209)
 ,p_validation_name=>'P30_AMOUNT required (CREATE_LOAN)'
 ,p_validation_sequence=>7
 ,p_validation=>'P30_AMOUNT'
 ,p_validation_type=>'ITEM_NOT_NULL'
 ,p_error_message=>'#LABEL#: قيمة مطلوبة'
-,p_when_button_pressed=>wwv_flow_imp.id(91820272000000203)
-,p_associated_item=>wwv_flow_imp.id(91820272000000200)
+,p_when_button_pressed=>wwv_flow_imp.id(91820272000000207)
+,p_associated_item=>wwv_flow_imp.id(91820272000000204)
 ,p_error_display_location=>'INLINE_WITH_FIELD_AND_NOTIFICATION'
 );
 wwv_flow_imp_page.create_page_validation(
- p_id=>wwv_flow_imp.id(91820272000000206)
+ p_id=>wwv_flow_imp.id(91820272000000210)
 ,p_validation_name=>'P30_COUNT required (CREATE_LOAN)'
 ,p_validation_sequence=>8
 ,p_validation=>'P30_COUNT'
 ,p_validation_type=>'ITEM_NOT_NULL'
 ,p_error_message=>'#LABEL#: قيمة مطلوبة'
-,p_when_button_pressed=>wwv_flow_imp.id(91820272000000203)
-,p_associated_item=>wwv_flow_imp.id(91820272000000201)
+,p_when_button_pressed=>wwv_flow_imp.id(91820272000000207)
+,p_associated_item=>wwv_flow_imp.id(91820272000000205)
 ,p_error_display_location=>'INLINE_WITH_FIELD_AND_NOTIFICATION'
 );
 wwv_flow_imp_page.create_page_button(
- p_id=>wwv_flow_imp.id(91820272000000203)
+ p_id=>wwv_flow_imp.id(91820272000000207)
 ,p_button_sequence=>10
-,p_button_plug_id=>wwv_flow_imp.id(91820272000000197)
+,p_button_plug_id=>wwv_flow_imp.id(91820272000000201)
 ,p_button_name=>'CREATE_LOAN'
 ,p_button_action=>'SUBMIT'
 ,p_button_template_options=>'#DEFAULT#'
@@ -159,7 +159,7 @@ wwv_flow_imp_page.create_page_button(
 ,p_button_position=>'NEXT'
 );
 wwv_flow_imp_page.create_page_process(
- p_id=>wwv_flow_imp.id(91820272000000207)
+ p_id=>wwv_flow_imp.id(91820272000000211)
 ,p_process_sequence=>10
 ,p_process_point=>'AFTER_SUBMIT'
 ,p_process_type=>'NATIVE_PLSQL'
@@ -171,12 +171,12 @@ wwv_flow_imp_page.create_page_process(
 'end;'))
 ,p_process_clob_language=>'PLSQL'
 ,p_error_display_location=>'INLINE_IN_NOTIFICATION'
-,p_process_when_button_id=>wwv_flow_imp.id(91820272000000203)
+,p_process_when_button_id=>wwv_flow_imp.id(91820272000000207)
 ,p_process_success_message=>'تم إنشاء السلفة وجدولة أقساطها؛ اصرفها لتصبح قائمة'
-,p_internal_uid=>91820272000000207
+,p_internal_uid=>91820272000000211
 );
 wwv_flow_imp_page.create_page_plug(
- p_id=>wwv_flow_imp.id(91820272000000208)
+ p_id=>wwv_flow_imp.id(91820272000000212)
 ,p_plug_name=>'صرف السلفة'
 ,p_region_template_options=>'#DEFAULT#'
 ,p_plug_template=>4072358936313175081
@@ -187,10 +187,10 @@ wwv_flow_imp_page.create_page_plug(
   'show_line_breaks', 'Y')).to_clob
 );
 wwv_flow_imp_page.create_page_item(
- p_id=>wwv_flow_imp.id(91820272000000209)
+ p_id=>wwv_flow_imp.id(91820272000000213)
 ,p_name=>'P30_PENDING'
 ,p_item_sequence=>10
-,p_item_plug_id=>wwv_flow_imp.id(91820272000000208)
+,p_item_plug_id=>wwv_flow_imp.id(91820272000000212)
 ,p_prompt=>'سلفة بانتظار الصرف'
 ,p_display_as=>'NATIVE_SELECT_LIST'
 ,p_lov=>'select doc_no || '' · '' || noona_hr_pkg.employment_label(employment_id) || '' · '' || principal_amount d, id r from pay_loan where company_id = noona_pay_pkg.company and status_code = ''APPROVED'' order by doc_date'
@@ -204,10 +204,10 @@ wwv_flow_imp_page.create_page_item(
   'page_action_on_selection', 'NONE')).to_clob
 );
 wwv_flow_imp_page.create_page_item(
- p_id=>wwv_flow_imp.id(91820272000000210)
+ p_id=>wwv_flow_imp.id(91820272000000214)
 ,p_name=>'P30_BANK'
 ,p_item_sequence=>20
-,p_item_plug_id=>wwv_flow_imp.id(91820272000000208)
+,p_item_plug_id=>wwv_flow_imp.id(91820272000000212)
 ,p_prompt=>'من الحساب البنكي'
 ,p_display_as=>'NATIVE_SELECT_LIST'
 ,p_lov=>'select code || '' - '' || name_ar d, id r from csh_bank_account where company_id = noona_pay_pkg.company and status_code = ''ACTIVE'' order by code'
@@ -222,9 +222,9 @@ wwv_flow_imp_page.create_page_item(
   'page_action_on_selection', 'NONE')).to_clob
 );
 wwv_flow_imp_page.create_page_button(
- p_id=>wwv_flow_imp.id(91820272000000211)
+ p_id=>wwv_flow_imp.id(91820272000000215)
 ,p_button_sequence=>10
-,p_button_plug_id=>wwv_flow_imp.id(91820272000000208)
+,p_button_plug_id=>wwv_flow_imp.id(91820272000000212)
 ,p_button_name=>'DISBURSE'
 ,p_button_action=>'SUBMIT'
 ,p_button_template_options=>'#DEFAULT#'
@@ -234,7 +234,7 @@ wwv_flow_imp_page.create_page_button(
 ,p_button_position=>'NEXT'
 );
 wwv_flow_imp_page.create_page_process(
- p_id=>wwv_flow_imp.id(91820272000000212)
+ p_id=>wwv_flow_imp.id(91820272000000216)
 ,p_process_sequence=>20
 ,p_process_point=>'AFTER_SUBMIT'
 ,p_process_type=>'NATIVE_PLSQL'
@@ -246,12 +246,12 @@ wwv_flow_imp_page.create_page_process(
 'end;'))
 ,p_process_clob_language=>'PLSQL'
 ,p_error_display_location=>'INLINE_IN_NOTIFICATION'
-,p_process_when_button_id=>wwv_flow_imp.id(91820272000000211)
+,p_process_when_button_id=>wwv_flow_imp.id(91820272000000215)
 ,p_process_success_message=>'تم صرف السلفة وترحيل قيدها (مدين سلف الموظفين / دائن البنك)'
-,p_internal_uid=>91820272000000212
+,p_internal_uid=>91820272000000216
 );
 wwv_flow_imp_page.create_page_plug(
- p_id=>wwv_flow_imp.id(91820272000000213)
+ p_id=>wwv_flow_imp.id(91820272000000217)
 ,p_plug_name=>'السلف القائمة'
 ,p_region_template_options=>'#DEFAULT#:t-Region--scrollBody'
 ,p_plug_template=>4072358936313175081
@@ -262,7 +262,7 @@ wwv_flow_imp_page.create_page_plug(
 ,p_plug_source_type=>'NATIVE_DYNAMIC_CONTENT'
 );
 wwv_flow_imp_page.create_page_branch(
- p_id=>wwv_flow_imp.id(91820272000000214)
+ p_id=>wwv_flow_imp.id(91820272000000218)
 ,p_branch_action=>'f?p=&APP_ID.:30:&SESSION.::&DEBUG.:30::&success_msg=#SUCCESS_MSG#'
 ,p_branch_point=>'AFTER_PROCESSING'
 ,p_branch_type=>'REDIRECT_URL'

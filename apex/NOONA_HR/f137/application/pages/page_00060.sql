@@ -22,7 +22,7 @@ wwv_flow_imp_page.create_page(
 ,p_protection_level=>'N'
 );
 wwv_flow_imp_page.create_page_plug(
- p_id=>wwv_flow_imp.id(91820272000000320)
+ p_id=>wwv_flow_imp.id(91820272000000324)
 ,p_plug_name=>'التقرير'
 ,p_region_template_options=>'#DEFAULT#:nn-rpt-filters'
 ,p_plug_template=>4072358936313175081
@@ -33,10 +33,10 @@ wwv_flow_imp_page.create_page_plug(
   'show_line_breaks', 'Y')).to_clob
 );
 wwv_flow_imp_page.create_page_item(
- p_id=>wwv_flow_imp.id(91820272000000321)
+ p_id=>wwv_flow_imp.id(91820272000000325)
 ,p_name=>'P60_REPORT'
 ,p_item_sequence=>10
-,p_item_plug_id=>wwv_flow_imp.id(91820272000000320)
+,p_item_plug_id=>wwv_flow_imp.id(91820272000000324)
 ,p_prompt=>'التقرير'
 ,p_display_as=>'NATIVE_SELECT_LIST'
 ,p_lov=>'STATIC2:القوى العاملة ونسبة التوطين;HEADCOUNT,أرصدة الإجازات;LEAVES,الحضور الشهري;ATTENDANCE,الهويات والعقود القريبة الانتهاء;EXPIRING,التزام مكافأة نهاية الخدمة;EOS,السلف القائمة;LOANS,مسير رواتب تشغيل;REGISTER,ملخص عناصر الرواتب;ELEMENTS,تقرير التأمينات الاجتماعية;GOSI,تكلفة الرواتب حسب مركز التكلفة;CC'
@@ -48,10 +48,10 @@ wwv_flow_imp_page.create_page_item(
   'page_action_on_selection', 'SUBMIT')).to_clob
 );
 wwv_flow_imp_page.create_page_item(
- p_id=>wwv_flow_imp.id(91820272000000322)
+ p_id=>wwv_flow_imp.id(91820272000000326)
 ,p_name=>'P60_RUN'
 ,p_item_sequence=>20
-,p_item_plug_id=>wwv_flow_imp.id(91820272000000320)
+,p_item_plug_id=>wwv_flow_imp.id(91820272000000324)
 ,p_prompt=>'التشغيل (لتقارير الرواتب)'
 ,p_display_as=>'NATIVE_SELECT_LIST'
 ,p_lov=>'select r.run_no d, r.id r from pay_run r join pay_period p on p.id = r.period_id where r.company_id = noona_pay_pkg.company order by p.start_date desc, r.id desc'
@@ -66,10 +66,10 @@ wwv_flow_imp_page.create_page_item(
   'page_action_on_selection', 'NONE')).to_clob
 );
 wwv_flow_imp_page.create_page_item(
- p_id=>wwv_flow_imp.id(91820272000000323)
+ p_id=>wwv_flow_imp.id(91820272000000327)
 ,p_name=>'P60_DATE'
 ,p_item_sequence=>30
-,p_item_plug_id=>wwv_flow_imp.id(91820272000000320)
+,p_item_plug_id=>wwv_flow_imp.id(91820272000000324)
 ,p_prompt=>'التاريخ / الشهر'
 ,p_display_as=>'NATIVE_DATE_PICKER_APEX'
 ,p_cSize=>20
@@ -85,9 +85,9 @@ wwv_flow_imp_page.create_page_item(
   'use_defaults', 'Y')).to_clob
 );
 wwv_flow_imp_page.create_page_button(
- p_id=>wwv_flow_imp.id(91820272000000324)
+ p_id=>wwv_flow_imp.id(91820272000000328)
 ,p_button_sequence=>10
-,p_button_plug_id=>wwv_flow_imp.id(91820272000000320)
+,p_button_plug_id=>wwv_flow_imp.id(91820272000000324)
 ,p_button_name=>'RUN'
 ,p_button_action=>'SUBMIT'
 ,p_button_template_options=>'#DEFAULT#'
@@ -97,7 +97,7 @@ wwv_flow_imp_page.create_page_button(
 ,p_button_position=>'NEXT'
 );
 wwv_flow_imp_page.create_page_process(
- p_id=>wwv_flow_imp.id(91820272000000325)
+ p_id=>wwv_flow_imp.id(91820272000000329)
 ,p_process_sequence=>5
 ,p_process_point=>'BEFORE_HEADER'
 ,p_process_type=>'NATIVE_PLSQL'
@@ -107,10 +107,10 @@ wwv_flow_imp_page.create_page_process(
 ':P60_DATE := nvl(:P60_DATE, to_char(sysdate, ''YYYY-MM-DD''));'))
 ,p_process_clob_language=>'PLSQL'
 ,p_error_display_location=>'INLINE_IN_NOTIFICATION'
-,p_internal_uid=>91820272000000325
+,p_internal_uid=>91820272000000329
 );
 wwv_flow_imp_page.create_page_plug(
- p_id=>wwv_flow_imp.id(91820272000000326)
+ p_id=>wwv_flow_imp.id(91820272000000330)
 ,p_plug_name=>'التقرير'
 ,p_region_template_options=>'#DEFAULT#:t-Region--scrollBody:nn-print-area:t-Region--removeHeader js-removeLandmark:t-Region--noUI'
 ,p_plug_template=>4072358936313175081
@@ -139,7 +139,7 @@ wwv_flow_imp_page.create_page_plug(
 ,p_plug_source_type=>'NATIVE_DYNAMIC_CONTENT'
 );
 wwv_flow_imp_page.create_page_branch(
- p_id=>wwv_flow_imp.id(91820272000000327)
+ p_id=>wwv_flow_imp.id(91820272000000331)
 ,p_branch_action=>'f?p=&APP_ID.:60:&SESSION.::&DEBUG.:60:P60_REPORT,P60_RUN,P60_DATE:&P60_REPORT.,&P60_RUN.,&P60_DATE.'
 ,p_branch_point=>'AFTER_PROCESSING'
 ,p_branch_type=>'REDIRECT_URL'

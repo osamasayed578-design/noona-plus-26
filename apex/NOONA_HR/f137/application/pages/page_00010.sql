@@ -31,7 +31,7 @@ wwv_flow_imp_page.create_page_plug(
 ,p_query_type=>'SQL'
 ,p_plug_source=>wwv_flow_string.join(wwv_flow_t_varchar2(
 'select m.id, e.employee_no, p.display_name_ar as name_ar, m.job_title, u.name_ar as unit_name,',
-'       case when m.employee_category = ''SAUDI'' then ''سعودي'' else nvl(c.name_ar, e.nationality) end as nationality,',
+'       case when noona_hr_pkg.is_citizen(m.employee_category) = ''Y'' then noona_hr_pkg.category_label(m.employee_category) else nvl(c.name_ar, e.nationality) end as nationality,',
 '       to_char(m.start_date, ''YYYY-MM-DD'') as hire_date, round(noona_hr_pkg.service_years(m.id), 1) as years,',
 '       noona_pay_pkg.monthly_wage(m.id) as wage, noona_hr_pkg.leave_available(m.employee_id) as leave_bal,',
 '       ''<span class="nn-badge '' || case m.status_code when ''ACTIVE'' then ''is-success'' when ''TERMINATED'' then ''is-danger'' else ''is-warning'' end',

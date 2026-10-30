@@ -22,7 +22,7 @@ wwv_flow_imp_page.create_page(
 ,p_protection_level=>'N'
 );
 wwv_flow_imp_page.create_page_plug(
- p_id=>wwv_flow_imp.id(91820272000000288)
+ p_id=>wwv_flow_imp.id(91820272000000292)
 ,p_plug_name=>'الملف'
 ,p_region_template_options=>'#DEFAULT#:t-Region--removeHeader js-removeLandmark'
 ,p_plug_template=>4072358936313175081
@@ -33,17 +33,17 @@ wwv_flow_imp_page.create_page_plug(
   'show_line_breaks', 'Y')).to_clob
 );
 wwv_flow_imp_page.create_page_item(
- p_id=>wwv_flow_imp.id(91820272000000289)
+ p_id=>wwv_flow_imp.id(91820272000000293)
 ,p_name=>'P46_RUN'
 ,p_item_sequence=>1
-,p_item_plug_id=>wwv_flow_imp.id(91820272000000288)
+,p_item_plug_id=>wwv_flow_imp.id(91820272000000292)
 ,p_display_as=>'NATIVE_HIDDEN'
 ,p_protection_level=>'N'
 ,p_attributes=>wwv_flow_t_plugin_attributes(wwv_flow_t_varchar2(
   'value_protected', 'N')).to_clob
 );
 wwv_flow_imp_page.create_page_process(
- p_id=>wwv_flow_imp.id(91820272000000290)
+ p_id=>wwv_flow_imp.id(91820272000000294)
 ,p_process_sequence=>10
 ,p_process_point=>'BEFORE_HEADER'
 ,p_process_type=>'NATIVE_PLSQL'
@@ -69,7 +69,7 @@ wwv_flow_imp_page.create_page_process(
 'end;'))
 ,p_process_clob_language=>'PLSQL'
 ,p_error_display_location=>'INLINE_IN_NOTIFICATION'
-,p_internal_uid=>91820272000000290
+,p_internal_uid=>91820272000000294
 );
 
 wwv_flow_imp.component_end;

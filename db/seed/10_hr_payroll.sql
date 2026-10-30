@@ -92,9 +92,10 @@ BEGIN
                  UNION ALL SELECT 'OVERTIME', NULL, 1, '{"hours_per_day":8,"days_per_month":30,"premium_pct_of_basic":50}' FROM dual) x
            JOIN pay_element e ON e.tenant_id IS NULL AND e.code = x.code) x
      ON (r.element_id = x.element_id AND r.version_no = x.ver)
-   WHEN NOT MATCHED THEN INSERT (tenant_id, element_id, version_no, employee_category, formula_type, parameters, status_code,
+   WHEN NOT MATCHED THEN INSERT (tenant_id, element_id, version_no, country_code, employee_category, formula_type, parameters, status_code,
                                  effective_from, created_by)
-        VALUES (NULL, x.element_id, x.ver, x.cat, 'APPROVED_FUNCTION', x.prm, 'ACTIVE', DATE '2020-01-01', 'SYSTEM');
+        VALUES (NULL, x.element_id, x.ver, CASE WHEN x.code LIKE 'GOSI%' THEN 'SA' END, x.cat, 'APPROVED_FUNCTION', x.prm, 'ACTIVE',
+                DATE '2020-01-01', 'SYSTEM');
 
   MERGE INTO ace_event_class e
   USING (SELECT 'PAY_ACCRUAL_POSTED' code, 'مخصصات نهاية الخدمة والإجازات' name_ar, 'Payroll accruals posted' name_en, 'PAY_RUN' ent FROM dual

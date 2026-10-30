@@ -17,7 +17,8 @@ CREATE OR REPLACE PACKAGE NOONA_HR_PKG AUTHID DEFINER AS
   -- ---------------------------------------------------------- ملف الموظف
   -- JSON: id (علاقة التوظيف للتعديل)، name_ar, name_en, national_id, id_expiry, nationality, gender, birth_date, mobile, email,
   -- hire_date, type, job_title, unit, branch, cost_center, manager, bank, iban, gosi_no, leave_days, probation_end,
-  -- contract_type, contract_end, salary:{BASIC,HOUSING,TRANSPORT,OTHER_ALLOW} ؛ يعيد رقم علاقة التوظيف
+  -- contract_type, contract_end, salary:{BASIC: مبلغ, <رمز أي عنصر>: مبلغ أو {"method":"PERCENT","value":25,"basis":"BASIC"}} ؛
+  -- يعيد رقم علاقة التوظيف. البدلات غير المذكورة تطبق عليها سياسة الشركة التلقائية إن وجدت.
   FUNCTION save_employee(p_doc IN CLOB) RETURN NUMBER;
   -- تعديل الراتب بحركة مؤرخة (يغلق العناصر السابقة يوم قبل السريان)
   FUNCTION change_salary(p_employment_id IN NUMBER, p_effective IN DATE, p_basic IN NUMBER, p_housing IN NUMBER,
@@ -27,7 +28,16 @@ CREATE OR REPLACE PACKAGE NOONA_HR_PKG AUTHID DEFINER AS
                     p_cost_center IN NUMBER, p_job_title IN VARCHAR2, p_manager IN NUMBER, p_reason IN VARCHAR2) RETURN NUMBER;
   FUNCTION employee_name(p_employee_id IN NUMBER) RETURN VARCHAR2;
   FUNCTION employment_label(p_employment_id IN NUMBER) RETURN VARCHAR2;
-  FUNCTION category(p_employment_id IN NUMBER) RETURN VARCHAR2;           -- SAUDI / NON_SAUDI
+  -- فئة الموظف بالنسبة لدولة الشركة: مواطن أو وافد (في السعودية تسمى SAUDI / NON_SAUDI، وفي غيرها CITIZEN / EXPAT)
+  FUNCTION category(p_employment_id IN NUMBER) RETURN VARCHAR2;
+  FUNCTION category_for(p_nationality IN VARCHAR2, p_country IN VARCHAR2 DEFAULT NULL) RETURN VARCHAR2;
+  FUNCTION is_citizen(p_category IN VARCHAR2) RETURN VARCHAR2;
+  FUNCTION category_label(p_category IN VARCHAR2) RETURN VARCHAR2;
+  FUNCTION company_country RETURN VARCHAR2;
+  -- تعديل عنصر واحد من هيكل الراتب بحركة مؤرخة: p_method FIXED (مبلغ) / PERCENT (نسبة من p_basis، افتراضياً الأساسي)
+  -- / POLICY (حسب سياسة الشركة) / EXCLUDED (لا يستحق رغم السياسة)
+  FUNCTION set_element(p_employment_id IN NUMBER, p_code IN VARCHAR2, p_method IN VARCHAR2, p_value IN NUMBER,
+                       p_basis IN VARCHAR2 DEFAULT NULL, p_effective IN DATE DEFAULT NULL, p_reason IN VARCHAR2 DEFAULT NULL) RETURN NUMBER;
   FUNCTION service_years(p_employment_id IN NUMBER, p_date IN DATE DEFAULT TRUNC(SYSDATE)) RETURN NUMBER;
   FUNCTION status_label(p_status IN VARCHAR2) RETURN VARCHAR2;
   FUNCTION element_id(p_code IN VARCHAR2) RETURN NUMBER;
@@ -117,11 +127,36 @@ CREATE OR REPLACE PACKAGE BODY NOONA_HR_PKG AS
     RETURN l;
   END employment_label;
 
+  FUNCTION company_country RETURN VARCHAR2 IS
+    l VARCHAR2(2);
+  BEGIN
+    SELECT MAX(country_code) INTO l FROM org_company WHERE id = company;
+    RETURN NVL(l, 'SA');
+  END company_country;
+
+  FUNCTION category_for(p_nationality IN VARCHAR2, p_country IN VARCHAR2 DEFAULT NULL) RETURN VARCHAR2 IS
+    l_c VARCHAR2(2) := NVL(p_country, company_country);
+  BEGIN
+    RETURN CASE WHEN NVL(p_nationality, l_c) = l_c THEN CASE WHEN l_c = 'SA' THEN 'SAUDI' ELSE 'CITIZEN' END
+                ELSE CASE WHEN l_c = 'SA' THEN 'NON_SAUDI' ELSE 'EXPAT' END END;
+  END category_for;
+
+  FUNCTION is_citizen(p_category IN VARCHAR2) RETURN VARCHAR2 IS
+  BEGIN
+    RETURN CASE WHEN NVL(p_category, 'CITIZEN') IN ('SAUDI', 'CITIZEN') THEN 'Y' ELSE 'N' END;
+  END is_citizen;
+
+  FUNCTION category_label(p_category IN VARCHAR2) RETURN VARCHAR2 IS
+  BEGIN
+    RETURN CASE p_category WHEN 'SAUDI' THEN 'سعودي' WHEN 'NON_SAUDI' THEN 'غير سعودي' WHEN 'CITIZEN' THEN 'مواطن' WHEN 'EXPAT' THEN 'وافد'
+                ELSE 'الكل' END;
+  END category_label;
+
   FUNCTION category(p_employment_id IN NUMBER) RETURN VARCHAR2 IS
     l VARCHAR2(30);
   BEGIN
-    SELECT MAX(NVL(m.employee_category, CASE WHEN NVL(e.nationality, 'SA') = 'SA' THEN 'SAUDI' ELSE 'NON_SAUDI' END)) INTO l
-      FROM hr_employment m JOIN hr_employee e ON e.id = m.employee_id WHERE m.id = p_employment_id;
+    SELECT MAX(NVL(m.employee_category, category_for(e.nationality, c.country_code))) INTO l
+      FROM hr_employment m JOIN hr_employee e ON e.id = m.employee_id JOIN org_company c ON c.id = m.company_id WHERE m.id = p_employment_id;
     RETURN l;
   END category;
 
@@ -175,10 +210,14 @@ CREATE OR REPLACE PACKAGE BODY NOONA_HR_PKG AS
   FUNCTION salary_json(p_employment NUMBER, p_date DATE) RETURN VARCHAR2 IS
     l VARCHAR2(4000) := '{';
   BEGIN
-    FOR r IN (SELECT e.code, SUM(x.amount) amt FROM pay_employee_element x JOIN pay_element e ON e.id = x.element_id
+    FOR r IN (SELECT e.code, MAX(x.calc_method) m, SUM(x.amount) amt, MAX(x.percentage) pct, MAX(x.basis_code) basis
+                FROM pay_employee_element x JOIN pay_element e ON e.id = x.element_id
                WHERE x.employment_id = p_employment AND p_date BETWEEN x.effective_from AND NVL(x.effective_to, DATE '9999-12-31')
                GROUP BY e.code ORDER BY MIN(e.sort_order)) LOOP
-      l := l || CASE WHEN l <> '{' THEN ',' END || jt(r.code) || ':' || TO_CHAR(r.amt, 'FM9999999990.00', 'NLS_NUMERIC_CHARACTERS=''.,''');
+      l := l || CASE WHEN l <> '{' THEN ',' END || jt(r.code) || ':'
+        || CASE NVL(r.m, 'FIXED') WHEN 'FIXED' THEN TO_CHAR(r.amt, 'FM9999999990.00', 'NLS_NUMERIC_CHARACTERS=''.,''')
+                WHEN 'PERCENT' THEN '{"pct":' || TO_CHAR(r.pct, 'FM9990.99', 'NLS_NUMERIC_CHARACTERS=''.,''') || ',"of":' || jt(r.basis) || '}'
+                ELSE jt(r.m) END;
     END LOOP;
     RETURN l || '}';
   END salary_json;
@@ -187,9 +226,29 @@ CREATE OR REPLACE PACKAGE BODY NOONA_HR_PKG AS
   BEGIN
     IF NVL(p_amount, 0) = 0 THEN RETURN; END IF;
     NOONA_CORE_PKG.assert(p_amount > 0, 'NOONA-HR-003', 'مبالغ الراتب والبدلات يجب أن تكون موجبة', 'Salary amounts must be positive');
-    INSERT INTO pay_employee_element (employment_id, element_id, amount, effective_from)
-    VALUES (p_employment, element_id(p_code), ROUND(p_amount, 2), p_from);
+    INSERT INTO pay_employee_element (employment_id, element_id, amount, calc_method, effective_from)
+    VALUES (p_employment, element_id(p_code), ROUND(p_amount, 2), 'FIXED', p_from);
   END set_salary;
+
+  PROCEDURE put_element(p_employment NUMBER, p_from DATE, p_code VARCHAR2, p_method VARCHAR2, p_value NUMBER, p_basis VARCHAR2) IS
+    l_basis VARCHAR2(50) := CASE WHEN p_method = 'PERCENT' THEN NVL(p_basis, 'BASIC') END;
+    l_n     NUMBER;
+  BEGIN
+    NOONA_CORE_PKG.assert(p_method IN ('FIXED', 'PERCENT', 'POLICY', 'EXCLUDED'), 'NOONA-HR-030', 'طريقة احتساب غير صالحة', 'Invalid method');
+    NOONA_CORE_PKG.assert(p_method NOT IN ('FIXED', 'PERCENT') OR NVL(p_value, 0) > 0, 'NOONA-HR-031',
+      'أدخل المبلغ أو النسبة (قيمة موجبة)', 'Amount or percentage must be positive');
+    NOONA_CORE_PKG.assert(p_method <> 'PERCENT' OR p_value <= 1000, 'NOONA-HR-032', 'النسبة غير منطقية', 'Percentage too high');
+    NOONA_CORE_PKG.assert(p_code <> 'BASIC' OR p_method = 'FIXED', 'NOONA-HR-034', 'الراتب الأساسي مبلغ ثابت', 'Basic salary must be a fixed amount');
+    NOONA_CORE_PKG.assert(p_method <> 'PERCENT' OR l_basis <> p_code, 'NOONA-HR-033', 'لا يحسب العنصر نسبة من نفسه',
+      'An element cannot be a percentage of itself');
+    IF l_basis IS NOT NULL THEN
+      SELECT COUNT(*) INTO l_n FROM pay_element WHERE code = l_basis AND is_active = 'Y';
+      NOONA_CORE_PKG.assert(l_n > 0, 'NOONA-HR-035', 'العنصر الأساس للنسبة غير معرف: ' || l_basis, 'Unknown basis element');
+    END IF;
+    INSERT INTO pay_employee_element (employment_id, element_id, amount, percentage, calc_method, basis_code, effective_from)
+    VALUES (p_employment, element_id(p_code), CASE WHEN p_method = 'FIXED' THEN ROUND(p_value, 2) END,
+            CASE WHEN p_method = 'PERCENT' THEN p_value END, p_method, l_basis, p_from);
+  END put_element;
 
   FUNCTION num(p_o JSON_OBJECT_T, p_key VARCHAR2) RETURN NUMBER IS
   BEGIN
@@ -210,7 +269,8 @@ CREATE OR REPLACE PACKAGE BODY NOONA_HR_PKG AS
     l_sal    JSON_OBJECT_T;
     l_id     NUMBER := num(l_o, 'id');
     l_name   VARCHAR2(300) := str(l_o, 'name_ar');
-    l_nat    VARCHAR2(2) := UPPER(NVL(str(l_o, 'nationality'), 'SA'));
+    l_cc     VARCHAR2(2) := company_country;
+    l_nat    VARCHAR2(2) := UPPER(NVL(str(l_o, 'nationality'), l_cc));
     l_hire   DATE := NVL(dat(l_o, 'hire_date'), TRUNC(SYSDATE));
     l_nid    VARCHAR2(30) := REPLACE(str(l_o, 'national_id'), ' ');
     l_iban   VARCHAR2(34) := UPPER(REPLACE(str(l_o, 'iban'), ' '));
@@ -243,14 +303,17 @@ CREATE OR REPLACE PACKAGE BODY NOONA_HR_PKG AS
   BEGIN
     guard(CASE WHEN l_id IS NULL THEN 'HR_EMPLOYEE.CREATE' ELSE 'HR_EMPLOYEE.UPDATE' END);
     NOONA_CORE_PKG.assert(l_name IS NOT NULL, 'NOONA-HR-010', 'اسم الموظف إلزامي', 'Employee name is required');
-    NOONA_CORE_PKG.assert(l_nid IS NULL OR l_nat <> 'SA' OR REGEXP_LIKE(l_nid, '^1[0-9]{9}$'), 'NOONA-HR-011',
+    NOONA_CORE_PKG.assert(l_nid IS NULL OR l_nat <> 'SA' OR l_cc <> 'SA' OR REGEXP_LIKE(l_nid, '^1[0-9]{9}$'), 'NOONA-HR-011',
       'رقم الهوية الوطنية 10 أرقام يبدأ بالرقم 1', 'Saudi national ID must be 10 digits starting with 1');
-    NOONA_CORE_PKG.assert(l_nid IS NULL OR l_nat = 'SA' OR REGEXP_LIKE(l_nid, '^2[0-9]{9}$'), 'NOONA-HR-012',
+    NOONA_CORE_PKG.assert(l_nid IS NULL OR l_nat = 'SA' OR l_cc <> 'SA' OR REGEXP_LIKE(l_nid, '^2[0-9]{9}$'), 'NOONA-HR-012',
       'رقم الإقامة 10 أرقام يبدأ بالرقم 2', 'Iqama number must be 10 digits starting with 2');
-    NOONA_CORE_PKG.assert(l_iban IS NULL OR REGEXP_LIKE(l_iban, '^SA[0-9]{22}$'), 'NOONA-HR-013',
-      'الآيبان السعودي 24 خانة يبدأ بـ SA', 'Saudi IBAN must be SA followed by 22 digits');
-    NOONA_CORE_PKG.assert(l_days BETWEEN 21 AND 60, 'NOONA-HR-014', 'الإجازة السنوية لا تقل عن 21 يوماً', 'Annual leave must be at least 21 days');
-    l_cat := CASE WHEN l_nat = 'SA' THEN 'SAUDI' ELSE 'NON_SAUDI' END;
+    NOONA_CORE_PKG.assert(l_iban IS NULL OR (l_cc = 'SA' AND REGEXP_LIKE(l_iban, '^SA[0-9]{22}$'))
+                          OR (l_cc <> 'SA' AND REGEXP_LIKE(l_iban, '^[A-Z]{2}[0-9]{2}[A-Z0-9]{10,30}$')), 'NOONA-HR-013',
+      CASE WHEN l_cc = 'SA' THEN 'الآيبان السعودي 24 خانة يبدأ بـ SA' ELSE 'رقم الآيبان غير صحيح' END, 'Invalid IBAN');
+    -- الحد الأدنى للإجازة السنوية حسب نظام العمل: 21 يوماً في السعودية؛ غيرها حسب ما تحدده الشركة
+    NOONA_CORE_PKG.assert(l_days BETWEEN CASE WHEN l_cc = 'SA' THEN 21 ELSE 0 END AND 60, 'NOONA-HR-014',
+      'الإجازة السنوية لا تقل عن 21 يوماً', 'Annual leave must be at least 21 days');
+    l_cat := category_for(l_nat, l_cc);
     IF l_nid IS NOT NULL THEN
       SELECT COUNT(*) INTO l_n FROM hr_employee e
        WHERE e.national_id = l_nid
@@ -281,13 +344,26 @@ CREATE OR REPLACE PACKAGE BODY NOONA_HR_PKG AS
       l_sal := l_o.get_object('salary');
       v_basic := CASE WHEN l_sal IS NOT NULL THEN num(l_sal, 'BASIC') END;
       NOONA_CORE_PKG.assert(NVL(v_basic, 0) > 0, 'NOONA-HR-016', 'الراتب الأساسي إلزامي', 'Basic salary is required');
-      set_salary(l_id, l_hire, 'BASIC', num(l_sal, 'BASIC'));
-      set_salary(l_id, l_hire, 'HOUSING', num(l_sal, 'HOUSING'));
-      set_salary(l_id, l_hire, 'TRANSPORT', num(l_sal, 'TRANSPORT'));
-      set_salary(l_id, l_hire, 'OTHER_ALLOW', num(l_sal, 'OTHER_ALLOW'));
+      -- أي عنصر: رقم = مبلغ ثابت، أو كائن {"method":"PERCENT|POLICY|EXCLUDED","value":..,"basis":..}
+      DECLARE
+        l_keys JSON_KEY_LIST := l_sal.get_keys;
+        l_v    JSON_ELEMENT_T;
+        l_eo   JSON_OBJECT_T;
+      BEGIN
+        FOR i IN 1 .. l_keys.COUNT LOOP
+          l_v := l_sal.get(l_keys(i));
+          IF l_v.is_null THEN NULL;
+          ELSIF l_v.is_object THEN
+            l_eo := TREAT(l_v AS JSON_OBJECT_T);
+            put_element(l_id, l_hire, UPPER(l_keys(i)), UPPER(NVL(str(l_eo, 'method'), 'FIXED')), num(l_eo, 'value'), UPPER(str(l_eo, 'basis')));
+          ELSE
+            set_salary(l_id, l_hire, UPPER(l_keys(i)), l_sal.get_number(l_keys(i)));
+          END IF;
+        END LOOP;
+      END;
       INSERT INTO hr_contract (employment_id, contract_no, version_no, contract_type, start_date, end_date, working_hours_week, basic_salary,
                                annual_leave_days, notice_days, currency_code, status_code)
-      VALUES (l_id, 'C-' || l_no, 1, NVL(v_ctype, CASE WHEN l_cat = 'SAUDI' THEN 'UNLIMITED' ELSE 'FIXED_TERM' END),
+      VALUES (l_id, 'C-' || l_no, 1, NVL(v_ctype, CASE WHEN is_citizen(l_cat) = 'Y' THEN 'UNLIMITED' ELSE 'FIXED_TERM' END),
               l_hire, v_cend, 48, v_basic, l_days, 60, NOONA_GL_PKG.ledger_currency, 'ACTIVE');
       action(l_id, 'HIRE', l_hire, NULL, '{"employee_no":' || jt(l_no) || ',"salary":' || salary_json(l_id, l_hire) || '}',
              'تعيين', l_act);
@@ -338,9 +414,13 @@ CREATE OR REPLACE PACKAGE BODY NOONA_HR_PKG AS
     NOONA_CORE_PKG.assert(l_n = 0, 'NOONA-HR-023', 'توجد رواتب مرحلة بعد تاريخ السريان؛ اجعل السريان من الفترة التالية',
       'Payroll already posted after the effective date');
     l_old := salary_json(p_employment_id, l_eff);
-    DELETE FROM pay_employee_element WHERE employment_id = p_employment_id AND effective_from >= l_eff;
+    -- العناصر الأربعة فقط (البدلات الأخرى ونسبها تعدل من هيكل الراتب ولا تمس هنا)
+    DELETE FROM pay_employee_element
+     WHERE employment_id = p_employment_id AND effective_from >= l_eff
+       AND element_id IN (SELECT id FROM pay_element WHERE code IN ('BASIC', 'HOUSING', 'TRANSPORT', 'OTHER_ALLOW'));
     UPDATE pay_employee_element SET effective_to = l_eff - 1
-     WHERE employment_id = p_employment_id AND (effective_to IS NULL OR effective_to >= l_eff);
+     WHERE employment_id = p_employment_id AND (effective_to IS NULL OR effective_to >= l_eff)
+       AND element_id IN (SELECT id FROM pay_element WHERE code IN ('BASIC', 'HOUSING', 'TRANSPORT', 'OTHER_ALLOW'));
     set_salary(p_employment_id, l_eff, 'BASIC', p_basic);
     set_salary(p_employment_id, l_eff, 'HOUSING', p_housing);
     set_salary(p_employment_id, l_eff, 'TRANSPORT', p_transport);
@@ -349,6 +429,43 @@ CREATE OR REPLACE PACKAGE BODY NOONA_HR_PKG AS
     action(p_employment_id, 'SALARY_CHANGE', l_eff, l_old, salary_json(p_employment_id, l_eff), p_reason, l_act);
     RETURN l_act;
   END change_salary;
+
+  FUNCTION set_element(p_employment_id IN NUMBER, p_code IN VARCHAR2, p_method IN VARCHAR2, p_value IN NUMBER,
+                       p_basis IN VARCHAR2 DEFAULT NULL, p_effective IN DATE DEFAULT NULL, p_reason IN VARCHAR2 DEFAULT NULL) RETURN NUMBER IS
+    l_m    hr_employment%ROWTYPE := emp_row(p_employment_id);
+    l_eff  DATE := NVL(TRUNC(p_effective), GREATEST(TRUNC(SYSDATE), l_m.start_date));
+    l_code VARCHAR2(50) := UPPER(TRIM(p_code));
+    l_old  VARCHAR2(4000);
+    l_eid  NUMBER;
+    l_sp   BOOLEAN := FALSE;
+    l_act  NUMBER;
+    l_n    NUMBER;
+  BEGIN
+    guard('HR_EMPLOYEE_ACTION.CREATE');
+    NOONA_CORE_PKG.assert(l_m.status_code IN ('ACTIVE', 'NOTICE_PERIOD', 'SUSPENDED'), 'NOONA-HR-020', 'الموظف ليس على رأس العمل',
+      'Employee is not active');
+    NOONA_CORE_PKG.assert(l_eff >= l_m.start_date, 'NOONA-HR-022', 'تاريخ السريان يسبق تاريخ التعيين', 'Effective date precedes hire date');
+    SELECT COUNT(*) INTO l_n FROM pay_run_employee re JOIN pay_run r ON r.id = re.run_id JOIN pay_period p ON p.id = r.period_id
+     WHERE re.employment_id = p_employment_id AND r.status_code IN ('POSTED', 'PAID', 'CLOSED') AND p.end_date >= l_eff;
+    NOONA_CORE_PKG.assert(l_n = 0, 'NOONA-HR-023', 'توجد رواتب مرحلة بعد تاريخ السريان؛ اجعل السريان من الفترة التالية',
+      'Payroll already posted after the effective date');
+    l_eid := element_id(l_code);
+    l_old := salary_json(p_employment_id, l_eff);
+    SAVEPOINT hr_set_element;                                     -- رفض القيمة لا يترك العنصر محذوفاً
+    l_sp := TRUE;
+    DELETE FROM pay_employee_element WHERE employment_id = p_employment_id AND element_id = l_eid AND effective_from >= l_eff;
+    UPDATE pay_employee_element SET effective_to = l_eff - 1
+     WHERE employment_id = p_employment_id AND element_id = l_eid AND (effective_to IS NULL OR effective_to >= l_eff);
+    put_element(p_employment_id, l_eff, l_code, UPPER(p_method), p_value, UPPER(TRIM(p_basis)));
+    IF l_code = 'BASIC' THEN
+      UPDATE hr_contract SET basic_salary = p_value WHERE employment_id = p_employment_id AND status_code = 'ACTIVE';
+    END IF;
+    action(p_employment_id, 'SALARY_CHANGE', l_eff, l_old, salary_json(p_employment_id, l_eff), NVL(p_reason, 'تعديل ' || l_code), l_act);
+    RETURN l_act;
+  EXCEPTION WHEN OTHERS THEN
+    IF l_sp THEN ROLLBACK TO hr_set_element; END IF;
+    RAISE;
+  END set_element;
 
   FUNCTION transfer(p_employment_id IN NUMBER, p_effective IN DATE, p_unit IN NUMBER, p_branch IN NUMBER,
                     p_cost_center IN NUMBER, p_job_title IN VARCHAR2, p_manager IN NUMBER, p_reason IN VARCHAR2) RETURN NUMBER IS
@@ -685,7 +802,7 @@ CREATE OR REPLACE PACKAGE BODY NOONA_HR_PKG AS
   FUNCTION hr_summary RETURN CLOB IS
     l_head NUMBER; l_sa NUMBER; l_new NUMBER; l_leave NUMBER; l_pend NUMBER; l_exp NUMBER; l_prob NUMBER;
   BEGIN
-    SELECT COUNT(*), NVL(SUM(CASE WHEN NVL(employee_category, 'SAUDI') = 'SAUDI' THEN 1 ELSE 0 END), 0),
+    SELECT COUNT(*), NVL(SUM(CASE WHEN is_citizen(employee_category) = 'Y' THEN 1 ELSE 0 END), 0),
            NVL(SUM(CASE WHEN start_date >= TRUNC(SYSDATE, 'MM') THEN 1 ELSE 0 END), 0),
            NVL(SUM(CASE WHEN probation_end_date >= TRUNC(SYSDATE) THEN 1 ELSE 0 END), 0)
       INTO l_head, l_sa, l_new, l_prob
@@ -722,17 +839,22 @@ CREATE OR REPLACE PACKAGE BODY NOONA_HR_PKG AS
     l_mgr := employee_name(l_m.manager_employee_id);
     l_html := '<div class="nn-hr-card"><div class="nn-hr-av">' || esc(SUBSTR(l_name, 1, 1)) || '</div><div class="nn-hr-id"><b>'
            || esc(l_name) || '</b><span>' || esc(l_e.employee_no) || ' · ' || esc(NVL(l_m.job_title, '-')) || CASE WHEN l_unit IS NOT NULL
-              THEN ' · ' || esc(l_unit) END || '</span><span>' || CASE WHEN l_m.employee_category = 'SAUDI' THEN 'سعودي' ELSE 'غير سعودي (' || esc(l_e.nationality) || ')' END
+              THEN ' · ' || esc(l_unit) END || '</span><span>' || category_label(NVL(l_m.employee_category, category(p_employment_id))) || CASE WHEN is_citizen(l_m.employee_category) = 'N' THEN ' (' || esc(l_e.nationality) || ')' END
            || ' · التعيين ' || TO_CHAR(l_m.start_date, 'YYYY-MM-DD') || ' · الخدمة ' || fnum(service_years(p_employment_id), 1) || ' سنة'
            || CASE WHEN l_mgr IS NOT NULL THEN ' · المدير: ' || esc(l_mgr) END || '</span></div><span class="nn-badge '
            || CASE l_m.status_code WHEN 'ACTIVE' THEN 'is-success' WHEN 'TERMINATED' THEN 'is-danger' ELSE 'is-warning' END || '">'
            || status_label(l_m.status_code) || '</span></div><div class="nn-hr-grid"><div><h4>هيكل الراتب الحالي</h4><table class="nn-rpt">';
-    FOR r IN (SELECT e.name_ar, x.amount, x.effective_from FROM pay_employee_element x JOIN pay_element e ON e.id = x.element_id
-               WHERE x.employment_id = p_employment_id AND TRUNC(SYSDATE) BETWEEN x.effective_from AND NVL(x.effective_to, DATE '9999-12-31')
-               ORDER BY e.sort_order) LOOP
-      l_html := l_html || (('<tr><td class="nn-rpt-text">' || esc(r.name_ar) || '</td><td>' || fnum(r.amount) || '</td></tr>'));
-      l_tot := l_tot + r.amount;
-    END LOOP;
+    -- المبالغ بعد احتساب النسب وسياسة الشركة (الاستحقاقات الثابتة فقط)
+    DECLARE
+      l_st NOONA_PAY_PKG.t_lines := NOONA_PAY_PKG.structure(p_employment_id, GREATEST(TRUNC(SYSDATE), l_m.start_date));
+    BEGIN
+      FOR i IN 1 .. l_st.COUNT LOOP
+        IF l_st(i).etype = 'EARNING' AND l_st(i).recurring = 'Y' AND NVL(l_st(i).amount, 0) <> 0 THEN
+          l_html := l_html || (('<tr><td class="nn-rpt-text">' || esc(l_st(i).name) || '</td><td>' || fnum(l_st(i).amount) || '</td></tr>'));
+          l_tot := l_tot + l_st(i).amount;
+        END IF;
+      END LOOP;
+    END;
     l_html := l_html || (('<tr class="nn-rpt-total"><td class="nn-rpt-text">الإجمالي الشهري</td><td>' || fnum(l_tot) || '</td></tr></table></div>'
            || '<div><h4>الإجازات</h4><table class="nn-rpt"><tr><td class="nn-rpt-text">رصيد الإجازة السنوية المتاح</td><td>'
            || fnum(leave_available(l_m.employee_id, 'ANNUAL'), 1) || ' يوم</td></tr><tr><td class="nn-rpt-text">الاستحقاق السنوي</td><td>'
@@ -748,11 +870,12 @@ CREATE OR REPLACE PACKAGE BODY NOONA_HR_PKG AS
   END employee_card;
 
   FUNCTION headcount_report RETURN CLOB IS
-    l_html CLOB := '<table class="nn-rpt"><thead><tr><th>الإدارة</th><th>سعودي</th><th>غير سعودي</th><th>الإجمالي</th><th>نسبة التوطين</th></tr></thead><tbody>';
+    l_html CLOB := '<table class="nn-rpt"><thead><tr><th>الإدارة</th><th>' || CASE WHEN company_country = 'SA' THEN 'سعودي' ELSE 'مواطن' END
+                   || '</th><th>' || CASE WHEN company_country = 'SA' THEN 'غير سعودي' ELSE 'وافد' END || '</th><th>الإجمالي</th><th>نسبة التوطين</th></tr></thead><tbody>';
     l_s NUMBER := 0; l_n NUMBER := 0;
   BEGIN
-    FOR r IN (SELECT NVL(u.name_ar, 'غير محدد') unit, SUM(CASE WHEN NVL(m.employee_category, 'SAUDI') = 'SAUDI' THEN 1 ELSE 0 END) sa,
-                     SUM(CASE WHEN NVL(m.employee_category, 'SAUDI') <> 'SAUDI' THEN 1 ELSE 0 END) ns
+    FOR r IN (SELECT NVL(u.name_ar, 'غير محدد') unit, SUM(CASE WHEN is_citizen(m.employee_category) = 'Y' THEN 1 ELSE 0 END) sa,
+                     SUM(CASE WHEN is_citizen(m.employee_category) = 'N' THEN 1 ELSE 0 END) ns
                 FROM hr_employment m LEFT JOIN org_unit u ON u.id = m.org_unit_id
                WHERE m.company_id = company AND m.status_code IN ('ACTIVE', 'NOTICE_PERIOD', 'SUSPENDED')
                GROUP BY NVL(u.name_ar, 'غير محدد') ORDER BY 1) LOOP

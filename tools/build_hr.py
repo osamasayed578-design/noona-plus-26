@@ -51,10 +51,20 @@ PERIOD_LOV = ("select p.period_code || case when exists (select 1 from pay_run r
               "and p.payroll_group_id = noona_pay_pkg.default_group order by p.start_date desc")
 LEAVE_TYPE_LOV = ("select max(name_ar) keep (dense_rank first order by case when tenant_id is null then 1 else 0 end) d, code r "
                   "from hr_leave_type where is_active = 'Y' group by code order by min(id)")
+METHOD_LOV = 'STATIC2:مبلغ ثابت;FIXED,نسبة من الأساسي;PERCENT,حسب سياسة الشركة;POLICY'
+EL_METHOD_LOV = 'STATIC2:مبلغ ثابت;FIXED,نسبة من عنصر;PERCENT,حسب سياسة الشركة;POLICY,مستثنى (لا يصرف);EXCLUDED'
+# عناصر الراتب الثابتة (للموظف وللسياسة)، والأساس للنسب
+REC_EL_LOV = ("select name_ar || case when element_type <> 'EARNING' then ' (استقطاع)' end d, code r from pay_element "
+              "where is_active = 'Y' and is_recurring = 'Y' and element_type in ('EARNING', 'DEDUCTION') order by sort_order, name_ar")
+ALLOW_EL_LOV = REC_EL_LOV.replace("element_type in ('EARNING', 'DEDUCTION')", "element_type in ('EARNING', 'DEDUCTION') and code <> 'BASIC'")
+BASIS_LOV = ("select name_ar d, code r from pay_element where is_active = 'Y' and element_type = 'EARNING' and is_recurring = 'Y' "
+             "order by case code when 'BASIC' then 0 else 1 end, sort_order")
+CAT_LOV = ("select noona_hr_pkg.category_label(c) d, c r from (select noona_hr_pkg.category_for(noona_hr_pkg.company_country) c, 1 o from dual "
+           "union all select noona_hr_pkg.category_for('ZZ'), 2 from dual) order by o")
 TYPE_LOV = ('STATIC2:دائم;PERMANENT,محدد المدة;FIXED_TERM,دوام جزئي;PART_TIME,مؤقت;TEMPORARY,متدرب;INTERN,مستشار;CONSULTANT')
 EMP_SQL = [
     "select m.id, e.employee_no, p.display_name_ar as name_ar, m.job_title, u.name_ar as unit_name,",
-    "       case when m.employee_category = 'SAUDI' then 'سعودي' else nvl(c.name_ar, e.nationality) end as nationality,",
+    "       case when noona_hr_pkg.is_citizen(m.employee_category) = 'Y' then noona_hr_pkg.category_label(m.employee_category) else nvl(c.name_ar, e.nationality) end as nationality,",
     "       to_char(m.start_date, 'YYYY-MM-DD') as hire_date, round(noona_hr_pkg.service_years(m.id), 1) as years,",
     "       noona_pay_pkg.monthly_wage(m.id) as wage, noona_hr_pkg.leave_available(m.employee_id) as leave_bal,",
     "       '<span class=\"nn-badge ' || case m.status_code when 'ACTIVE' then 'is-success' when 'TERMINATED' then 'is-danger' else 'is-warning' end",
@@ -130,12 +140,13 @@ p.number('P11_LEAVE_DAYS', j, 110, 'الإجازة السنوية (يوم)')
 p.select('P11_CONTRACT_TYPE', j, 120, 'نوع العقد', lov_sql='STATIC2:غير محدد المدة;UNLIMITED,محدد المدة;FIXED_TERM,دوام جزئي;PART_TIME,مؤقت;TEMPORARY')
 p.date('P11_CONTRACT_END', j, 130, 'نهاية العقد (المحدد المدة)')
 s = p.static('هيكل الراتب الشهري', 30, condition=':P11_ID is null',
-             text='<p class="nn-hint">بدل السكن المعتاد 25% من الأساسي وبدل النقل 10%. التأمينات الاجتماعية على (الأساسي + السكن). '
-                  'تعديل الراتب بعد التعيين يكون بحركة «تعديل الراتب» المؤرخة.</p>')
+             text='<p class="nn-hint">لكل بدل: مبلغ ثابت، أو نسبة من الأساسي (اكتب النسبة مثل 25)، أو «حسب سياسة الشركة» '
+                  'المعرفة في الإعدادات لكل شركة أو دولة. البدلات التلقائية في السياسة تضاف دون إدخال. '
+                  'بعد التعيين يعدل أي عنصر من «هيكل الراتب» بحركة مؤرخة.</p>')
 p.number('P11_BASIC', s, 10, 'الراتب الأساسي', required=True)
-p.number('P11_HOUSING', s, 20, 'بدل السكن')
-p.number('P11_TRANSPORT', s, 30, 'بدل النقل')
-p.number('P11_OTHER', s, 40, 'بدلات أخرى')
+for k, (item, label) in enumerate([('HOUSING', 'بدل السكن'), ('TRANSPORT', 'بدل النقل'), ('OTHER', 'بدلات أخرى')]):
+    p.select(f'P11_{item}_M', s, 20 + k * 10, f'{label}: الطريقة', lov_sql=METHOD_LOV, null_text='- لا يوجد -')
+    p.number(f'P11_{item}', s, 25 + k * 10, f'{label}: المبلغ أو النسبة %')
 sv = p.static('حفظ', 40, hide_header=True)
 b_save = p.button(sv, 10, 'SAVE', 'حفظ الملف', hot=True)
 p.process(5, 'BEFORE_HEADER', 'Load', [
@@ -151,19 +162,27 @@ p.process(5, 'BEFORE_HEADER', 'Load', [
     '               :P11_LEAVE_DAYS, :P11_CONTRACT_TYPE, :P11_CONTRACT_END',
     '          from hr_employment m join hr_employee e on e.id = m.employee_id join pty_party p on p.id = e.person_party_id',
     '         where m.id = :P11_ID and m.company_id = noona_hr_pkg.company;',
-    "        :P11_SB := noona_pay_pkg.element_amount(:P11_ID, 'BASIC');",
-    "        :P11_SH := noona_pay_pkg.element_amount(:P11_ID, 'HOUSING');",
-    "        :P11_ST := noona_pay_pkg.element_amount(:P11_ID, 'TRANSPORT');",
-    "        :P11_SO := noona_pay_pkg.element_amount(:P11_ID, 'OTHER_ALLOW');",
     '    else',
     "        :P11_HIRE := nvl(:P11_HIRE, to_char(sysdate, 'YYYY-MM-DD'));",
-    "        :P11_NATIONALITY := nvl(:P11_NATIONALITY, 'SA');",
-    '        :P11_LEAVE_DAYS := nvl(:P11_LEAVE_DAYS, 21);',
+    "        :P11_NATIONALITY := nvl(:P11_NATIONALITY, noona_hr_pkg.company_country);",
+    "        :P11_LEAVE_DAYS := nvl(:P11_LEAVE_DAYS, case when noona_hr_pkg.company_country = 'SA' then 21 end);",
+    "        :P11_HOUSING_M := nvl(:P11_HOUSING_M, 'FIXED'); :P11_TRANSPORT_M := nvl(:P11_TRANSPORT_M, 'FIXED');",
     '    end if;',
     "    :P11_SAL_DATE := nvl(:P11_SAL_DATE, to_char(add_months(trunc(sysdate, 'MM'), 1), 'YYYY-MM-DD'));",
     'end;'])
 p.process(10, 'AFTER_SUBMIT', 'Save', [
-    'declare l_doc clob;',
+    'declare',
+    '    l_doc clob;',
+    '    l_o   json_object_t;',
+    '    l_s   json_object_t := json_object_t();',
+    '    procedure el(p_code varchar2, p_method varchar2, p_value varchar2) is',
+    '        l json_object_t := json_object_t();',
+    '    begin',
+    "        if p_method is null or (p_method <> 'POLICY' and p_value is null) then return; end if;",
+    "        l.put('method', p_method);",
+    "        if p_value is not null then l.put('value', to_number(p_value)); end if;",
+    '        l_s.put(p_code, l);',
+    '    end;',
     'begin',
     "    select json_object('id' value to_number(:P11_ID), 'name_ar' value :P11_NAME_AR, 'name_en' value :P11_NAME_EN,",
     "                       'nationality' value :P11_NATIONALITY, 'national_id' value :P11_NATIONAL_ID, 'id_expiry' value :P11_ID_EXPIRY,",
@@ -171,24 +190,35 @@ p.process(10, 'AFTER_SUBMIT', 'Save', [
     "                       'hire_date' value :P11_HIRE, 'type' value :P11_TYPE, 'job_title' value :P11_JOB, 'unit' value to_number(:P11_UNIT),",
     "                       'branch' value to_number(:P11_BRANCH), 'cost_center' value to_number(:P11_CC), 'manager' value to_number(:P11_MANAGER),",
     "                       'bank' value to_number(:P11_BANK), 'iban' value :P11_IBAN, 'gosi_no' value :P11_GOSI,",
-    "                       'leave_days' value to_number(:P11_LEAVE_DAYS), 'contract_type' value :P11_CONTRACT_TYPE, 'contract_end' value :P11_CONTRACT_END,",
-    "                       'salary' value json_object('BASIC' value to_number(:P11_BASIC), 'HOUSING' value to_number(:P11_HOUSING),",
-    "                                                  'TRANSPORT' value to_number(:P11_TRANSPORT), 'OTHER_ALLOW' value to_number(:P11_OTHER))",
+    "                       'leave_days' value to_number(:P11_LEAVE_DAYS), 'contract_type' value :P11_CONTRACT_TYPE, 'contract_end' value :P11_CONTRACT_END",
     '                       returning clob) into l_doc from dual;',
+    '    if :P11_ID is null then',
+    '        l_o := json_object_t.parse(l_doc);',
+    "        l_s.put('BASIC', to_number(:P11_BASIC));",
+    "        el('HOUSING', :P11_HOUSING_M, :P11_HOUSING);",
+    "        el('TRANSPORT', :P11_TRANSPORT_M, :P11_TRANSPORT);",
+    "        el('OTHER_ALLOW', :P11_OTHER_M, :P11_OTHER);",
+    "        l_o.put('salary', l_s);",
+    '        l_doc := l_o.to_clob;',
+    '    end if;',
     '    :P11_ID := noona_hr_pkg.save_employee(l_doc);',
     'end;'], when_button=b_save, success='تم حفظ ملف الموظف')
-# تعديل الراتب
-sc = p.static('تعديل الراتب (حركة مؤرخة)', 50, condition=':P11_ID is not null')
-p.number('P11_SB', sc, 10, 'الأساسي')
-p.number('P11_SH', sc, 20, 'السكن')
-p.number('P11_ST', sc, 30, 'النقل')
-p.number('P11_SO', sc, 40, 'بدلات أخرى')
+# هيكل الراتب: كل عنصر بطريقته (ثابت / نسبة / سياسة الشركة / مستثنى) وتعديله بحركة مؤرخة
+p.dynamic('هيكل الراتب', 45, 'return noona_pay_pkg.structure_html(:P11_ID);', condition=':P11_ID is not null')
+sc = p.static('تعديل عنصر في الراتب (حركة مؤرخة)', 50, condition=':P11_ID is not null',
+              text='<p class="nn-hint">مثال: بدل السكن نسبة 25 من الأساسي، أو بدل النقل حسب سياسة الشركة، أو استثناء الموظف من بدل تلقائي. '
+                   'تعديل الأساسي يغير البدلات المحسوبة كنسبة منه تلقائياً.</p>')
+p.select('P11_EL', sc, 10, 'العنصر', lov_sql=REC_EL_LOV)
+p.select('P11_EL_M', sc, 20, 'طريقة الاحتساب', lov_sql=EL_METHOD_LOV, null_text=None)
+p.number('P11_EL_V', sc, 30, 'المبلغ أو النسبة %')
+p.select('P11_EL_BASIS', sc, 40, 'النسبة من', lov_sql=BASIS_LOV, null_text=None)
 p.date('P11_SAL_DATE', sc, 50, 'يسري من')
 p.text('P11_SAL_REASON', sc, 60, 'السبب (ترقية، علاوة سنوية...)', maxlen=500)
-b_sal = p.button(sc, 10, 'CHANGE_SALARY', 'اعتماد تعديل الراتب')
+b_sal = p.button(sc, 10, 'CHANGE_SALARY', 'اعتماد التعديل')
 p.process(20, 'AFTER_SUBMIT', 'Change Salary', [
     'declare l_id number;', 'begin',
-    "    l_id := noona_hr_pkg.change_salary(:P11_ID, to_date(:P11_SAL_DATE, 'YYYY-MM-DD'), :P11_SB, :P11_SH, :P11_ST, :P11_SO, :P11_SAL_REASON);",
+    "    l_id := noona_hr_pkg.set_element(:P11_ID, :P11_EL, :P11_EL_M, to_number(:P11_EL_V), :P11_EL_BASIS,",
+    "                                     to_date(:P11_SAL_DATE, 'YYYY-MM-DD'), :P11_SAL_REASON);",
     'end;'], when_button=b_sal, success='تم تعديل الراتب بحركة مؤرخة')
 tr = p.static('نقل / تغيير المسمى', 60, condition=':P11_ID is not null')
 p.select('P11_TR_UNIT', tr, 10, 'الإدارة الجديدة', lov_sql=UNIT_LOV)
@@ -540,17 +570,81 @@ p.process(10, 'AFTER_SUBMIT', 'Setup', ['declare l_n number;', 'begin', '    l_n
           "    apex_application.g_print_success_message := 'تم التجهيز (' || l_n || ' إضافة)';", 'end;'], when_button=b)
 p.ir('عناصر الراتب', 10, [
     "select e.id, e.code, e.name_ar, case e.element_type when 'EARNING' then 'استحقاق' when 'EMPLOYER_CONTRIBUTION' then 'على المنشأة'",
-    "       else 'استقطاع' end as typ, noona_ui_pkg.code_label(e.affects_eos) as eos, noona_ui_pkg.code_label(e.is_recurring) as rec",
+    "       else 'استقطاع' end as typ, noona_ui_pkg.code_label(e.affects_eos) as eos, noona_ui_pkg.code_label(e.is_recurring) as rec,",
+    "       case when e.tenant_id is null then 'النظام' else 'المؤسسة' end as owner",
     "  from pay_element e where e.is_active = 'Y' order by e.sort_order"],
     [('ID', '#', {'hidden': True, 'type': 'NUMBER'}), ('CODE', 'الرمز', {}), ('NAME_AR', 'العنصر', {}), ('TYP', 'النوع', {}),
-     ('EOS', 'يدخل في نهاية الخدمة', {}), ('REC', 'ثابت شهري', {})], titled=True, rows=20)
+     ('EOS', 'يدخل في نهاية الخدمة', {}), ('REC', 'ثابت شهري', {}), ('OWNER', 'المصدر', {})], titled=True, rows=20)
+ne = p.static('إضافة عنصر خاص بالمؤسسة', 12,
+              text='<p class="nn-hint">مثل بدل وجبة أو بدل اتصال أو بدل طبيعة عمل أو استقطاع ثابت. بعد الإضافة حدد قيمته في سياسة البدلات '
+                   'أو في هيكل راتب الموظف.</p>')
+p.text('P70_EL_CODE', ne, 10, 'الرمز بالإنجليزية (MEAL_ALLOW)', maxlen=30, width=20)
+p.text('P70_EL_NAME', ne, 20, 'اسم العنصر', maxlen=200)
+p.select('P70_EL_TYPE', ne, 30, 'النوع', lov_sql='STATIC2:استحقاق (بدل);EARNING,استقطاع ثابت;DEDUCTION', null_text=None)
+p.yesno('P70_EL_EOS', ne, 40, 'يدخل في أجر نهاية الخدمة')
+p.select('P70_EL_PRO', ne, 50, 'بالتناسب مع أيام العمل', lov_sql='STATIC2:نعم;Y,لا (يصرف كاملاً);N', null_text=None)
+b_el = p.button(ne, 10, 'ADD_ELEMENT', 'إضافة العنصر')
+p.process(20, 'AFTER_SUBMIT', 'Add Element', ['declare l_id number;', 'begin',
+          "    l_id := noona_pay_pkg.save_element(null, :P70_EL_CODE, :P70_EL_NAME, :P70_EL_TYPE, 'Y', :P70_EL_PRO, :P70_EL_EOS);",
+          'end;'], when_button=b_el, success='تمت إضافة العنصر')
+p.ir('سياسة البدلات (لكل شركة أو دولة)', 15, [
+    "select r.id, e.name_ar as element, case when r.company_id is not null then 'الشركة: ' || c.name_ar",
+    "       when r.country_code is not null then 'شركات الدولة: ' || nvl(k.name_ar, r.country_code) else 'كل الشركات' end as scope,",
+    "       noona_hr_pkg.category_label(r.employee_category) as category, noona_pay_pkg.rule_text(r.id) as rule_txt,",
+    "       case r.is_auto when 'Y' then 'تلقائي لكل الموظفين' else 'لمن يختار «حسب السياسة»' end as auto_txt,",
+    "       to_char(r.effective_from, 'YYYY-MM-DD') as eff, to_char(r.effective_to, 'YYYY-MM-DD') as eff_to",
+    "  from pay_element_rule r join pay_element e on e.id = r.element_id left join org_company c on c.id = r.company_id",
+    "  left join ref_country k on k.country_code = r.country_code",
+    " where r.formula_type in ('FIXED', 'PCT_OF_ELEMENT') and r.status_code = 'ACTIVE' and r.tenant_id is not null",
+    "   and (r.company_id is null or r.company_id = noona_pay_pkg.company)",
+    " order by e.sort_order, r.effective_from desc"],
+    [('ID', '#', {'hidden': True, 'type': 'NUMBER'}), ('ELEMENT', 'البدل', {}), ('SCOPE', 'النطاق', {}), ('CATEGORY', 'الفئة', {}),
+     ('RULE_TXT', 'القيمة', {}), ('AUTO_TXT', 'التطبيق', {}), ('EFF', 'ساري من', {}), ('EFF_TO', 'حتى', {})], titled=True, rows=20)
+pr = p.static('قاعدة بدل جديدة', 16,
+              text='<p class="nn-hint">قاعدة الشركة تتقدم على قاعدة الدولة. القاعدة الجديدة لنفس البدل والنطاق والفئة تحل محل السابقة من تاريخ '
+                   'سريانها وتبقى السابقة للفترات الماضية. مثال: بدل السكن 25% من الأساسي بحد أعلى 5000 لكل شركات المؤسسة في السعودية.</p>')
+p.select('P70_R_EL', pr, 10, 'البدل', lov_sql=ALLOW_EL_LOV)
+p.select('P70_R_SCOPE', pr, 20, 'النطاق', lov_sql='STATIC2:الشركة الحالية فقط;COMPANY,كل شركات المؤسسة في دولة;COUNTRY', null_text=None)
+p.select('P70_R_COUNTRY', pr, 30, 'الدولة (للنطاق دولة)', lov_sql=COUNTRY_LOV)
+p.select('P70_R_METHOD', pr, 40, 'الطريقة', lov_sql='STATIC2:نسبة من عنصر;PERCENT,مبلغ ثابت;FIXED', null_text=None)
+p.number('P70_R_VALUE', pr, 50, 'النسبة % أو المبلغ')
+p.select('P70_R_BASIS', pr, 60, 'النسبة من', lov_sql=BASIS_LOV, null_text=None)
+p.number('P70_R_MIN', pr, 70, 'حد أدنى للمبلغ')
+p.number('P70_R_MAX', pr, 80, 'حد أعلى للمبلغ')
+p.select('P70_R_CAT', pr, 90, 'فئة الموظفين', lov_sql=CAT_LOV, null_text='الكل')
+p.select('P70_R_AUTO', pr, 100, 'التطبيق', lov_sql='STATIC2:تلقائي لكل موظفي النطاق;Y,لمن يحدد له «حسب سياسة الشركة» فقط;N', null_text=None)
+p.date('P70_R_FROM', pr, 110, 'يسري من')
+b_r = p.button(pr, 10, 'ADD_RULE', 'حفظ القاعدة', hot=True)
+p.process(30, 'AFTER_SUBMIT', 'Add Rule', ['declare l_id number;', 'begin',
+          '    l_id := noona_pay_pkg.save_allowance_rule(:P70_R_EL, :P70_R_SCOPE, :P70_R_COUNTRY, :P70_R_METHOD, to_number(:P70_R_VALUE),',
+          "        :P70_R_BASIS, to_number(:P70_R_MIN), to_number(:P70_R_MAX), :P70_R_CAT, :P70_R_AUTO, to_date(:P70_R_FROM, 'YYYY-MM-DD'));",
+          'end;'], when_button=b_r, success='تم حفظ قاعدة البدل')
+er = p.static('إيقاف قاعدة', 17)
+p.select('P70_END_RULE', er, 10, 'القاعدة', lov_sql=(
+    "select e.name_ar || ' - ' || noona_pay_pkg.rule_text(r.id) || ' (من ' || to_char(r.effective_from, 'YYYY-MM-DD') || ')' d, r.id r "
+    "from pay_element_rule r join pay_element e on e.id = r.element_id where r.formula_type in ('FIXED', 'PCT_OF_ELEMENT') "
+    "and r.status_code = 'ACTIVE' and r.tenant_id is not null and r.effective_to is null "
+    "and (r.company_id is null or r.company_id = noona_pay_pkg.company) order by 1"))
+p.date('P70_END_DATE', er, 20, 'آخر يوم لتطبيقها')
+b_er = p.button(er, 10, 'END_RULE', 'إيقاف القاعدة')
+p.process(40, 'AFTER_SUBMIT', 'End Rule', ['begin',
+          "    noona_pay_pkg.end_rule(:P70_END_RULE, to_date(:P70_END_DATE, 'YYYY-MM-DD'));",
+          'end;'], when_button=b_er, success='تم إيقاف القاعدة')
+p.process(5, 'BEFORE_HEADER', 'Defaults', ['begin',
+          "    :P70_R_COUNTRY := nvl(:P70_R_COUNTRY, noona_hr_pkg.company_country);",
+          "    :P70_R_FROM := nvl(:P70_R_FROM, to_char(trunc(sysdate, 'MM'), 'YYYY-MM-DD'));",
+          'end;'])
 p.ir('قواعد التأمينات الاجتماعية والإضافي', 20, [
-    "select r.id, e.name_ar as element, decode(r.employee_category, 'SAUDI', 'سعودي', 'NON_SAUDI', 'غير سعودي', 'الكل') as category,",
+    "select r.id, e.name_ar as element, nvl(k.name_ar, 'كل الدول') as country, noona_hr_pkg.category_label(r.employee_category) as category,",
     "       json_value(r.parameters, '$.pct') as pct, json_value(r.parameters, '$.min') as min_base, json_value(r.parameters, '$.max') as max_base,",
+    "       (select listagg(b.name_ar, ' + ') within group (order by b.sort_order) from pay_element b",
+    "         where b.code in (select j.c from json_table(r.parameters, '$.base[*]' columns (c varchar2(50) path '$')) j)) as base,",
     "       to_char(r.effective_from, 'YYYY-MM-DD') as eff",
-    "  from pay_element_rule r join pay_element e on e.id = r.element_id where r.status_code = 'ACTIVE' order by e.sort_order, r.version_no"],
-    [('ID', '#', {'hidden': True, 'type': 'NUMBER'}), ('ELEMENT', 'العنصر', {}), ('CATEGORY', 'الفئة', {}), ('PCT', 'النسبة %', {}),
-     ('MIN_BASE', 'الحد الأدنى للأجر', {}), ('MAX_BASE', 'الحد الأعلى للأجر', {}), ('EFF', 'ساري من', {})], titled=True, rows=10)
+    "  from pay_element_rule r join pay_element e on e.id = r.element_id left join ref_country k on k.country_code = r.country_code",
+    " where r.status_code = 'ACTIVE' and r.formula_type not in ('FIXED', 'PCT_OF_ELEMENT') order by e.sort_order, r.version_no"],
+    [('ID', '#', {'hidden': True, 'type': 'NUMBER'}), ('ELEMENT', 'العنصر', {}), ('COUNTRY', 'الدولة', {}), ('CATEGORY', 'الفئة', {}),
+     ('PCT', 'النسبة %', {}), ('BASE', 'أساس الاشتراك', {}), ('MIN_BASE', 'الحد الأدنى للأجر', {}), ('MAX_BASE', 'الحد الأعلى للأجر', {}),
+     ('EFF', 'ساري من', {})], titled=True, rows=10)
 p.ir('أنواع الإجازات', 30, [
     "select t.id, t.code, t.name_ar, noona_ui_pkg.code_label(t.is_paid) as paid, decode(t.unit_code, 'HOUR', 'ساعة', 'يوم') as unit,",
     "       t.max_per_year from hr_leave_type t where t.is_active = 'Y' order by t.id"],

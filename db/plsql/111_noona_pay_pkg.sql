@@ -18,7 +18,27 @@ CREATE OR REPLACE PACKAGE NOONA_PAY_PKG AUTHID DEFINER AS
   FUNCTION period_for(p_date IN DATE, p_group_id IN NUMBER DEFAULT NULL) RETURN NUMBER;
 
   -- مبلغ عنصر ثابت للموظف في تاريخ، والراتب الشهري الثابت، وأجر نهاية الخدمة (الأساسي والسكن والنقل)
+  -- ---------------------------------------------------------- هيكل الراتب والبدلات
+  -- لكل عنصر: مبلغ ثابت للموظف، أو نسبة من عنصر آخر (افتراضياً الأساسي)، أو حسب سياسة الشركة، أو مستثنى.
+  -- سياسة البدلات (PAY_ELEMENT_RULE بنوع FIXED أو PCT_OF_ELEMENT): لكل شركة، أو لكل شركات المؤسسة في دولة،
+  -- بحد أدنى وأعلى وفئة موظف، والتلقائية منها تطبق على كل الموظفين ما لم يحدد للموظف غيرها.
+  TYPE t_line IS RECORD (code VARCHAR2(50), name VARCHAR2(200), etype VARCHAR2(30), recurring CHAR(1), prorated CHAR(1), eos CHAR(1),
+                         method VARCHAR2(20), pct NUMBER, basis VARCHAR2(50), amount NUMBER, rule_id NUMBER, sort_order NUMBER, done CHAR(1));
+  TYPE t_lines IS TABLE OF t_line INDEX BY PLS_INTEGER;
+  FUNCTION structure(p_employment_id IN NUMBER, p_date IN DATE DEFAULT TRUNC(SYSDATE)) RETURN t_lines;
+  FUNCTION structure_html(p_employment_id IN NUMBER, p_date IN DATE DEFAULT TRUNC(SYSDATE)) RETURN CLOB;
   FUNCTION element_amount(p_employment_id IN NUMBER, p_code IN VARCHAR2, p_date IN DATE DEFAULT TRUNC(SYSDATE)) RETURN NUMBER;
+  -- عناصر المؤسسة (بدلات واستقطاعات خاصة بها)؛ يعيد المعرف
+  FUNCTION save_element(p_id IN NUMBER, p_code IN VARCHAR2, p_name IN VARCHAR2, p_type IN VARCHAR2, p_recurring IN VARCHAR2 DEFAULT 'Y',
+                        p_prorated IN VARCHAR2 DEFAULT 'Y', p_eos IN VARCHAR2 DEFAULT 'N', p_taxable IN VARCHAR2 DEFAULT 'N',
+                        p_sort IN NUMBER DEFAULT NULL) RETURN NUMBER;
+  -- قاعدة بدل: p_scope COMPANY (الشركة الحالية) أو COUNTRY (كل شركات المؤسسة في p_country)؛ p_method FIXED (p_value مبلغ)
+  -- أو PERCENT (p_value نسبة من p_basis)؛ تحل محل القاعدة السابقة لنفس النطاق والفئة من تاريخ السريان
+  FUNCTION save_allowance_rule(p_element_code IN VARCHAR2, p_scope IN VARCHAR2, p_country IN VARCHAR2, p_method IN VARCHAR2,
+                               p_value IN NUMBER, p_basis IN VARCHAR2 DEFAULT 'BASIC', p_min IN NUMBER DEFAULT NULL, p_max IN NUMBER DEFAULT NULL,
+                               p_category IN VARCHAR2 DEFAULT NULL, p_auto IN VARCHAR2 DEFAULT 'Y', p_from IN DATE DEFAULT NULL) RETURN NUMBER;
+  PROCEDURE end_rule(p_rule_id IN NUMBER, p_last_day IN DATE DEFAULT NULL);
+  FUNCTION rule_text(p_rule_id IN NUMBER) RETURN VARCHAR2;
   FUNCTION monthly_wage(p_employment_id IN NUMBER, p_date IN DATE DEFAULT TRUNC(SYSDATE)) RETURN NUMBER;
   FUNCTION eos_wage(p_employment_id IN NUMBER, p_date IN DATE DEFAULT TRUNC(SYSDATE)) RETURN NUMBER;
   -- مكافأة نهاية الخدمة: نصف أجر شهر عن كل سنة من الخمس الأولى وأجر شهر عن كل سنة بعدها؛ الاستقالة:
@@ -134,14 +154,17 @@ CREATE OR REPLACE PACKAGE BODY NOONA_PAY_PKG AS
 
   FUNCTION rule_params(p_code VARCHAR2, p_category VARCHAR2) RETURN JSON_OBJECT_T IS
     l_p CLOB;
+    ctry VARCHAR2(2) := NOONA_HR_PKG.company_country;
   BEGIN
     BEGIN
       SELECT parameters INTO l_p FROM (
         SELECT r.parameters FROM pay_element_rule r JOIN pay_element e ON e.id = r.element_id
          WHERE e.code = p_code AND r.status_code = 'ACTIVE' AND NVL(r.employee_category, NVL(p_category, '-')) = NVL(p_category, '-')
            AND TRUNC(SYSDATE) BETWEEN r.effective_from AND NVL(r.effective_to, DATE '9999-12-31')
+           -- قاعدة الشركة، أو قاعدة المؤسسة/النظام لدولة الشركة أو لكل الدول (التأمينات السعودية لا تطبق على شركة في مصر)
+           AND (r.company_id = NOONA_PAY_PKG.company OR (r.company_id IS NULL AND NVL(r.country_code, ctry) = ctry))
          ORDER BY CASE WHEN r.company_id = NOONA_PAY_PKG.company THEN 0 WHEN r.tenant_id IS NOT NULL THEN 1 ELSE 2 END,
-                  r.effective_from DESC, r.version_no DESC)
+                  CASE WHEN r.country_code IS NOT NULL THEN 0 ELSE 1 END, r.effective_from DESC, r.version_no DESC)
        WHERE ROWNUM = 1;
     EXCEPTION WHEN NO_DATA_FOUND THEN l_p := NULL;
     END;
@@ -248,32 +271,289 @@ CREATE OR REPLACE PACKAGE BODY NOONA_PAY_PKG AS
   END is_ready;
 
   -- ================================================================ الأجور
-  FUNCTION element_amount(p_employment_id IN NUMBER, p_code IN VARCHAR2, p_date IN DATE DEFAULT TRUNC(SYSDATE)) RETURN NUMBER IS
-    l NUMBER;
+  -- ================================================================ هيكل الراتب
+  -- أفضل قاعدة بدل نافذة للعنصر: الشركة ← المؤسسة لدولة الشركة ← المؤسسة لكل الدول ← النظام لدولة الشركة ← النظام
+  FUNCTION policy_rule(p_element_id NUMBER, p_company NUMBER, p_country VARCHAR2, p_category VARCHAR2, p_date DATE,
+                       p_auto_only BOOLEAN) RETURN pay_element_rule%ROWTYPE IS
+    l pay_element_rule%ROWTYPE;
+    l_auto VARCHAR2(1) := CASE WHEN p_auto_only THEN 'Y' END;
   BEGIN
-    SELECT NVL(SUM(x.amount), 0) INTO l FROM pay_employee_element x JOIN pay_element e ON e.id = x.element_id
-     WHERE x.employment_id = p_employment_id AND e.code = p_code
-       AND p_date BETWEEN x.effective_from AND NVL(x.effective_to, DATE '9999-12-31');
+    SELECT * INTO l FROM (
+      SELECT r.* FROM pay_element_rule r
+       WHERE r.element_id = p_element_id AND r.status_code = 'ACTIVE' AND r.formula_type IN ('FIXED', 'PCT_OF_ELEMENT')
+         AND p_date BETWEEN r.effective_from AND NVL(r.effective_to, DATE '9999-12-31')
+         AND (l_auto IS NULL OR r.is_auto = 'Y')
+         AND (r.employee_category IS NULL OR r.employee_category = p_category)
+         AND (r.company_id = p_company OR (r.company_id IS NULL AND NVL(r.country_code, p_country) = p_country))
+       ORDER BY CASE WHEN r.company_id IS NOT NULL THEN 0 WHEN r.tenant_id IS NOT NULL AND r.country_code IS NOT NULL THEN 1
+                     WHEN r.tenant_id IS NOT NULL THEN 2 WHEN r.country_code IS NOT NULL THEN 3 ELSE 4 END,
+                CASE WHEN r.employee_category IS NOT NULL THEN 0 ELSE 1 END, r.effective_from DESC, r.version_no DESC)
+     WHERE ROWNUM = 1;
     RETURN l;
+  EXCEPTION WHEN NO_DATA_FOUND THEN RETURN l;
+  END policy_rule;
+
+  FUNCTION structure(p_employment_id IN NUMBER, p_date IN DATE DEFAULT TRUNC(SYSDATE)) RETURN t_lines IS
+    l      t_lines;
+    l_co   NUMBER;
+    l_cc   VARCHAR2(2);
+    l_cat  VARCHAR2(30) := NOONA_HR_PKG.category(p_employment_id);
+    l_r    pay_element_rule%ROWTYPE;
+    l_n    PLS_INTEGER := 0;
+    TYPE t_idx IS TABLE OF PLS_INTEGER INDEX BY VARCHAR2(50);
+    l_ix   t_idx;
+    FUNCTION val(p_code VARCHAR2, p_depth PLS_INTEGER) RETURN NUMBER;
+    -- مبلغ العنصر بعد الاحتساب (النسبة تحسب من مبلغ أساسها؛ عمق 4 يمنع الدوران)
+    PROCEDURE calc(i PLS_INTEGER, p_depth PLS_INTEGER) IS
+      l_prm JSON_OBJECT_T;
+      l_amt NUMBER;
+    BEGIN
+      IF l(i).done = 'Y' OR p_depth > 4 THEN RETURN; END IF;
+      IF l(i).method = 'FIXED' THEN
+        l_amt := NVL(l(i).amount, 0);
+      ELSIF l(i).method = 'PERCENT' THEN
+        l_amt := l(i).pct / 100 * val(NVL(l(i).basis, 'BASIC'), p_depth + 1);
+      ELSIF l(i).method = 'POLICY' AND l(i).rule_id IS NOT NULL THEN
+        SELECT * INTO l_r FROM pay_element_rule WHERE id = l(i).rule_id;
+        l_prm := JSON_OBJECT_T.parse(NVL(l_r.parameters, '{}'));
+        IF l_r.formula_type = 'FIXED' THEN
+          l_amt := pnum(l_prm, 'amount', 0);
+        ELSE
+          l(i).pct := pnum(l_prm, 'pct', 0);
+          l(i).basis := CASE WHEN l_prm.has('of') THEN l_prm.get_string('of') ELSE 'BASIC' END;
+          l_amt := l(i).pct / 100 * val(l(i).basis, p_depth + 1);
+        END IF;
+        l_amt := LEAST(GREATEST(l_amt, NVL(l_r.min_amount, l_amt)), NVL(l_r.max_amount, l_amt));
+      ELSE
+        l_amt := 0;                                               -- مستثنى أو سياسة بلا قاعدة نافذة
+      END IF;
+      l(i).amount := ROUND(l_amt, 2);
+      l(i).done := 'Y';
+    END calc;
+    FUNCTION val(p_code VARCHAR2, p_depth PLS_INTEGER) RETURN NUMBER IS
+    BEGIN
+      IF NOT l_ix.EXISTS(p_code) THEN RETURN 0; END IF;
+      calc(l_ix(p_code), p_depth);
+      RETURN NVL(l(l_ix(p_code)).amount, 0);
+    END val;
+  BEGIN
+    SELECT m.company_id, c.country_code INTO l_co, l_cc FROM hr_employment m JOIN org_company c ON c.id = m.company_id WHERE m.id = p_employment_id;
+    l_cc := NVL(l_cc, 'SA');
+    -- عناصر الموظف النافذة في التاريخ
+    FOR x IN (SELECT e.id eid, e.code, e.name_ar, e.element_type, e.is_recurring, e.is_prorated, e.affects_eos, e.sort_order,
+                     NVL(x.calc_method, 'FIXED') m, x.amount, x.percentage, x.basis_code
+                FROM pay_employee_element x JOIN pay_element e ON e.id = x.element_id
+               WHERE x.employment_id = p_employment_id AND p_date BETWEEN x.effective_from AND NVL(x.effective_to, DATE '9999-12-31')
+               ORDER BY e.sort_order, x.effective_from DESC) LOOP
+      IF NOT l_ix.EXISTS(x.code) THEN
+        l_n := l_n + 1;
+        l(l_n).code := x.code; l(l_n).name := x.name_ar; l(l_n).etype := x.element_type; l(l_n).recurring := x.is_recurring;
+        l(l_n).prorated := x.is_prorated; l(l_n).eos := x.affects_eos; l(l_n).sort_order := x.sort_order;
+        l(l_n).method := x.m; l(l_n).amount := x.amount; l(l_n).pct := x.percentage; l(l_n).basis := x.basis_code; l(l_n).done := 'N';
+        IF x.m = 'POLICY' THEN
+          l_r := policy_rule(x.eid, l_co, l_cc, l_cat, p_date, FALSE);
+          l(l_n).rule_id := l_r.id;
+        END IF;
+        l_ix(x.code) := l_n;
+      END IF;
+    END LOOP;
+    -- البدلات التلقائية في سياسة الشركة أو الدولة لمن لم يحدد له العنصر
+    FOR e IN (SELECT DISTINCT e.id eid, e.code, e.name_ar, e.element_type, e.is_recurring, e.is_prorated, e.affects_eos, e.sort_order
+                FROM pay_element_rule r JOIN pay_element e ON e.id = r.element_id
+               WHERE r.is_auto = 'Y' AND r.status_code = 'ACTIVE' AND r.formula_type IN ('FIXED', 'PCT_OF_ELEMENT') AND e.is_active = 'Y'
+                 AND p_date BETWEEN r.effective_from AND NVL(r.effective_to, DATE '9999-12-31')
+                 AND (r.company_id = l_co OR (r.company_id IS NULL AND NVL(r.country_code, l_cc) = l_cc))) LOOP
+      IF NOT l_ix.EXISTS(e.code) THEN
+        l_r := policy_rule(e.eid, l_co, l_cc, l_cat, p_date, TRUE);
+        IF l_r.id IS NOT NULL THEN
+          l_n := l_n + 1;
+          l(l_n).code := e.code; l(l_n).name := e.name_ar; l(l_n).etype := e.element_type; l(l_n).recurring := e.is_recurring;
+          l(l_n).prorated := e.is_prorated; l(l_n).eos := e.affects_eos; l(l_n).sort_order := e.sort_order;
+          l(l_n).method := 'POLICY'; l(l_n).rule_id := l_r.id; l(l_n).done := 'N';
+          l_ix(e.code) := l_n;
+        END IF;
+      END IF;
+    END LOOP;
+    FOR i IN 1 .. l_n LOOP calc(i, 0); END LOOP;
+    RETURN l;
+  END structure;
+
+  FUNCTION element_amount(p_employment_id IN NUMBER, p_code IN VARCHAR2, p_date IN DATE DEFAULT TRUNC(SYSDATE)) RETURN NUMBER IS
+    l t_lines := structure(p_employment_id, p_date);
+  BEGIN
+    FOR i IN 1 .. l.COUNT LOOP
+      IF l(i).code = p_code THEN RETURN NVL(l(i).amount, 0); END IF;
+    END LOOP;
+    RETURN 0;
   END element_amount;
 
   FUNCTION monthly_wage(p_employment_id IN NUMBER, p_date IN DATE DEFAULT TRUNC(SYSDATE)) RETURN NUMBER IS
-    l NUMBER;
+    l t_lines := structure(p_employment_id, p_date);
+    t NUMBER := 0;
   BEGIN
-    SELECT NVL(SUM(x.amount), 0) INTO l FROM pay_employee_element x JOIN pay_element e ON e.id = x.element_id
-     WHERE x.employment_id = p_employment_id AND e.element_type = 'EARNING' AND e.is_recurring = 'Y'
-       AND p_date BETWEEN x.effective_from AND NVL(x.effective_to, DATE '9999-12-31');
-    RETURN l;
+    FOR i IN 1 .. l.COUNT LOOP
+      IF l(i).etype = 'EARNING' AND l(i).recurring = 'Y' THEN t := t + NVL(l(i).amount, 0); END IF;
+    END LOOP;
+    RETURN t;
   END monthly_wage;
 
   FUNCTION eos_wage(p_employment_id IN NUMBER, p_date IN DATE DEFAULT TRUNC(SYSDATE)) RETURN NUMBER IS
-    l NUMBER;
+    l t_lines := structure(p_employment_id, p_date);
+    t NUMBER := 0;
   BEGIN
-    SELECT NVL(SUM(x.amount), 0) INTO l FROM pay_employee_element x JOIN pay_element e ON e.id = x.element_id
-     WHERE x.employment_id = p_employment_id AND e.affects_eos = 'Y'
-       AND p_date BETWEEN x.effective_from AND NVL(x.effective_to, DATE '9999-12-31');
-    RETURN l;
+    FOR i IN 1 .. l.COUNT LOOP
+      IF l(i).etype = 'EARNING' AND l(i).eos = 'Y' THEN t := t + NVL(l(i).amount, 0); END IF;
+    END LOOP;
+    RETURN t;
   END eos_wage;
+
+  FUNCTION pct(p NUMBER) RETURN VARCHAR2 IS BEGIN RETURN RTRIM(TO_CHAR(p, 'FM9999990.99'), '.') || '%'; END pct;
+
+  FUNCTION ename(p_code VARCHAR2) RETURN VARCHAR2 IS
+    l VARCHAR2(200);
+  BEGIN
+    SELECT MAX(name_ar) INTO l FROM pay_element WHERE code = p_code;
+    RETURN NVL(l, p_code);
+  END ename;
+
+  FUNCTION method_text(p_line t_line) RETURN VARCHAR2 IS
+  BEGIN
+    RETURN CASE p_line.method WHEN 'FIXED' THEN 'مبلغ ثابت'
+                WHEN 'PERCENT' THEN pct(p_line.pct) || ' من ' || ename(p_line.basis)
+                WHEN 'POLICY' THEN 'حسب سياسة الشركة' || CASE WHEN p_line.pct IS NOT NULL THEN ': ' || pct(p_line.pct) || ' من '
+                                   || ename(p_line.basis) END
+                WHEN 'EXCLUDED' THEN 'مستثنى' END;
+  END method_text;
+
+  FUNCTION structure_html(p_employment_id IN NUMBER, p_date IN DATE DEFAULT TRUNC(SYSDATE)) RETURN CLOB IS
+    l    t_lines := structure(p_employment_id, p_date);
+    l_h  CLOB;
+    l_e  NUMBER := 0;
+    l_d  NUMBER := 0;
+  BEGIN
+    l_h := '<table class="nn-rpt"><thead><tr><th>العنصر</th><th>طريقة الاحتساب</th><th>استحقاق</th><th>استقطاع</th><th>يدخل في نهاية الخدمة</th></tr></thead><tbody>';
+    FOR i IN 1 .. l.COUNT LOOP
+      IF l(i).recurring = 'Y' THEN
+        l_h := l_h || ('<tr><td class="nn-rpt-text">' || esc(l(i).name) || '</td><td class="nn-rpt-text">' || esc(method_text(l(i)))
+            || CASE WHEN l(i).method = 'POLICY' AND l(i).rule_id IS NULL THEN ' <span class="nn-badge is-warning">لا توجد قاعدة نافذة</span>' END
+            || '</td><td>' || CASE WHEN l(i).etype = 'EARNING' THEN fnum(l(i).amount) END || '</td><td>'
+            || CASE WHEN l(i).etype <> 'EARNING' THEN fnum(l(i).amount) END || '</td><td>' || CASE WHEN l(i).eos = 'Y' THEN 'نعم' ELSE '-' END || '</td></tr>');
+        IF l(i).etype = 'EARNING' THEN l_e := l_e + NVL(l(i).amount, 0); ELSE l_d := l_d + NVL(l(i).amount, 0); END IF;
+      END IF;
+    END LOOP;
+    RETURN l_h || ('</tbody><tfoot><tr><td colspan="2">الإجمالي الشهري الثابت</td><td>' || fnum(l_e) || '</td><td>' || fnum(l_d)
+        || '</td><td>صافي ' || fnum(l_e - l_d) || '</td></tr></tfoot></table>');
+  END structure_html;
+
+  -- ================================================================ عناصر وسياسة البدلات
+  FUNCTION save_element(p_id IN NUMBER, p_code IN VARCHAR2, p_name IN VARCHAR2, p_type IN VARCHAR2, p_recurring IN VARCHAR2 DEFAULT 'Y',
+                        p_prorated IN VARCHAR2 DEFAULT 'Y', p_eos IN VARCHAR2 DEFAULT 'N', p_taxable IN VARCHAR2 DEFAULT 'N',
+                        p_sort IN NUMBER DEFAULT NULL) RETURN NUMBER IS
+    l_code VARCHAR2(50) := UPPER(TRIM(p_code));
+    l_id   NUMBER := p_id;
+    l_n    NUMBER;
+  BEGIN
+    guard('PAY_ELEMENT.UPDATE');
+    NOONA_CORE_PKG.assert(REGEXP_LIKE(l_code, '^[A-Z][A-Z0-9_]{1,29}$'), 'NOONA-PAY-060', 'الرمز حروف إنجليزية كبيرة وأرقام (مثل: MEAL_ALLOW)',
+      'Code must be uppercase letters and digits');
+    NOONA_CORE_PKG.assert(TRIM(p_name) IS NOT NULL, 'NOONA-PAY-061', 'اسم العنصر إلزامي', 'Name is required');
+    NOONA_CORE_PKG.assert(p_type IN ('EARNING', 'DEDUCTION'), 'NOONA-PAY-062', 'النوع استحقاق أو استقطاع', 'Type must be earning or deduction');
+    IF l_id IS NULL THEN
+      SELECT COUNT(*) INTO l_n FROM pay_element WHERE code = l_code;
+      NOONA_CORE_PKG.assert(l_n = 0, 'NOONA-PAY-063', 'الرمز مستخدم: ' || l_code, 'Code already used');
+      INSERT INTO pay_element (code, name_ar, name_en, element_type, classification, is_recurring, is_taxable, is_prorated, affects_eos,
+                               show_on_payslip, is_active, sort_order)
+      VALUES (l_code, TRIM(p_name), l_code, p_type, CASE WHEN p_type = 'EARNING' THEN 'ALLOWANCE' ELSE 'OTHER' END, NVL(p_recurring, 'Y'),
+              NVL(p_taxable, 'N'), NVL(p_prorated, 'Y'), CASE WHEN p_type = 'EARNING' THEN NVL(p_eos, 'N') ELSE 'N' END, 'Y', 'Y', NVL(p_sort, 45))
+      RETURNING id INTO l_id;
+    ELSE
+      UPDATE pay_element SET name_ar = TRIM(p_name), is_recurring = NVL(p_recurring, 'Y'), is_prorated = NVL(p_prorated, 'Y'),
+                             affects_eos = CASE WHEN element_type = 'EARNING' THEN NVL(p_eos, 'N') ELSE 'N' END, is_taxable = NVL(p_taxable, 'N'),
+                             sort_order = NVL(p_sort, sort_order)
+       WHERE id = l_id AND tenant_id IS NOT NULL;
+      NOONA_CORE_PKG.assert(SQL%ROWCOUNT = 1, 'NOONA-PAY-064', 'عناصر النظام الأساسية لا تعدل؛ أضف عنصراً خاصاً بالمؤسسة',
+        'System elements cannot be changed');
+    END IF;
+    NOONA_AUDIT_PKG.log_event('CONFIG', 'PAY_ELEMENT', l_id, 'SAVE', 'SUCCESS', p_new_values => '{"code":' || jt(l_code) || '}');
+    RETURN l_id;
+  END save_element;
+
+  FUNCTION save_allowance_rule(p_element_code IN VARCHAR2, p_scope IN VARCHAR2, p_country IN VARCHAR2, p_method IN VARCHAR2,
+                               p_value IN NUMBER, p_basis IN VARCHAR2 DEFAULT 'BASIC', p_min IN NUMBER DEFAULT NULL, p_max IN NUMBER DEFAULT NULL,
+                               p_category IN VARCHAR2 DEFAULT NULL, p_auto IN VARCHAR2 DEFAULT 'Y', p_from IN DATE DEFAULT NULL) RETURN NUMBER IS
+    l_eid   NUMBER := element_id(UPPER(TRIM(p_element_code)));
+    l_from  DATE := NVL(TRUNC(p_from), TRUNC(SYSDATE, 'MM'));
+    l_co    NUMBER := CASE WHEN p_scope = 'COMPANY' THEN company END;
+    l_cc    VARCHAR2(2) := CASE WHEN p_scope = 'COUNTRY' THEN UPPER(NVL(p_country, NOONA_HR_PKG.company_country)) END;
+    l_basis VARCHAR2(50) := UPPER(NVL(TRIM(p_basis), 'BASIC'));
+    l_ver   NUMBER;
+    l_id    NUMBER;
+    l_n     NUMBER;
+    l_etype VARCHAR2(30);
+    l_prm   VARCHAR2(400);
+  BEGIN
+    guard('PAY_ELEMENT.UPDATE');
+    SELECT element_type INTO l_etype FROM pay_element WHERE id = l_eid;
+    NOONA_CORE_PKG.assert(l_etype IN ('EARNING', 'DEDUCTION') AND UPPER(p_element_code) <> 'BASIC', 'NOONA-PAY-065',
+      'السياسة للبدلات والاستقطاعات الثابتة (لا للراتب الأساسي أو التأمينات)', 'Rules are for allowances and fixed deductions');
+    NOONA_CORE_PKG.assert(p_scope IN ('COMPANY', 'COUNTRY'), 'NOONA-PAY-066', 'النطاق: الشركة أو الدولة', 'Scope must be company or country');
+    NOONA_CORE_PKG.assert(p_method IN ('FIXED', 'PERCENT') AND NVL(p_value, 0) > 0, 'NOONA-PAY-067',
+      'حدد مبلغاً ثابتاً أو نسبة موجبة', 'Fixed amount or positive percentage required');
+    NOONA_CORE_PKG.assert(p_method <> 'PERCENT' OR (p_value <= 1000 AND l_basis <> UPPER(p_element_code)), 'NOONA-PAY-068',
+      'النسبة غير صالحة أو من العنصر نفسه', 'Invalid percentage');
+    NOONA_CORE_PKG.assert(p_min IS NULL OR p_max IS NULL OR p_min <= p_max, 'NOONA-PAY-069', 'الحد الأدنى أكبر من الأعلى', 'Min exceeds max');
+    IF l_cc IS NOT NULL THEN
+      SELECT COUNT(*) INTO l_n FROM ref_country WHERE country_code = l_cc;
+      NOONA_CORE_PKG.assert(l_n = 1, 'NOONA-PAY-070', 'الدولة غير معرفة: ' || l_cc, 'Unknown country');
+    END IF;
+    -- القاعدة السابقة لنفس النطاق والفئة تنتهي قبل السريان (تبقى للفترات السابقة)
+    UPDATE pay_element_rule SET effective_to = l_from - 1
+     WHERE element_id = l_eid AND tenant_id IS NOT NULL AND formula_type IN ('FIXED', 'PCT_OF_ELEMENT') AND status_code = 'ACTIVE'
+       AND NVL(company_id, -1) = NVL(l_co, -1) AND NVL(country_code, '-') = NVL(l_cc, '-') AND NVL(employee_category, '-') = NVL(p_category, '-')
+       AND (effective_to IS NULL OR effective_to >= l_from) AND effective_from < l_from;
+    DELETE FROM pay_element_rule
+     WHERE element_id = l_eid AND tenant_id IS NOT NULL AND formula_type IN ('FIXED', 'PCT_OF_ELEMENT')
+       AND NVL(company_id, -1) = NVL(l_co, -1) AND NVL(country_code, '-') = NVL(l_cc, '-') AND NVL(employee_category, '-') = NVL(p_category, '-')
+       AND effective_from >= l_from;
+    l_prm := CASE p_method WHEN 'FIXED' THEN '{"amount":' || jn(p_value) || '}' ELSE '{"pct":' || jn(p_value) || ',"of":' || jt(l_basis) || '}' END;
+    -- رقم الإصدار فريد لكل عنصر على مستوى النظام كله
+    NOONA_CORE_PKG.begin_system;
+    SELECT NVL(MAX(version_no), 0) + 1 INTO l_ver FROM pay_element_rule WHERE element_id = l_eid;
+    NOONA_CORE_PKG.end_system;
+    INSERT INTO pay_element_rule (element_id, version_no, company_id, country_code, employee_category, formula_type, parameters,
+                                  min_amount, max_amount, is_auto, status_code, effective_from)
+    VALUES (l_eid, l_ver, l_co, l_cc, p_category, CASE p_method WHEN 'FIXED' THEN 'FIXED' ELSE 'PCT_OF_ELEMENT' END,
+            l_prm,
+            p_min, p_max, NVL(p_auto, 'Y'), 'ACTIVE', l_from)
+    RETURNING id INTO l_id;
+    NOONA_AUDIT_PKG.log_event('CONFIG', 'PAY_ELEMENT_RULE', l_id, 'SAVE', 'SUCCESS', p_new_values => '{"element":' || jt(p_element_code) || '}');
+    RETURN l_id;
+  EXCEPTION WHEN OTHERS THEN
+    NOONA_CORE_PKG.end_system;
+    RAISE;
+  END save_allowance_rule;
+
+  PROCEDURE end_rule(p_rule_id IN NUMBER, p_last_day IN DATE DEFAULT NULL) IS
+  BEGIN
+    guard('PAY_ELEMENT.UPDATE');
+    UPDATE pay_element_rule SET effective_to = GREATEST(effective_from, NVL(TRUNC(p_last_day), TRUNC(SYSDATE)))
+     WHERE id = p_rule_id AND tenant_id IS NOT NULL AND formula_type IN ('FIXED', 'PCT_OF_ELEMENT');
+    NOONA_CORE_PKG.assert(SQL%ROWCOUNT = 1, 'NOONA-PAY-071', 'قاعدة المؤسسة غير موجودة', 'Rule not found');
+  END end_rule;
+
+  FUNCTION rule_text(p_rule_id IN NUMBER) RETURN VARCHAR2 IS
+    l pay_element_rule%ROWTYPE;
+    l_prm JSON_OBJECT_T;
+  BEGIN
+    SELECT * INTO l FROM pay_element_rule WHERE id = p_rule_id;
+    l_prm := JSON_OBJECT_T.parse(NVL(l.parameters, '{}'));
+    RETURN CASE l.formula_type WHEN 'FIXED' THEN 'مبلغ ثابت ' || fnum(pnum(l_prm, 'amount', 0))
+                WHEN 'PCT_OF_ELEMENT' THEN pct(pnum(l_prm, 'pct', 0)) || ' من '
+                     || ename(CASE WHEN l_prm.has('of') THEN l_prm.get_string('of') ELSE 'BASIC' END)
+                ELSE 'قاعدة نظامية' END
+        || CASE WHEN l.min_amount IS NOT NULL THEN ' · حد أدنى ' || fnum(l.min_amount) END
+        || CASE WHEN l.max_amount IS NOT NULL THEN ' · حد أعلى ' || fnum(l.max_amount) END;
+  END rule_text;
 
   FUNCTION eos_amount(p_employment_id IN NUMBER, p_date IN DATE, p_type IN VARCHAR2 DEFAULT 'END_OF_CONTRACT') RETURN NUMBER IS
     l_y    NUMBER := NOONA_HR_PKG.service_years(p_employment_id, p_date);
@@ -395,16 +675,59 @@ CREATE OR REPLACE PACKAGE BODY NOONA_PAY_PKG AS
     l_wage := monthly_wage(p_m.id, l_ee);
     l_basic := element_amount(p_m.id, 'BASIC', l_ee);
     IF p_salary THEN
-      -- العناصر الثابتة بالتناسب مع أيام الاستحقاق ومع تغير الراتب داخل الفترة
-      FOR e IN (SELECT el.code, el.is_prorated, x.amount, GREATEST(x.effective_from, l_es) f, LEAST(NVL(x.effective_to, l_ee), l_ee) t
-                  FROM pay_employee_element x JOIN pay_element el ON el.id = x.element_id
-                 WHERE x.employment_id = p_m.id AND el.element_type = 'EARNING' AND el.is_recurring = 'Y'
-                   AND x.effective_from <= l_ee AND NVL(x.effective_to, l_ee) >= l_es
-                 ORDER BY el.sort_order, x.effective_from) LOOP
-        l_amt := CASE WHEN e.is_prorated = 'Y' THEN e.amount * (e.t - e.f + 1) / l_pdays ELSE e.amount END;
-        result(l_re, e.code, ROUND(c_days * (e.t - e.f + 1) / l_pdays, 2), e.amount, l_amt);
-        l_gross := l_gross + ROUND(l_amt, 2);
-      END LOOP;
+      -- العناصر الثابتة (مبالغ أو نسب أو حسب السياسة) بالتناسب مع أيام الاستحقاق؛ الفترة تقسم عند كل تغير
+      -- في عناصر الموظف أو في قواعد السياسة داخلها، ويحسب هيكل الراتب لكل جزء
+      DECLARE
+        TYPE t_dates IS TABLE OF DATE INDEX BY PLS_INTEGER;
+        l_b   t_dates;
+        l_st  t_lines;
+        l_seg DATE;
+        l_end DATE;
+        l_cnt PLS_INTEGER := 0;
+        TYPE t_acc IS RECORD (code VARCHAR2(50), etype VARCHAR2(30), rate NUMBER, qty NUMBER, amt NUMBER, info VARCHAR2(400));
+        TYPE t_accs IS TABLE OF t_acc INDEX BY VARCHAR2(100);
+        l_acc t_accs;
+        l_key VARCHAR2(100);
+      BEGIN
+        FOR d IN (SELECT DISTINCT d FROM (
+                    SELECT l_es d FROM dual
+                    UNION ALL SELECT x.effective_from FROM pay_employee_element x WHERE x.employment_id = p_m.id
+                    UNION ALL SELECT x.effective_to + 1 FROM pay_employee_element x WHERE x.employment_id = p_m.id AND x.effective_to IS NOT NULL
+                    UNION ALL SELECT r.effective_from FROM pay_element_rule r WHERE r.formula_type IN ('FIXED', 'PCT_OF_ELEMENT') AND r.status_code = 'ACTIVE'
+                    UNION ALL SELECT r.effective_to + 1 FROM pay_element_rule r WHERE r.formula_type IN ('FIXED', 'PCT_OF_ELEMENT')
+                                                                                AND r.status_code = 'ACTIVE' AND r.effective_to IS NOT NULL)
+                   WHERE d BETWEEN l_es AND l_ee ORDER BY d) LOOP
+          l_cnt := l_cnt + 1; l_b(l_cnt) := d.d;
+        END LOOP;
+        FOR k IN 1 .. l_cnt LOOP
+          l_seg := l_b(k);
+          l_end := CASE WHEN k < l_cnt THEN l_b(k + 1) - 1 ELSE l_ee END;
+          l_st := structure(p_m.id, l_seg);
+          FOR i IN 1 .. l_st.COUNT LOOP
+            IF l_st(i).recurring = 'Y' AND l_st(i).etype IN ('EARNING', 'DEDUCTION') AND NVL(l_st(i).amount, 0) > 0
+               AND (l_st(i).prorated = 'Y' OR k = l_cnt) THEN
+              l_amt := CASE WHEN l_st(i).prorated = 'Y' THEN l_st(i).amount * (l_end - l_seg + 1) / l_pdays ELSE l_st(i).amount END;
+              -- سطر واحد لكل عنصر بنفس المبلغ الشهري (تجزئة الفترة لا تكرر البند في القسيمة)
+              l_key := l_st(i).code || '|' || l_st(i).amount;
+              IF NOT l_acc.EXISTS(l_key) THEN
+                l_acc(l_key).code := l_st(i).code; l_acc(l_key).etype := l_st(i).etype; l_acc(l_key).rate := l_st(i).amount;
+                l_acc(l_key).qty := 0; l_acc(l_key).amt := 0;
+                l_acc(l_key).info := CASE WHEN l_st(i).method <> 'FIXED' THEN '{"method":' || jt(l_st(i).method) || ',"pct":' || jn(l_st(i).pct)
+                                          || ',"of":' || jt(l_st(i).basis) || '}' END;
+              END IF;
+              l_acc(l_key).qty := l_acc(l_key).qty + c_days * (l_end - l_seg + 1) / l_pdays;
+              l_acc(l_key).amt := l_acc(l_key).amt + l_amt;
+            END IF;
+          END LOOP;
+        END LOOP;
+        l_key := l_acc.FIRST;
+        WHILE l_key IS NOT NULL LOOP
+          result(l_re, l_acc(l_key).code, ROUND(l_acc(l_key).qty, 2), l_acc(l_key).rate, l_acc(l_key).amt, l_acc(l_key).info);
+          IF l_acc(l_key).etype = 'EARNING' THEN l_gross := l_gross + ROUND(l_acc(l_key).amt, 2);
+          ELSE l_ded := l_ded + ROUND(l_acc(l_key).amt, 2); END IF;
+          l_key := l_acc.NEXT(l_key);
+        END LOOP;
+      END;
       -- الغياب والإجازة غير المدفوعة والأيام المدخلة: الأجر اليومي (الثابت / 30)
       l_abs := NOONA_HR_PKG.absent_days(p_m.employee_id, l_es, l_ee) + NOONA_HR_PKG.unpaid_leave_days(p_m.employee_id, l_es, l_ee);
       SELECT l_abs + NVL(SUM(i.quantity), 0) INTO l_abs FROM pay_input i JOIN pay_element el ON el.id = i.element_id
@@ -438,7 +761,17 @@ CREATE OR REPLACE PACKAGE BODY NOONA_PAY_PKG AS
       -- التأمينات الاجتماعية على (الأساسي + السكن) بحد أدنى وأعلى، بنسبة أيام الاستحقاق
       FOR g IN (SELECT 'GOSI_EE' code FROM dual UNION ALL SELECT 'GOSI_ER' FROM dual) LOOP
         l_prm := rule_params(g.code, l_cat);
-        l_base := LEAST(GREATEST(l_basic + element_amount(p_m.id, 'HOUSING', l_ee), pnum(l_prm, 'min', 0)), pnum(l_prm, 'max', 1e12));
+        -- أساس الاشتراك من القاعدة («base»: عناصر الأجر الخاضعة)، افتراضياً الأساسي + السكن
+        l_base := 0;
+        IF l_prm.has('base') THEN
+          DECLARE l_arr JSON_ARRAY_T := l_prm.get_array('base');
+          BEGIN
+            FOR k IN 0 .. l_arr.get_size - 1 LOOP l_base := l_base + element_amount(p_m.id, l_arr.get_string(k), l_ee); END LOOP;
+          END;
+        ELSE
+          l_base := l_basic + element_amount(p_m.id, 'HOUSING', l_ee);
+        END IF;
+        l_base := LEAST(GREATEST(l_base, pnum(l_prm, 'min', 0)), pnum(l_prm, 'max', 1e12));
         l_amt := ROUND(l_base * l_payd / c_days * pnum(l_prm, 'pct', 0) / 100, 2);
         IF l_amt > 0 THEN
           result(l_re, g.code, ROUND(l_base * l_payd / c_days, 2), pnum(l_prm, 'pct', 0), l_amt, '{"category":' || jt(l_cat) || '}');

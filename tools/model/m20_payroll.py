@@ -47,6 +47,8 @@ PARAMETERS      JSON             | المعاملات (النسب، الأساس
 APPROVED_FUNCTION V128           | دالة PL/SQL معتمدة (لا صيغ SQL حرة)
 MIN_AMOUNT      AMT              | الحد الأدنى
 MAX_AMOUNT      AMT              | الحد الأعلى
+COUNTRY_CODE    CTRY             | الدولة (القاعدة لكل شركات المؤسسة في هذه الدولة؛ فارغ = كل الدول)
+IS_AUTO         YN   NN D='N'    | تطبق تلقائياً على كل موظفي النطاق (ما لم يحدد للموظف غيرها)
 ''', uk=[('ELEMENT_ID', 'VERSION_NO')], area='setup')
 
 table('PAY_EMPLOYEE_ELEMENT', 'عناصر رواتب الموظفين', 'Employee Element Entries', scope='T', mix='eff', cols='''
@@ -54,6 +56,8 @@ EMPLOYMENT_ID   ID   NN >HR_EMPLOYMENT | علاقة التوظيف
 ELEMENT_ID      ID   NN >PAY_ELEMENT | العنصر
 AMOUNT          AMT              | المبلغ
 PERCENTAGE      PCT              | النسبة
+CALC_METHOD     CODE NN D='FIXED' IN:FIXED,PERCENT,POLICY,EXCLUDED | طريقة الاحتساب: مبلغ ثابت، نسبة، حسب سياسة الشركة، مستثنى
+BASIS_CODE      CODE             | العنصر الأساس للنسبة (افتراضياً الأساسي BASIC)
 SOURCE_ACTION_ID ID  >HR_EMPLOYEE_ACTION | الحركة المصدر
 ''', ix=[('TENANT_ID', 'EMPLOYMENT_ID')], area='employee', sens='HIGHLY_RESTRICTED')
 
