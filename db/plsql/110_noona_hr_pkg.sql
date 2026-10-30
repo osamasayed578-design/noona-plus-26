@@ -552,11 +552,14 @@ CREATE OR REPLACE PACKAGE BODY NOONA_HR_PKG AS
     l_n    NUMBER;
     l_av   NUMBER;
     l_id   NUMBER;
-    l_t1   VARCHAR2(5) := str(l_o, 'start_time');
-    l_t2   VARCHAR2(5) := str(l_o, 'end_time');
+    l_t1   VARCHAR2(100) := str(l_o, 'start_time');
+    l_t2   VARCHAR2(100) := str(l_o, 'end_time');
     l_sub  NUMBER := num(l_o, 'substitute');
     l_why  VARCHAR2(1000) := SUBSTR(str(l_o, 'reason'), 1, 1000);
   BEGIN
+    NOONA_CORE_PKG.assert((l_t1 IS NULL OR REGEXP_LIKE(l_t1, '^([01]?\d|2[0-3]):[0-5]\d$'))
+      AND (l_t2 IS NULL OR REGEXP_LIKE(l_t2, '^([01]?\d|2[0-3]):[0-5]\d$')), 'NOONA-HR-050', 'الوقت بصيغة HH:MI', 'Time must be HH:MI');
+    l_t1 := LPAD(l_t1, 5, '0'); l_t2 := LPAD(l_t2, 5, '0');
     guard('HR_LEAVE_REQUEST.CREATE');
     l_m := employment_of(l_emp);
     SELECT * INTO l_type FROM hr_leave_type WHERE id = leave_type_id(l_code);

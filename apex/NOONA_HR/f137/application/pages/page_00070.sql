@@ -303,7 +303,7 @@ wwv_flow_imp_page.create_page_plug(
 ,p_plug_display_sequence=>15
 ,p_query_type=>'SQL'
 ,p_plug_source=>wwv_flow_string.join(wwv_flow_t_varchar2(
-'select r.id, e.name_ar as element, case when r.company_id is not null then ''الشركة: '' || c.name_ar',
+'select r.id, e.name_ar as element, case when r.company_id is not null then ''الشركة: '' || c.legal_name_ar',
 '       when r.country_code is not null then ''شركات الدولة: '' || nvl(k.name_ar, r.country_code) else ''كل الشركات'' end as scope,',
 '       noona_hr_pkg.category_label(r.employee_category) as category, noona_pay_pkg.rule_text(r.id) as rule_txt,',
 '       case r.is_auto when ''Y'' then ''تلقائي لكل الموظفين'' else ''لمن يختار «حسب السياسة»'' end as auto_txt,',

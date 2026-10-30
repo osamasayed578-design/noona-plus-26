@@ -588,7 +588,7 @@ p.process(20, 'AFTER_SUBMIT', 'Add Element', ['declare l_id number;', 'begin',
           "    l_id := noona_pay_pkg.save_element(null, :P70_EL_CODE, :P70_EL_NAME, :P70_EL_TYPE, 'Y', :P70_EL_PRO, :P70_EL_EOS);",
           'end;'], when_button=b_el, success='تمت إضافة العنصر')
 p.ir('سياسة البدلات (لكل شركة أو دولة)', 15, [
-    "select r.id, e.name_ar as element, case when r.company_id is not null then 'الشركة: ' || c.name_ar",
+    "select r.id, e.name_ar as element, case when r.company_id is not null then 'الشركة: ' || c.legal_name_ar",
     "       when r.country_code is not null then 'شركات الدولة: ' || nvl(k.name_ar, r.country_code) else 'كل الشركات' end as scope,",
     "       noona_hr_pkg.category_label(r.employee_category) as category, noona_pay_pkg.rule_text(r.id) as rule_txt,",
     "       case r.is_auto when 'Y' then 'تلقائي لكل الموظفين' else 'لمن يختار «حسب السياسة»' end as auto_txt,",
