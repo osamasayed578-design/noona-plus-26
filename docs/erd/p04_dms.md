@@ -1,6 +1,6 @@
 # ERD — الحزمة 04: إدارة المستندات والأرشفة
 
-**Document Management & Archive** · الحزمة البرمجية `NOONA_DMS_PKG` · عدد الجداول: **29**
+**Document Management & Archive** · الحزمة البرمجية `NOONA_DMS_PKG` · عدد الجداول: **31**
 
 محرك DMS مركزي (BR-004): المستند سجل عمل وهوية ثابتة، والإصدارات 1..n غير قابلة للمحو، والمحتوى الثنائي في SecureFiles أو Object Storage، والربط بكيانات ERP عبر Document Link منضبط بسجل الأنواع، مع ACL والسرية والاحتفاظ والحجز القانوني والتوقيع.
 
@@ -59,10 +59,25 @@ erDiagram
     VARCHAR2 ROLE_CODE UK
     NUMBER DOCUMENT_TYPE_ID FK,UK
   }
+  DMS_STORAGE_AGENT {
+    NUMBER ID PK
+    NUMBER TENANT_ID FK
+    NUMBER COMPANY_ID FK,UK
+    VARCHAR2 NAME UK
+    VARCHAR2 STATUS_CODE
+  }
+  DMS_AGENT_JOB {
+    NUMBER ID PK
+    NUMBER TENANT_ID FK
+    NUMBER AGENT_ID FK
+    NUMBER CONTENT_ID FK
+    VARCHAR2 STATUS_CODE
+  }
   DMS_STORAGE_PROFILE {
     NUMBER ID PK
     NUMBER TENANT_ID FK
     NUMBER COMPANY_ID FK,UK
+    NUMBER AGENT_ID FK
   }
   DMS_DOCUMENT {
     NUMBER ID PK
@@ -83,6 +98,7 @@ erDiagram
   DMS_FILE_CONTENT {
     NUMBER ID PK
     NUMBER TENANT_ID FK
+    NUMBER AGENT_ID FK
     VARCHAR2 STATUS_CODE
   }
   DMS_DOCUMENT_VERSION {
@@ -302,6 +318,7 @@ erDiagram
   DMS_DOCUMENT_VERSION ||--o{ DMS_SIGNATURE : "VERSION_ID"
   DMS_DOCUMENT_VERSION ||--o{ DMS_SIGNATURE_REQUEST : "VERSION_ID"
   DMS_DOCUMENT_VERSION ||--o| DMS_OCR_TEXT : "VERSION_ID"
+  DMS_FILE_CONTENT |o--o{ DMS_AGENT_JOB : "CONTENT_ID"
   DMS_FILE_CONTENT |o--o{ DMS_DOCUMENT_VERSION : "CONTENT_ID"
   DMS_FILE_CONTENT |o--o{ DMS_TEMPLATE : "TEMPLATE_CONTENT_ID"
   DMS_LEGAL_HOLD ||--o{ DMS_LEGAL_HOLD_ITEM : "LEGAL_HOLD_ID"
@@ -309,6 +326,9 @@ erDiagram
   DMS_RETENTION_POLICY |o--o{ DMS_DOCUMENT : "RETENTION_POLICY_ID"
   DMS_RETENTION_POLICY |o--o{ DMS_DOCUMENT_TYPE : "RETENTION_POLICY_ID"
   DMS_SIGNATURE_REQUEST |o--o{ DMS_SIGNATURE : "REQUEST_ID"
+  DMS_STORAGE_AGENT |o--o{ DMS_FILE_CONTENT : "AGENT_ID"
+  DMS_STORAGE_AGENT |o--o{ DMS_STORAGE_PROFILE : "AGENT_ID"
+  DMS_STORAGE_AGENT ||--o{ DMS_AGENT_JOB : "AGENT_ID"
   DMS_TAG ||--o{ DMS_DOCUMENT_TAG : "TAG_ID"
   DMS_TEMPLATE |o--o{ DMS_DOCUMENT : "SOURCE_TEMPLATE_ID"
   ORG_BRANCH |o--o{ DMS_DOCUMENT : "BRANCH_ID"
@@ -316,6 +336,7 @@ erDiagram
   ORG_COMPANY |o--o{ DMS_DOCUMENT_LINK : "COMPANY_ID"
   ORG_COMPANY ||--o{ DMS_ARCHIVE_RULE : "COMPANY_ID"
   ORG_COMPANY ||--o{ DMS_REQUIRED_DOCUMENT : "COMPANY_ID"
+  ORG_COMPANY ||--o{ DMS_STORAGE_AGENT : "COMPANY_ID"
   ORG_COMPANY ||--o| DMS_STORAGE_PROFILE : "COMPANY_ID"
   ORG_UNIT |o--o{ DMS_DOCUMENT : "OWNER_UNIT_ID"
   PTY_PARTY |o--o{ DMS_SIGNATURE : "SIGNER_PARTY_ID"
@@ -349,6 +370,8 @@ erDiagram
 | `DMS_TAG` | الوسوم | Tags | T |
 | `DMS_ARCHIVE_RULE` | قواعد الأرشفة | Archiving Rules | C |
 | `DMS_REQUIRED_DOCUMENT` | المستندات المطلوبة للأطراف | Required Party Documents | C |
+| `DMS_STORAGE_AGENT` | وكلاء التخزين المحلي | Local Storage Agents | C |
+| `DMS_AGENT_JOB` | مهام وكيل التخزين | Storage Agent Jobs | T |
 | `DMS_STORAGE_PROFILE` | إعدادات تخزين الملفات | File Storage Profiles | C |
 | `DMS_DOCUMENT` | المستندات | Documents | T |
 | `DMS_FILE_CONTENT` | محتوى الملفات | File Content | T |

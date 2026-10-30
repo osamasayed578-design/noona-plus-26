@@ -125,6 +125,8 @@ def brand(app_dir):
     open(inst, 'w', encoding='utf-8').write(s.replace(anchor, anchor + missing, 1))
     # رقم إصدار الملفات يتغير مع المحتوى (يكسر ذاكرة المتصفح)
     ver = 1 + zlib.crc32(content) % 900000
+    # عرض المستندات داخل إطار في نفس التطبيق (معاينة الأرشيف): السماح بالإطار من نفس الأصل فقط بدل المنع الكامل
+    ca = ca.replace(",p_browser_frame=>'D'", ",p_browser_frame=>'S'")
     open(a + 'create_application.sql', 'w', encoding='utf-8').write(re.sub(r",p_files_version=>\d+", f",p_files_version=>{ver}", ca))
     ui = open(a + 'user_interfaces.sql', encoding='utf-8').read()
     if 'noona.css' not in ui:

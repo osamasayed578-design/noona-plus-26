@@ -48,9 +48,10 @@ CREATE OR REPLACE PACKAGE NOONA_DMS_PKG AUTHID DEFINER AS
 
   -- ---------------------------------------------------------- مكان حفظ الملفات (لكل شركة)
   -- DATABASE (داخل قاعدة البيانات) / SERVER_FOLDER (مجلد على الخادم أو NAS عبر Oracle DIRECTORY مخصص للمؤسسة)
-  -- / OBJECT_STORAGE (سحابي - مرحلة لاحقة). الملفات السابقة تبقى في مكانها وتقرأ منه.
+  -- / LOCAL_AGENT (وكيل تخزين محلي عند الشركة - NOONA_DMS_AGENT_PKG) / OBJECT_STORAGE (سحابي - مرحلة لاحقة).
+  -- الملفات السابقة تبقى في مكانها وتقرأ منه.
   PROCEDURE set_storage(p_medium IN VARCHAR2, p_directory IN VARCHAR2 DEFAULT NULL, p_base_path IN VARCHAR2 DEFAULT NULL,
-                        p_prefix IN VARCHAR2 DEFAULT NULL);
+                        p_prefix IN VARCHAR2 DEFAULT NULL, p_agent_id IN NUMBER DEFAULT NULL);
   -- اختبار الكتابة والقراءة والحذف في مكان الحفظ الحالي؛ يعيد OK أو وصف الخطأ
   FUNCTION test_storage RETURN VARCHAR2;
   -- مجلدات الخادم المخصصة للمؤسسة الحالية (DIRECTORY باسم NOONA_DMS_T<رقم المؤسسة> أو NOONA_DMS_T<رقم>_...)
@@ -339,16 +340,83 @@ CREATE OR REPLACE PACKAGE BODY NOONA_DMS_PKG AS
         || TO_CHAR(SYSDATE, 'YYYYMMDD') || '_' || LOWER(RAWTOHEX(SYS_GUID())) || file_ext(p_mime);
   END file_key;
 
+  -- طلب من الوكيل (يُلتزم به فوراً ليراه الوكيل) ثم انتظار التنفيذ بضع ثوانٍ
+  FUNCTION agent_request_tx(p_agent_id NUMBER, p_type VARCHAR2, p_content_id NUMBER) RETURN NUMBER IS
+    l_id NUMBER;
+  BEGIN
+    SELECT MAX(id) INTO l_id FROM dms_agent_job
+     WHERE agent_id = p_agent_id AND job_type = p_type AND NVL(content_id, -1) = NVL(p_content_id, -1) AND status_code IN ('PENDING', 'SENT');
+    IF l_id IS NULL THEN
+      INSERT INTO dms_agent_job (agent_id, content_id, job_type, status_code) VALUES (p_agent_id, p_content_id, p_type, 'PENDING')
+      RETURNING id INTO l_id;
+    END IF;
+    RETURN l_id;
+  END agent_request_tx;
+
+  FUNCTION agent_request_auto(p_agent_id NUMBER, p_type VARCHAR2, p_content_id NUMBER) RETURN NUMBER IS
+    PRAGMA AUTONOMOUS_TRANSACTION;
+    l_id NUMBER;
+  BEGIN
+    SELECT MAX(id) INTO l_id FROM dms_agent_job
+     WHERE agent_id = p_agent_id AND job_type = p_type AND NVL(content_id, -1) = NVL(p_content_id, -1) AND status_code IN ('PENDING', 'SENT');
+    IF l_id IS NULL THEN
+      INSERT INTO dms_agent_job (agent_id, content_id, job_type, status_code) VALUES (p_agent_id, p_content_id, p_type, 'PENDING')
+      RETURNING id INTO l_id;
+    END IF;
+    COMMIT;
+    RETURN l_id;
+  END agent_request_auto;
+
+  -- الطلب يلتزم به فوراً ليراه الوكيل؛ ملف لم يلتزم بعد (نفس المعاملة) يطلب داخل المعاملة
+  FUNCTION agent_request(p_agent_id NUMBER, p_type VARCHAR2, p_content_id NUMBER) RETURN NUMBER IS
+  BEGIN
+    RETURN agent_request_auto(p_agent_id, p_type, p_content_id);
+  EXCEPTION WHEN OTHERS THEN
+    IF SQLCODE IN (-2291, -60) THEN RETURN agent_request_tx(p_agent_id, p_type, p_content_id); END IF;
+    RAISE;
+  END agent_request;
+
+  FUNCTION agent_roundtrip(p_agent_id NUMBER) RETURN VARCHAR2 IS
+    l_job NUMBER := agent_request(p_agent_id, 'TEST', NULL);
+    l_st  VARCHAR2(30);
+    l_err VARCHAR2(1000);
+  BEGIN
+    FOR i IN 1 .. 30 LOOP
+      SELECT status_code, error_text INTO l_st, l_err FROM dms_agent_job WHERE id = l_job;
+      EXIT WHEN l_st IN ('DONE', 'FAILED');
+      DBMS_SESSION.SLEEP(0.5);
+    END LOOP;
+    RETURN CASE l_st WHEN 'DONE' THEN 'OK' WHEN 'FAILED' THEN 'فشل الاختبار عند الوكيل: ' || l_err
+                ELSE 'الوكيل لم يستجب خلال 15 ثانية؛ تأكد أن برنامج الوكيل يعمل ومتصل بالإنترنت' END;
+  END agent_roundtrip;
+
   FUNCTION read_content(p_content_id IN NUMBER) RETURN BLOB IS
     l_c   dms_file_content%ROWTYPE;
     l_bf  BFILE;
     l_out BLOB;
     l_dst INTEGER := 1;
     l_src INTEGER := 1;
+    l_job NUMBER;
   BEGIN
     SELECT * INTO l_c FROM dms_file_content WHERE id = p_content_id;
     IF l_c.storage_medium = 'SECUREFILE' THEN
       RETURN l_c.content_blob;
+    END IF;
+    IF l_c.storage_medium = 'AGENT' THEN
+      -- لم ينقل بعد للوكيل، أو نسخة مؤقتة من جلب سابق
+      IF l_c.content_blob IS NOT NULL THEN
+        RETURN l_c.content_blob;
+      END IF;
+      l_job := agent_request(l_c.agent_id, 'GET', l_c.id);
+      FOR i IN 1 .. 24 LOOP
+        DBMS_SESSION.SLEEP(0.5);
+        SELECT content_blob INTO l_out FROM dms_file_content WHERE id = l_c.id;
+        IF l_out IS NOT NULL THEN
+          RETURN l_out;
+        END IF;
+      END LOOP;
+      NOONA_CORE_PKG.raise_error('NOONA-DMS-148', 'الملف محفوظ عند وكيل التخزين المحلي للشركة وهو غير متصل الآن؛ '
+        || 'تأكد أن جهاز الوكيل يعمل ثم أعد المحاولة', 'The file is kept by the company storage agent, which is offline now');
     END IF;
     l_bf := BFILENAME(l_c.storage_bucket_ref, l_c.storage_key);
     NOONA_CORE_PKG.assert(DBMS_LOB.FILEEXISTS(l_bf) = 1, 'NOONA-DMS-142',
@@ -361,10 +429,15 @@ CREATE OR REPLACE PACKAGE BODY NOONA_DMS_PKG AS
   END read_content;
 
   PROCEDURE set_storage(p_medium IN VARCHAR2, p_directory IN VARCHAR2 DEFAULT NULL, p_base_path IN VARCHAR2 DEFAULT NULL,
-                        p_prefix IN VARCHAR2 DEFAULT NULL) IS
+                        p_prefix IN VARCHAR2 DEFAULT NULL, p_agent_id IN NUMBER DEFAULT NULL) IS
+    l_n NUMBER;
   BEGIN
     guard('DMS_STORAGE_PROFILE.UPDATE');
-    NOONA_CORE_PKG.assert(p_medium IN ('DATABASE', 'SERVER_FOLDER', 'OBJECT_STORAGE'), 'NOONA-DMS-140', 'مكان حفظ غير صالح', 'Invalid medium');
+    NOONA_CORE_PKG.assert(p_medium IN ('DATABASE', 'SERVER_FOLDER', 'OBJECT_STORAGE', 'LOCAL_AGENT'), 'NOONA-DMS-140', 'مكان حفظ غير صالح', 'Invalid medium');
+    IF p_medium = 'LOCAL_AGENT' THEN
+      SELECT COUNT(*) INTO l_n FROM dms_storage_agent WHERE id = p_agent_id AND company_id = company AND status_code = 'ACTIVE';
+      NOONA_CORE_PKG.assert(l_n = 1, 'NOONA-DMS-147', 'اختر وكيل تخزين نشطاً لهذه الشركة', 'Choose an active storage agent');
+    END IF;
     NOONA_CORE_PKG.assert(p_medium <> 'OBJECT_STORAGE', 'NOONA-DMS-141',
       'التخزين السحابي (OCI/S3) يفعل في مرحلة لاحقة؛ اختر قاعدة البيانات أو مجلد الخادم', 'Object storage is not available yet');
     NOONA_CORE_PKG.assert(p_medium <> 'SERVER_FOLDER' OR dir_allowed(UPPER(p_directory)), 'NOONA-DMS-144',
@@ -374,9 +447,11 @@ CREATE OR REPLACE PACKAGE BODY NOONA_DMS_PKG AS
     USING (SELECT company c FROM dual) x ON (s.company_id = x.c)
      WHEN MATCHED THEN UPDATE SET s.storage_medium = p_medium, s.directory_name = CASE WHEN p_medium = 'SERVER_FOLDER' THEN UPPER(p_directory) END,
                                   s.base_path = p_base_path, s.file_prefix = p_prefix, s.is_active = 'Y',
+                                  s.agent_id = CASE WHEN p_medium = 'LOCAL_AGENT' THEN p_agent_id END,
                                   s.last_test_at = NULL, s.last_test_result = NULL
-     WHEN NOT MATCHED THEN INSERT (company_id, storage_medium, directory_name, base_path, file_prefix, is_active)
-          VALUES (company, p_medium, CASE WHEN p_medium = 'SERVER_FOLDER' THEN UPPER(p_directory) END, p_base_path, p_prefix, 'Y');
+     WHEN NOT MATCHED THEN INSERT (company_id, storage_medium, directory_name, base_path, file_prefix, agent_id, is_active)
+          VALUES (company, p_medium, CASE WHEN p_medium = 'SERVER_FOLDER' THEN UPPER(p_directory) END, p_base_path, p_prefix,
+                  CASE WHEN p_medium = 'LOCAL_AGENT' THEN p_agent_id END, 'Y');
     NOONA_AUDIT_PKG.log_event('CONFIG', 'DMS_STORAGE_PROFILE', NULL, 'SET_STORAGE', 'SUCCESS',
       p_new_values => '{"medium":' || NOONA_CORE_PKG.json_text(p_medium) || ',"directory":' || NOONA_CORE_PKG.json_text(UPPER(p_directory)) || '}');
   END set_storage;
@@ -390,6 +465,8 @@ CREATE OR REPLACE PACKAGE BODY NOONA_DMS_PKG AS
     guard('DMS_STORAGE_PROFILE.UPDATE');
     IF l_p.storage_medium = 'DATABASE' THEN
       l_res := 'OK';
+    ELSIF l_p.storage_medium = 'LOCAL_AGENT' THEN
+      l_res := agent_roundtrip(l_p.agent_id);
     ELSE
       BEGIN
         l_key := 'noona_test_' || LOWER(RAWTOHEX(SYS_GUID())) || '.txt';
@@ -415,6 +492,39 @@ CREATE OR REPLACE PACKAGE BODY NOONA_DMS_PKG AS
     l_key VARCHAR2(500);
   BEGIN
     guard('DMS_STORAGE_PROFILE.UPDATE');
+    IF l_p.storage_medium = 'LOCAL_AGENT' THEN
+      -- تبقى في القاعدة حتى يؤكد الوكيل حفظ كل ملف ببصمته
+      FOR r IN (SELECT c.id, c.detected_mime FROM dms_file_content c
+                 WHERE c.storage_medium = 'SECUREFILE' AND c.content_blob IS NOT NULL
+                   AND EXISTS (SELECT 1 FROM dms_document_version v JOIN dms_document d ON d.id = v.document_id
+                                 JOIN dms_document_type t ON t.id = d.document_type_id
+                                WHERE v.content_id = c.id AND d.company_id = company AND t.code <> 'COMPANY_LOGO')
+                   AND ROWNUM <= NVL(p_limit, 500)) LOOP
+        l_key := file_key(l_p.file_prefix, r.detected_mime);
+        UPDATE dms_file_content SET storage_medium = 'AGENT', agent_id = l_p.agent_id, storage_key = l_key, status_code = 'PENDING'
+         WHERE id = r.id;
+        INSERT INTO dms_agent_job (agent_id, content_id, job_type, status_code) VALUES (l_p.agent_id, r.id, 'PUT', 'PENDING');
+        l_n := l_n + 1;
+      END LOOP;
+      NOONA_AUDIT_PKG.log_event('CONFIG', 'DMS_STORAGE_PROFILE', NULL, 'MOVE_FILES', 'SUCCESS', p_new_values => '{"files":' || l_n || ',"to":"agent"}');
+      RETURN l_n;
+    END IF;
+    IF l_p.storage_medium = 'DATABASE' THEN
+      -- العودة من الوكيل: يطلب كل ملف ليحفظ في القاعدة نهائياً (بعد مطابقة البصمة)
+      FOR r IN (SELECT c.id, c.agent_id FROM dms_file_content c
+                 WHERE c.storage_medium = 'AGENT' AND c.status_code = 'STORED'
+                   AND EXISTS (SELECT 1 FROM dms_document_version v JOIN dms_document d ON d.id = v.document_id
+                                WHERE v.content_id = c.id AND d.company_id = company)
+                   AND NOT EXISTS (SELECT 1 FROM dms_agent_job j WHERE j.content_id = c.id AND j.job_type = 'RETURN' AND j.status_code IN ('PENDING', 'SENT'))
+                   AND ROWNUM <= NVL(p_limit, 500)) LOOP
+        INSERT INTO dms_agent_job (agent_id, content_id, job_type, status_code) VALUES (r.agent_id, r.id, 'RETURN', 'PENDING');
+        l_n := l_n + 1;
+      END LOOP;
+      IF l_n > 0 THEN
+        NOONA_AUDIT_PKG.log_event('CONFIG', 'DMS_STORAGE_PROFILE', NULL, 'MOVE_FILES', 'SUCCESS', p_new_values => '{"files":' || l_n || ',"to":"database"}');
+        RETURN l_n;
+      END IF;
+    END IF;
     NOONA_CORE_PKG.assert(l_p.storage_medium = 'SERVER_FOLDER', 'NOONA-DMS-145', 'مكان الحفظ الحالي هو قاعدة البيانات؛ لا يوجد ما ينقل',
                           'Current storage is the database');
     -- شعار الشركة يبقى في قاعدة البيانات (يعرض في كل الصفحات)
@@ -441,14 +551,21 @@ CREATE OR REPLACE PACKAGE BODY NOONA_DMS_PKG AS
     l_html CLOB;
     l_dirs SYS.ODCIVARCHAR2LIST := storage_directories;
     l_path VARCHAR2(4000);
+    l_agent VARCHAR2(200);
   BEGIN
+    IF l_p.agent_id IS NOT NULL THEN
+      SELECT MAX(name) INTO l_agent FROM dms_storage_agent WHERE id = l_p.agent_id;
+    END IF;
     IF l_p.directory_name IS NOT NULL THEN
       SELECT MAX(directory_path) INTO l_path FROM all_directories WHERE directory_name = l_p.directory_name;
     END IF;
     l_html := '<div class="nn-fields">'
            || '<div class="nn-field"><div class="nn-field-label">مكان الحفظ الحالي</div><div class="nn-field-value"><b>'
            || CASE l_p.storage_medium WHEN 'SERVER_FOLDER' THEN 'مجلد على الخادم / NAS' WHEN 'OBJECT_STORAGE' THEN 'تخزين سحابي'
-                                      ELSE 'داخل قاعدة البيانات' END || '</b></div></div>'
+                                      WHEN 'LOCAL_AGENT' THEN 'وكيل تخزين محلي عند الشركة' ELSE 'داخل قاعدة البيانات' END || '</b></div></div>'
+           || CASE WHEN l_p.storage_medium = 'LOCAL_AGENT' THEN
+                '<div class="nn-field"><div class="nn-field-label">الوكيل</div><div class="nn-field-value">'
+                || esc(l_agent) || '</div></div>' END
            || CASE WHEN l_p.storage_medium = 'SERVER_FOLDER' THEN
                 '<div class="nn-field"><div class="nn-field-label">المجلد (Oracle DIRECTORY)</div><div class="nn-field-value">' || esc(l_p.directory_name)
                 || '</div></div><div class="nn-field"><div class="nn-field-label">المسار على الخادم</div><div class="nn-field-value" dir="ltr">'
@@ -460,11 +577,15 @@ CREATE OR REPLACE PACKAGE BODY NOONA_DMS_PKG AS
            || '<div class="nn-field"><div class="nn-field-label">المجلدات المخصصة للمؤسسة</div><div class="nn-field-value">'
            || CASE WHEN l_dirs.COUNT = 0 THEN 'لا يوجد (يخصصها مسؤول النظام)' ELSE l_dirs.COUNT || '' END || '</div></div></div>'
            || '<table class="nn-rpt"><thead><tr><th>مكان الحفظ</th><th>عدد الملفات</th><th>الحجم</th></tr></thead><tbody>';
-    FOR r IN (SELECT c.storage_medium, NVL(c.storage_bucket_ref, '-') dir, COUNT(DISTINCT c.id) n, SUM(c.file_size_bytes) b
+    FOR r IN (SELECT c.storage_medium, CASE WHEN c.storage_medium = 'AGENT' THEN c.status_code ELSE NVL(c.storage_bucket_ref, '-') END dir,
+                     COUNT(DISTINCT c.id) n, SUM(c.file_size_bytes) b
                 FROM dms_file_content c JOIN dms_document_version v ON v.content_id = c.id JOIN dms_document d ON d.id = v.document_id
-               WHERE d.company_id = company GROUP BY c.storage_medium, NVL(c.storage_bucket_ref, '-') ORDER BY 1) LOOP
+               WHERE d.company_id = company
+               GROUP BY c.storage_medium, CASE WHEN c.storage_medium = 'AGENT' THEN c.status_code ELSE NVL(c.storage_bucket_ref, '-') END ORDER BY 1, 2) LOOP
       l_html := l_html || (('<tr><td class="nn-rpt-text">' || CASE r.storage_medium WHEN 'SECUREFILE' THEN 'قاعدة البيانات'
-                WHEN 'NAS' THEN 'مجلد ' || esc(r.dir) ELSE r.storage_medium END || '</td><td>' || r.n || '</td><td>' || size_text(r.b) || '</td></tr>'));
+                WHEN 'NAS' THEN 'مجلد ' || esc(r.dir)
+                WHEN 'AGENT' THEN CASE r.dir WHEN 'STORED' THEN 'عند وكيل الشركة' ELSE 'بانتظار النقل للوكيل (محفوظة مؤقتاً في القاعدة)' END
+                ELSE r.storage_medium END || '</td><td>' || r.n || '</td><td>' || size_text(r.b) || '</td></tr>'));
     END LOOP;
     RETURN l_html || ('</tbody></table>');
   END storage_html;
@@ -491,6 +612,17 @@ CREATE OR REPLACE PACKAGE BODY NOONA_DMS_PKG AS
       write_file(l_p.directory_name, l_key, p_content);
     ELSE
       l_db := p_content;
+    END IF;
+    -- وكيل محلي: يحفظ في القاعدة مؤقتاً (يعرض فوراً) حتى يؤكد الوكيل حفظه بنفس البصمة، ثم يحذف من القاعدة
+    IF l_p.storage_medium = 'LOCAL_AGENT' AND l_p.agent_id IS NOT NULL AND NVL(p_type.code, '-') <> 'COMPANY_LOGO' THEN
+      l_key := file_key(l_p.file_prefix, l_mime);
+      INSERT INTO dms_file_content (storage_medium, agent_id, storage_key, content_blob, file_name, file_size_bytes,
+                                    declared_mime, detected_mime, hash_algorithm, hash_value, scan_status, status_code)
+      VALUES ('AGENT', l_p.agent_id, l_key, l_db, SUBSTR(NVL(p_file_name, 'document'), 1, 500), l_size,
+              SUBSTR(p_mime, 1, 200), l_mime, 'SHA256', LOWER(RAWTOHEX(DBMS_CRYPTO.HASH(p_content, DBMS_CRYPTO.HASH_SH256))), 'SKIPPED', 'PENDING')
+      RETURNING id INTO l_id;
+      INSERT INTO dms_agent_job (agent_id, content_id, job_type, status_code) VALUES (l_p.agent_id, l_id, 'PUT', 'PENDING');
+      RETURN l_id;
     END IF;
     INSERT INTO dms_file_content (storage_medium, storage_bucket_ref, storage_key, content_blob, file_name, file_size_bytes,
                                   declared_mime, detected_mime, hash_algorithm, hash_value, scan_status, status_code)

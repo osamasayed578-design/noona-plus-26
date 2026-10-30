@@ -12,7 +12,7 @@ wwv_flow_imp.component_begin (
 ,p_default_owner=>'NOONA_APP'
 );
 wwv_flow_imp_shared.create_message(
- p_id=>wwv_flow_imp.id(91820267000000220)
+ p_id=>wwv_flow_imp.id(91820267000000236)
 ,p_name=>'LINK'
 ,p_message_language=>'ar'
 ,p_message_text=>'فتح'

@@ -15,6 +15,8 @@
 | [`DMS_TAG`](#dms_tag) | الوسوم | Tags | T | INTERNAL |
 | [`DMS_ARCHIVE_RULE`](#dms_archive_rule) | قواعد الأرشفة | Archiving Rules | C | INTERNAL |
 | [`DMS_REQUIRED_DOCUMENT`](#dms_required_document) | المستندات المطلوبة للأطراف | Required Party Documents | C | INTERNAL |
+| [`DMS_STORAGE_AGENT`](#dms_storage_agent) | وكلاء التخزين المحلي | Local Storage Agents | C | INTERNAL |
+| [`DMS_AGENT_JOB`](#dms_agent_job) | مهام وكيل التخزين | Storage Agent Jobs | T | INTERNAL |
 | [`DMS_STORAGE_PROFILE`](#dms_storage_profile) | إعدادات تخزين الملفات | File Storage Profiles | C | INTERNAL |
 | [`DMS_DOCUMENT`](#dms_document) | المستندات | Documents | T | CONFIDENTIAL |
 | [`DMS_FILE_CONTENT`](#dms_file_content) | محتوى الملفات | File Content | T | CONFIDENTIAL |
@@ -259,6 +261,72 @@
 | 13 | `UPDATED_BY` | اسم مستخدم | `VARCHAR2(128 CHAR)` |  |  |  |  | Trigger |  | آخر من عدل السجل |
 | 14 | `UPDATED_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` |  |  |  |  | Trigger |  | وقت آخر تعديل |
 
+## DMS_STORAGE_AGENT
+
+| البند | القيمة |
+|---|---|
+| الاسم العربي | وكلاء التخزين المحلي |
+| English | Local Storage Agents |
+| الحزمة المالكة | 04 — `NOONA_DMS_PKG` |
+| نطاق الملكية | `C` — مملوك للشركة Company-Owned |
+| الحساسية | INTERNAL |
+| النمط | قابل للتعديل وفق دورة الحياة |
+| الغرض | برنامج صغير يثبت عند الشركة ويحفظ ملفات الأرشيف على أجهزتها؛ يتصل هو بالنظام (لا يفتح منفذ في شبكة الشركة) |
+| مفاتيح فريدة | UK2: (COMPANY_ID, NAME) |
+
+| # | العمود | النوع المنطقي | Oracle Type | إلزامي | افتراضي | مفاتيح | القيم المقبولة | المصدر | PII | الوصف |
+|---:|---|---|---|:---:|---|---|---|---|:---:|---|
+| 1 | `ID` | معرف | `NUMBER(19)` | ✔ |  | PK |  | النظام/الحزمة |  | المفتاح الداخلي الثابت (Identity) - لا يعاد استخدامه |
+| 2 | `TENANT_ID` | معرف | `NUMBER(19)` | ✔ |  | FK→PLT_TENANT |  | Security Context |  | المؤسسة المالكة؛ يملأ من Security Context الموثوق لا من مدخلات المستخدم |
+| 3 | `COMPANY_ID` | معرف | `NUMBER(19)` | ✔ |  | FK→ORG_COMPANY UK2 |  | Security Context |  | الشركة (الكيان القانوني) المالكة للسجل |
+| 4 | `NAME` | نص | `VARCHAR2(200 CHAR)` | ✔ |  | UK2 |  | إدخال المستخدم |  | اسم الوكيل (الجهاز أو الخادم عند الشركة) |
+| 5 | `KEY_HASH` | Hash | `VARCHAR2(128 CHAR)` | ✔ |  |  |  | إدخال المستخدم |  | بصمة مفتاح الوكيل SHA-256 (المفتاح نفسه لا يحفظ ويعرض مرة واحدة) |
+| 6 | `KEY_HINT` | نص | `VARCHAR2(20 CHAR)` |  |  |  |  | إدخال المستخدم |  | آخر أحرف المفتاح للتعرف عليه |
+| 7 | `HOST_NAME` | نص | `VARCHAR2(200 CHAR)` |  |  |  |  | إدخال المستخدم |  | اسم الجهاز كما يبلغه الوكيل |
+| 8 | `AGENT_VERSION` | نص | `VARCHAR2(50 CHAR)` |  |  |  |  | إدخال المستخدم |  | إصدار برنامج الوكيل |
+| 9 | `STORAGE_PATH` | نص | `VARCHAR2(500 CHAR)` |  |  |  |  | إدخال المستخدم |  | مسار الحفظ على جهاز الشركة كما يبلغه الوكيل |
+| 10 | `LAST_SEEN_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` |  |  |  |  | إدخال المستخدم |  | آخر اتصال |
+| 11 | `FREE_BYTES` | رقم | `NUMBER` |  |  |  |  | إدخال المستخدم |  | المساحة الحرة على قرص الوكيل |
+| 12 | `STORED_FILES` | رقم | `NUMBER` |  |  |  |  | إدخال المستخدم |  | عدد الملفات المحفوظة عنده |
+| 13 | `STORED_BYTES` | رقم | `NUMBER` |  |  |  |  | إدخال المستخدم |  | حجمها |
+| 14 | `LAST_ERROR` | نص | `VARCHAR2(1000 CHAR)` |  |  |  |  | إدخال المستخدم |  | آخر خطأ أبلغ عنه |
+| 15 | `STATUS_CODE` | رمز | `VARCHAR2(30 CHAR)` | ✔ | 'ACTIVE' |  | ACTIVE, DISABLED | النظام/الحزمة |  | الحالة ضمن دورة الحياة المعتمدة |
+| 16 | `ROW_VERSION` | عدد صحيح | `NUMBER(10)` | ✔ | 1 |  |  | Trigger |  | رقم الإصدار للتحكم في التزامن المتفائل |
+| 17 | `CREATED_BY` | اسم مستخدم | `VARCHAR2(128 CHAR)` | ✔ |  |  |  | Trigger |  | منشئ السجل |
+| 18 | `CREATED_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` | ✔ | SYSTIMESTAMP |  |  | Trigger |  | وقت الإنشاء |
+| 19 | `UPDATED_BY` | اسم مستخدم | `VARCHAR2(128 CHAR)` |  |  |  |  | Trigger |  | آخر من عدل السجل |
+| 20 | `UPDATED_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` |  |  |  |  | Trigger |  | وقت آخر تعديل |
+
+## DMS_AGENT_JOB
+
+| البند | القيمة |
+|---|---|
+| الاسم العربي | مهام وكيل التخزين |
+| English | Storage Agent Jobs |
+| الحزمة المالكة | 04 — `NOONA_DMS_PKG` |
+| نطاق الملكية | `T` — مملوك للمؤسسة Tenant-Owned |
+| الحساسية | INTERNAL |
+| النمط | قابل للتعديل وفق دورة الحياة |
+| الغرض | صف المهام بين النظام والوكيل: الوكيل يسحب مهامه دورياً وينفذها ويبلغ النتيجة |
+
+| # | العمود | النوع المنطقي | Oracle Type | إلزامي | افتراضي | مفاتيح | القيم المقبولة | المصدر | PII | الوصف |
+|---:|---|---|---|:---:|---|---|---|---|:---:|---|
+| 1 | `ID` | معرف | `NUMBER(19)` | ✔ |  | PK |  | النظام/الحزمة |  | المفتاح الداخلي الثابت (Identity) - لا يعاد استخدامه |
+| 2 | `TENANT_ID` | معرف | `NUMBER(19)` | ✔ |  | FK→PLT_TENANT |  | Security Context |  | المؤسسة المالكة؛ يملأ من Security Context الموثوق لا من مدخلات المستخدم |
+| 3 | `AGENT_ID` | معرف | `NUMBER(19)` | ✔ |  | FK→DMS_STORAGE_AGENT |  | إدخال المستخدم |  | الوكيل |
+| 4 | `CONTENT_ID` | معرف | `NUMBER(19)` |  |  | FK→DMS_FILE_CONTENT |  | إدخال المستخدم |  | الملف |
+| 5 | `JOB_TYPE` | رمز | `VARCHAR2(30 CHAR)` | ✔ |  |  | PUT, GET, RETURN, DELETE, TEST | إدخال المستخدم |  | المهمة: حفظ عند الوكيل، جلب للعرض، إعادة للقاعدة نهائياً، حذف، اختبار |
+| 6 | `ATTEMPTS` | عدد صحيح | `NUMBER(10)` | ✔ | 0 |  |  | إدخال المستخدم |  | عدد المحاولات |
+| 7 | `SENT_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` |  |  |  |  | إدخال المستخدم |  | وقت تسليمها للوكيل |
+| 8 | `DONE_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` |  |  |  |  | إدخال المستخدم |  | وقت إنجازها |
+| 9 | `ERROR_TEXT` | نص | `VARCHAR2(1000 CHAR)` |  |  |  |  | إدخال المستخدم |  | الخطأ |
+| 10 | `STATUS_CODE` | رمز | `VARCHAR2(30 CHAR)` | ✔ | 'PENDING' |  | PENDING, SENT, DONE, FAILED | النظام/الحزمة |  | الحالة ضمن دورة الحياة المعتمدة |
+| 11 | `ROW_VERSION` | عدد صحيح | `NUMBER(10)` | ✔ | 1 |  |  | Trigger |  | رقم الإصدار للتحكم في التزامن المتفائل |
+| 12 | `CREATED_BY` | اسم مستخدم | `VARCHAR2(128 CHAR)` | ✔ |  |  |  | Trigger |  | منشئ السجل |
+| 13 | `CREATED_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` | ✔ | SYSTIMESTAMP |  |  | Trigger |  | وقت الإنشاء |
+| 14 | `UPDATED_BY` | اسم مستخدم | `VARCHAR2(128 CHAR)` |  |  |  |  | Trigger |  | آخر من عدل السجل |
+| 15 | `UPDATED_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` |  |  |  |  | Trigger |  | وقت آخر تعديل |
+
 ## DMS_STORAGE_PROFILE
 
 | البند | القيمة |
@@ -277,20 +345,21 @@
 | 1 | `ID` | معرف | `NUMBER(19)` | ✔ |  | PK |  | النظام/الحزمة |  | المفتاح الداخلي الثابت (Identity) - لا يعاد استخدامه |
 | 2 | `TENANT_ID` | معرف | `NUMBER(19)` | ✔ |  | FK→PLT_TENANT |  | Security Context |  | المؤسسة المالكة؛ يملأ من Security Context الموثوق لا من مدخلات المستخدم |
 | 3 | `COMPANY_ID` | معرف | `NUMBER(19)` | ✔ |  | FK→ORG_COMPANY UK1 |  | Security Context |  | الشركة (الكيان القانوني) المالكة للسجل |
-| 4 | `STORAGE_MEDIUM` | رمز | `VARCHAR2(30 CHAR)` | ✔ | 'DATABASE' |  | DATABASE, SERVER_FOLDER, OBJECT_STORAGE | إدخال المستخدم |  | مكان الحفظ |
-| 5 | `DIRECTORY_NAME` | نص | `VARCHAR2(128 CHAR)` |  |  |  |  | إدخال المستخدم |  | كائن Oracle DIRECTORY للمجلد (يخصصه مسؤول النظام للمؤسسة: NOONA_DMS_T<رقم المؤسسة>...) |
-| 6 | `BASE_PATH` | نص | `VARCHAR2(500 CHAR)` |  |  |  |  | إدخال المستخدم |  | المسار الفعلي للمجلد (للعرض والتوثيق) |
-| 7 | `FILE_PREFIX` | نص | `VARCHAR2(50 CHAR)` |  |  |  |  | إدخال المستخدم |  | بادئة أسماء الملفات |
-| 8 | `BUCKET_URL` | نص | `VARCHAR2(1000 CHAR)` |  |  |  |  | إدخال المستخدم |  | رابط حاوية التخزين السحابي (OCI/S3) |
-| 9 | `CREDENTIAL_ID` | نص | `VARCHAR2(128 CHAR)` |  |  |  |  | إدخال المستخدم |  | معرف بيانات اعتماد APEX للتخزين السحابي |
-| 10 | `LAST_TEST_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` |  |  |  |  | إدخال المستخدم |  | آخر اختبار للاتصال |
-| 11 | `LAST_TEST_RESULT` | نص | `VARCHAR2(1000 CHAR)` |  |  |  |  | إدخال المستخدم |  | نتيجة آخر اختبار |
-| 12 | `IS_ACTIVE` | منطقي Y/N | `CHAR(1 CHAR)` | ✔ | 'Y' |  | Y, N | إدخال المستخدم |  | نشط؟ |
-| 13 | `ROW_VERSION` | عدد صحيح | `NUMBER(10)` | ✔ | 1 |  |  | Trigger |  | رقم الإصدار للتحكم في التزامن المتفائل |
-| 14 | `CREATED_BY` | اسم مستخدم | `VARCHAR2(128 CHAR)` | ✔ |  |  |  | Trigger |  | منشئ السجل |
-| 15 | `CREATED_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` | ✔ | SYSTIMESTAMP |  |  | Trigger |  | وقت الإنشاء |
-| 16 | `UPDATED_BY` | اسم مستخدم | `VARCHAR2(128 CHAR)` |  |  |  |  | Trigger |  | آخر من عدل السجل |
-| 17 | `UPDATED_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` |  |  |  |  | Trigger |  | وقت آخر تعديل |
+| 4 | `STORAGE_MEDIUM` | رمز | `VARCHAR2(30 CHAR)` | ✔ | 'DATABASE' |  | DATABASE, SERVER_FOLDER, OBJECT_STORAGE, LOCAL_AGENT | إدخال المستخدم |  | مكان الحفظ |
+| 5 | `AGENT_ID` | معرف | `NUMBER(19)` |  |  | FK→DMS_STORAGE_AGENT |  | إدخال المستخدم |  | وكيل التخزين المحلي (عند LOCAL_AGENT) |
+| 6 | `DIRECTORY_NAME` | نص | `VARCHAR2(128 CHAR)` |  |  |  |  | إدخال المستخدم |  | كائن Oracle DIRECTORY للمجلد (يخصصه مسؤول النظام للمؤسسة: NOONA_DMS_T<رقم المؤسسة>...) |
+| 7 | `BASE_PATH` | نص | `VARCHAR2(500 CHAR)` |  |  |  |  | إدخال المستخدم |  | المسار الفعلي للمجلد (للعرض والتوثيق) |
+| 8 | `FILE_PREFIX` | نص | `VARCHAR2(50 CHAR)` |  |  |  |  | إدخال المستخدم |  | بادئة أسماء الملفات |
+| 9 | `BUCKET_URL` | نص | `VARCHAR2(1000 CHAR)` |  |  |  |  | إدخال المستخدم |  | رابط حاوية التخزين السحابي (OCI/S3) |
+| 10 | `CREDENTIAL_ID` | نص | `VARCHAR2(128 CHAR)` |  |  |  |  | إدخال المستخدم |  | معرف بيانات اعتماد APEX للتخزين السحابي |
+| 11 | `LAST_TEST_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` |  |  |  |  | إدخال المستخدم |  | آخر اختبار للاتصال |
+| 12 | `LAST_TEST_RESULT` | نص | `VARCHAR2(1000 CHAR)` |  |  |  |  | إدخال المستخدم |  | نتيجة آخر اختبار |
+| 13 | `IS_ACTIVE` | منطقي Y/N | `CHAR(1 CHAR)` | ✔ | 'Y' |  | Y, N | إدخال المستخدم |  | نشط؟ |
+| 14 | `ROW_VERSION` | عدد صحيح | `NUMBER(10)` | ✔ | 1 |  |  | Trigger |  | رقم الإصدار للتحكم في التزامن المتفائل |
+| 15 | `CREATED_BY` | اسم مستخدم | `VARCHAR2(128 CHAR)` | ✔ |  |  |  | Trigger |  | منشئ السجل |
+| 16 | `CREATED_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` | ✔ | SYSTIMESTAMP |  |  | Trigger |  | وقت الإنشاء |
+| 17 | `UPDATED_BY` | اسم مستخدم | `VARCHAR2(128 CHAR)` |  |  |  |  | Trigger |  | آخر من عدل السجل |
+| 18 | `UPDATED_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` |  |  |  |  | Trigger |  | وقت آخر تعديل |
 
 ## DMS_DOCUMENT
 
@@ -359,26 +428,28 @@
 |---:|---|---|---|:---:|---|---|---|---|:---:|---|
 | 1 | `ID` | معرف | `NUMBER(19)` | ✔ |  | PK |  | النظام/الحزمة |  | المفتاح الداخلي الثابت (Identity) - لا يعاد استخدامه |
 | 2 | `TENANT_ID` | معرف | `NUMBER(19)` | ✔ |  | FK→PLT_TENANT |  | Security Context |  | المؤسسة المالكة؛ يملأ من Security Context الموثوق لا من مدخلات المستخدم |
-| 3 | `STORAGE_MEDIUM` | رمز | `VARCHAR2(30 CHAR)` | ✔ |  |  | SECUREFILE, OBJECT_STORAGE, NAS, S3_COMPATIBLE | إدخال المستخدم |  | وسيط التخزين |
-| 4 | `STORAGE_KEY` | نص | `VARCHAR2(1000 CHAR)` |  |  |  |  | إدخال المستخدم |  | المفتاح الداخلي في الوسيط (لا يعرض للمستخدم) |
-| 5 | `STORAGE_BUCKET_REF` | نص | `VARCHAR2(200 CHAR)` |  |  |  |  | إدخال المستخدم |  | مرجع الحاوية |
-| 6 | `CONTENT_BLOB` | ثنائي | `BLOB` |  |  |  |  | إدخال المستخدم |  | المحتوى عند SecureFiles |
-| 7 | `FILE_NAME` | نص | `VARCHAR2(500 CHAR)` | ✔ |  |  |  | إدخال المستخدم |  | اسم الملف الأصلي |
-| 8 | `FILE_SIZE_BYTES` | رقم | `NUMBER` | ✔ |  |  |  | إدخال المستخدم |  | الحجم |
-| 9 | `DECLARED_MIME` | نص | `VARCHAR2(200 CHAR)` |  |  |  |  | إدخال المستخدم |  | النوع المعلن |
-| 10 | `DETECTED_MIME` | نص | `VARCHAR2(200 CHAR)` |  |  |  |  | إدخال المستخدم |  | النوع الفعلي المكتشف |
-| 11 | `HASH_ALGORITHM` | نص | `VARCHAR2(20 CHAR)` | ✔ | 'SHA256' |  |  | إدخال المستخدم |  | خوارزمية Hash |
-| 12 | `HASH_VALUE` | Hash | `VARCHAR2(128 CHAR)` | ✔ |  |  |  | إدخال المستخدم |  | قيمة Hash |
-| 13 | `SCAN_STATUS` | رمز | `VARCHAR2(30 CHAR)` | ✔ | 'PENDING' |  | PENDING, CLEAN, INFECTED, FAILED, SKIPPED | إدخال المستخدم |  | فحص البرمجيات الضارة |
-| 14 | `SCANNED_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` |  |  |  |  | إدخال المستخدم |  | وقت الفحص |
-| 15 | `ENCRYPTION_KEY_REF` | نص | `VARCHAR2(200 CHAR)` |  |  |  |  | إدخال المستخدم |  | مرجع مفتاح التشفير |
-| 16 | `LAST_VERIFIED_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` |  |  |  |  | إدخال المستخدم |  | آخر تحقق دوري من Hash |
-| 17 | `STATUS_CODE` | رمز | `VARCHAR2(30 CHAR)` | ✔ | 'PENDING' |  | PENDING, STORED, VERIFIED, MISSING, CORRUPTED, PURGED | النظام/الحزمة |  | الحالة ضمن دورة الحياة المعتمدة |
-| 18 | `ROW_VERSION` | عدد صحيح | `NUMBER(10)` | ✔ | 1 |  |  | Trigger |  | رقم الإصدار للتحكم في التزامن المتفائل |
-| 19 | `CREATED_BY` | اسم مستخدم | `VARCHAR2(128 CHAR)` | ✔ |  |  |  | Trigger |  | منشئ السجل |
-| 20 | `CREATED_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` | ✔ | SYSTIMESTAMP |  |  | Trigger |  | وقت الإنشاء |
-| 21 | `UPDATED_BY` | اسم مستخدم | `VARCHAR2(128 CHAR)` |  |  |  |  | Trigger |  | آخر من عدل السجل |
-| 22 | `UPDATED_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` |  |  |  |  | Trigger |  | وقت آخر تعديل |
+| 3 | `STORAGE_MEDIUM` | رمز | `VARCHAR2(30 CHAR)` | ✔ |  |  | SECUREFILE, OBJECT_STORAGE, NAS, S3_COMPATIBLE, AGENT | إدخال المستخدم |  | وسيط التخزين |
+| 4 | `AGENT_ID` | معرف | `NUMBER(19)` |  |  | FK→DMS_STORAGE_AGENT |  | إدخال المستخدم |  | الوكيل الحافظ للملف (AGENT) |
+| 5 | `CACHE_UNTIL` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` |  |  |  |  | إدخال المستخدم |  | نسخة مؤقتة في القاعدة بعد الجلب من الوكيل حتى هذا الوقت |
+| 6 | `STORAGE_KEY` | نص | `VARCHAR2(1000 CHAR)` |  |  |  |  | إدخال المستخدم |  | المفتاح الداخلي في الوسيط (لا يعرض للمستخدم) |
+| 7 | `STORAGE_BUCKET_REF` | نص | `VARCHAR2(200 CHAR)` |  |  |  |  | إدخال المستخدم |  | مرجع الحاوية |
+| 8 | `CONTENT_BLOB` | ثنائي | `BLOB` |  |  |  |  | إدخال المستخدم |  | المحتوى عند SecureFiles |
+| 9 | `FILE_NAME` | نص | `VARCHAR2(500 CHAR)` | ✔ |  |  |  | إدخال المستخدم |  | اسم الملف الأصلي |
+| 10 | `FILE_SIZE_BYTES` | رقم | `NUMBER` | ✔ |  |  |  | إدخال المستخدم |  | الحجم |
+| 11 | `DECLARED_MIME` | نص | `VARCHAR2(200 CHAR)` |  |  |  |  | إدخال المستخدم |  | النوع المعلن |
+| 12 | `DETECTED_MIME` | نص | `VARCHAR2(200 CHAR)` |  |  |  |  | إدخال المستخدم |  | النوع الفعلي المكتشف |
+| 13 | `HASH_ALGORITHM` | نص | `VARCHAR2(20 CHAR)` | ✔ | 'SHA256' |  |  | إدخال المستخدم |  | خوارزمية Hash |
+| 14 | `HASH_VALUE` | Hash | `VARCHAR2(128 CHAR)` | ✔ |  |  |  | إدخال المستخدم |  | قيمة Hash |
+| 15 | `SCAN_STATUS` | رمز | `VARCHAR2(30 CHAR)` | ✔ | 'PENDING' |  | PENDING, CLEAN, INFECTED, FAILED, SKIPPED | إدخال المستخدم |  | فحص البرمجيات الضارة |
+| 16 | `SCANNED_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` |  |  |  |  | إدخال المستخدم |  | وقت الفحص |
+| 17 | `ENCRYPTION_KEY_REF` | نص | `VARCHAR2(200 CHAR)` |  |  |  |  | إدخال المستخدم |  | مرجع مفتاح التشفير |
+| 18 | `LAST_VERIFIED_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` |  |  |  |  | إدخال المستخدم |  | آخر تحقق دوري من Hash |
+| 19 | `STATUS_CODE` | رمز | `VARCHAR2(30 CHAR)` | ✔ | 'PENDING' |  | PENDING, STORED, VERIFIED, MISSING, CORRUPTED, PURGED | النظام/الحزمة |  | الحالة ضمن دورة الحياة المعتمدة |
+| 20 | `ROW_VERSION` | عدد صحيح | `NUMBER(10)` | ✔ | 1 |  |  | Trigger |  | رقم الإصدار للتحكم في التزامن المتفائل |
+| 21 | `CREATED_BY` | اسم مستخدم | `VARCHAR2(128 CHAR)` | ✔ |  |  |  | Trigger |  | منشئ السجل |
+| 22 | `CREATED_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` | ✔ | SYSTIMESTAMP |  |  | Trigger |  | وقت الإنشاء |
+| 23 | `UPDATED_BY` | اسم مستخدم | `VARCHAR2(128 CHAR)` |  |  |  |  | Trigger |  | آخر من عدل السجل |
+| 24 | `UPDATED_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` |  |  |  |  | Trigger |  | وقت آخر تعديل |
 
 ## DMS_DOCUMENT_VERSION
 

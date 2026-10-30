@@ -68,8 +68,35 @@ SORT_ORDER      INT              | الترتيب
 ''', uk=[('COMPANY_ID', 'ROLE_CODE', 'DOCUMENT_TYPE_ID')], area='document',
       purpose='مستندات وشهادات الموردين والعملاء (السجل التجاري، الضريبة، الزكاة...) وصلاحيتها')
 
+table('DMS_STORAGE_AGENT', 'وكلاء التخزين المحلي', 'Local Storage Agents', scope='C', mix='status', status='ACTIVE DISABLED', cols='''
+NAME            V200 NN          | اسم الوكيل (الجهاز أو الخادم عند الشركة)
+KEY_HASH        HASH NN          | بصمة مفتاح الوكيل SHA-256 (المفتاح نفسه لا يحفظ ويعرض مرة واحدة)
+KEY_HINT        V20              | آخر أحرف المفتاح للتعرف عليه
+HOST_NAME       V200             | اسم الجهاز كما يبلغه الوكيل
+AGENT_VERSION   V50              | إصدار برنامج الوكيل
+STORAGE_PATH    V500             | مسار الحفظ على جهاز الشركة كما يبلغه الوكيل
+LAST_SEEN_AT    TS               | آخر اتصال
+FREE_BYTES      NUM              | المساحة الحرة على قرص الوكيل
+STORED_FILES    NUM              | عدد الملفات المحفوظة عنده
+STORED_BYTES    NUM              | حجمها
+LAST_ERROR      V1000            | آخر خطأ أبلغ عنه
+''', uk=[('COMPANY_ID', 'NAME')], area='document',
+      purpose='برنامج صغير يثبت عند الشركة ويحفظ ملفات الأرشيف على أجهزتها؛ يتصل هو بالنظام (لا يفتح منفذ في شبكة الشركة)')
+
+table('DMS_AGENT_JOB', 'مهام وكيل التخزين', 'Storage Agent Jobs', scope='T', mix='status', status='PENDING SENT DONE FAILED', cols='''
+AGENT_ID        ID   NN >DMS_STORAGE_AGENT | الوكيل
+CONTENT_ID      ID   >DMS_FILE_CONTENT | الملف
+JOB_TYPE        CODE NN IN:PUT,GET,RETURN,DELETE,TEST | المهمة: حفظ عند الوكيل، جلب للعرض، إعادة للقاعدة نهائياً، حذف، اختبار
+ATTEMPTS        INT  NN D=0      | عدد المحاولات
+SENT_AT         TS               | وقت تسليمها للوكيل
+DONE_AT         TS               | وقت إنجازها
+ERROR_TEXT      V1000            | الخطأ
+''', ix=[('TENANT_ID', 'AGENT_ID', 'STATUS_CODE')], area='document',
+      purpose='صف المهام بين النظام والوكيل: الوكيل يسحب مهامه دورياً وينفذها ويبلغ النتيجة')
+
 table('DMS_STORAGE_PROFILE', 'إعدادات تخزين الملفات', 'File Storage Profiles', scope='C', mix='active', cols='''
-STORAGE_MEDIUM  CODE NN D='DATABASE' IN:DATABASE,SERVER_FOLDER,OBJECT_STORAGE | مكان الحفظ
+STORAGE_MEDIUM  CODE NN D='DATABASE' IN:DATABASE,SERVER_FOLDER,OBJECT_STORAGE,LOCAL_AGENT | مكان الحفظ
+AGENT_ID        ID   >DMS_STORAGE_AGENT | وكيل التخزين المحلي (عند LOCAL_AGENT)
 DIRECTORY_NAME  V128             | كائن Oracle DIRECTORY للمجلد (يخصصه مسؤول النظام للمؤسسة: NOONA_DMS_T<رقم المؤسسة>...)
 BASE_PATH       V500             | المسار الفعلي للمجلد (للعرض والتوثيق)
 FILE_PREFIX     V50              | بادئة أسماء الملفات
@@ -110,7 +137,9 @@ IS_DELETED      YN   NN D='N'    | حذف منطقي قابل للاستعادة
       purpose='المستند سجل عمل بهوية ثابتة؛ الاسم أو المسار لا يمنح حق الوصول (17.1)')
 
 table('DMS_FILE_CONTENT', 'محتوى الملفات', 'File Content', scope='T', mix='status', status='PENDING STORED VERIFIED MISSING CORRUPTED PURGED', cols='''
-STORAGE_MEDIUM  CODE NN IN:SECUREFILE,OBJECT_STORAGE,NAS,S3_COMPATIBLE | وسيط التخزين
+STORAGE_MEDIUM  CODE NN IN:SECUREFILE,OBJECT_STORAGE,NAS,S3_COMPATIBLE,AGENT | وسيط التخزين
+AGENT_ID        ID   >DMS_STORAGE_AGENT | الوكيل الحافظ للملف (AGENT)
+CACHE_UNTIL     TS               | نسخة مؤقتة في القاعدة بعد الجلب من الوكيل حتى هذا الوقت
 STORAGE_KEY     V1000            | المفتاح الداخلي في الوسيط (لا يعرض للمستخدم)
 STORAGE_BUCKET_REF V200          | مرجع الحاوية
 CONTENT_BLOB    BLOB             | المحتوى عند SecureFiles

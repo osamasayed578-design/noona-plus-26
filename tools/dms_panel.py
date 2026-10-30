@@ -69,5 +69,16 @@ def download_page(app, pid, scheme):
         'exception',
         '    when apex_application.e_stop_apex_engine then',
         '        null;',
+        # رسالة واضحة داخل عارض المستند (مثل: الملف عند وكيل الشركة وهو غير متصل) بدلاً من صفحة خطأ فارغة
+        '    when others then',
+        "        if sqlerrm like '%NOONA-%' then",
+        "            owa_util.mime_header('text/html', true, 'UTF-8');",
+        "            htp.p('<!doctype html><html lang=\"ar\" dir=\"rtl\"><meta charset=\"utf-8\"><body style=\"font:16px/1.8 Tahoma,sans-serif;"
+        "color:#7a1f1f;background:#fff5f5;margin:0;padding:28px;text-align:center\"><p style=\"font-size:40px;margin:0\">&#9888;</p><p>'",
+        "                || apex_escape.html(regexp_replace(regexp_substr(sqlerrm, 'NOONA-[A-Z]+-[0-9]+: [^' || chr(10) || ']+'), '^NOONA-[A-Z]+-[0-9]+: | *\\[cid=[^]]*\\]')) || '</p></body></html>');",
+        '            apex_application.stop_apex_engine;',
+        '        else',
+        '            raise;',
+        '        end if;',
         'end;'])
     return p

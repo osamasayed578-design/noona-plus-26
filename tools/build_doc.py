@@ -300,24 +300,27 @@ p.dynamic('مكان الحفظ الحالي', 10, 'return noona_dms_pkg.storage_
 f = p.static('تغيير مكان الحفظ', 20, text=(
     '<p class="nn-hint">مجلد الخادم أو NAS يخصصه مسؤول قاعدة البيانات للمؤسسة كـ Oracle DIRECTORY باسم يبدأ بـ '
     '<b dir="ltr">NOONA_DMS_T&lt;رقم المؤسسة&gt;</b> مع صلاحية القراءة والكتابة لـ NOONA_OWNER. الملفات الجديدة تحفظ في المكان المختار، '
-    'والسابقة تبقى في مكانها وتقرأ منه، ويمكن نقلها بزر النقل. بيانات المستند وبصمته تبقى في قاعدة البيانات.</p>'))
+    'والسابقة تبقى في مكانها وتقرأ منه، ويمكن نقلها بزر النقل. بيانات المستند وبصمته تبقى في قاعدة البيانات. '
+    'لحفظ الملفات على أجهزة الشركة نفسها اختر «وكيل تخزين محلي» بعد إضافة الوكيل وتثبيته (القسم التالي).</p>'))
 p.select('P23_MEDIUM', f, 10, 'مكان الحفظ', null_text=None,
-         lov_sql='STATIC2:داخل قاعدة البيانات;DATABASE,مجلد على الخادم / NAS;SERVER_FOLDER,تخزين سحابي OCI/S3 (مرحلة لاحقة);OBJECT_STORAGE')
+         lov_sql='STATIC2:داخل قاعدة البيانات;DATABASE,مجلد على الخادم / NAS;SERVER_FOLDER,وكيل تخزين محلي عند الشركة;LOCAL_AGENT,تخزين سحابي OCI/S3 (مرحلة لاحقة);OBJECT_STORAGE')
+p.select('P23_AGENT', f, 15, 'الوكيل المحلي (عند اختيار الوكيل)', null_text='- اختر الوكيل -',
+         lov_sql="select name d, id r from dms_storage_agent where company_id = noona_dms_pkg.company and status_code = 'ACTIVE' order by name")
 p.select('P23_DIR', f, 20, 'المجلد المخصص', lov_sql='select column_value d, column_value r from table(noona_dms_pkg.storage_directories)',
          null_text='- لا يوجد -')
 p.text('P23_PATH', f, 30, 'وصف المسار (للتوثيق)', maxlen=500)
 p.text('P23_PREFIX', f, 40, 'بادئة أسماء الملفات', maxlen=50, width=15)
 p.process(5, 'BEFORE_HEADER', 'Load Storage', [
     'begin',
-    '    select storage_medium, directory_name, base_path, file_prefix into :P23_MEDIUM, :P23_DIR, :P23_PATH, :P23_PREFIX',
+    '    select storage_medium, directory_name, base_path, file_prefix, agent_id into :P23_MEDIUM, :P23_DIR, :P23_PATH, :P23_PREFIX, :P23_AGENT',
     "      from dms_storage_profile where company_id = noona_dms_pkg.company and is_active = 'Y';",
     'exception when no_data_found then',
     "    :P23_MEDIUM := 'DATABASE';",
     'end;'])
 b1 = p.button(f, 10, 'SAVE_STORAGE', 'حفظ', hot=True)
 b2 = p.button(f, 20, 'TEST_STORAGE', 'اختبار الاتصال')
-b3 = p.button(f, 30, 'MOVE_FILES', 'نقل ملفات قاعدة البيانات إلى المجلد')
-p.process(10, 'AFTER_SUBMIT', 'Save Storage', 'noona_dms_pkg.set_storage(:P23_MEDIUM, :P23_DIR, :P23_PATH, :P23_PREFIX);',
+b3 = p.button(f, 30, 'MOVE_FILES', 'نقل ملفات قاعدة البيانات إلى مكان الحفظ الحالي')
+p.process(10, 'AFTER_SUBMIT', 'Save Storage', 'noona_dms_pkg.set_storage(:P23_MEDIUM, :P23_DIR, :P23_PATH, :P23_PREFIX, :P23_AGENT);',
           when_button=b1, success='تم حفظ مكان الحفظ؛ اختبر الاتصال')
 p.process(20, 'AFTER_SUBMIT', 'Test Storage', [
     'declare l_r varchar2(1000);', 'begin', '    l_r := noona_dms_pkg.test_storage;',
@@ -326,7 +329,45 @@ p.process(20, 'AFTER_SUBMIT', 'Test Storage', [
     'end;'], when_button=b2)
 p.process(30, 'AFTER_SUBMIT', 'Move Files', [
     'declare l_n number;', 'begin', '    l_n := noona_dms_pkg.move_files(500);',
-    "    apex_application.g_print_success_message := 'تم نقل ' || l_n || ' ملف إلى المجلد';", 'end;'], when_button=b3)
+    "    apex_application.g_print_success_message := 'تم نقل ' || l_n || ' ملف إلى مكان الحفظ (ملفات الوكيل تنقل خلال دقائق)';", 'end;'], when_button=b3)
+
+# وكلاء التخزين المحلي: برنامج صغير عند الشركة يحفظ الملفات على أجهزتها (NOONA_DMS_AGENT_PKG + tools/storage_agent)
+p.hidden('P23_NEW_KEY', f, 90, protected=False)
+p.hidden('P23_NEW_AGENT', f, 91, protected=False)
+p.dynamic('تعليمات تثبيت الوكيل', 25, [
+    'declare l clob;', 'begin',
+    '    l := noona_dms_agent_pkg.setup_html(:P23_NEW_AGENT, :P23_NEW_KEY);',
+    "    apex_util.set_session_state('P23_NEW_KEY', null);",   # المفتاح يعرض مرة واحدة
+    '    return l;', 'end;'], condition=':P23_NEW_KEY is not null')
+fa = p.static('وكلاء التخزين المحلي', 30, text=(
+    '<p class="nn-hint">الوكيل برنامج صغير يثبت على جهاز أو خادم داخل الشركة (Windows أو Linux) ويحفظ ملفات الأرشيف على أقراصها. '
+    'هو من يتصل بالنظام فلا يلزم فتح منفذ في شبكة الشركة. الملف لا يحذف من النظام إلا بعد أن يؤكد الوكيل حفظه بنفس البصمة، '
+    'وعند العرض يجلب منه خلال ثوانٍ. إن كان الوكيل غير متصل تبقى الملفات الجديدة في النظام حتى يعود.</p>'))
+p.dynamic('حالة الوكلاء', 35, 'return noona_dms_agent_pkg.agents_html;', hide_header=True)
+p.text('P23_AGENT_NAME', fa, 10, 'اسم الوكيل الجديد', maxlen=200)
+p.select('P23_ACT_AGENT', fa, 20, 'الوكيل', null_text='- اختر للإجراءات -',
+         lov_sql='select name d, id r from dms_storage_agent where company_id = noona_dms_pkg.company order by name')
+b4 = p.button(fa, 10, 'ADD_AGENT', 'إضافة وكيل وإصدار مفتاحه')
+b5 = p.button(fa, 20, 'NEW_KEY', 'مفتاح جديد للوكيل')
+b6 = p.button(fa, 30, 'DISABLE_AGENT', 'إيقاف الوكيل')
+b7 = p.button(fa, 40, 'ENABLE_AGENT', 'تفعيل الوكيل')
+p.process(40, 'AFTER_SUBMIT', 'Add Agent', [
+    'begin',
+    '    :P23_NEW_KEY := noona_dms_agent_pkg.create_agent(:P23_AGENT_NAME);',
+    "    select max(id) into :P23_NEW_AGENT from dms_storage_agent where company_id = noona_dms_pkg.company and name = trim(:P23_AGENT_NAME);",
+    '    :P23_AGENT_NAME := null;',
+    "    apex_application.g_print_success_message := 'تمت إضافة الوكيل؛ انسخ المفتاح وتعليمات التثبيت أدناه';",
+    'end;'], when_button=b4)
+p.process(50, 'AFTER_SUBMIT', 'New Key', [
+    'begin',
+    "    if :P23_ACT_AGENT is null then raise_application_error(-20500, 'NOONA-DMS-165: اختر الوكيل أولاً'); end if;",
+    '    :P23_NEW_KEY := noona_dms_agent_pkg.new_key(:P23_ACT_AGENT);', '    :P23_NEW_AGENT := :P23_ACT_AGENT;',
+    "    apex_application.g_print_success_message := 'تم إصدار مفتاح جديد وتوقف القديم؛ حدّث ملف إعدادات الوكيل';",
+    'end;'], when_button=b5)
+p.process(60, 'AFTER_SUBMIT', 'Disable Agent', "noona_dms_agent_pkg.set_status(:P23_ACT_AGENT, 'DISABLED');", when_button=b6,
+          success='تم إيقاف الوكيل')
+p.process(70, 'AFTER_SUBMIT', 'Enable Agent', "noona_dms_agent_pkg.set_status(:P23_ACT_AGENT, 'ACTIVE');", when_button=b7,
+          success='تم تفعيل الوكيل')
 p.branch(10, url(23) + '&success_msg=#SUCCESS_MSG#')
 
 download_page(app, 49, TENANT)

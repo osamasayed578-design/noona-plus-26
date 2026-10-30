@@ -31,6 +31,7 @@ echo ===== 2/5 synonyms (NOONA_APP)
 sqlplus -S -L NOONA_APP/"%APP_PWD%"@%CONN% @security/41_synonyms_noona_app.sql < nul > nul
 echo ===== REST API v1 on ORDS (/ords/noona/v1/) - skipped with a warning if ORDS is not installed in this database
 sqlplus -S -L NOONA_APP/"%APP_PWD%"@%CONN% @ords/api_v1.sql < nul | findstr /c:"published" /c:"ORA-"
+sqlplus -S -L NOONA_APP/"%APP_PWD%"@%CONN% @ords/agent_v1.sql < nul | findstr /c:"published" /c:"ORA-"
 if errorlevel 1 goto :fail
 
 echo ===== 3/5 demo tenant (NOONA_OWNER)
