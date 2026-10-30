@@ -33,6 +33,8 @@ PROMPT ========== الحزم
 @@plsql/133_noona_prc_pkg.sql
 GRANT EXECUTE ON NOONA_PRC_PKG TO NOONA_APP;
 PROMPT ========== ربط المستشفيات وخدمة السيارات بالعروض والباقات
+@@plsql/106_noona_sal_pkg.sql
+@@plsql/107_noona_pos_pkg.sql
 @@plsql/117_noona_his_pkg.sql
 @@plsql/131_noona_aut_pkg.sql
 
