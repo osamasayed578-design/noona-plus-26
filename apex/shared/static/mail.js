@@ -168,6 +168,17 @@
             '<button type="button" data-a="done">تم الإنجاز</button><button type="button" data-a="refer">إحالة</button></span>' : '') + '</div>';
       }
       h += '<div class="nn-mail-text">' + esc(m.body) + '</div>';
+      if (m.dl && m.dl.length) {
+        var waitPaper = m.dl.some(function (d) { return d.ch === 'PRINT_HANDOVER' && d.st === 'QUEUED'; });
+        h += '<div class="nn-mail-dl"><b>' + icon('fa-paper-plane') + ' إيصال الخطاب للجهة</b>';
+        m.dl.forEach(function (d) {
+          h += '<div class="nn-mail-dl-r is-' + d.st.toLowerCase() + '">' + icon(d.ch === 'EMAIL' ? 'fa-envelope-o' : 'fa-print') + ' ' +
+            esc(d.chl) + (d.to ? ' · ' + esc(d.to) : '') + ' · <span class="nn-mail-dl-s">' + esc(d.stl) + '</span>' +
+            (d.by ? ' · المستلم: ' + esc(d.by) : '') + ' · ' + esc(d.at) + (d.err ? '<div class="nn-mail-dl-e">' + esc(d.err) + '</div>' : '') + '</div>';
+        });
+        h += '<div class="nn-mail-dl-b">' + (waitPaper ? '<button type="button" data-a="handover">' + icon('fa-check') + ' تسجيل تسليم النسخة الورقية</button>' : '') +
+          '<button type="button" data-a="resend">' + icon('fa-envelope-o') + ' إرسال بالبريد الإلكتروني</button></div></div>';
+      }
       if (m.att.length) {
         h += '<div class="nn-mail-atts">';
         m.att.forEach(function (a) {
@@ -256,7 +267,8 @@
     var c = { doc: { id: doc.id || null, kind: doc.kind || 'INTERNAL', type: doc.type || null, to: doc.to || [], cc: doc.cc || [],
       bcc: doc.bcc || [], subject: doc.subject || '', body: doc.body || '', priority: doc.priority || 'NORMAL', instr: doc.instr || '',
       due: doc.due || '', parent: doc.parent || null, rel: doc.rel || null, ext_no: doc.ext_no || '', letter_date: doc.letter_date || '',
-      party: doc.party || '', party_id: doc.party_id || null, conf: doc.conf || 'INTERNAL' }, att: doc.att || [], dirty: false, busy: false };
+      party: doc.party || '', party_id: doc.party_id || null, conf: doc.conf || 'INTERNAL', delivery: doc.delivery || 'PRINT',
+      email: doc.email || '', channel: doc.channel || 'MANUAL' }, att: doc.att || [], dirty: false, busy: false };
     var w = el('div', 'nn-mail-cw');
     var canReg = S.meta && S.meta.canReg === 'Y';
     var types = (S.meta ? S.meta.types : []);
@@ -269,7 +281,13 @@
       }).join('') + '<select class="nn-mail-type" aria-label="نوع المراسلة"></select></div>' : '') +
       '<div class="nn-mail-ext"><div class="nn-mail-line"><label>الجهة</label><input type="text" class="nn-mail-party" autocomplete="off" placeholder="اسم الجهة الخارجية">' +
       '<div class="nn-mail-sug" hidden></div></div><div class="nn-mail-line nn-mail-2"><label>الرقم الخارجي</label><input type="text" class="nn-mail-extno">' +
-      '<label>تاريخ الخطاب</label><input type="date" class="nn-mail-ld"></div></div>' +
+      '<label>تاريخ الخطاب</label><input type="date" class="nn-mail-ld"></div>' +
+      '<div class="nn-mail-line nn-mail-2 nn-mail-out"><label>طريقة الإرسال</label><select class="nn-mail-dlv">' +
+      opts([['PRINT', 'طباعة وتسليم'], ['EMAIL', 'بريد إلكتروني'], ['BOTH', 'بريد إلكتروني وطباعة']], c.doc.delivery) + '</select>' +
+      '<label>بريد الجهة</label><input type="email" class="nn-mail-em" dir="ltr" maxlength="320" placeholder="name@example.com"></div>' +
+      '<div class="nn-mail-line nn-mail-in"><label>ورد عن طريق</label><select class="nn-mail-chn">' +
+      opts([['MANUAL', 'تسليم باليد / بريد عادي'], ['EMAIL', 'بريد إلكتروني'], ['PORTAL', 'بوابة إلكترونية'], ['SCAN', 'مسح ضوئي']], c.doc.channel) +
+      '</select></div></div>' +
       '<div class="nn-mail-r-to"></div><div class="nn-mail-r-cc" hidden></div><div class="nn-mail-r-bcc" hidden></div>' +
       '<div class="nn-mail-line"><input type="text" class="nn-mail-subj" placeholder="الموضوع" aria-label="الموضوع" maxlength="1000">' +
       '<button type="button" class="nn-mail-lnk" data-c="cc">نسخة</button><button type="button" class="nn-mail-lnk" data-c="bcc">مخفية</button></div>' +
@@ -296,6 +314,7 @@
     q('.nn-mail-party').value = c.doc.party;
     q('.nn-mail-extno').value = c.doc.ext_no;
     q('.nn-mail-ld').value = c.doc.letter_date;
+    q('.nn-mail-em').value = c.doc.email;
 
     function kindUi() {
       w.classList.toggle('is-ext', c.doc.kind !== 'INTERNAL');
@@ -307,7 +326,11 @@
         w.querySelectorAll('.nn-mail-kind button').forEach(function (b) { b.classList.toggle('is-on', b.dataset.k === c.doc.kind); });
       }
       q('.nn-mail-r-to label').textContent = c.doc.kind === 'INCOMING' ? 'إحالة إلى' : c.doc.kind === 'OUTGOING' ? 'نسخة داخلية' : 'إلى';
+      q('.nn-mail-out').hidden = c.doc.kind !== 'OUTGOING';
+      q('.nn-mail-in').hidden = c.doc.kind !== 'INCOMING';
+      q('.nn-mail-em').disabled = q('.nn-mail-dlv').value === 'PRINT';
     }
+    q('.nn-mail-dlv').addEventListener('change', function () { q('.nn-mail-em').disabled = this.value === 'PRINT'; });
     kindUi();
     renderAtts();
 
@@ -315,6 +338,7 @@
       c.doc.subject = q('.nn-mail-subj').value; c.doc.body = q('.nn-mail-txt').value; c.doc.priority = q('.nn-mail-prio').value;
       c.doc.instr = q('.nn-mail-ins').value; c.doc.due = q('.nn-mail-due').value; c.doc.party = q('.nn-mail-party').value;
       c.doc.ext_no = q('.nn-mail-extno').value; c.doc.letter_date = q('.nn-mail-ld').value;
+      c.doc.delivery = q('.nn-mail-dlv').value; c.doc.email = q('.nn-mail-em').value.trim(); c.doc.channel = q('.nn-mail-chn').value;
       if (q('.nn-mail-type')) c.doc.type = q('.nn-mail-type').value || null;
       return JSON.stringify(c.doc);
     }
@@ -482,6 +506,19 @@
         function (dd) { return call('DONE', [m.id, dd.querySelector('.nn-mail-note').value]).then(function () { toast('سُجل الإنجاز'); openThread(m.id); }); });
         break;
       case 'refer': referDialog(m); break;
+      case 'handover': dialog('تسليم النسخة الورقية', '<label>اسم المستلم لدى الجهة وصفته<input type="text" class="nn-mail-rcv" maxlength="200"></label>',
+        'تسجيل التسليم', function (dd) {
+          return call('HANDOVER', [m.id, dd.querySelector('.nn-mail-rcv').value]).then(function () { toast('سُجل تسليم الخطاب'); openThread(m.id); });
+        });
+        break;
+      case 'resend': (function () {
+        var last = (m.dl || []).filter(function (d) { return d.ch === 'EMAIL'; }).pop();
+        var dd = dialog('إرسال الخطاب بالبريد الإلكتروني', '<label>بريد الجهة<input type="email" class="nn-mail-em" dir="ltr" maxlength="320"></label>' +
+          '<p class="nn-hint">يرسل من بريد الشركة المعرف في الإعدادات مع نسخة الخطاب الرسمية والمرفقات.</p>', 'إرسال', function (x) {
+            return call('RESEND', [m.id, x.querySelector('.nn-mail-em').value]).then(function () { toast('وُضع الخطاب في طابور البريد'); openThread(m.id); });
+          });
+        dd.querySelector('.nn-mail-em').value = last && last.to ? last.to : '';
+      })(); break;
       case 'reply': replyTo(m, false); break;
       case 'replyall': replyTo(m, true); break;
       case 'forward': compose({ subject: /^تحويل:/.test(S.thread.subject) ? S.thread.subject : 'تحويل: ' + S.thread.subject,

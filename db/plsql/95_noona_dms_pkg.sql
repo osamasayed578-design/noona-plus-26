@@ -94,6 +94,9 @@ CREATE OR REPLACE PACKAGE NOONA_DMS_PKG AUTHID DEFINER AS
     ACCESSIBLE BY (PACKAGE NOONA_COR_PKG);
   PROCEDURE system_download(p_document_id IN NUMBER, p_mode IN VARCHAR2 DEFAULT 'VIEW')
     ACCESSIBLE BY (PACKAGE NOONA_COR_PKG);
+  -- محتوى المرفق لإرساله بالبريد مع الخطاب الصادر
+  FUNCTION system_content(p_document_id IN NUMBER, o_file_name OUT VARCHAR2, o_mime OUT VARCHAR2) RETURN BLOB
+    ACCESSIBLE BY (PACKAGE NOONA_COR_PKG);
 END NOONA_DMS_PKG;
 /
 
@@ -1277,6 +1280,21 @@ CREATE OR REPLACE PACKAGE BODY NOONA_DMS_PKG AS
   EXCEPTION WHEN NO_DATA_FOUND THEN
     owa_util.status_line(404, 'Not Found');
   END system_download;
+
+  FUNCTION system_content(p_document_id IN NUMBER, o_file_name OUT VARCHAR2, o_mime OUT VARCHAR2) RETURN BLOB
+    ACCESSIBLE BY (PACKAGE NOONA_COR_PKG) IS
+    l_doc dms_document%ROWTYPE;
+    l_cid NUMBER;
+    l_b   BLOB;
+  BEGIN
+    SELECT * INTO l_doc FROM dms_document WHERE id = p_document_id AND is_deleted = 'N';
+    SELECT c.id, c.detected_mime, c.file_name INTO l_cid, o_mime, o_file_name
+      FROM dms_document_version v JOIN dms_file_content c ON c.id = v.content_id
+     WHERE v.id = l_doc.current_version_id;
+    -- الإرسال يسجل في تدقيق المراسلات (سجل الاطلاع المستقل قد يقفل على مرفق لم يحفظ بعد في نفس المعاملة)
+    l_b := read_content(l_cid);
+    RETURN l_b;
+  END system_content;
 
 END NOONA_DMS_PKG;
 /

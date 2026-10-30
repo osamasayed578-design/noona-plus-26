@@ -767,6 +767,15 @@ tr:hover .nn-badge { transform: scale(1.05); }
 .nn-mail-refs { margin-top: 14px; display: grid; gap: 8px; }
 .nn-mail-ref { background: #f8fafd; border-inline-start: 3px solid var(--nn-primary); padding: 8px 12px; border-radius: 4px; font-size: .86rem; color: #3c4043; }
 .nn-mail-ref-n { margin-top: 4px; color: #1f1f1f; white-space: pre-wrap; }
+.nn-mail-line[hidden] { display: none; }
+.nn-mail-dl { margin: 12px 0; padding: 10px 12px; border: 1px solid var(--nn-border); border-radius: 6px; font-size: .86rem; }
+.nn-mail-dl > b { display: block; margin-bottom: 6px; color: var(--nn-text); }
+.nn-mail-dl-r { padding: 4px 0; color: #3c4043; }
+.nn-mail-dl-r.is-sent .nn-mail-dl-s, .nn-mail-dl-r.is-delivered .nn-mail-dl-s { color: var(--nn-success); font-weight: 600; }
+.nn-mail-dl-r.is-failed .nn-mail-dl-s { color: var(--nn-danger); font-weight: 600; }
+.nn-mail-dl-e { color: var(--nn-danger); margin-top: 2px; }
+.nn-mail-dl-b { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+.nn-mail-dl-b button { border: 1px solid var(--nn-border); background: var(--nn-surface); border-radius: 16px; padding: 4px 12px; cursor: pointer; }
 .nn-mail-ok { color: var(--nn-success); font-weight: 700; }
 /* نافذة الإنشاء */
 .nn-mail-composers { position: fixed; bottom: 0; inset-inline-end: 24px; z-index: 900; display: flex; align-items: flex-end; gap: 16px; }

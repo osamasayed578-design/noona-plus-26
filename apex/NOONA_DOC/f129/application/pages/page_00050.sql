@@ -106,6 +106,8 @@ wwv_flow_imp_page.create_page_process(
 '        when ''REFER'' then noona_cor_pkg.refer(n(apex_application.g_x02), n(apex_application.g_x03), apex_application.g_x04,',
 '                                               to_date(apex_application.g_x05, ''YYYY-MM-DD''), apex_application.g_x06);',
 '        when ''LETTER'' then l_c := noona_cor_pkg.letter_html(n(apex_application.g_x02));',
+'        when ''RESEND'' then noona_cor_pkg.resend_email(n(apex_application.g_x02), apex_application.g_x03);',
+'        when ''HANDOVER'' then noona_cor_pkg.record_handover(n(apex_application.g_x02), apex_application.g_x03);',
 '        else raise_application_error(-20500, ''NOONA-COR-099: عملية غير معروفة '' || l_op);',
 '    end case;',
 '    out(nvl(l_c, to_clob(''{"ok":true}'')));',

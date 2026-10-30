@@ -1,6 +1,6 @@
 # ERD — الحزمة 05: المراسلات والإشعارات والتدقيق
 
-**Correspondence, Notifications & Audit** · الحزمة البرمجية `NOONA_CORRESPONDENCE_PKG` · عدد الجداول: **24**
+**Correspondence, Notifications & Audit** · الحزمة البرمجية `NOONA_CORRESPONDENCE_PKG` · عدد الجداول: **25**
 
 المراسلات الواردة والصادرة والداخلية مع فصل الجهة المقصودة عن المستلم الفعلي، وسجل تسليم مستقل لكل مستلم بأبعاد التسليم/الاطلاع/الإجراء/العرض، والتداول والتعليمات والأولوية؛ ومحرك الإشعارات المركزي (NOONA_NOTIFICATION_PKG)؛ وسجل التدقيق المركزي غير القابل للتعديل (NOONA_AUDIT_PKG).
 
@@ -112,6 +112,11 @@ erDiagram
     NUMBER PROOF_DOCUMENT_ID FK
     VARCHAR2 IDEMPOTENCY_KEY UK
     VARCHAR2 STATUS_CODE
+  }
+  COR_MAIL_PROFILE {
+    NUMBER ID PK
+    NUMBER TENANT_ID FK
+    NUMBER COMPANY_ID FK,UK
   }
   COR_CASE_FILE {
     NUMBER ID PK
@@ -296,6 +301,7 @@ erDiagram
   ORG_COMPANY |o--o{ COR_CASE_FILE : "COMPANY_ID"
   ORG_COMPANY |o--o{ NTF_RULE : "COMPANY_ID"
   ORG_COMPANY ||--o{ COR_CORRESPONDENCE : "COMPANY_ID"
+  ORG_COMPANY ||--o| COR_MAIL_PROFILE : "COMPANY_ID"
   ORG_POSITION |o--o{ COR_RECIPIENT : "POSITION_ID"
   ORG_UNIT |o--o{ COR_CASE_FILE : "OWNER_UNIT_ID"
   ORG_UNIT |o--o{ COR_CORRESPONDENCE : "OWNER_UNIT_ID"
@@ -345,6 +351,7 @@ erDiagram
 | `COR_CIRCULATION_NOTE` | تعليقات التداول | Circulation Notes | T |
 | `COR_DUE_CHANGE` | تغييرات المواعيد والأولوية | Due Date & Priority Changes | T |
 | `COR_DISPATCH` | محاولات الإرسال الخارجي | Outbound Dispatch Attempts | T |
+| `COR_MAIL_PROFILE` | بريد الشركة للمراسلات الخارجية | Correspondence Mail Profile | C |
 | `COR_CASE_FILE` | ملفات القضايا | Case Files | T |
 | `COR_CASE_LINK` | ربط المراسلات بالقضايا | Case File Links | T |
 | `NTF_EVENT_TYPE` | أنواع أحداث الإشعار | Notification Event Types | TO |

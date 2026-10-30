@@ -108,6 +108,7 @@ BEGIN
   NOONA_VPD_PKG.add_tenant_policy('COR_DISPATCH');
   NOONA_VPD_PKG.add_tenant_policy('COR_DUE_CHANGE');
   NOONA_VPD_PKG.add_shared_policy('COR_INSTRUCTION');
+  NOONA_VPD_PKG.add_tenant_policy('COR_MAIL_PROFILE');
   NOONA_VPD_PKG.add_tenant_policy('COR_PARTY');
   NOONA_VPD_PKG.add_shared_policy('COR_PRIORITY_POLICY');
   NOONA_VPD_PKG.add_tenant_policy('COR_RECIPIENT');

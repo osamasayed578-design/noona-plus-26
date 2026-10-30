@@ -374,6 +374,43 @@ download_page(app, 49, TENANT)
 
 mail_pages(app, TENANT)
 
+# =============================================================== 24) بريد المراسلات الخارجية
+p = app.page(24, 'Correspondence Mail', 'CORRESPONDENCE-MAIL', 'بريد المراسلات الخارجية', scheme=DMS)
+f = p.static('بريد الشركة', 10, text=(
+    '<p class="nn-hint">الخطاب الصادر الذي يختار مرسله «بريد إلكتروني» يرسل من هذا العنوان مع نسخة الخطاب الرسمية ومرفقاته، '
+    'ويظهر في الخطاب: في طابور البريد ثم أرسل أو فشل مع السبب وإمكانية إعادة الإرسال. الإرسال يتم عبر خادم البريد (SMTP) المعرف '
+    'في إدارة APEX؛ ويجب أن يكون عنوان المرسل مسموحاً به في ذلك الخادم. ردود الجهات تصل إلى «عنوان الرد» وتسجل وارداً بقناة «بريد إلكتروني».</p>'))
+p.text('P24_FROM', f, 10, 'عنوان المرسل', maxlen=320, width=30)
+p.text('P24_NAME', f, 20, 'اسم المرسل الظاهر', maxlen=200)
+p.text('P24_REPLY', f, 30, 'عنوان الرد (صندوق الوارد الذي تتابعه الإدارة)', maxlen=320, width=30)
+p.text('P24_BCC', f, 40, 'نسخة مخفية للأرشيف (اختياري)', maxlen=320, width=30)
+p.textarea('P24_SIGN', f, 50, 'التذييل', rows=3)
+p.yesno('P24_ACTIVE', f, 60, 'مفعل')
+p.process(5, 'BEFORE_HEADER', 'Load Mail', [
+    'declare l json_object_t;',
+    'begin',
+    '    l := json_object_t.parse(noona_cor_pkg.mail_profile_json);',
+    "    :P24_FROM := l.get_string('from'); :P24_NAME := l.get_string('name'); :P24_REPLY := l.get_string('reply_to');",
+    "    :P24_BCC := l.get_string('bcc'); :P24_SIGN := l.get_string('signature');",
+    "    :P24_ACTIVE := case when :P24_FROM is null then 'Y' else l.get_string('active') end;",
+    'end;'])
+b = p.button(f, 10, 'SAVE_MAIL', 'حفظ', hot=True)
+p.process(10, 'AFTER_SUBMIT', 'Save Mail', [
+    'begin',
+    '    noona_cor_pkg.save_mail_profile(:P24_FROM, :P24_NAME, :P24_REPLY, :P24_BCC, :P24_SIGN, :P24_ACTIVE);',
+    'end;'], when_button=b, success='تم حفظ بريد المراسلات')
+p.ir('آخر عمليات الإرسال الخارجي', 20, [
+    "select d.id, c.correspondence_no, c.subject, case d.channel when 'EMAIL' then 'بريد إلكتروني' else 'تسليم ورقي' end as ch,",
+    "       d.destination, case d.status_code when 'QUEUED' then 'بانتظار' when 'SENDING' then 'في طابور البريد' when 'SENT' then 'أرسل'",
+    "       when 'DELIVERED' then 'سُلّم' when 'FAILED' then 'فشل' else d.status_code end as st, d.received_by, d.error_message,",
+    "       to_char(nvl(d.delivered_at, d.created_at), 'YYYY-MM-DD HH24:MI') as at",
+    "  from cor_dispatch d join cor_correspondence c on c.id = d.correspondence_id",
+    " where c.company_id = noona_dms_pkg.company order by d.id desc"],
+    [('ID', '#', {'hidden': True, 'type': 'NUMBER'}), ('CORRESPONDENCE_NO', 'الرقم', {}), ('SUBJECT', 'الموضوع', {}), ('CH', 'الطريقة', {}),
+     ('DESTINATION', 'إلى', {}), ('ST', 'الحالة', {}), ('RECEIVED_BY', 'المستلم', {}), ('ERROR_MESSAGE', 'الخطأ', {}), ('AT', 'الوقت', {})],
+    titled=True, rows=20)
+p.branch(10, url(24) + '&success_msg=#SUCCESS_MSG#')
+
 app.nav_item('المراسلات', 50, 'fa-envelope', 5)
 app.nav_item('لوحة الأرشيف', 1, 'fa-archive', 10, scheme=DMS)
 app.nav_item('البحث في الأرشيف', 10, 'fa-search', 20, scheme=DMS)
@@ -385,6 +422,7 @@ app.nav_item('أنواع المستندات', 20, 'fa-files-o', 41, parent=st)
 app.nav_item('قواعد الأرشفة', 21, 'fa-gavel', 42, parent=st)
 app.nav_item('المستندات المطلوبة للأطراف', 22, 'fa-list-ol', 44, parent=st)
 app.nav_item('مكان حفظ الملفات', 23, 'fa-hdd-o', 45, parent=st)
+app.nav_item('بريد المراسلات الخارجية', 24, 'fa-at', 46, parent=st)
 app.nav_item('سجل الوصول', 30, 'fa-eye', 43, parent=st)
 
 app.finalize()

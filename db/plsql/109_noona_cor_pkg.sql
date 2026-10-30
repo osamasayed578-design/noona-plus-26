@@ -55,6 +55,20 @@ CREATE OR REPLACE PACKAGE NOONA_COR_PKG AUTHID DEFINER AS
   FUNCTION unread_count RETURN NUMBER;
   -- نسخة الطباعة الرسمية (خطاب / مذكرة)
   FUNCTION letter_html(p_id IN NUMBER) RETURN CLOB;
+
+  -- ================================================================ إيصال الصادر الخارجي
+  -- لكل خطاب صادر طريقة: PRINT طباعة وتسليم يدوي، EMAIL بريد إلكتروني من بريد الشركة (APEX_MAIL)، BOTH الاثنان.
+  -- كل محاولة تسجل في COR_DISPATCH: البريد QUEUED → SENDING (في طابور البريد) → SENT / FAILED،
+  -- والتسليم اليدوي QUEUED → DELIVERED باسم المستلم لدى الجهة
+  FUNCTION mail_profile_json RETURN CLOB;
+  PROCEDURE save_mail_profile(p_from IN VARCHAR2, p_name IN VARCHAR2, p_reply_to IN VARCHAR2, p_bcc IN VARCHAR2,
+                              p_signature IN VARCHAR2, p_active IN VARCHAR2 DEFAULT 'Y');
+  -- إعادة إرسال البريد (بعد فشل أو لعنوان مصحح)
+  PROCEDURE resend_email(p_id IN NUMBER, p_email IN VARCHAR2 DEFAULT NULL);
+  -- تسجيل تسليم النسخة الورقية للجهة
+  PROCEDURE record_handover(p_id IN NUMBER, p_received_by IN VARCHAR2, p_note IN VARCHAR2 DEFAULT NULL);
+  -- حالة الإيصال لعرضها مع الخطاب
+  FUNCTION dispatch_json(p_id IN NUMBER) RETURN CLOB;
 END NOONA_COR_PKG;
 /
 
@@ -495,6 +509,7 @@ CREATE OR REPLACE PACKAGE BODY NOONA_COR_PKG AS
       l_out := l_out || ((CASE WHEN NOT l_first THEN ',' END
             || '{"id":' || c.id || ',"from":' || jt(l_from) || ',"fi":' || jt(initials(l_from))
             || ',"mine":' || jt(CASE WHEN c.author_member_id = l_me THEN 'Y' ELSE 'N' END)
+            || ',"dl":' || CASE WHEN c.direction = 'OUTGOING' AND c.status_code <> 'DRAFT' THEN dispatch_json(c.id) ELSE TO_CLOB('[]') END
             || ',"by":' || jt(CASE WHEN c.direction = 'INCOMING' THEN 'سجله ' || name_of(c.author_member_id) END)
             || ',"to":' || addressees(c.id, 'TO') || ',"cc":' || addressees(c.id, 'CC')
             || ',"bcc":' || CASE WHEN c.author_member_id = l_me THEN addressees(c.id, 'BCC') ELSE '[]' END
@@ -598,7 +613,9 @@ CREATE OR REPLACE PACKAGE BODY NOONA_COR_PKG AS
         || ',"parent":' || NVL(TO_CHAR(l_c.parent_id), 'null') || ',"rel":' || jt(l_c.relation_type)
         || ',"ext_no":' || jt(l_c.external_no) || ',"letter_date":' || jt(TO_CHAR(l_c.letter_date, 'YYYY-MM-DD'))
         || ',"party":' || jt(l_p.name_snapshot) || ',"party_id":' || NVL(TO_CHAR(l_p.party_id), 'null')
-        || ',"conf":' || jt(l_c.confidentiality_level) || ',"att":' || attachments(p_id) || '}';
+        || ',"conf":' || jt(l_c.confidentiality_level) || ',"att":' || attachments(p_id)
+        || ',"delivery":' || jt(NVL(l_c.delivery_method, 'PRINT')) || ',"email":' || jt(l_p.email)
+        || ',"channel":' || jt(NVL(l_c.inbound_channel, 'MANUAL')) || '}';
   END draft_json;
 
   FUNCTION reply_seed_json(p_id IN NUMBER, p_all IN VARCHAR2 DEFAULT 'N') RETURN CLOB IS
@@ -651,6 +668,9 @@ CREATE OR REPLACE PACKAGE BODY NOONA_COR_PKG AS
     l_party  VARCHAR2(400) := SUBSTR(TRIM(l_o.get_string('party')), 1, 400);
     l_pty    NUMBER := l_o.get_number('party_id');
     l_conf   VARCHAR2(30) := NVL(UPPER(l_o.get_string('conf')), 'INTERNAL');
+    l_dlv    VARCHAR2(10) := NVL(UPPER(l_o.get_string('delivery')), 'PRINT');
+    l_email  VARCHAR2(320) := SUBSTR(LOWER(TRIM(l_o.get_string('email'))), 1, 320);
+    l_chan   VARCHAR2(30) := NVL(UPPER(l_o.get_string('channel')), 'MANUAL');
     l_new    BOOLEAN := l_id IS NULL;
     l_arr    JSON_ARRAY_T;
     l_e      JSON_OBJECT_T;
@@ -669,6 +689,8 @@ CREATE OR REPLACE PACKAGE BODY NOONA_COR_PKG AS
     NOONA_CORE_PKG.assert(l_kind = 'INTERNAL' OR can('COR_CORRESPONDENCE.CREATE'), 'NOONA-COR-009',
       'تسجيل الوارد والصادر يتطلب صلاحية إنشاء المراسلات', 'Registering incoming/outgoing letters requires COR_CORRESPONDENCE.CREATE');
     NOONA_CORE_PKG.assert(l_prio IN ('LOW', 'NORMAL', 'HIGH', 'URGENT', 'VERY_URGENT'), 'NOONA-COR-010', 'الأولوية غير صحيحة', 'Invalid priority');
+    NOONA_CORE_PKG.assert(l_dlv IN ('PRINT', 'EMAIL', 'BOTH'), 'NOONA-COR-030', 'طريقة الإرسال: طباعة أو بريد أو الاثنان', 'Invalid delivery method');
+    NOONA_CORE_PKG.assert(l_chan IN ('MANUAL', 'EMAIL', 'PORTAL', 'SCAN'), 'NOONA-COR-031', 'قناة الورود غير صحيحة', 'Invalid inbound channel');
     l_type := type_id(l_o.get_string('type'), l_kind);
     IF l_pid IS NOT NULL THEN
       l_parent := cor_row(l_pid);
@@ -681,7 +703,7 @@ CREATE OR REPLACE PACKAGE BODY NOONA_COR_PKG AS
                                       external_party_id, thread_id, parent_id, original_id, relation_type, confidentiality_level,
                                       status_code, correlation_id)
       VALUES (company, TO_NUMBER(SYS_CONTEXT('NOONA_CTX', 'BRANCH_ID')), l_type, l_kind, NVL(l_subj, '(بدون موضوع)'), l_body, 'ar',
-              me, l_ld, l_prio, CAST(l_due + 1 - 1/86400 AS TIMESTAMP), CASE WHEN l_kind = 'INCOMING' THEN 'MANUAL' END,
+              me, l_ld, l_prio, CAST(l_due + 1 - 1/86400 AS TIMESTAMP), CASE WHEN l_kind = 'INCOMING' THEN l_chan END,
               l_ext, l_pty, l_tid, l_pid,
               CASE WHEN l_rel = 'FORWARD' THEN l_pid END, CASE WHEN l_pid IS NOT NULL THEN NVL(l_rel, 'REPLY') END, l_conf,
               'DRAFT', NOONA_CTX_PKG.correlation_id)
@@ -746,9 +768,12 @@ CREATE OR REPLACE PACKAGE BODY NOONA_COR_PKG AS
     -- الجهة الخارجية
     DELETE FROM cor_party WHERE correspondence_id = l_id;
     IF l_kind <> 'INTERNAL' AND l_party IS NOT NULL THEN
-      INSERT INTO cor_party (correspondence_id, party_role, party_id, name_snapshot)
-      VALUES (l_id, CASE l_kind WHEN 'INCOMING' THEN 'SENDER' ELSE 'RECIPIENT' END, l_pty, l_party);
+      INSERT INTO cor_party (correspondence_id, party_role, party_id, name_snapshot, email)
+      VALUES (l_id, CASE l_kind WHEN 'INCOMING' THEN 'SENDER' ELSE 'RECIPIENT' END, l_pty, l_party, l_email);
     END IF;
+    UPDATE cor_correspondence SET delivery_method = CASE WHEN l_kind = 'OUTGOING' THEN l_dlv END,
+                                  inbound_channel = CASE WHEN l_kind = 'INCOMING' THEN l_chan END
+     WHERE id = l_id;
     RETURN l_id;
   END save_draft;
 
@@ -806,6 +831,199 @@ CREATE OR REPLACE PACKAGE BODY NOONA_COR_PKG AS
     RETURN l_rid;
   END add_recipient;
 
+  -- ================================================================ إيصال الصادر الخارجي
+  FUNCTION valid_email(p VARCHAR2) RETURN BOOLEAN IS
+  BEGIN
+    RETURN REGEXP_LIKE(p, '^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$');
+  END valid_email;
+
+  PROCEDURE new_dispatch(p_id NUMBER, p_channel VARCHAR2, p_dest VARCHAR2, o_id OUT NUMBER) IS
+    l_n NUMBER;
+  BEGIN
+    SELECT COUNT(*) + 1 INTO l_n FROM cor_dispatch WHERE correspondence_id = p_id AND channel = p_channel;
+    INSERT INTO cor_dispatch (correspondence_id, channel, destination, attempt_no, idempotency_key, status_code)
+    VALUES (p_id, p_channel, SUBSTR(p_dest, 1, 500), l_n, 'COR:' || p_id || ':' || p_channel || ':' || l_n, 'QUEUED')
+    RETURNING id INTO o_id;
+  END new_dispatch;
+
+  -- نص الخطاب الرسمي (للطباعة يضاف أمر الطباعة التلقائية)
+  FUNCTION letter_doc(p_id NUMBER, p_print BOOLEAN) RETURN CLOB;
+
+  -- يضع الخطاب في طابور بريد APEX من بريد الشركة مع المرفقات؛ لا يرفع خطأ (يسجل في محاولة الإرسال)
+  PROCEDURE send_email(p_dispatch_id NUMBER) IS
+    l_d    cor_dispatch%ROWTYPE;
+    l_c    cor_correspondence%ROWTYPE;
+    l_mp   cor_mail_profile%ROWTYPE;
+    l_to   VARCHAR2(320);
+    l_mail NUMBER;
+    l_blob BLOB;
+    l_name VARCHAR2(500);
+    l_mime VARCHAR2(200);
+    l_err  VARCHAR2(1000);
+    l_txt  CLOB;
+    l_html CLOB;
+  BEGIN
+    SELECT * INTO l_d FROM cor_dispatch WHERE id = p_dispatch_id;
+    SELECT * INTO l_c FROM cor_correspondence WHERE id = l_d.correspondence_id;
+    l_to := l_d.destination;
+    IF l_to IS NULL THEN
+      SELECT MAX(email) INTO l_to FROM cor_party WHERE correspondence_id = l_c.id AND party_role = 'RECIPIENT';
+      UPDATE cor_dispatch SET destination = l_to WHERE id = p_dispatch_id;
+    END IF;
+    BEGIN
+      SELECT * INTO l_mp FROM cor_mail_profile WHERE company_id = l_c.company_id AND is_active = 'Y';
+    EXCEPTION WHEN NO_DATA_FOUND THEN
+      l_err := 'لم يعرف بريد الشركة للمراسلات الخارجية (الإعدادات ← بريد الشركة)';
+    END;
+    IF l_err IS NULL AND NOT valid_email(l_to) THEN
+      l_err := 'عنوان البريد غير صحيح: ' || l_to;
+    END IF;
+    IF l_err IS NULL THEN
+      BEGIN
+        l_txt := l_c.subject || CHR(10) || 'الرقم: ' || l_c.correspondence_no || CHR(10) || CHR(10)
+                 || DBMS_LOB.SUBSTR(l_c.body_text, 28000, 1)
+                 || CASE WHEN l_mp.signature_text IS NOT NULL THEN CHR(10) || CHR(10) || l_mp.signature_text END;
+        l_html := letter_doc(l_c.id, FALSE)
+                  || CASE WHEN l_mp.signature_text IS NOT NULL THEN '<p style="font-family:Tahoma,Arial;color:#6b7280;direction:rtl">'
+                          || REPLACE(esc(l_mp.signature_text), CHR(10), '<br>') || '</p>' END;
+        l_mail := APEX_MAIL.send(
+          p_to        => l_to,
+          p_from      => CASE WHEN l_mp.from_name IS NOT NULL THEN '"' || REPLACE(l_mp.from_name, '"') || '" <' || l_mp.from_address || '>'
+                              ELSE l_mp.from_address END,
+          p_body      => l_txt,
+          p_body_html => l_html,
+          p_subj      => l_c.subject || ' - ' || l_c.correspondence_no,
+          p_cc        => NULL,
+          p_bcc       => l_mp.archive_bcc,
+          p_replyto   => NVL(l_mp.reply_to, l_mp.from_address));
+        FOR a IN (SELECT l.document_id FROM dms_document_link l
+                   WHERE l.entity_type = 'COR_CORRESPONDENCE' AND l.entity_id = l_c.id AND l.status_code = 'ACTIVE') LOOP
+          l_blob := NOONA_DMS_PKG.system_content(a.document_id, l_name, l_mime);
+          APEX_MAIL.add_attachment(p_mail_id => l_mail, p_attachment => l_blob, p_filename => l_name, p_mime_type => l_mime);
+        END LOOP;
+      EXCEPTION WHEN OTHERS THEN
+        l_err := SUBSTR('تعذر وضع الرسالة في طابور البريد: ' || SQLERRM, 1, 1000);
+      END;
+    END IF;
+    UPDATE cor_dispatch
+       SET status_code = CASE WHEN l_err IS NULL THEN 'SENDING' ELSE 'FAILED' END, provider_message_id = TO_CHAR(l_mail),
+           error_message = l_err
+     WHERE id = p_dispatch_id;
+    NOONA_AUDIT_PKG.log_event('CORRESPONDENCE', 'COR_DISPATCH', p_dispatch_id, 'EMAIL', CASE WHEN l_err IS NULL THEN 'SUCCESS' ELSE 'FAILED' END,
+      p_new_values => '{"correspondence":' || l_c.id || ',"to":' || jt(l_to) || '}');
+  END send_email;
+
+  -- حالة البريد من طابور APEX: خرج من الطابور = أرسل، وبقي بخطأ = فشل
+  PROCEDURE sync_dispatch(p_id NUMBER) IS
+    l_err VARCHAR2(4000);
+    l_n   NUMBER;
+  BEGIN
+    FOR d IN (SELECT id, provider_message_id FROM cor_dispatch
+               WHERE correspondence_id = p_id AND channel = 'EMAIL' AND status_code = 'SENDING') LOOP
+      BEGIN
+        SELECT COUNT(*), MAX(mail_send_error) INTO l_n, l_err FROM apex_mail_queue WHERE id = TO_NUMBER(d.provider_message_id);
+        IF l_n = 0 THEN
+          SELECT COUNT(*) INTO l_n FROM apex_mail_log WHERE mail_id = TO_NUMBER(d.provider_message_id);
+          IF l_n > 0 THEN
+            UPDATE cor_dispatch SET status_code = 'SENT', delivered_at = SYSTIMESTAMP WHERE id = d.id;
+          END IF;
+        ELSIF l_err IS NOT NULL THEN
+          UPDATE cor_dispatch SET status_code = 'FAILED', error_message = SUBSTR(l_err, 1, 1000) WHERE id = d.id;
+        END IF;
+      EXCEPTION WHEN OTHERS THEN NULL;                           -- خارج جلسة APEX لا تقرأ حالة الطابور
+      END;
+    END LOOP;
+  END sync_dispatch;
+
+  FUNCTION mail_profile_json RETURN CLOB IS
+    l cor_mail_profile%ROWTYPE;
+  BEGIN
+    BEGIN
+      SELECT * INTO l FROM cor_mail_profile WHERE company_id = company;
+    EXCEPTION WHEN NO_DATA_FOUND THEN NULL;
+    END;
+    RETURN '{"from":' || jt(l.from_address) || ',"name":' || jt(l.from_name) || ',"reply_to":' || jt(l.reply_to)
+        || ',"bcc":' || jt(l.archive_bcc) || ',"signature":' || jt(l.signature_text) || ',"active":' || jt(NVL(l.is_active, 'N')) || '}';
+  END mail_profile_json;
+
+  PROCEDURE save_mail_profile(p_from IN VARCHAR2, p_name IN VARCHAR2, p_reply_to IN VARCHAR2, p_bcc IN VARCHAR2,
+                              p_signature IN VARCHAR2, p_active IN VARCHAR2 DEFAULT 'Y') IS
+    l_from VARCHAR2(320) := LOWER(TRIM(p_from));
+  BEGIN
+    NOONA_CORE_PKG.assert_tenant_writable;
+    NOONA_SECURITY_PKG.assert_permission('COR_MAIL_PROFILE.UPDATE', company);
+    NOONA_CORE_PKG.assert(valid_email(l_from), 'NOONA-COR-033', 'بريد المرسل غير صحيح', 'Invalid sender address');
+    NOONA_CORE_PKG.assert(TRIM(p_reply_to) IS NULL OR valid_email(TRIM(p_reply_to)), 'NOONA-COR-034', 'عنوان الرد غير صحيح', 'Invalid reply-to');
+    NOONA_CORE_PKG.assert(TRIM(p_bcc) IS NULL OR valid_email(TRIM(p_bcc)), 'NOONA-COR-035', 'عنوان نسخة الأرشيف غير صحيح', 'Invalid archive address');
+    MERGE INTO cor_mail_profile m USING (SELECT company c FROM dual) x ON (m.company_id = x.c)
+     WHEN MATCHED THEN UPDATE SET from_address = l_from, from_name = TRIM(p_name), reply_to = LOWER(TRIM(p_reply_to)),
+                                  archive_bcc = LOWER(TRIM(p_bcc)), signature_text = TRIM(p_signature), is_active = NVL(p_active, 'Y')
+     WHEN NOT MATCHED THEN INSERT (company_id, from_address, from_name, reply_to, archive_bcc, signature_text, is_active)
+                           VALUES (x.c, l_from, TRIM(p_name), LOWER(TRIM(p_reply_to)), LOWER(TRIM(p_bcc)), TRIM(p_signature), NVL(p_active, 'Y'));
+    NOONA_AUDIT_PKG.log_event('CONFIG', 'COR_MAIL_PROFILE', company, 'SAVE', 'SUCCESS', p_new_values => '{"from":' || jt(l_from) || '}');
+  END save_mail_profile;
+
+  PROCEDURE assert_dispatcher(p_c cor_correspondence%ROWTYPE) IS
+  BEGIN
+    NOONA_CORE_PKG.assert_tenant_writable;
+    NOONA_CORE_PKG.assert(p_c.direction = 'OUTGOING' AND p_c.status_code NOT IN ('DRAFT', 'CANCELLED') AND p_c.company_id = company
+      AND (p_c.author_member_id = me OR can('COR_CORRESPONDENCE.CREATE')), 'NOONA-COR-036',
+      'الإجراء لخطاب صادر مرسل، لمنشئه أو لمسجل الصادر', 'Only for sent outgoing letters, by their author or registry');
+  END assert_dispatcher;
+
+  PROCEDURE resend_email(p_id IN NUMBER, p_email IN VARCHAR2 DEFAULT NULL) IS
+    l_c   cor_correspondence%ROWTYPE := cor_row(p_id);
+    l_to  VARCHAR2(320) := LOWER(TRIM(p_email));
+    l_did NUMBER;
+  BEGIN
+    assert_dispatcher(l_c);
+    IF l_to IS NOT NULL THEN
+      NOONA_CORE_PKG.assert(valid_email(l_to), 'NOONA-COR-032', 'أدخل بريداً إلكترونياً صحيحاً للجهة', 'A valid e-mail address is required');
+      UPDATE cor_party SET email = l_to WHERE correspondence_id = p_id AND party_role = 'RECIPIENT';
+    END IF;
+    new_dispatch(p_id, 'EMAIL', l_to, l_did);
+    send_email(l_did);
+    IF l_c.delivery_method = 'PRINT' THEN
+      UPDATE cor_correspondence SET delivery_method = 'BOTH' WHERE id = p_id;
+    END IF;
+  END resend_email;
+
+  PROCEDURE record_handover(p_id IN NUMBER, p_received_by IN VARCHAR2, p_note IN VARCHAR2 DEFAULT NULL) IS
+    l_c   cor_correspondence%ROWTYPE := cor_row(p_id);
+    l_did NUMBER;
+  BEGIN
+    assert_dispatcher(l_c);
+    NOONA_CORE_PKG.assert(TRIM(p_received_by) IS NOT NULL, 'NOONA-COR-037', 'أدخل اسم المستلم لدى الجهة', 'Receiver name is required');
+    SELECT MAX(id) INTO l_did FROM cor_dispatch WHERE correspondence_id = p_id AND channel = 'PRINT_HANDOVER' AND status_code = 'QUEUED';
+    IF l_did IS NULL THEN
+      new_dispatch(p_id, 'PRINT_HANDOVER', party_name(p_id), l_did);
+    END IF;
+    UPDATE cor_dispatch SET status_code = 'DELIVERED', received_by = SUBSTR(TRIM(p_received_by), 1, 200), delivered_at = SYSTIMESTAMP,
+                            error_message = SUBSTR(TRIM(p_note), 1, 1000)
+     WHERE id = l_did;
+    NOONA_AUDIT_PKG.log_event('CORRESPONDENCE', 'COR_DISPATCH', l_did, 'HANDOVER', 'SUCCESS',
+      p_new_values => '{"correspondence":' || p_id || ',"received_by":' || jt(p_received_by) || '}');
+  END record_handover;
+
+  FUNCTION dispatch_json(p_id IN NUMBER) RETURN CLOB IS
+    l_c  cor_correspondence%ROWTYPE := cor_row(p_id);
+    l_j  CLOB := '[';
+  BEGIN
+    assert_see(l_c);
+    sync_dispatch(p_id);
+    FOR d IN (SELECT * FROM cor_dispatch WHERE correspondence_id = p_id ORDER BY id) LOOP
+      l_j := l_j || (CASE WHEN l_j <> '[' THEN ',' END || '{"id":' || d.id || ',"ch":' || jt(d.channel)
+          || ',"chl":' || jt(CASE d.channel WHEN 'EMAIL' THEN 'بريد إلكتروني' ELSE 'تسليم ورقي' END)
+          || ',"st":' || jt(d.status_code)
+          || ',"stl":' || jt(CASE d.status_code WHEN 'QUEUED' THEN CASE d.channel WHEN 'EMAIL' THEN 'بانتظار الإرسال' ELSE 'بانتظار التسليم' END
+                                                WHEN 'SENDING' THEN 'في طابور البريد' WHEN 'SENT' THEN 'أرسل'
+                                                WHEN 'DELIVERED' THEN 'سُلّم' WHEN 'FAILED' THEN 'فشل' ELSE d.status_code END)
+          || ',"to":' || jt(d.destination) || ',"by":' || jt(d.received_by) || ',"err":' || jt(d.error_message)
+          || ',"at":' || jt(TO_CHAR(NVL(d.delivered_at, d.created_at), 'YYYY-MM-DD HH24:MI')) || '}');
+    END LOOP;
+    RETURN l_j || ']';
+  END dispatch_json;
+
   PROCEDURE send_draft(p_id NUMBER) IS
     l_c     cor_correspondence%ROWTYPE;
     l_ids   t_ids;
@@ -827,6 +1045,14 @@ CREATE OR REPLACE PACKAGE BODY NOONA_COR_PKG AS
     NOONA_CORE_PKG.assert(l_c.direction = 'INTERNAL' OR l_party > 0, 'NOONA-COR-015',
       CASE l_c.direction WHEN 'INCOMING' THEN 'أدخل الجهة المرسلة للخطاب الوارد' ELSE 'أدخل الجهة المرسل إليها الخطاب الصادر' END,
       'External party is required');
+    IF l_c.direction = 'OUTGOING' AND NVL(l_c.delivery_method, 'PRINT') IN ('EMAIL', 'BOTH') THEN
+      l_party := 0;
+      FOR e IN (SELECT email FROM cor_party WHERE correspondence_id = p_id AND party_role = 'RECIPIENT') LOOP
+        IF valid_email(e.email) THEN l_party := l_party + 1; END IF;
+      END LOOP;
+      NOONA_CORE_PKG.assert(l_party > 0, 'NOONA-COR-032', 'أدخل بريداً إلكترونياً صحيحاً للجهة أو اختر الطباعة فقط',
+        'A valid e-mail address is required for e-mail delivery');
+    END IF;
     ensure_sequence(l_c.direction);
     UPDATE cor_correspondence
        SET correspondence_no = NOONA_REFERENCE_PKG.next_doc_no('COR_' || l_c.direction, company, NULL, TRUNC(SYSDATE),
@@ -871,6 +1097,16 @@ CREATE OR REPLACE PACKAGE BODY NOONA_COR_PKG AS
     END IF;
     NOONA_AUDIT_PKG.log_event('CORRESPONDENCE', 'COR_CORRESPONDENCE', p_id, 'SEND', 'SUCCESS',
       p_new_values => '{"direction":' || jt(l_c.direction) || ',"recipients":' || l_total || '}');
+    -- إيصال الصادر للجهة الخارجية
+    IF l_c.direction = 'OUTGOING' THEN
+      IF NVL(l_c.delivery_method, 'PRINT') IN ('PRINT', 'BOTH') THEN
+        new_dispatch(p_id, 'PRINT_HANDOVER', party_name(p_id), l_rid);
+      END IF;
+      IF l_c.delivery_method IN ('EMAIL', 'BOTH') THEN
+        new_dispatch(p_id, 'EMAIL', NULL, l_rid);
+        send_email(l_rid);
+      END IF;
+    END IF;
   END send_draft;
 
   FUNCTION send(p_doc IN CLOB) RETURN NUMBER IS
@@ -1058,13 +1294,18 @@ CREATE OR REPLACE PACKAGE BODY NOONA_COR_PKG AS
 
   -- ================================================================ الطباعة
   FUNCTION letter_html(p_id IN NUMBER) RETURN CLOB IS
+  BEGIN
+    assert_see(cor_row(p_id));
+    RETURN letter_doc(p_id, TRUE);
+  END letter_html;
+
+  FUNCTION letter_doc(p_id NUMBER, p_print BOOLEAN) RETURN CLOB IS
     l_c    cor_correspondence%ROWTYPE := cor_row(p_id);
     l_co   VARCHAR2(400);
     l_to   VARCHAR2(4000);
     l_cc   VARCHAR2(4000);
     l_type VARCHAR2(200);
   BEGIN
-    assert_see(l_c);
     SELECT MAX(legal_name_ar) INTO l_co FROM org_company WHERE id = l_c.company_id;
     SELECT MAX(name_ar) INTO l_type FROM cor_type WHERE id = l_c.cor_type_id;
     SELECT LISTAGG(target_name_snapshot, '، ') WITHIN GROUP (ORDER BY sort_order) INTO l_to
@@ -1091,8 +1332,8 @@ CREATE OR REPLACE PACKAGE BODY NOONA_COR_PKG AS
         || '<div class="row"><span class="lbl">الموضوع:</span> <b>' || esc(l_c.subject) || '</b></div>'
         || '<div class="body">' || esc(DBMS_LOB.SUBSTR(l_c.body_text, 30000, 1)) || '</div>'
         || '<div class="sg">' || esc(name_of(l_c.author_member_id)) || '</div></div>'
-        || '<script>window.onload=function(){window.print();}</script></body></html>';
-  END letter_html;
+        || CASE WHEN p_print THEN '<script>window.onload=function(){window.print();}</script>' END || '</body></html>';
+  END letter_doc;
 
 END NOONA_COR_PKG;
 /

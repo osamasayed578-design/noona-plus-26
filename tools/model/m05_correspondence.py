@@ -66,6 +66,7 @@ IS_INCOMPLETE   YN   NN D='N'    | بيانات ناقصة (وارد بلا رق
 CLOSED_BY       USR              | من أغلق
 CLOSE_REASON    V1000            | سبب الإغلاق
 CORRELATION_ID  V64              | معرف الارتباط
+DELIVERY_METHOD CODE IN:PRINT,EMAIL,BOTH | طريقة إيصال الصادر الخارجي: طباعة وتسليم، بريد إلكتروني، أو الاثنان
 AUTHOR_STARRED  YN   NN D='N'    | مميزة بنجمة لدى المرسل
 ''', nuk=[('TENANT_ID', 'COMPANY_ID', 'CORRESPONDENCE_NO')],
       ix=[('TENANT_ID', 'THREAD_ID'), ('TENANT_ID', 'STATUS_CODE', 'DUE_AT'), ('TENANT_ID', 'EXTERNAL_NO')],
@@ -177,7 +178,18 @@ PROVIDER_MESSAGE_ID V200         | معرف الرسالة لدى المزود
 PROOF_DOCUMENT_ID ID >DMS_DOCUMENT | إثبات الإرسال/الاستلام
 IDEMPOTENCY_KEY V100 NN          | منع الإرسال المكرر
 ERROR_MESSAGE   V1000            | الخطأ
+RECEIVED_BY     V200             | المستلم لدى الجهة (التسليم اليدوي)
+DELIVERED_AT    TS               | وقت التسليم أو الإرسال الفعلي
 ''', uk=[('TENANT_ID', 'IDEMPOTENCY_KEY')], area='delivery')
+
+table('COR_MAIL_PROFILE', 'بريد الشركة للمراسلات الخارجية', 'Correspondence Mail Profile', scope='C', mix='active', cols='''
+FROM_ADDRESS    V320 NN          | عنوان المرسل (بريد الشركة المعتمد في خادم البريد)
+FROM_NAME       V200             | اسم المرسل الظاهر
+REPLY_TO        V320             | عنوان الرد (صندوق الوارد الذي تتابعه الإدارة)
+ARCHIVE_BCC     V320             | نسخة مخفية للأرشيف
+SIGNATURE_TEXT  V1000            | التذييل
+''', uk=[('COMPANY_ID',)], area='delivery',
+      purpose='الصادر الخارجي بالبريد يرسل من بريد الشركة عبر خادم البريد المعرف في APEX (APEX_MAIL)')
 
 table('COR_CASE_FILE', 'ملفات القضايا', 'Case Files', scope='T', mix='code names status conf', status='OPEN CLOSED ARCHIVED', cols='''
 COMPANY_ID      ID   >ORG_COMPANY | الشركة

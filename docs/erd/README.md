@@ -10,7 +10,7 @@
 | 02 | الهيكل التنظيمي والهوية والأمن | Organization Structure, Identity & Security | 37 | [p02_sec](p02_sec.md) |
 | 03 | سير العمل والطلبات والاعتمادات والتفويض | Workflow, Requests, Approvals & Delegation | 27 | [p03_wf](p03_wf.md) |
 | 04 | إدارة المستندات والأرشفة | Document Management & Archive | 31 | [p04_dms](p04_dms.md) |
-| 05 | المراسلات والإشعارات والتدقيق | Correspondence, Notifications & Audit | 24 | [p05_cor](p05_cor.md) |
+| 05 | المراسلات والإشعارات والتدقيق | Correspondence, Notifications & Audit | 25 | [p05_cor](p05_cor.md) |
 | 06 | البيانات المرجعية المشتركة والأطراف | Shared Reference Data & Global Party Model | 29 | [p06_ref](p06_ref.md) |
 | 07 | المحاسبة العامة والمحرك المحاسبي | General Ledger & Accounting Engine | 41 | [p07_gl](p07_gl.md) |
 | 08 | العملاء والحسابات المدينة | Customers & Accounts Receivable | 19 | [p08_ar](p08_ar.md) |
@@ -39,7 +39,7 @@
 | 31 | المستشفيات والمراكز الطبية | Hospital & Clinics | 40 | [p31_his](p31_his.md) |
 | 32 | مراكز خدمة السيارات | Auto Service Centers | 10 | [p32_aut](p32_aut.md) |
 
-**الإجمالي: 633 جدول.**
+**الإجمالي: 634 جدول.**
 
 ## خريطة اعتماديات الحزم
 
