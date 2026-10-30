@@ -182,6 +182,12 @@ RECEIVED_BY     V200             | المستلم لدى الجهة (التسل�
 DELIVERED_AT    TS               | وقت التسليم أو الإرسال الفعلي
 ''', uk=[('TENANT_ID', 'IDEMPOTENCY_KEY')], area='delivery')
 
+table('COR_POLICY', 'سياسة المراسلات الداخلية', 'Internal Correspondence Policy', scope='C', cols='''
+RESTRICT_BY_HIERARCHY YN NN D='N' | تقييد المراسلات الداخلية بالهيكل التنظيمي (الأعلى المباشر، المرؤوسون، الزملاء؛ دون تجاوز)
+ALLOW_REPLY_TO_SENDER YN NN D='Y' | الرد على من راسلك مسموح دائماً
+''', uk=[('COMPANY_ID',)], area='correspondence',
+      purpose='الاتصال حسب الهيكل: صلاحيات COR_CONTACT.UP / DOWN / PEER / ANY')
+
 table('COR_MAIL_PROFILE', 'بريد الشركة للمراسلات الخارجية', 'Correspondence Mail Profile', scope='C', mix='active', cols='''
 FROM_ADDRESS    V320 NN          | عنوان المرسل (بريد الشركة المعتمد في خادم البريد)
 FROM_NAME       V200             | اسم المرسل الظاهر

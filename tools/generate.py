@@ -603,6 +603,10 @@ def gen_security_and_seed():
         for a in actions:
             risk = 'HIGH' if a in ('APPROVE', 'POST', 'REVERSE', 'CONFIGURE', 'DELETE', 'EXPORT') else 'NORMAL'
             perms.append((f'{t.name}.{a}', t.module.code, t.name, a, risk, t.ar))
+    # صلاحيات إجرائية ليست على جدول: اتجاهات الاتصال في المراسلات الداخلية
+    for act, ar in (('UP', 'مراسلة الرئيس المباشر والوحدة الأعلى'), ('DOWN', 'مراسلة المرؤوسين والوحدات التابعة'),
+                    ('PEER', 'مراسلة الزملاء والوحدات النظيرة'), ('ANY', 'مراسلة أي جهة دون قيد الهيكل')):
+        perms.append((f'COR_CONTACT.{act}', 'COR', 'COR_CONTACT', act, 'HIGH' if act == 'ANY' else 'NORMAL', 'الاتصال: ' + ar))
     sd.append('')
     for code, mod, res, act, risk, ar in perms:
         sd.append(f"INSERT INTO SEC_PERMISSION (PERMISSION_CODE, MODULE_CODE, RESOURCE_CODE, ACTION_CODE, RISK_LEVEL, "

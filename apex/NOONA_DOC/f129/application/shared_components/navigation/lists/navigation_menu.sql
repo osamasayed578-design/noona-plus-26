@@ -18,7 +18,7 @@ wwv_flow_imp_shared.create_list(
 ,p_version_scn=>137120771
 );
 wwv_flow_imp_shared.create_list_item(
- p_id=>wwv_flow_imp.id(91820267000000247)
+ p_id=>wwv_flow_imp.id(91820267000000262)
 ,p_list_item_display_sequence=>5
 ,p_list_item_link_text=>'المراسلات'
 ,p_list_item_link_target=>'f?p=&APP_ID.:50:&APP_SESSION.::&DEBUG.:50::'
@@ -26,7 +26,7 @@ wwv_flow_imp_shared.create_list_item(
 ,p_list_item_current_type=>'TARGET_PAGE'
 );
 wwv_flow_imp_shared.create_list_item(
- p_id=>wwv_flow_imp.id(91820267000000248)
+ p_id=>wwv_flow_imp.id(91820267000000263)
 ,p_list_item_display_sequence=>10
 ,p_list_item_link_text=>'لوحة الأرشيف'
 ,p_list_item_link_target=>'f?p=&APP_ID.:1:&APP_SESSION.::&DEBUG.:1::'
@@ -35,7 +35,7 @@ wwv_flow_imp_shared.create_list_item(
 ,p_list_item_current_type=>'TARGET_PAGE'
 );
 wwv_flow_imp_shared.create_list_item(
- p_id=>wwv_flow_imp.id(91820267000000249)
+ p_id=>wwv_flow_imp.id(91820267000000264)
 ,p_list_item_display_sequence=>20
 ,p_list_item_link_text=>'البحث في الأرشيف'
 ,p_list_item_link_target=>'f?p=&APP_ID.:10:&APP_SESSION.::&DEBUG.:10::'
@@ -44,7 +44,7 @@ wwv_flow_imp_shared.create_list_item(
 ,p_list_item_current_type=>'TARGET_PAGE'
 );
 wwv_flow_imp_shared.create_list_item(
- p_id=>wwv_flow_imp.id(91820267000000250)
+ p_id=>wwv_flow_imp.id(91820267000000265)
 ,p_list_item_display_sequence=>30
 ,p_list_item_link_text=>'أرشفة مستند'
 ,p_list_item_link_target=>'f?p=&APP_ID.:12:&APP_SESSION.::&DEBUG.:12::'
@@ -53,7 +53,7 @@ wwv_flow_imp_shared.create_list_item(
 ,p_list_item_current_type=>'TARGET_PAGE'
 );
 wwv_flow_imp_shared.create_list_item(
- p_id=>wwv_flow_imp.id(91820267000000251)
+ p_id=>wwv_flow_imp.id(91820267000000266)
 ,p_list_item_display_sequence=>32
 ,p_list_item_link_text=>'مستندات الأطراف'
 ,p_list_item_link_target=>'f?p=&APP_ID.:40:&APP_SESSION.::&DEBUG.:40::'
@@ -62,7 +62,7 @@ wwv_flow_imp_shared.create_list_item(
 ,p_list_item_current_type=>'TARGET_PAGE'
 );
 wwv_flow_imp_shared.create_list_item(
- p_id=>wwv_flow_imp.id(91820267000000252)
+ p_id=>wwv_flow_imp.id(91820267000000267)
 ,p_list_item_display_sequence=>34
 ,p_list_item_link_text=>'المنتهية والقريبة الانتهاء'
 ,p_list_item_link_target=>'f?p=&APP_ID.:41:&APP_SESSION.::&DEBUG.:41::'
@@ -71,7 +71,7 @@ wwv_flow_imp_shared.create_list_item(
 ,p_list_item_current_type=>'TARGET_PAGE'
 );
 wwv_flow_imp_shared.create_list_item(
- p_id=>wwv_flow_imp.id(91820267000000253)
+ p_id=>wwv_flow_imp.id(91820267000000268)
 ,p_list_item_display_sequence=>40
 ,p_list_item_link_text=>'الإعدادات'
 ,p_list_item_link_target=>''
@@ -79,57 +79,66 @@ wwv_flow_imp_shared.create_list_item(
 ,p_security_scheme=>wwv_flow_imp.id(91820267000000009)
 );
 wwv_flow_imp_shared.create_list_item(
- p_id=>wwv_flow_imp.id(91820267000000254)
+ p_id=>wwv_flow_imp.id(91820267000000269)
 ,p_list_item_display_sequence=>41
 ,p_list_item_link_text=>'أنواع المستندات'
 ,p_list_item_link_target=>'f?p=&APP_ID.:20:&APP_SESSION.::&DEBUG.:20::'
 ,p_list_item_icon=>'fa-files-o'
-,p_parent_list_item_id=>wwv_flow_imp.id(91820267000000253)
+,p_parent_list_item_id=>wwv_flow_imp.id(91820267000000268)
 ,p_list_item_current_type=>'TARGET_PAGE'
 );
 wwv_flow_imp_shared.create_list_item(
- p_id=>wwv_flow_imp.id(91820267000000255)
+ p_id=>wwv_flow_imp.id(91820267000000270)
 ,p_list_item_display_sequence=>42
 ,p_list_item_link_text=>'قواعد الأرشفة'
 ,p_list_item_link_target=>'f?p=&APP_ID.:21:&APP_SESSION.::&DEBUG.:21::'
 ,p_list_item_icon=>'fa-gavel'
-,p_parent_list_item_id=>wwv_flow_imp.id(91820267000000253)
+,p_parent_list_item_id=>wwv_flow_imp.id(91820267000000268)
 ,p_list_item_current_type=>'TARGET_PAGE'
 );
 wwv_flow_imp_shared.create_list_item(
- p_id=>wwv_flow_imp.id(91820267000000256)
+ p_id=>wwv_flow_imp.id(91820267000000271)
 ,p_list_item_display_sequence=>44
 ,p_list_item_link_text=>'المستندات المطلوبة للأطراف'
 ,p_list_item_link_target=>'f?p=&APP_ID.:22:&APP_SESSION.::&DEBUG.:22::'
 ,p_list_item_icon=>'fa-list-ol'
-,p_parent_list_item_id=>wwv_flow_imp.id(91820267000000253)
+,p_parent_list_item_id=>wwv_flow_imp.id(91820267000000268)
 ,p_list_item_current_type=>'TARGET_PAGE'
 );
 wwv_flow_imp_shared.create_list_item(
- p_id=>wwv_flow_imp.id(91820267000000257)
+ p_id=>wwv_flow_imp.id(91820267000000272)
 ,p_list_item_display_sequence=>45
 ,p_list_item_link_text=>'مكان حفظ الملفات'
 ,p_list_item_link_target=>'f?p=&APP_ID.:23:&APP_SESSION.::&DEBUG.:23::'
 ,p_list_item_icon=>'fa-hdd-o'
-,p_parent_list_item_id=>wwv_flow_imp.id(91820267000000253)
+,p_parent_list_item_id=>wwv_flow_imp.id(91820267000000268)
 ,p_list_item_current_type=>'TARGET_PAGE'
 );
 wwv_flow_imp_shared.create_list_item(
- p_id=>wwv_flow_imp.id(91820267000000258)
+ p_id=>wwv_flow_imp.id(91820267000000273)
 ,p_list_item_display_sequence=>46
 ,p_list_item_link_text=>'بريد المراسلات الخارجية'
 ,p_list_item_link_target=>'f?p=&APP_ID.:24:&APP_SESSION.::&DEBUG.:24::'
 ,p_list_item_icon=>'fa-at'
-,p_parent_list_item_id=>wwv_flow_imp.id(91820267000000253)
+,p_parent_list_item_id=>wwv_flow_imp.id(91820267000000268)
 ,p_list_item_current_type=>'TARGET_PAGE'
 );
 wwv_flow_imp_shared.create_list_item(
- p_id=>wwv_flow_imp.id(91820267000000259)
+ p_id=>wwv_flow_imp.id(91820267000000274)
+,p_list_item_display_sequence=>47
+,p_list_item_link_text=>'سياسة المراسلات الداخلية'
+,p_list_item_link_target=>'f?p=&APP_ID.:25:&APP_SESSION.::&DEBUG.:25::'
+,p_list_item_icon=>'fa-sitemap'
+,p_parent_list_item_id=>wwv_flow_imp.id(91820267000000268)
+,p_list_item_current_type=>'TARGET_PAGE'
+);
+wwv_flow_imp_shared.create_list_item(
+ p_id=>wwv_flow_imp.id(91820267000000275)
 ,p_list_item_display_sequence=>43
 ,p_list_item_link_text=>'سجل الوصول'
 ,p_list_item_link_target=>'f?p=&APP_ID.:30:&APP_SESSION.::&DEBUG.:30::'
 ,p_list_item_icon=>'fa-eye'
-,p_parent_list_item_id=>wwv_flow_imp.id(91820267000000253)
+,p_parent_list_item_id=>wwv_flow_imp.id(91820267000000268)
 ,p_list_item_current_type=>'TARGET_PAGE'
 );
 wwv_flow_imp.component_end;

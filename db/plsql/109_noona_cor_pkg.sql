@@ -24,6 +24,12 @@ CREATE OR REPLACE PACKAGE NOONA_COR_PKG AUTHID DEFINER AS
   FUNCTION thread_json(p_id IN NUMBER) RETURN CLOB;
   -- دليل المستلمين: المستخدمون والوحدات التنظيمية
   FUNCTION directory_json(p_q IN VARCHAR2) RETURN CLOB;
+  -- الاتصال حسب الهيكل التنظيمي (عند تفعيل سياسة الشركة): UP الرئيس المباشر أو الوحدة الأعلى، DOWN المرؤوسون أو الوحدات التابعة،
+  -- PEER الزملاء تحت نفس الرئيس أو الوحدات النظيرة؛ لكل اتجاه صلاحية COR_CONTACT.<الاتجاه>، و COR_CONTACT.ANY دون قيد.
+  -- p_kind: U عضو، O وحدة تنظيمية
+  FUNCTION relation(p_from IN NUMBER, p_kind IN VARCHAR2, p_target IN NUMBER) RETURN VARCHAR2;
+  FUNCTION policy_json RETURN CLOB;
+  PROCEDURE save_policy(p_restrict IN VARCHAR2, p_allow_reply IN VARCHAR2 DEFAULT 'Y');
   -- الجهات الخارجية (الأطراف) للوارد والصادر
   FUNCTION parties_json(p_q IN VARCHAR2) RETURN CLOB;
   -- مسودة لإعادة فتحها في نافذة الإنشاء
@@ -93,6 +99,103 @@ CREATE OR REPLACE PACKAGE BODY NOONA_COR_PKG AS
   BEGIN
     RETURN NOONA_SECURITY_PKG.has_permission(p_perm, company) = 'Y';
   END can;
+
+  -- ================================================================ الاتصال حسب الهيكل التنظيمي
+  FUNCTION name_of(p_member NUMBER) RETURN VARCHAR2;
+  FUNCTION policy RETURN cor_policy%ROWTYPE IS
+    l cor_policy%ROWTYPE;
+  BEGIN
+    SELECT * INTO l FROM cor_policy WHERE company_id = TO_NUMBER(SYS_CONTEXT('NOONA_CTX', 'COMPANY_ID'));
+    RETURN l;
+  EXCEPTION WHEN NO_DATA_FOUND THEN
+    l.restrict_by_hierarchy := 'N'; l.allow_reply_to_sender := 'Y';
+    RETURN l;
+  END policy;
+
+  FUNCTION unit_of(p_member NUMBER) RETURN NUMBER IS
+    l_pos  NUMBER := NOONA_ORG_PKG.primary_position(p_member);
+    l_unit NUMBER;
+  BEGIN
+    IF l_pos IS NULL THEN RETURN NULL; END IF;
+    SELECT org_unit_id INTO l_unit FROM org_position WHERE id = l_pos;
+    RETURN l_unit;
+  END unit_of;
+
+  FUNCTION parent_unit(p_unit NUMBER) RETURN NUMBER IS
+    l NUMBER;
+  BEGIN
+    SELECT parent_unit_id INTO l FROM org_unit WHERE id = p_unit;
+    RETURN l;
+  EXCEPTION WHEN NO_DATA_FOUND THEN RETURN NULL;
+  END parent_unit;
+
+  FUNCTION relation(p_from IN NUMBER, p_kind IN VARCHAR2, p_target IN NUMBER) RETURN VARCHAR2 IS
+    l_mgr  NUMBER;
+    l_unit NUMBER;
+    l_head BOOLEAN;
+    l_tp   NUMBER;
+  BEGIN
+    IF p_target IS NULL OR p_from IS NULL THEN RETURN NULL; END IF;
+    IF p_kind = 'O' THEN
+      l_unit := unit_of(p_from);
+      IF l_unit IS NULL THEN RETURN NULL; END IF;
+      l_head := NVL(NOONA_ORG_PKG.unit_head(l_unit) = p_from, FALSE);
+      IF p_target = l_unit THEN
+        RETURN CASE WHEN l_head THEN NULL ELSE 'UP' END;          -- وحدتي: رئيسها هو رئيسي المباشر
+      ELSIF NOT l_head THEN
+        RETURN NULL;                                             -- غير الرئيس لا يخاطب وحدات أخرى (تجاوز)
+      END IF;
+      l_tp := parent_unit(p_target);
+      RETURN CASE WHEN p_target = parent_unit(l_unit) THEN 'UP'
+                  WHEN l_tp = l_unit THEN 'DOWN'
+                  WHEN l_tp = parent_unit(l_unit) THEN 'PEER' END;
+    END IF;
+    IF p_target = p_from THEN RETURN NULL; END IF;
+    l_mgr := NOONA_ORG_PKG.manager_of(p_from);
+    IF p_target = l_mgr THEN RETURN 'UP'; END IF;
+    l_tp := NOONA_ORG_PKG.manager_of(p_target);
+    IF l_tp = p_from THEN RETURN 'DOWN'; END IF;
+    IF l_mgr IS NOT NULL AND l_tp = l_mgr THEN RETURN 'PEER'; END IF;
+    RETURN NULL;
+  END relation;
+
+  FUNCTION relation_label(p_rel VARCHAR2, p_kind VARCHAR2) RETURN VARCHAR2 IS
+  BEGIN
+    RETURN CASE p_rel WHEN 'UP' THEN CASE p_kind WHEN 'O' THEN 'الوحدة الأعلى' ELSE 'رئيسك المباشر' END
+                      WHEN 'DOWN' THEN CASE p_kind WHEN 'O' THEN 'وحدة تابعة' ELSE 'مرؤوس' END
+                      WHEN 'PEER' THEN CASE p_kind WHEN 'O' THEN 'وحدة نظيرة' ELSE 'زميل' END END;
+  END relation_label;
+
+  -- هل يراسل المستخدم الحالي هذه الجهة؟ p_parent: الرسالة التي يرد عليها (الرد على من راسلك مسموح)
+  FUNCTION may_contact(p_kind VARCHAR2, p_target NUMBER, p_parent NUMBER DEFAULT NULL, o_rel OUT VARCHAR2) RETURN BOOLEAN IS
+    l_p cor_policy%ROWTYPE := policy;
+    l_n NUMBER;
+  BEGIN
+    o_rel := NULL;
+    IF l_p.restrict_by_hierarchy <> 'Y' OR can('COR_CONTACT.ANY') THEN RETURN TRUE; END IF;
+    o_rel := relation(me, p_kind, p_target);
+    IF o_rel IS NOT NULL AND can('COR_CONTACT.' || o_rel) THEN RETURN TRUE; END IF;
+    IF p_parent IS NOT NULL AND p_kind = 'U' AND l_p.allow_reply_to_sender = 'Y' THEN
+      SELECT COUNT(*) INTO l_n FROM cor_correspondence c
+       WHERE c.id = p_parent AND (c.author_member_id = p_target
+             OR EXISTS (SELECT 1 FROM cor_recipient r WHERE r.correspondence_id = c.id AND r.membership_id = p_target));
+      IF l_n > 0 THEN RETURN TRUE; END IF;
+    END IF;
+    RETURN FALSE;
+  END may_contact;
+
+  PROCEDURE assert_contact(p_kind VARCHAR2, p_target NUMBER, p_name VARCHAR2, p_parent NUMBER DEFAULT NULL) IS
+    l_rel VARCHAR2(10);
+    l_mgr NUMBER;
+  BEGIN
+    IF NOT may_contact(p_kind, p_target, p_parent, l_rel) THEN
+      l_mgr := NOONA_ORG_PKG.manager_of(me);
+      NOONA_CORE_PKG.raise_error('NOONA-COR-040', 'لا يمكنك مراسلة «' || p_name || '» مباشرة حسب الهيكل التنظيمي'
+        || CASE WHEN l_rel IS NOT NULL THEN ' (لا تملك صلاحية مراسلة ' || relation_label(l_rel, p_kind) || ')'
+                WHEN l_mgr IS NOT NULL THEN '؛ أرسلها عن طريق رئيسك المباشر ' || name_of(l_mgr) ELSE '' END,
+        'Correspondence to this party is not allowed by the organisation hierarchy');
+    END IF;
+  END assert_contact;
 
   FUNCTION name_of(p_member NUMBER) RETURN VARCHAR2 IS
     l VARCHAR2(400);
@@ -551,26 +654,38 @@ CREATE OR REPLACE PACKAGE BODY NOONA_COR_PKG AS
     l_out CLOB := '[';
     l_q   VARCHAR2(200) := UPPER(TRIM(p_q));
     l_n   PLS_INTEGER := 0;
+    l_k   PLS_INTEGER := 0;
+    l_rel VARCHAR2(10);
+    l_me  NUMBER := me;
+    -- مع تقييد الهيكل تفحص قائمة أطول وتعرض المسموح فقط
+    l_scan PLS_INTEGER := CASE WHEN policy().restrict_by_hierarchy = 'Y' THEN 400 ELSE 12 END;
   BEGIN
     FOR u IN (SELECT * FROM (
                 SELECT m.id, u.display_name, NVL(u.email, u.username) e
                   FROM sec_user_membership m JOIN sec_user u ON u.id = m.user_id
                  WHERE m.status_code = 'ACTIVE' AND m.tenant_id = TO_NUMBER(SYS_CONTEXT('NOONA_CTX', 'TENANT_ID'))
+                   AND m.id <> l_me
                    AND (l_q IS NULL OR UPPER(u.display_name) LIKE '%' || l_q || '%' OR UPPER(u.username) LIKE '%' || l_q || '%'
                         OR UPPER(u.email) LIKE '%' || l_q || '%')
-                 ORDER BY u.display_name) WHERE ROWNUM <= 12) LOOP
-      l_out := l_out || ((CASE WHEN l_n > 0 THEN ',' END || '{"k":"U","id":' || u.id || ',"n":' || jt(u.display_name)
-            || ',"e":' || jt(u.e) || ',"i":' || jt(initials(u.display_name)) || '}'));
-      l_n := l_n + 1;
+                 ORDER BY u.display_name) WHERE ROWNUM <= l_scan) LOOP
+      IF may_contact('U', u.id, NULL, l_rel) THEN
+        l_out := l_out || ((CASE WHEN l_n > 0 THEN ',' END || '{"k":"U","id":' || u.id || ',"n":' || jt(u.display_name)
+              || ',"e":' || jt(NVL(relation_label(l_rel, 'U'), u.e)) || ',"i":' || jt(initials(u.display_name)) || '}'));
+        l_n := l_n + 1;
+        EXIT WHEN l_n >= 12;
+      END IF;
     END LOOP;
     FOR o IN (SELECT * FROM (
                 SELECT id, name_ar FROM org_unit
                  WHERE company_id = company AND status_code = 'ACTIVE' AND receives_correspondence = 'Y'
                    AND (l_q IS NULL OR UPPER(name_ar) LIKE '%' || l_q || '%' OR UPPER(code) LIKE '%' || l_q || '%')
-                 ORDER BY name_ar) WHERE ROWNUM <= 8) LOOP
-      l_out := l_out || ((CASE WHEN l_n > 0 THEN ',' END || '{"k":"O","id":' || o.id || ',"n":' || jt(o.name_ar)
-            || ',"e":"وحدة تنظيمية","i":"#"}'));
-      l_n := l_n + 1;
+                 ORDER BY name_ar) WHERE ROWNUM <= l_scan) LOOP
+      IF may_contact('O', o.id, NULL, l_rel) THEN
+        l_out := l_out || ((CASE WHEN l_n > 0 THEN ',' END || '{"k":"O","id":' || o.id || ',"n":' || jt(o.name_ar)
+              || ',"e":' || jt(NVL(relation_label(l_rel, 'O'), 'وحدة تنظيمية')) || ',"i":"#"}'));
+        l_n := l_n + 1; l_k := l_k + 1;
+        EXIT WHEN l_k >= 8;
+      END IF;
     END LOOP;
     RETURN l_out || (']');
   END directory_json;
@@ -831,6 +946,24 @@ CREATE OR REPLACE PACKAGE BODY NOONA_COR_PKG AS
     RETURN l_rid;
   END add_recipient;
 
+  FUNCTION policy_json RETURN CLOB IS
+    l cor_policy%ROWTYPE := policy;
+  BEGIN
+    RETURN '{"restrict":' || jt(l.restrict_by_hierarchy) || ',"reply":' || jt(l.allow_reply_to_sender) || '}';
+  END policy_json;
+
+  PROCEDURE save_policy(p_restrict IN VARCHAR2, p_allow_reply IN VARCHAR2 DEFAULT 'Y') IS
+  BEGIN
+    NOONA_CORE_PKG.assert_tenant_writable;
+    NOONA_SECURITY_PKG.assert_permission('COR_POLICY.UPDATE', company);
+    MERGE INTO cor_policy p USING (SELECT company c FROM dual) x ON (p.company_id = x.c)
+     WHEN MATCHED THEN UPDATE SET restrict_by_hierarchy = NVL(p_restrict, 'N'), allow_reply_to_sender = NVL(p_allow_reply, 'Y')
+     WHEN NOT MATCHED THEN INSERT (company_id, restrict_by_hierarchy, allow_reply_to_sender)
+                           VALUES (x.c, NVL(p_restrict, 'N'), NVL(p_allow_reply, 'Y'));
+    NOONA_AUDIT_PKG.log_event('CONFIG', 'COR_POLICY', company, 'SAVE', 'SUCCESS',
+      p_new_values => '{"restrict":' || jt(p_restrict) || ',"reply":' || jt(p_allow_reply) || '}');
+  END save_policy;
+
   -- ================================================================ إيصال الصادر الخارجي
   FUNCTION valid_email(p VARCHAR2) RETURN BOOLEAN IS
   BEGIN
@@ -1045,6 +1178,12 @@ CREATE OR REPLACE PACKAGE BODY NOONA_COR_PKG AS
     NOONA_CORE_PKG.assert(l_c.direction = 'INTERNAL' OR l_party > 0, 'NOONA-COR-015',
       CASE l_c.direction WHEN 'INCOMING' THEN 'أدخل الجهة المرسلة للخطاب الوارد' ELSE 'أدخل الجهة المرسل إليها الخطاب الصادر' END,
       'External party is required');
+    -- المراسلات الداخلية حسب الهيكل التنظيمي (الوارد والصادر يوزعهما مسجل المراسلات)
+    IF l_c.direction = 'INTERNAL' THEN
+      FOR a IN (SELECT target_type, target_id, target_name_snapshot FROM cor_addressee WHERE correspondence_id = p_id) LOOP
+        assert_contact(CASE a.target_type WHEN 'ORG_UNIT' THEN 'O' ELSE 'U' END, a.target_id, a.target_name_snapshot, l_c.parent_id);
+      END LOOP;
+    END IF;
     IF l_c.direction = 'OUTGOING' AND NVL(l_c.delivery_method, 'PRINT') IN ('EMAIL', 'BOTH') THEN
       l_party := 0;
       FOR e IN (SELECT email FROM cor_party WHERE correspondence_id = p_id AND party_role = 'RECIPIENT') LOOP
@@ -1264,6 +1403,10 @@ CREATE OR REPLACE PACKAGE BODY NOONA_COR_PKG AS
     SELECT MAX(u.display_name) INTO l_name FROM sec_user_membership m JOIN sec_user u ON u.id = m.user_id
      WHERE m.id = p_member_id AND m.status_code = 'ACTIVE';
     NOONA_CORE_PKG.assert(l_name IS NOT NULL, 'NOONA-COR-012', 'المستخدم غير موجود أو غير فعال', 'User not found or inactive');
+    -- الإحالة داخل المؤسسة حسب الهيكل؛ مسجل الوارد يحيل الخطابات الواردة دون قيد
+    IF NOT (l_c.direction = 'INCOMING' AND can('COR_CORRESPONDENCE.CREATE')) THEN
+      assert_contact('U', p_member_id, l_name);
+    END IF;
     SELECT MAX(id) INTO l_from FROM cor_circulation WHERE correspondence_id = p_id AND to_member_id = me;
     INSERT INTO cor_circulation (correspondence_id, parent_circulation_id, from_member_id, to_target_type, to_target_id,
                                  to_member_id, instruction_id, required_action, due_at, entered_at, status_code)

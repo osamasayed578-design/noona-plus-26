@@ -411,6 +411,40 @@ p.ir('آخر عمليات الإرسال الخارجي', 20, [
     titled=True, rows=20)
 p.branch(10, url(24) + '&success_msg=#SUCCESS_MSG#')
 
+# =============================================================== 25) سياسة المراسلات الداخلية حسب الهيكل
+p = app.page(25, 'Correspondence Policy', 'CORRESPONDENCE-POLICY', 'سياسة المراسلات الداخلية', scheme=DMS)
+f = p.static('الاتصال حسب الهيكل التنظيمي', 10, text=(
+    '<p class="nn-hint">عند التفعيل يراسل الموظف داخلياً: <b>رئيسه المباشر</b> ووحدته (الأعلى)، و<b>مرؤوسيه</b> (الأدنى)، '
+    'و<b>زملاءه</b> تحت نفس الرئيس (الأفقي) فقط، ولا يتجاوز المستويات. رئيس الوحدة يراسل الوحدة الأعلى والوحدات التابعة والنظيرة. '
+    'كل اتجاه بصلاحية في الأدوار: «الاتصال: مراسلة الرئيس المباشر…» (COR_CONTACT.UP)، المرؤوسين (DOWN)، الزملاء (PEER)، '
+    'و«مراسلة أي جهة» (ANY) لمسجل المراسلات والإدارة العليا. الخطابات الواردة يحيلها المسجل دون قيد.<br>'
+    'قبل التفعيل: أدخل الهيكل والمناصب وعيّن الموظفين عليها واربط المستخدمين بموظفيهم؛ من لا منصب له لا يراسل إلا بالرد.</p>'))
+p.yesno('P25_RESTRICT', f, 10, 'تقييد المراسلات الداخلية بالهيكل التنظيمي')
+p.select('P25_REPLY', f, 20, 'الرد على من راسلك', lov_sql='STATIC2:مسموح دائماً;Y,حسب الهيكل فقط;N', null_text=None)
+p.process(5, 'BEFORE_HEADER', 'Load Policy', [
+    'declare l json_object_t;',
+    'begin',
+    '    l := json_object_t.parse(noona_cor_pkg.policy_json);',
+    "    :P25_RESTRICT := l.get_string('restrict'); :P25_REPLY := l.get_string('reply');",
+    'end;'])
+b = p.button(f, 10, 'SAVE_POLICY', 'حفظ', hot=True)
+p.process(10, 'AFTER_SUBMIT', 'Save Policy', [
+    'begin',
+    '    noona_cor_pkg.save_policy(:P25_RESTRICT, :P25_REPLY);',
+    'end;'], when_button=b, success='تم حفظ سياسة المراسلات')
+p.ir('من يراسل من (موظفو الشركة ومناصبهم ورؤساؤهم المباشرون)', 20, [
+    "select m.id, u.display_name, pos.name_ar as position_name, un.name_ar as unit_name,",
+    "       (select u2.display_name from sec_user_membership m2 join sec_user u2 on u2.id = m2.user_id",
+    "         where m2.id = noona_org_pkg.manager_of(m.id)) as manager_name",
+    "  from sec_user_membership m join sec_user u on u.id = m.user_id",
+    "  left join org_position pos on pos.id = noona_org_pkg.primary_position(m.id)",
+    "  left join org_unit un on un.id = pos.org_unit_id",
+    " where m.status_code = 'ACTIVE' and m.default_company_id = noona_dms_pkg.company",
+    " order by un.name_ar nulls last, u.display_name"],
+    [('ID', '#', {'hidden': True, 'type': 'NUMBER'}), ('DISPLAY_NAME', 'المستخدم', {}), ('POSITION_NAME', 'المنصب', {}),
+     ('UNIT_NAME', 'الوحدة', {}), ('MANAGER_NAME', 'الرئيس المباشر', {})], titled=True, rows=50)
+p.branch(10, url(25) + '&success_msg=#SUCCESS_MSG#')
+
 app.nav_item('المراسلات', 50, 'fa-envelope', 5)
 app.nav_item('لوحة الأرشيف', 1, 'fa-archive', 10, scheme=DMS)
 app.nav_item('البحث في الأرشيف', 10, 'fa-search', 20, scheme=DMS)
@@ -423,6 +457,7 @@ app.nav_item('قواعد الأرشفة', 21, 'fa-gavel', 42, parent=st)
 app.nav_item('المستندات المطلوبة للأطراف', 22, 'fa-list-ol', 44, parent=st)
 app.nav_item('مكان حفظ الملفات', 23, 'fa-hdd-o', 45, parent=st)
 app.nav_item('بريد المراسلات الخارجية', 24, 'fa-at', 46, parent=st)
+app.nav_item('سياسة المراسلات الداخلية', 25, 'fa-sitemap', 47, parent=st)
 app.nav_item('سجل الوصول', 30, 'fa-eye', 43, parent=st)
 
 app.finalize()

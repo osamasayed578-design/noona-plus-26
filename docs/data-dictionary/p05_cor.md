@@ -20,6 +20,7 @@
 | [`COR_CIRCULATION_NOTE`](#cor_circulation_note) | تعليقات التداول | Circulation Notes | T | INTERNAL |
 | [`COR_DUE_CHANGE`](#cor_due_change) | تغييرات المواعيد والأولوية | Due Date & Priority Changes | T | INTERNAL |
 | [`COR_DISPATCH`](#cor_dispatch) | محاولات الإرسال الخارجي | Outbound Dispatch Attempts | T | INTERNAL |
+| [`COR_POLICY`](#cor_policy) | سياسة المراسلات الداخلية | Internal Correspondence Policy | C | INTERNAL |
 | [`COR_MAIL_PROFILE`](#cor_mail_profile) | بريد الشركة للمراسلات الخارجية | Correspondence Mail Profile | C | INTERNAL |
 | [`COR_CASE_FILE`](#cor_case_file) | ملفات القضايا | Case Files | T | INTERNAL |
 | [`COR_CASE_LINK`](#cor_case_link) | ربط المراسلات بالقضايا | Case File Links | T | INTERNAL |
@@ -440,6 +441,32 @@
 | 16 | `CREATED_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` | ✔ | SYSTIMESTAMP |  |  | Trigger |  | وقت الإنشاء |
 | 17 | `UPDATED_BY` | اسم مستخدم | `VARCHAR2(128 CHAR)` |  |  |  |  | Trigger |  | آخر من عدل السجل |
 | 18 | `UPDATED_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` |  |  |  |  | Trigger |  | وقت آخر تعديل |
+
+## COR_POLICY
+
+| البند | القيمة |
+|---|---|
+| الاسم العربي | سياسة المراسلات الداخلية |
+| English | Internal Correspondence Policy |
+| الحزمة المالكة | 05 — `NOONA_CORRESPONDENCE_PKG` |
+| نطاق الملكية | `C` — مملوك للشركة Company-Owned |
+| الحساسية | INTERNAL |
+| النمط | قابل للتعديل وفق دورة الحياة |
+| الغرض | الاتصال حسب الهيكل: صلاحيات COR_CONTACT.UP / DOWN / PEER / ANY |
+| مفاتيح فريدة | UK1: (COMPANY_ID) |
+
+| # | العمود | النوع المنطقي | Oracle Type | إلزامي | افتراضي | مفاتيح | القيم المقبولة | المصدر | PII | الوصف |
+|---:|---|---|---|:---:|---|---|---|---|:---:|---|
+| 1 | `ID` | معرف | `NUMBER(19)` | ✔ |  | PK |  | النظام/الحزمة |  | المفتاح الداخلي الثابت (Identity) - لا يعاد استخدامه |
+| 2 | `TENANT_ID` | معرف | `NUMBER(19)` | ✔ |  | FK→PLT_TENANT |  | Security Context |  | المؤسسة المالكة؛ يملأ من Security Context الموثوق لا من مدخلات المستخدم |
+| 3 | `COMPANY_ID` | معرف | `NUMBER(19)` | ✔ |  | FK→ORG_COMPANY UK1 |  | Security Context |  | الشركة (الكيان القانوني) المالكة للسجل |
+| 4 | `RESTRICT_BY_HIERARCHY` | منطقي Y/N | `CHAR(1 CHAR)` | ✔ | 'N' |  | Y, N | إدخال المستخدم |  | تقييد المراسلات الداخلية بالهيكل التنظيمي (الأعلى المباشر، المرؤوسون، الزملاء؛ دون تجاوز) |
+| 5 | `ALLOW_REPLY_TO_SENDER` | منطقي Y/N | `CHAR(1 CHAR)` | ✔ | 'Y' |  | Y, N | إدخال المستخدم |  | الرد على من راسلك مسموح دائماً |
+| 6 | `ROW_VERSION` | عدد صحيح | `NUMBER(10)` | ✔ | 1 |  |  | Trigger |  | رقم الإصدار للتحكم في التزامن المتفائل |
+| 7 | `CREATED_BY` | اسم مستخدم | `VARCHAR2(128 CHAR)` | ✔ |  |  |  | Trigger |  | منشئ السجل |
+| 8 | `CREATED_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` | ✔ | SYSTIMESTAMP |  |  | Trigger |  | وقت الإنشاء |
+| 9 | `UPDATED_BY` | اسم مستخدم | `VARCHAR2(128 CHAR)` |  |  |  |  | Trigger |  | آخر من عدل السجل |
+| 10 | `UPDATED_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` |  |  |  |  | Trigger |  | وقت آخر تعديل |
 
 ## COR_MAIL_PROFILE
 
