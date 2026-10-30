@@ -328,6 +328,14 @@ CREATE OR REPLACE PACKAGE BODY NOONA_PLATFORM_ADMIN_PKG AS
   END verify_tenant_chain;
 
   -- ================================================================ الاشتراكات
+  -- نهاية فترة من n شهر تبدأ من يوم معين: نفس اليوم بعد n شهر ناقص يوم. ADD_MONTHS وحدها تقفز لآخر الشهر
+  -- إذا كان البدء آخر يوم في شهره (30 أبريل + 3 = 31 يوليو) فيزيد الاشتراك يوماً
+  FUNCTION period_end(p_start DATE, p_months NUMBER) RETURN DATE IS
+    l_m DATE := ADD_MONTHS(TRUNC(p_start, 'MM'), p_months);
+  BEGIN
+    RETURN LEAST(l_m + (EXTRACT(DAY FROM p_start) - 1), LAST_DAY(l_m)) - 1;
+  END period_end;
+
   FUNCTION cycle_months(p_cycle VARCHAR2) RETURN NUMBER IS
   BEGIN
     RETURN CASE p_cycle WHEN 'MONTHLY' THEN 1 WHEN 'QUARTERLY' THEN 3 WHEN 'SEMI_ANNUAL' THEN 6 WHEN 'ANNUAL' THEN 12
@@ -395,7 +403,7 @@ CREATE OR REPLACE PACKAGE BODY NOONA_PLATFORM_ADMIN_PKG AS
     l_trial := NVL(l_pv.trial_days, 0) > 0;
     l_tr := CASE WHEN l_trial THEN 'Y' ELSE 'N' END;
     l_end := TRUNC(NVL(p_end, CASE WHEN l_trial THEN l_start + l_pv.trial_days - 1
-                                    ELSE ADD_MONTHS(l_start, cycle_months(l_cycle) * NVL(p_periods, 1)) - 1 END));
+                                    ELSE period_end(l_start, cycle_months(l_cycle) * NVL(p_periods, 1)) END));
     NOONA_CORE_PKG.assert(l_end >= l_start, 'NOONA-PLT-322', 'نهاية الفترة قبل بدايتها', 'Period end is before its start');
     l_sub := current_sub(p_tenant_id);
     IF l_sub.id IS NULL THEN
@@ -450,7 +458,7 @@ CREATE OR REPLACE PACKAGE BODY NOONA_PLATFORM_ADMIN_PKG AS
                           'Choose a paid plan to renew');
     -- التجديد يكمل من نهاية الفترة؛ الاشتراك المنتهي يبدأ من اليوم
     l_start := CASE WHEN l_sub.current_period_end >= TRUNC(SYSDATE) THEN l_sub.current_period_end + 1 ELSE TRUNC(SYSDATE) END;
-    l_end := ADD_MONTHS(l_start, cycle_months(l_cycle) * NVL(p_periods, 1)) - 1;
+    l_end := period_end(l_start, cycle_months(l_cycle) * NVL(p_periods, 1));
     UPDATE plt_subscription
        SET plan_version_id = l_pv.id, billing_cycle = l_cycle, current_period_start = l_start, current_period_end = l_end,
            next_billing_date = l_end + 1, grace_ends_at = NULL, read_only_ends_at = NULL, status_code = 'ACTIVE'

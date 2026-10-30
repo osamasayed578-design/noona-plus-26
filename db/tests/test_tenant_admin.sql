@@ -39,6 +39,7 @@ DECLARE
   l_s     VARCHAR2(4000);
   l_c     CLOB;
   l_d     DATE;
+  l_d0    DATE;
 
   PROCEDURE ok(p_name VARCHAR2, p_cond BOOLEAN, p_info VARCHAR2 DEFAULT NULL) IS
   BEGIN
@@ -200,8 +201,12 @@ BEGIN
   ok('long expired subscription suspends the tenant', tstatus(l_t) = 'SUSPENDED', tstatus(l_t));
   l_d := NOONA_PLATFORM_ADMIN_PKG.renew_subscription(l_t, 2, 'QUARTERLY', 'تجديد ستة أشهر');
   ok('renewal from today reactivates', tstatus(l_t) = 'ACTIVE' AND l_d = ADD_MONTHS(TRUNC(SYSDATE), 6) - 1, tstatus(l_t) || ' ' || l_d);
+  l_d0 := l_d;
   l_d := NOONA_PLATFORM_ADMIN_PKG.renew_subscription(l_t, 1);
-  ok('renewal of an active subscription continues from its end', l_d = ADD_MONTHS(TRUNC(SYSDATE), 9) - 1, TO_CHAR(l_d, 'YYYY-MM-DD'));
+  -- يكمل من اليوم التالي لنهاية الفترة السابقة: نفس اليوم بعد 3 أشهر ناقص يوم (دون قفزة آخر الشهر)
+  ok('renewal of an active subscription continues from its end',
+     l_d = LEAST(ADD_MONTHS(TRUNC(l_d0 + 1, 'MM'), 3) + (EXTRACT(DAY FROM l_d0 + 1) - 1), LAST_DAY(ADD_MONTHS(TRUNC(l_d0 + 1, 'MM'), 3))) - 1,
+     TO_CHAR(l_d0, 'YYYY-MM-DD') || ' -> ' || TO_CHAR(l_d, 'YYYY-MM-DD'));
   l_c := NOONA_PLATFORM_ADMIN_PKG.subscription_history_html(l_t);
   ok('subscription history (activation, change, renewals)', INSTR(l_c, 'تفعيل') > 0 AND INSTR(l_c, 'تجديد') > 0 AND INSTR(l_c, 'تغيير الباقة') > 0);
   l_c := NOONA_PLATFORM_ADMIN_PKG.platform_summary;
