@@ -18,11 +18,11 @@ wwv_flow_imp_page.create_page(
 ,p_step_title=>'الإقرارات الضريبية'
 ,p_autocomplete_on_off=>'OFF'
 ,p_page_template_options=>'#DEFAULT#'
-,p_required_role=>wwv_flow_imp.id(91820266000000726)
+,p_required_role=>wwv_flow_imp.id(91820266000000732)
 ,p_protection_level=>'C'
 );
 wwv_flow_imp_page.create_page_plug(
- p_id=>wwv_flow_imp.id(91820266000000757)
+ p_id=>wwv_flow_imp.id(91820266000000763)
 ,p_plug_name=>'إقرار جديد'
 ,p_region_template_options=>'#DEFAULT#'
 ,p_plug_template=>4072358936313175081
@@ -35,10 +35,10 @@ wwv_flow_imp_page.create_page_plug(
   'show_line_breaks', 'Y')).to_clob
 );
 wwv_flow_imp_page.create_page_item(
- p_id=>wwv_flow_imp.id(91820266000000758)
+ p_id=>wwv_flow_imp.id(91820266000000764)
 ,p_name=>'P72_KIND'
 ,p_item_sequence=>10
-,p_item_plug_id=>wwv_flow_imp.id(91820266000000757)
+,p_item_plug_id=>wwv_flow_imp.id(91820266000000763)
 ,p_prompt=>'الضريبة'
 ,p_display_as=>'NATIVE_SELECT_LIST'
 ,p_lov=>'STATIC2:ضريبة القيمة المضافة;VAT,ضريبة الاستقطاع;WHT'
@@ -50,10 +50,10 @@ wwv_flow_imp_page.create_page_item(
   'page_action_on_selection', 'NONE')).to_clob
 );
 wwv_flow_imp_page.create_page_item(
- p_id=>wwv_flow_imp.id(91820266000000759)
+ p_id=>wwv_flow_imp.id(91820266000000765)
 ,p_name=>'P72_FROM'
 ,p_item_sequence=>20
-,p_item_plug_id=>wwv_flow_imp.id(91820266000000757)
+,p_item_plug_id=>wwv_flow_imp.id(91820266000000763)
 ,p_prompt=>'من'
 ,p_display_as=>'NATIVE_DATE_PICKER_APEX'
 ,p_cSize=>20
@@ -70,10 +70,10 @@ wwv_flow_imp_page.create_page_item(
   'use_defaults', 'Y')).to_clob
 );
 wwv_flow_imp_page.create_page_item(
- p_id=>wwv_flow_imp.id(91820266000000760)
+ p_id=>wwv_flow_imp.id(91820266000000766)
 ,p_name=>'P72_TO'
 ,p_item_sequence=>30
-,p_item_plug_id=>wwv_flow_imp.id(91820266000000757)
+,p_item_plug_id=>wwv_flow_imp.id(91820266000000763)
 ,p_prompt=>'إلى'
 ,p_display_as=>'NATIVE_DATE_PICKER_APEX'
 ,p_cSize=>20
@@ -89,31 +89,31 @@ wwv_flow_imp_page.create_page_item(
   'use_defaults', 'Y')).to_clob
 );
 wwv_flow_imp_page.create_page_validation(
- p_id=>wwv_flow_imp.id(91820266000000762)
+ p_id=>wwv_flow_imp.id(91820266000000768)
 ,p_validation_name=>'P72_FROM required (CREATE)'
 ,p_validation_sequence=>4
 ,p_validation=>'P72_FROM'
 ,p_validation_type=>'ITEM_NOT_NULL'
 ,p_error_message=>'#LABEL#: قيمة مطلوبة'
-,p_when_button_pressed=>wwv_flow_imp.id(91820266000000761)
-,p_associated_item=>wwv_flow_imp.id(91820266000000759)
+,p_when_button_pressed=>wwv_flow_imp.id(91820266000000767)
+,p_associated_item=>wwv_flow_imp.id(91820266000000765)
 ,p_error_display_location=>'INLINE_WITH_FIELD_AND_NOTIFICATION'
 );
 wwv_flow_imp_page.create_page_validation(
- p_id=>wwv_flow_imp.id(91820266000000763)
+ p_id=>wwv_flow_imp.id(91820266000000769)
 ,p_validation_name=>'P72_TO required (CREATE)'
 ,p_validation_sequence=>5
 ,p_validation=>'P72_TO'
 ,p_validation_type=>'ITEM_NOT_NULL'
 ,p_error_message=>'#LABEL#: قيمة مطلوبة'
-,p_when_button_pressed=>wwv_flow_imp.id(91820266000000761)
-,p_associated_item=>wwv_flow_imp.id(91820266000000760)
+,p_when_button_pressed=>wwv_flow_imp.id(91820266000000767)
+,p_associated_item=>wwv_flow_imp.id(91820266000000766)
 ,p_error_display_location=>'INLINE_WITH_FIELD_AND_NOTIFICATION'
 );
 wwv_flow_imp_page.create_page_button(
- p_id=>wwv_flow_imp.id(91820266000000761)
+ p_id=>wwv_flow_imp.id(91820266000000767)
 ,p_button_sequence=>10
-,p_button_plug_id=>wwv_flow_imp.id(91820266000000757)
+,p_button_plug_id=>wwv_flow_imp.id(91820266000000763)
 ,p_button_name=>'CREATE'
 ,p_button_action=>'SUBMIT'
 ,p_button_template_options=>'#DEFAULT#'
@@ -123,7 +123,7 @@ wwv_flow_imp_page.create_page_button(
 ,p_button_position=>'NEXT'
 );
 wwv_flow_imp_page.create_page_process(
- p_id=>wwv_flow_imp.id(91820266000000764)
+ p_id=>wwv_flow_imp.id(91820266000000770)
 ,p_process_sequence=>5
 ,p_process_point=>'BEFORE_HEADER'
 ,p_process_type=>'NATIVE_PLSQL'
@@ -136,10 +136,10 @@ wwv_flow_imp_page.create_page_process(
 'end;'))
 ,p_process_clob_language=>'PLSQL'
 ,p_error_display_location=>'INLINE_IN_NOTIFICATION'
-,p_internal_uid=>91820266000000764
+,p_internal_uid=>91820266000000770
 );
 wwv_flow_imp_page.create_page_process(
- p_id=>wwv_flow_imp.id(91820266000000765)
+ p_id=>wwv_flow_imp.id(91820266000000771)
 ,p_process_sequence=>10
 ,p_process_point=>'AFTER_SUBMIT'
 ,p_process_type=>'NATIVE_PLSQL'
@@ -153,11 +153,11 @@ wwv_flow_imp_page.create_page_process(
 'end;'))
 ,p_process_clob_language=>'PLSQL'
 ,p_error_display_location=>'INLINE_IN_NOTIFICATION'
-,p_process_when_button_id=>wwv_flow_imp.id(91820266000000761)
-,p_internal_uid=>91820266000000765
+,p_process_when_button_id=>wwv_flow_imp.id(91820266000000767)
+,p_internal_uid=>91820266000000771
 );
 wwv_flow_imp_page.create_page_plug(
- p_id=>wwv_flow_imp.id(91820266000000766)
+ p_id=>wwv_flow_imp.id(91820266000000772)
 ,p_plug_name=>'الإقرارات'
 ,p_region_template_options=>'#DEFAULT#:t-Region--scrollBody'
 ,p_plug_template=>4072358936313175081
@@ -168,7 +168,7 @@ wwv_flow_imp_page.create_page_plug(
 ,p_plug_source_type=>'NATIVE_DYNAMIC_CONTENT'
 );
 wwv_flow_imp_page.create_page_branch(
- p_id=>wwv_flow_imp.id(91820266000000767)
+ p_id=>wwv_flow_imp.id(91820266000000773)
 ,p_branch_action=>'f?p=&APP_ID.:72:&SESSION.::&DEBUG.:::&success_msg=#SUCCESS_MSG#'
 ,p_branch_point=>'AFTER_PROCESSING'
 ,p_branch_type=>'REDIRECT_URL'

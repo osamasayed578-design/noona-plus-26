@@ -148,7 +148,7 @@ RESPONSE_SNIPPET V1000           | بداية الاستجابة أو الخطأ
 
 table('API_IMPORT_JOB', 'مهام الاستيراد', 'Import Jobs', scope='T', mix='status', status='RUNNING COMPLETED PARTIAL FAILED', cols='''
 COMPANY_ID      ID   >ORG_COMPANY | الشركة
-IMPORT_TYPE     CODE NN IN:CUSTOMERS,SUPPLIERS,ITEMS,BANK_STATEMENT,ORDERS | النوع
+IMPORT_TYPE     CODE NN IN:CUSTOMERS,SUPPLIERS,ITEMS,ACCOUNTS,BANK_STATEMENT,ORDERS | النوع
 FILE_NAME       V300             | الملف
 TOTAL_ROWS      INT  NN D=0      | الأسطر
 OK_ROWS         INT  NN D=0      | الناجحة

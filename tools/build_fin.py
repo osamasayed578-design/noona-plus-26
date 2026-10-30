@@ -99,13 +99,34 @@ p.process(10, 'AFTER_SUBMIT', 'Add Account', [
     '    l_id := noona_gl_pkg.add_account(p_coa_id => noona_gl_pkg.primary_coa, p_code => :P10_CODE, p_name_ar => :P10_NAME,',
     '                p_parent_code => :P10_PARENT, p_postable => :P10_POSTABLE);',
     'end;'], when_button=b, success='تمت إضافة الحساب')
+imf = p.static('استيراد حسابات من ملف (CSV أو Excel محفوظ CSV)', 25, text=(
+    '<p class="nn-hint">السطر الأول عناوين الأعمدة بالعربي أو الإنجليزي: <b>رمز الحساب</b> (code)، <b>اسم الحساب</b> (name)، '
+    '<b>الحساب الأب</b> (parent)، <b>النوع</b> (type: أصول، خصوم، حقوق ملكية، إيرادات، مصروفات — يكفي للحساب الرئيسي الأعلى، '
+    'والفرعي يأخذ نوع أبيه)، <b>حساب حركة</b> (postable: نعم / لا). الأب يكون حساباً تجميعياً موجوداً في الدليل أو في الملف نفسه '
+    'بأي ترتيب. كل صف مستقل: الخاطئ يظهر في التقرير ولا يوقف الباقي. في Excel: حفظ باسم ← CSV UTF-8.</p>'
+    '<pre dir="ltr" class="nn-csv">code,name,parent,type,postable\n1150,العهد والسلف المؤقتة,11,أصول,لا\n'
+    '115001,عهدة مدير المشتريات,1150,,نعم\n115002,عهدة أمين الصندوق,1150,,نعم</pre>'))
+p.file('P10_FILE', imf, 10, 'ملف الحسابات', file_types='.csv,text/csv,text/plain', max_kb=5120,
+       title='اسحب ملف الحسابات هنا أو اضغط للاختيار', hint='CSV بترميز UTF-8 حتى 5 ميجابايت')
+p.hidden('P10_JOB', imf, 90)
+b_imp = p.button(imf, 10, 'IMPORT_ACCOUNTS', 'استيراد الحسابات')
+p.process(15, 'AFTER_SUBMIT', 'Import Accounts', [
+    'declare l_blob blob; l_name varchar2(400); l_csv clob; l_job number; l_ok number; l_bad number;', 'begin',
+    "    select blob_content, filename into l_blob, l_name from apex_application_temp_files where name = :P10_FILE;",
+    "    l_csv := apex_util.blob_to_clob(p_blob => l_blob, p_charset => 'AL32UTF8');",
+    "    l_job := noona_conn_pkg.import_csv('ACCOUNTS', l_name, l_csv);",
+    '    select ok_rows, failed_rows into l_ok, l_bad from api_import_job where id = l_job;',
+    '    :P10_JOB := l_job;',
+    "    apex_application.g_print_success_message := 'تم استيراد ' || l_ok || ' حساب' || case when l_bad > 0 then '، ورفض ' || l_bad || ' (التفاصيل أدناه)' end;",
+    'end;'], when_button=b_imp)
+p.dynamic('نتيجة استيراد الحسابات', 26, 'return noona_conn_pkg.job_html(to_number(:P10_JOB));', condition=':P10_JOB is not null')
 stf = p.static('إيقاف أو تفعيل حساب', 30)
 p.select('P10_ACCOUNT', stf, 10, 'الحساب', lov_sql=LEDGER_ACCOUNTS)
 p.select('P10_STATUS', stf, 20, 'الحالة', null_text=None, lov_sql='STATIC2:موقوف;BLOCKED,نشط;ACTIVE')
 b2 = p.button(stf, 10, 'SET_STATUS', 'تطبيق')
 p.process(20, 'AFTER_SUBMIT', 'Account Status', 'noona_gl_pkg.set_account_status(:P10_ACCOUNT, :P10_STATUS);',
           when_button=b2, success='تم تغيير حالة الحساب')
-p.branch(10, url(10, clear='10') + '&success_msg=#SUCCESS_MSG#')
+p.branch(10, url(10, 'P10_JOB', '&P10_JOB.', '10') + '&success_msg=#SUCCESS_MSG#')
 
 # =============================================================== 11) الفترات المحاسبية
 p = app.page(11, 'Periods', 'PERIODS', 'الفترات المحاسبية', scheme=TENANT)

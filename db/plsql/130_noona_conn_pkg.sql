@@ -10,7 +10,7 @@ SET DEFINE OFF
 
 CREATE OR REPLACE PACKAGE NOONA_CONN_PKG AUTHID DEFINER AS
   FUNCTION company RETURN NUMBER;
-  -- p_type: CUSTOMERS | SUPPLIERS | ITEMS ؛ يعيد رقم مهمة الاستيراد
+  -- p_type: CUSTOMERS | SUPPLIERS | ITEMS | ACCOUNTS (شجرة الحسابات) ؛ يعيد رقم مهمة الاستيراد
   FUNCTION import_csv(p_type IN VARCHAR2, p_file_name IN VARCHAR2, p_csv IN CLOB) RETURN NUMBER;
   -- كشف بنكي: أعمدة التاريخ والمبلغ (أو مدين/دائن) والمرجع والطرف والبيان؛ يعيد رقم الكشف
   FUNCTION import_bank_statement(p_bank_account_id IN NUMBER, p_file_name IN VARCHAR2, p_csv IN CLOB,
@@ -58,6 +58,7 @@ CREATE OR REPLACE PACKAGE BODY NOONA_CONN_PKG AS
   FUNCTION type_label(p_type IN VARCHAR2) RETURN VARCHAR2 IS
   BEGIN
     RETURN CASE p_type WHEN 'CUSTOMERS' THEN 'العملاء' WHEN 'SUPPLIERS' THEN 'الموردون' WHEN 'ITEMS' THEN 'الأصناف'
+      WHEN 'ACCOUNTS' THEN 'شجرة الحسابات'
       WHEN 'BANK_STATEMENT' THEN 'كشف حساب بنكي' WHEN 'ORDERS' THEN 'طلبات المتجر' ELSE p_type END;
   END type_label;
 
@@ -67,6 +68,8 @@ CREATE OR REPLACE PACKAGE BODY NOONA_CONN_PKG AS
       WHEN 'CUSTOMERS' THEN 'name,phone,email,tax,cr,address,term' || CHR(10) || 'مؤسسة النور التجارية,0551234567,info@alnoor.sa,300000000000003,1010101010,الرياض,NET30'
       WHEN 'SUPPLIERS' THEN 'name,phone,email,tax,cr,address,term' || CHR(10) || 'شركة التوريدات المتحدة,0112345678,sales@united.sa,310000000000003,1010202020,جدة,NET30'
       WHEN 'ITEMS' THEN 'no,name,nameEn,type,price,barcode,category' || CHR(10) || 'ITM-1001,قلم أزرق,Blue pen,STOCK,2.50,6281000000011,'
+      WHEN 'ACCOUNTS' THEN 'code,name,parent,type,postable' || CHR(10) || '1150,العهد والسلف المؤقتة,11,أصول,لا'
+                           || CHR(10) || '115001,عهدة مدير المشتريات,1150,,نعم' || CHR(10) || '115002,عهدة أمين الصندوق,1150,,نعم'
       WHEN 'BANK_STATEMENT' THEN 'date,amount,reference,counterparty,description' || CHR(10) || '2026-10-01,15000,TRF-889,مؤسسة النور,تحويل وارد'
                                  || CHR(10) || '2026-10-02,-2300,CHQ-1002,شركة التوريدات,سداد مورد' END;
   END template_csv;
@@ -140,7 +143,10 @@ CREATE OR REPLACE PACKAGE BODY NOONA_CONN_PKG AS
       WHEN l IN ('cr', 'السجلالتجاري', 'رقمالسجل') THEN 'cr'
       WHEN l IN ('address', 'العنوان') THEN 'address'
       WHEN l IN ('term', 'paymentterm', 'شرطالسداد') THEN 'term'
-      WHEN l IN ('no', 'code', 'sku', 'itemno', 'الكود', 'رمزالصنف', 'رقمالصنف') THEN 'no'
+      WHEN l IN ('no', 'code', 'sku', 'itemno', 'الكود', 'رمزالصنف', 'رقمالصنف', 'accountcode', 'رمزالحساب', 'رقمالحساب') THEN 'no'
+      WHEN l IN ('parent', 'parentcode', 'الحسابالأب', 'الحسابالرئيسي', 'رمزالأب', 'رقمالحسابالأب') THEN 'parent'
+      WHEN l IN ('postable', 'حسابحركة', 'حركة', 'قابلللترحيل') THEN 'postable'
+      WHEN l IN ('اسمالحساب', 'accountname') THEN 'name'
       WHEN l IN ('type', 'النوع', 'نوعالصنف') THEN 'type'
       WHEN l IN ('price', 'السعر', 'سعرالبيع') THEN 'price'
       WHEN l IN ('barcode', 'الباركود') THEN 'barcode'
@@ -223,6 +229,135 @@ CREATE OR REPLACE PACKAGE BODY NOONA_CONN_PKG AS
   END item_doc;
 
   -- ================================================================ استيراد البيانات الأساسية
+  -- شجرة الحسابات من ملف: الرمز، الاسم، الحساب الأب، النوع (للحسابات الرئيسية العليا)، حساب حركة نعم/لا.
+  -- الصفوف تعالج بأي ترتيب: من لم يوجد أبوه بعد يعاد في جولة لاحقة (حتى 10 مستويات)
+  FUNCTION import_accounts(p_file_name VARCHAR2, p_csv CLOB) RETURN NUMBER IS
+    TYPE t_idx IS TABLE OF PLS_INTEGER;
+    l_rows  t_rows;
+    l_map   t_map;
+    l_r     t_row;
+    l_job   NUMBER;
+    l_ok    PLS_INTEGER := 0;
+    l_bad   PLS_INTEGER := 0;
+    l_errs  JSON_ARRAY_T := JSON_ARRAY_T();
+    l_e     JSON_OBJECT_T;
+    l_todo  t_idx := t_idx();
+    l_next  t_idx;
+    l_id    NUMBER;
+    l_coa   NUMBER := NOONA_GL_PKG.primary_coa;
+    l_code  VARCHAR2(100);
+    l_name  VARCHAR2(400);
+    l_par   VARCHAR2(100);
+    l_type  VARCHAR2(100);
+    l_post  VARCHAR2(100);
+    l_err   VARCHAR2(4000);
+    l_ec    CLOB;
+    l_total PLS_INTEGER;
+    l_en    VARCHAR2(200);
+    TYPE t_seen IS TABLE OF PLS_INTEGER INDEX BY VARCHAR2(100);
+    l_seen  t_seen;
+    FUNCTION acc_type(p VARCHAR2) RETURN VARCHAR2 IS
+      l VARCHAR2(100) := UPPER(REPLACE(TRIM(p), ' ', ''));
+    BEGIN
+      RETURN CASE WHEN l IS NULL THEN NULL
+                  WHEN l IN ('ASSET', 'ASSETS', 'أصول', 'أصل', 'اصول') THEN 'ASSET'
+                  WHEN l IN ('LIABILITY', 'LIABILITIES', 'خصوم', 'التزامات', 'الالتزامات') THEN 'LIABILITY'
+                  WHEN l IN ('EQUITY', 'حقوقملكية', 'حقوقالملكية') THEN 'EQUITY'
+                  WHEN l IN ('REVENUE', 'INCOME', 'إيرادات', 'ايرادات', 'إيراد') THEN 'REVENUE'
+                  WHEN l IN ('EXPENSE', 'EXPENSES', 'مصروفات', 'مصاريف', 'مصروف') THEN 'EXPENSE'
+                  ELSE '?' || p END;
+    END acc_type;
+    FUNCTION yes(p VARCHAR2) RETURN VARCHAR2 IS
+      l VARCHAR2(100) := UPPER(TRIM(p));
+    BEGIN
+      RETURN CASE WHEN l IS NULL THEN 'Y' WHEN l IN ('Y', 'YES', '1', 'نعم', 'حركة', 'TRUE') THEN 'Y'
+                  WHEN l IN ('N', 'NO', '0', 'لا', 'تجميعي', 'رئيسي', 'FALSE') THEN 'N' ELSE '?' END;
+    END yes;
+  BEGIN
+    guard('API_IMPORT_JOB.CREATE');
+    guard('GL_ACCOUNT.CREATE');
+    NOONA_CORE_PKG.assert(l_coa IS NOT NULL, 'NOONA-CON-020', 'جهز الأستاذ العام للشركة أولاً (دليل الحسابات)', 'Set up the general ledger first');
+    l_rows := parse_csv(p_csv);
+    NOONA_CORE_PKG.assert(l_rows.COUNT >= 2, 'NOONA-CON-002', 'الملف فارغ أو بلا صفوف بيانات بعد سطر العناوين', 'File has no data rows');
+    NOONA_CORE_PKG.assert(l_rows.COUNT <= 5001, 'NOONA-CON-003', 'الحد الأقصى 5000 صف في الملف الواحد', 'Maximum 5000 rows per file');
+    l_map := header_map(l_rows(1));
+    NOONA_CORE_PKG.assert(l_map.EXISTS('no') AND l_map.EXISTS('name'), 'NOONA-CON-021',
+      'عمودا رمز الحساب (code) واسم الحساب (name) مطلوبان في سطر العناوين', 'Header must include code and name');
+    l_total := l_rows.COUNT - 1;
+    INSERT INTO api_import_job (company_id, import_type, file_name, total_rows, ok_rows, failed_rows, status_code)
+    VALUES (company, 'ACCOUNTS', SUBSTR(p_file_name, 1, 300), l_total, 0, 0, 'RUNNING')
+    RETURNING id INTO l_job;
+    -- الرمز المكرر داخل الملف: يعتمد أول ظهور ويرفض الباقي
+    FOR i IN 2 .. l_rows.COUNT LOOP
+      l_code := UPPER(col(l_rows(i), l_map, 'no'));
+      IF l_code IS NOT NULL AND l_seen.EXISTS(l_code) THEN
+        l_bad := l_bad + 1;
+        l_e := JSON_OBJECT_T();
+        l_e.put('row', i); l_e.put('name', l_code || ' ' || col(l_rows(i), l_map, 'name'));
+        l_e.put('error', 'رمز الحساب مكرر في الملف (الصف ' || l_seen(l_code) || ')');
+        l_errs.append(l_e);
+      ELSE
+        IF l_code IS NOT NULL THEN l_seen(l_code) := i; END IF;
+        l_todo.EXTEND; l_todo(l_todo.COUNT) := i;
+      END IF;
+    END LOOP;
+    FOR pass IN 1 .. 10 LOOP
+      EXIT WHEN l_todo.COUNT = 0;
+      l_next := t_idx();
+      FOR k IN 1 .. l_todo.COUNT LOOP
+        l_r := l_rows(l_todo(k));
+        l_code := UPPER(col(l_r, l_map, 'no')); l_name := col(l_r, l_map, 'name'); l_par := UPPER(col(l_r, l_map, 'parent'));
+        l_type := acc_type(col(l_r, l_map, 'type')); l_post := yes(col(l_r, l_map, 'postable'));
+        SAVEPOINT import_acc;
+        BEGIN
+          NOONA_CORE_PKG.assert(l_code IS NOT NULL AND l_name IS NOT NULL, 'NOONA-CON-022', 'رمز الحساب أو اسمه فارغ', 'Code or name is empty');
+          NOONA_CORE_PKG.assert(l_type IS NULL OR l_type NOT LIKE '?%', 'NOONA-CON-023',
+            'نوع غير معروف: ' || SUBSTR(l_type, 2) || ' (أصول، خصوم، حقوق ملكية، إيرادات، مصروفات)', 'Unknown account type');
+          NOONA_CORE_PKG.assert(l_post <> '?', 'NOONA-CON-024', 'حساب حركة: نعم أو لا', 'Postable must be yes or no');
+          l_id := NOONA_GL_PKG.add_account(l_coa, l_code, l_name, l_par, l_type, l_post);
+          l_en := SUBSTR(col(l_r, l_map, 'nameEn'), 1, 200);
+          IF l_en IS NOT NULL THEN
+            UPDATE gl_account SET name_en = l_en WHERE id = l_id;
+          END IF;
+          l_ok := l_ok + 1;
+        EXCEPTION WHEN OTHERS THEN
+          ROLLBACK TO import_acc;
+          l_err := clean_err(SQLERRM);
+          IF INSTR(SQLERRM, 'NOONA-GL-011') > 0 AND pass < 10 THEN
+            l_next.EXTEND; l_next(l_next.COUNT) := l_todo(k);             -- الأب في صف لاحق: جولة أخرى
+          ELSE
+            l_bad := l_bad + 1;
+            IF l_errs.get_size < 500 THEN
+              l_e := JSON_OBJECT_T();
+              l_e.put('row', l_todo(k)); l_e.put('name', l_code || ' ' || l_name); l_e.put('error', l_err);
+              l_errs.append(l_e);
+            END IF;
+          END IF;
+        END;
+      END LOOP;
+      IF l_next.COUNT > 0 AND l_next.COUNT = l_todo.COUNT THEN
+        -- لا تقدم: آباء هذه الصفوف ليست في الدليل ولا في الملف
+        FOR k IN 1 .. l_next.COUNT LOOP
+          l_r := l_rows(l_next(k));
+          l_bad := l_bad + 1;
+          l_e := JSON_OBJECT_T();
+          l_e.put('row', l_next(k)); l_e.put('name', col(l_r, l_map, 'no') || ' ' || col(l_r, l_map, 'name'));
+          l_e.put('error', 'الحساب الأب غير موجود: ' || col(l_r, l_map, 'parent'));
+          l_errs.append(l_e);
+        END LOOP;
+        EXIT;
+      END IF;
+      l_todo := l_next;
+    END LOOP;
+    l_ec := l_errs.to_clob;
+    UPDATE api_import_job SET ok_rows = l_ok, failed_rows = l_bad, errors = l_ec,
+                              status_code = CASE WHEN l_bad = 0 THEN 'COMPLETED' WHEN l_ok = 0 THEN 'FAILED' ELSE 'PARTIAL' END
+     WHERE id = l_job;
+    NOONA_AUDIT_PKG.log_event('API', 'API_IMPORT_JOB', l_job, 'IMPORT_ACCOUNTS', 'SUCCESS',
+                              p_new_values => JSON_OBJECT('ok' VALUE l_ok, 'failed' VALUE l_bad));
+    RETURN l_job;
+  END import_accounts;
+
   FUNCTION import_csv(p_type IN VARCHAR2, p_file_name IN VARCHAR2, p_csv IN CLOB) RETURN NUMBER IS
     l_rows  t_rows;
     l_map   t_map;
@@ -242,7 +377,10 @@ CREATE OR REPLACE PACKAGE BODY NOONA_CONN_PKG AS
     l_jo    JSON_OBJECT_T;
     l_total PLS_INTEGER;
   BEGIN
-    NOONA_CORE_PKG.assert(p_type IN ('CUSTOMERS', 'SUPPLIERS', 'ITEMS'), 'NOONA-CON-001', 'نوع استيراد غير مدعوم', 'Unsupported import type');
+    NOONA_CORE_PKG.assert(p_type IN ('CUSTOMERS', 'SUPPLIERS', 'ITEMS', 'ACCOUNTS'), 'NOONA-CON-001', 'نوع استيراد غير مدعوم', 'Unsupported import type');
+    IF p_type = 'ACCOUNTS' THEN
+      RETURN import_accounts(p_file_name, p_csv);
+    END IF;
     guard('API_IMPORT_JOB.CREATE');
     guard(CASE p_type WHEN 'CUSTOMERS' THEN 'AR_CUSTOMER.CREATE' WHEN 'SUPPLIERS' THEN 'AP_SUPPLIER.CREATE' ELSE 'INV_ITEM.CREATE' END);
     l_rows := parse_csv(p_csv);

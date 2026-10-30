@@ -303,6 +303,96 @@ wwv_flow_imp_page.create_page_process(
 );
 wwv_flow_imp_page.create_page_plug(
  p_id=>wwv_flow_imp.id(91820266000000055)
+,p_plug_name=>'استيراد حسابات من ملف (CSV أو Excel محفوظ CSV)'
+,p_region_template_options=>'#DEFAULT#'
+,p_plug_template=>4072358936313175081
+,p_plug_display_sequence=>25
+,p_plug_source=>wwv_flow_string.join(wwv_flow_t_varchar2(
+'<p class="nn-hint">السطر الأول عناوين الأعمدة بالعربي أو الإنجليزي: <b>رمز الحساب</b> (code)، <b>اسم الحساب</b> (name)، <b>الحساب الأب</b> (parent)، <b>النوع</b> (type: أصول، خصوم، حقوق ملكية، إيرادات، مصروفات — يكفي للحساب الرئيسي الأعلى، والفرعي يأخذ نوع أبيه)، <b>حساب حركة</b> (postable: نعم / لا). الأب يكون حساباً تجميعياً موجوداً في الدليل أو في الملف نفسه بأي ترتيب. كل صف مستقل: الخاطئ يظهر في التقرير ولا يوقف الباقي. في Excel: حفظ باسم ← CSV UTF-8.</p><pre dir="ltr" class="nn-csv">code,name,parent,type,postable',
+'1150,العهد والسلف المؤقتة,11,أصول,لا',
+'115001,عهدة مدير المشتريات,1150,,نعم',
+'115002,عهدة أمين الصندوق,1150,,نعم</pre>'))
+,p_attributes=>wwv_flow_t_plugin_attributes(wwv_flow_t_varchar2(
+  'expand_shortcuts', 'N',
+  'output_as', 'HTML',
+  'show_line_breaks', 'Y')).to_clob
+);
+wwv_flow_imp_page.create_page_item(
+ p_id=>wwv_flow_imp.id(91820266000000056)
+,p_name=>'P10_FILE'
+,p_item_sequence=>10
+,p_item_plug_id=>wwv_flow_imp.id(91820266000000055)
+,p_prompt=>'ملف الحسابات'
+,p_display_as=>'NATIVE_FILE'
+,p_field_template=>1609121967514267634
+,p_item_template_options=>'#DEFAULT#'
+,p_attributes=>wwv_flow_t_plugin_attributes(wwv_flow_t_varchar2(
+  'storage_type', 'APEX_APPLICATION_TEMP_FILES',
+  'purge_file_at', 'REQUEST',
+  'allow_multiple_files', 'N',
+  'file_types', '.csv,text/csv,text/plain',
+  'display_as', 'DROPZONE_BLOCK',
+  'dropzone_title', 'اسحب ملف الحسابات هنا أو اضغط للاختيار',
+  'dropzone_description', 'CSV بترميز UTF-8 حتى 5 ميجابايت',
+  'max_file_size', '5120')).to_clob
+);
+wwv_flow_imp_page.create_page_item(
+ p_id=>wwv_flow_imp.id(91820266000000057)
+,p_name=>'P10_JOB'
+,p_item_sequence=>90
+,p_item_plug_id=>wwv_flow_imp.id(91820266000000055)
+,p_display_as=>'NATIVE_HIDDEN'
+,p_attributes=>wwv_flow_t_plugin_attributes(wwv_flow_t_varchar2(
+  'value_protected', 'Y')).to_clob
+);
+wwv_flow_imp_page.create_page_button(
+ p_id=>wwv_flow_imp.id(91820266000000058)
+,p_button_sequence=>10
+,p_button_plug_id=>wwv_flow_imp.id(91820266000000055)
+,p_button_name=>'IMPORT_ACCOUNTS'
+,p_button_action=>'SUBMIT'
+,p_button_template_options=>'#DEFAULT#'
+,p_button_template_id=>4072362960822175091
+,p_button_image_alt=>'استيراد الحسابات'
+,p_button_position=>'NEXT'
+);
+wwv_flow_imp_page.create_page_process(
+ p_id=>wwv_flow_imp.id(91820266000000059)
+,p_process_sequence=>15
+,p_process_point=>'AFTER_SUBMIT'
+,p_process_type=>'NATIVE_PLSQL'
+,p_process_name=>'Import Accounts'
+,p_process_sql_clob=>wwv_flow_string.join(wwv_flow_t_varchar2(
+'declare l_blob blob; l_name varchar2(400); l_csv clob; l_job number; l_ok number; l_bad number;',
+'begin',
+'    select blob_content, filename into l_blob, l_name from apex_application_temp_files where name = :P10_FILE;',
+'    l_csv := apex_util.blob_to_clob(p_blob => l_blob, p_charset => ''AL32UTF8'');',
+'    l_job := noona_conn_pkg.import_csv(''ACCOUNTS'', l_name, l_csv);',
+'    select ok_rows, failed_rows into l_ok, l_bad from api_import_job where id = l_job;',
+'    :P10_JOB := l_job;',
+'    apex_application.g_print_success_message := ''تم استيراد '' || l_ok || '' حساب'' || case when l_bad > 0 then ''، ورفض '' || l_bad || '' (التفاصيل أدناه)'' end;',
+'end;'))
+,p_process_clob_language=>'PLSQL'
+,p_error_display_location=>'INLINE_IN_NOTIFICATION'
+,p_process_when_button_id=>wwv_flow_imp.id(91820266000000058)
+,p_internal_uid=>91820266000000059
+);
+wwv_flow_imp_page.create_page_plug(
+ p_id=>wwv_flow_imp.id(91820266000000060)
+,p_plug_name=>'نتيجة استيراد الحسابات'
+,p_region_template_options=>'#DEFAULT#:t-Region--scrollBody'
+,p_plug_template=>4072358936313175081
+,p_plug_display_sequence=>26
+,p_plug_display_condition_type=>'EXPRESSION'
+,p_plug_display_when_condition=>':P10_JOB is not null'
+,p_plug_display_when_cond2=>'PLSQL'
+,p_function_body_language=>'PLSQL'
+,p_plug_source=>wwv_flow_string.join(wwv_flow_t_varchar2(
+'return noona_conn_pkg.job_html(to_number(:P10_JOB));'))
+,p_plug_source_type=>'NATIVE_DYNAMIC_CONTENT'
+);
+wwv_flow_imp_page.create_page_plug(
+ p_id=>wwv_flow_imp.id(91820266000000061)
 ,p_plug_name=>'إيقاف أو تفعيل حساب'
 ,p_region_template_options=>'#DEFAULT#'
 ,p_plug_template=>4072358936313175081
@@ -313,10 +403,10 @@ wwv_flow_imp_page.create_page_plug(
   'show_line_breaks', 'Y')).to_clob
 );
 wwv_flow_imp_page.create_page_item(
- p_id=>wwv_flow_imp.id(91820266000000056)
+ p_id=>wwv_flow_imp.id(91820266000000062)
 ,p_name=>'P10_ACCOUNT'
 ,p_item_sequence=>10
-,p_item_plug_id=>wwv_flow_imp.id(91820266000000055)
+,p_item_plug_id=>wwv_flow_imp.id(91820266000000061)
 ,p_prompt=>'الحساب'
 ,p_display_as=>'NATIVE_SELECT_LIST'
 ,p_lov=>'select a.account_code || '' - '' || a.name_ar d, a.id r from gl_account a join gl_ledger g on g.coa_id = a.coa_id where g.id = noona_gl_pkg.primary_ledger and a.is_postable = ''Y'' order by a.account_code'
@@ -330,10 +420,10 @@ wwv_flow_imp_page.create_page_item(
   'page_action_on_selection', 'NONE')).to_clob
 );
 wwv_flow_imp_page.create_page_item(
- p_id=>wwv_flow_imp.id(91820266000000057)
+ p_id=>wwv_flow_imp.id(91820266000000063)
 ,p_name=>'P10_STATUS'
 ,p_item_sequence=>20
-,p_item_plug_id=>wwv_flow_imp.id(91820266000000055)
+,p_item_plug_id=>wwv_flow_imp.id(91820266000000061)
 ,p_prompt=>'الحالة'
 ,p_display_as=>'NATIVE_SELECT_LIST'
 ,p_lov=>'STATIC2:موقوف;BLOCKED,نشط;ACTIVE'
@@ -346,9 +436,9 @@ wwv_flow_imp_page.create_page_item(
   'page_action_on_selection', 'NONE')).to_clob
 );
 wwv_flow_imp_page.create_page_button(
- p_id=>wwv_flow_imp.id(91820266000000058)
+ p_id=>wwv_flow_imp.id(91820266000000064)
 ,p_button_sequence=>10
-,p_button_plug_id=>wwv_flow_imp.id(91820266000000055)
+,p_button_plug_id=>wwv_flow_imp.id(91820266000000061)
 ,p_button_name=>'SET_STATUS'
 ,p_button_action=>'SUBMIT'
 ,p_button_template_options=>'#DEFAULT#'
@@ -357,7 +447,7 @@ wwv_flow_imp_page.create_page_button(
 ,p_button_position=>'NEXT'
 );
 wwv_flow_imp_page.create_page_process(
- p_id=>wwv_flow_imp.id(91820266000000059)
+ p_id=>wwv_flow_imp.id(91820266000000065)
 ,p_process_sequence=>20
 ,p_process_point=>'AFTER_SUBMIT'
 ,p_process_type=>'NATIVE_PLSQL'
@@ -366,13 +456,13 @@ wwv_flow_imp_page.create_page_process(
 'noona_gl_pkg.set_account_status(:P10_ACCOUNT, :P10_STATUS);'))
 ,p_process_clob_language=>'PLSQL'
 ,p_error_display_location=>'INLINE_IN_NOTIFICATION'
-,p_process_when_button_id=>wwv_flow_imp.id(91820266000000058)
+,p_process_when_button_id=>wwv_flow_imp.id(91820266000000064)
 ,p_process_success_message=>'تم تغيير حالة الحساب'
-,p_internal_uid=>91820266000000059
+,p_internal_uid=>91820266000000065
 );
 wwv_flow_imp_page.create_page_branch(
- p_id=>wwv_flow_imp.id(91820266000000060)
-,p_branch_action=>'f?p=&APP_ID.:10:&SESSION.::&DEBUG.:10::&success_msg=#SUCCESS_MSG#'
+ p_id=>wwv_flow_imp.id(91820266000000066)
+,p_branch_action=>'f?p=&APP_ID.:10:&SESSION.::&DEBUG.:10:P10_JOB:&P10_JOB.&success_msg=#SUCCESS_MSG#'
 ,p_branch_point=>'AFTER_PROCESSING'
 ,p_branch_type=>'REDIRECT_URL'
 ,p_branch_sequence=>10

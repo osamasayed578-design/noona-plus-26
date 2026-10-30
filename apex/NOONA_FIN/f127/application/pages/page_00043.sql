@@ -22,7 +22,7 @@ wwv_flow_imp_page.create_page(
 ,p_protection_level=>'C'
 );
 wwv_flow_imp_page.create_page_plug(
- p_id=>wwv_flow_imp.id(91820266000000275)
+ p_id=>wwv_flow_imp.id(91820266000000281)
 ,p_plug_name=>'السند'
 ,p_region_template_options=>'#DEFAULT#'
 ,p_plug_template=>4072358936313175081
@@ -33,18 +33,18 @@ wwv_flow_imp_page.create_page_plug(
   'show_line_breaks', 'Y')).to_clob
 );
 wwv_flow_imp_page.create_page_item(
- p_id=>wwv_flow_imp.id(91820266000000276)
+ p_id=>wwv_flow_imp.id(91820266000000282)
 ,p_name=>'P43_ID'
 ,p_item_sequence=>1
-,p_item_plug_id=>wwv_flow_imp.id(91820266000000275)
+,p_item_plug_id=>wwv_flow_imp.id(91820266000000281)
 ,p_display_as=>'NATIVE_HIDDEN'
 ,p_attributes=>wwv_flow_t_plugin_attributes(wwv_flow_t_varchar2(
   'value_protected', 'Y')).to_clob
 );
 wwv_flow_imp_page.create_page_button(
- p_id=>wwv_flow_imp.id(91820266000000277)
+ p_id=>wwv_flow_imp.id(91820266000000283)
 ,p_button_sequence=>10
-,p_button_plug_id=>wwv_flow_imp.id(91820266000000275)
+,p_button_plug_id=>wwv_flow_imp.id(91820266000000281)
 ,p_button_name=>'PRINT'
 ,p_button_action=>'REDIRECT_URL'
 ,p_button_template_options=>'#DEFAULT#'
@@ -55,9 +55,9 @@ wwv_flow_imp_page.create_page_button(
 ,p_button_redirect_url=>'javascript:window.print();'
 );
 wwv_flow_imp_page.create_page_button(
- p_id=>wwv_flow_imp.id(91820266000000278)
+ p_id=>wwv_flow_imp.id(91820266000000284)
 ,p_button_sequence=>20
-,p_button_plug_id=>wwv_flow_imp.id(91820266000000275)
+,p_button_plug_id=>wwv_flow_imp.id(91820266000000281)
 ,p_button_name=>'BACK'
 ,p_button_action=>'REDIRECT_URL'
 ,p_button_template_options=>'#DEFAULT#'
@@ -67,7 +67,7 @@ wwv_flow_imp_page.create_page_button(
 ,p_button_redirect_url=>'f?p=&APP_ID.:42:&SESSION.::&DEBUG.:RP,42:P42_ID:&P43_ID.'
 );
 wwv_flow_imp_page.create_page_plug(
- p_id=>wwv_flow_imp.id(91820266000000279)
+ p_id=>wwv_flow_imp.id(91820266000000285)
 ,p_plug_name=>'السند'
 ,p_region_template_options=>'#DEFAULT#:t-Region--scrollBody:nn-print-area:t-Region--removeHeader js-removeLandmark:t-Region--noUI'
 ,p_plug_template=>4072358936313175081

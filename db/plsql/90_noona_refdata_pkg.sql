@@ -105,6 +105,7 @@ CREATE OR REPLACE PACKAGE BODY NOONA_REFDATA_PKG AS
   PROCEDURE approve_rate(p_rate_id IN NUMBER) IS
     l_r ref_exchange_rate%ROWTYPE;
   BEGIN
+    NOONA_CORE_PKG.assert(p_rate_id IS NOT NULL, 'NOONA-REF-108', 'اختر السعر المعلق', 'Choose the pending rate');
     SELECT * INTO l_r FROM ref_exchange_rate WHERE id = p_rate_id FOR UPDATE;
     same_company(l_r.company_id);
     guard('REF_EXCHANGE_RATE.APPROVE', l_r.company_id);
@@ -118,6 +119,7 @@ CREATE OR REPLACE PACKAGE BODY NOONA_REFDATA_PKG AS
   PROCEDURE reject_rate(p_rate_id IN NUMBER, p_reason IN VARCHAR2) IS
     l_r ref_exchange_rate%ROWTYPE;
   BEGIN
+    NOONA_CORE_PKG.assert(p_rate_id IS NOT NULL, 'NOONA-REF-108', 'اختر السعر المعلق', 'Choose the pending rate');
     NOONA_CORE_PKG.assert(p_reason IS NOT NULL, 'NOONA-REF-107', 'سبب الرفض إلزامي', 'Reason is required');
     SELECT * INTO l_r FROM ref_exchange_rate WHERE id = p_rate_id FOR UPDATE;
     same_company(l_r.company_id);

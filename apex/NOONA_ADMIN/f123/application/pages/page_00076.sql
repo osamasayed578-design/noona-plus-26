@@ -28,7 +28,7 @@ wwv_flow_imp_page.create_page_plug(
 ,p_plug_template=>4072358936313175081
 ,p_plug_display_sequence=>10
 ,p_plug_source=>wwv_flow_string.join(wwv_flow_t_varchar2(
-'<p class="nn-hint">السطر الأول عناوين الأعمدة (عربي أو إنجليزي)، والفاصل فاصلة أو فاصلة منقوطة. كل صف مستقل: الصفوف الخاطئة أو المكررة تظهر في تقرير الاستيراد ولا توقف الباقي. حتى 5000 صف للملف.<br>العملاء والموردون: <code dir="ltr">name, phone, email, tax, cr, address, term</code> — الأصناف: <code dir="ltr">no, name, nameEn, type, price, barcode, category</code></p>'))
+'<p class="nn-hint">السطر الأول عناوين الأعمدة (عربي أو إنجليزي)، والفاصل فاصلة أو فاصلة منقوطة. كل صف مستقل: الصفوف الخاطئة أو المكررة تظهر في تقرير الاستيراد ولا توقف الباقي. حتى 5000 صف للملف.<br>العملاء والموردون: <code dir="ltr">name, phone, email, tax, cr, address, term</code> — الأصناف: <code dir="ltr">no, name, nameEn, type, price, barcode, category</code> — شجرة الحسابات: <code dir="ltr">code, name, parent, type, postable</code></p>'))
 ,p_attributes=>wwv_flow_t_plugin_attributes(wwv_flow_t_varchar2(
   'expand_shortcuts', 'N',
   'output_as', 'HTML',
@@ -41,7 +41,7 @@ wwv_flow_imp_page.create_page_item(
 ,p_item_plug_id=>wwv_flow_imp.id(91820262000000774)
 ,p_prompt=>'نوع البيانات'
 ,p_display_as=>'NATIVE_SELECT_LIST'
-,p_lov=>'STATIC2:العملاء;CUSTOMERS,الموردون;SUPPLIERS,الأصناف;ITEMS'
+,p_lov=>'STATIC2:العملاء;CUSTOMERS,الموردون;SUPPLIERS,الأصناف;ITEMS,شجرة الحسابات;ACCOUNTS'
 ,p_cHeight=>1
 ,p_lov_display_extra=>'NO'
 ,p_field_template=>1609121967514267634
@@ -142,7 +142,7 @@ wwv_flow_imp_page.create_page_item(
 ,p_item_plug_id=>wwv_flow_imp.id(91820262000000781)
 ,p_prompt=>'النموذج'
 ,p_display_as=>'NATIVE_SELECT_LIST'
-,p_lov=>'STATIC2:العملاء;CUSTOMERS,الموردون;SUPPLIERS,الأصناف;ITEMS,كشف حساب بنكي;BANK_STATEMENT'
+,p_lov=>'STATIC2:العملاء;CUSTOMERS,الموردون;SUPPLIERS,الأصناف;ITEMS,شجرة الحسابات;ACCOUNTS,كشف حساب بنكي;BANK_STATEMENT'
 ,p_cHeight=>1
 ,p_lov_display_extra=>'NO'
 ,p_field_template=>1609121967514267634
