@@ -46,5 +46,8 @@ END;
 @@upgrade_parts/42_pricing.sql
 @@upgrade_parts/42_his_bundle.sql
 @@upgrade_parts/43_mfg_costing.sql
+PROMPT ========== محرك التسعير مبكراً: حزم المبيعات ونقاط البيع والمستشفيات وخدمة السيارات تستدعيه في الترقيات التالية
+@@plsql/133_noona_prc_pkg.sql
+GRANT EXECUTE ON NOONA_PRC_PKG TO NOONA_APP;
 PROMPT ========== Upgrade 00 done (schema)
 EXIT
