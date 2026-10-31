@@ -394,6 +394,22 @@ p.onload([
     '})();'])
 
 # =============================================================== القائمة
+# =============================================================== 60) إعدادات تكلفة التصنيع
+p = app.page(60, 'Costing Settings', 'COSTING', 'إعدادات تكلفة التصنيع', scheme=TENANT)
+f = p.static('معالجة التكلفة', 10, text=(
+    '<p class="nn-hint">المنتج يدخل المخزون بتكلفته المعيارية عند الاستلام. عند إقفال الأمر يقارن النظام التكلفة الفعلية '
+    '(الخامات المصروفة والعمالة والتحميل) بالمعيارية؛ والفرق (الانحراف) يعالج حسب اختيارك:</p>'
+    '<ul class="nn-hint"><li><b>مصروف</b>: يقيد على حساب انحرافات الإنتاج (5105)، وتبقى قيمة المخزون بالتكلفة المعيارية.</li>'
+    '<li><b>على المخزون (التكلفة الفعلية)</b>: يحمل على قيمة الكمية التي ما زالت في المخزون فيتعدل متوسط تكلفتها، '
+    'وما بيع منها يحمل على تكلفة المبيعات.</li></ul>'))
+p.select('P60_TREAT', f, 10, 'معالجة انحراف التكلفة عند الإقفال', null_text=None,
+         lov_sql='STATIC2:مصروف (انحرافات الإنتاج 5105);EXPENSE,على المخزون والمبيعات (التكلفة الفعلية);INVENTORY')
+p.select('P60_STD', f, 20, 'تحديث التكلفة المعيارية في بطاقة الصنف عند إطلاق الأمر', null_text=None, lov_sql='STATIC2:نعم;Y,لا;N')
+p.process(5, 'BEFORE_HEADER', 'Load', [':P60_TREAT := noona_mfg_pkg.variance_treatment;', ':P60_STD := noona_mfg_pkg.update_item_std_cost;'])
+b = p.button(f, 10, 'SAVE', 'حفظ الإعدادات', hot=True)
+p.process(10, 'AFTER_SUBMIT', 'Save', 'noona_mfg_pkg.save_settings(:P60_TREAT, :P60_STD);', when_button=b, success='تم حفظ إعدادات التكلفة')
+p.branch(10, url(60) + '&success_msg=#SUCCESS_MSG#')
+
 app.nav_item('لوحة التصنيع', 1, 'fa-industry', 10)
 pr = app.nav_item('الإنتاج', None, 'fa-cogs', 20)
 app.nav_item('أمر إنتاج جديد', 'f?p=&APP_ID.:31:&APP_SESSION.::&DEBUG.:RP,31::', 'fa-plus', 21, parent=pr)
@@ -406,6 +422,7 @@ en = app.nav_item('الهندسة والإعداد', None, 'fa-wrench', 40)
 app.nav_item('قوائم المواد', 20, 'fa-list-ul', 41, parent=en)
 app.nav_item('مسارات التصنيع', 22, 'fa-random', 42, parent=en)
 app.nav_item('مراكز العمل', 10, 'fa-building-o', 43, parent=en)
+app.nav_item('إعدادات التكلفة', 60, 'fa-calculator', 44, parent=en)
 app.nav_item('التقارير', 50, 'fa-bar-chart', 50)
 
 app.finalize()

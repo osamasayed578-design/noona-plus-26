@@ -41,7 +41,7 @@
 | 18 | الصيانة وإدارة المرافق | Maintenance & Facility Management | `NOONA_MAINTENANCE_PKG` | 11 | [p18_mnt](p18_mnt.md) |
 | 19 | الموارد البشرية | Human Resources | `NOONA_HR_PKG` | 24 | [p19_hr](p19_hr.md) |
 | 20 | الرواتب | Payroll | `NOONA_PAYROLL_PKG` | 16 | [p20_pay](p20_pay.md) |
-| 21 | التصنيع | Manufacturing | `NOONA_MANUFACTURING_PKG` | 13 | [p21_mfg](p21_mfg.md) |
+| 21 | التصنيع | Manufacturing | `NOONA_MANUFACTURING_PKG` | 14 | [p21_mfg](p21_mfg.md) |
 | 22 | التقارير وذكاء الأعمال | Reporting & Business Intelligence | `NOONA_BI_PKG` | 9 | [p22_bi](p22_bi.md) |
 | 23 | ORDS وواجهات API والتكاملات | ORDS, APIs & Integrations | `NOONA_API_PKG` | 13 | [p23_api](p23_api.md) |
 | 24 | الذكاء الاصطناعي و RAG والوكلاء | AI, RAG & Agents | `NOONA_AI_PKG` | 15 | [p24_ai](p24_ai.md) |
@@ -54,5 +54,5 @@
 | 31 | المستشفيات والمراكز الطبية | Hospital & Clinics | `NOONA_HIS_PKG` | 40 | [p31_his](p31_his.md) |
 | 32 | مراكز خدمة السيارات | Auto Service Centers | `NOONA_AUT_PKG` | 10 | [p32_aut](p32_aut.md) |
 
-**الإجمالي:** 644 جدول · 11371 عمود.
+**الإجمالي:** 645 جدول · 11381 عمود.
 

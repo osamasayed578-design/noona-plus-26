@@ -5,6 +5,12 @@ module(21, 'MFG', 'التصنيع', 'Manufacturing', 'NOONA_MANUFACTURING_PKG',
        'على نسخة BOM/Routing، وصرف المواد والإنتاج والجودة والهالك، والعمل تحت التشغيل WIP والتكلفة '
        'والانحرافات، باستخدام طبقة المخزون المعتمدة دون سجلات موازية.')
 
+table('MFG_SETTING', 'إعدادات التصنيع', 'Manufacturing Settings', scope='C', cols='''
+VARIANCE_TREATMENT CODE NN D='EXPENSE' IN:EXPENSE,INVENTORY | معالجة انحراف التكلفة عند الإقفال
+UPDATE_ITEM_STD_COST YN NN D='Y' | تحديث التكلفة المعيارية في بطاقة الصنف عند إطلاق الأمر
+''', uk=[('TENANT_ID', 'COMPANY_ID')], area='setup',
+      purpose='EXPENSE: الانحراف مصروف (5105). INVENTORY: يحمل على قيمة المنتج الموجود في المخزون والباقي على تكلفة المبيعات')
+
 table('MFG_WORK_CENTER', 'مراكز العمل', 'Work Centers', scope='C', mix='code names branch active', cols='''
 SITE_ID         ID   >ORG_BUSINESS_SITE | المصنع
 CAPACITY_HOURS_DAY QTY           | الطاقة اليومية بالساعات

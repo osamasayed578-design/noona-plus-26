@@ -1,6 +1,6 @@
 # ERD — الحزمة 21: التصنيع
 
-**Manufacturing** · الحزمة البرمجية `NOONA_MANUFACTURING_PKG` · عدد الجداول: **13**
+**Manufacturing** · الحزمة البرمجية `NOONA_MANUFACTURING_PKG` · عدد الجداول: **14**
 
 قوائم المواد BOM ومسارات التصنيع بإصدارات غير قابلة للتعديل بعد الاستخدام، وأوامر الإنتاج المثبتة على نسخة BOM/Routing، وصرف المواد والإنتاج والجودة والهالك، والعمل تحت التشغيل WIP والتكلفة والانحرافات، باستخدام طبقة المخزون المعتمدة دون سجلات موازية.
 
@@ -8,6 +8,11 @@
 
 ```mermaid
 erDiagram
+  MFG_SETTING {
+    NUMBER ID PK
+    NUMBER TENANT_ID FK,UK
+    NUMBER COMPANY_ID FK,UK
+  }
   MFG_WORK_CENTER {
     NUMBER ID PK
     NUMBER TENANT_ID FK,UK
@@ -250,6 +255,7 @@ erDiagram
   ORG_COMPANY ||--o{ MFG_VARIANCE : "COMPANY_ID"
   ORG_COMPANY ||--o{ MFG_WIP_COST : "COMPANY_ID"
   ORG_COMPANY ||--o{ MFG_WORK_CENTER : "COMPANY_ID"
+  ORG_COMPANY ||--o| MFG_SETTING : "COMPANY_ID"
   PRJ_PROJECT |o--o{ MFG_PRODUCTION_ORDER : "PROJECT_ID"
   PUR_RECEIPT_LINE |o--o{ MFG_QUALITY_INSPECTION : "PUR_RECEIPT_LINE_ID"
   REF_ENTITY_TYPE |o--o{ MFG_WIP_COST : "SOURCE_ENTITY_TYPE"
@@ -261,6 +267,7 @@ erDiagram
 
 | الجدول | الاسم العربي | English | النطاق |
 |---|---|---|---|
+| `MFG_SETTING` | إعدادات التصنيع | Manufacturing Settings | C |
 | `MFG_WORK_CENTER` | مراكز العمل | Work Centers | C |
 | `MFG_BOM` | قوائم المواد | Bills of Materials | C |
 | `MFG_BOM_LINE` | مكونات قائمة المواد | BOM Components | C |

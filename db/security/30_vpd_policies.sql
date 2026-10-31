@@ -337,6 +337,7 @@ BEGIN
   NOONA_VPD_PKG.add_tenant_policy('MFG_QUALITY_INSPECTION');
   NOONA_VPD_PKG.add_tenant_policy('MFG_ROUTING');
   NOONA_VPD_PKG.add_tenant_policy('MFG_ROUTING_OPERATION');
+  NOONA_VPD_PKG.add_tenant_policy('MFG_SETTING');
   NOONA_VPD_PKG.add_tenant_policy('MFG_VARIANCE');
   NOONA_VPD_PKG.add_tenant_policy('MFG_WIP_COST');
   NOONA_VPD_PKG.add_tenant_policy('MFG_WORK_CENTER');

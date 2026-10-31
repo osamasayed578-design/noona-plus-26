@@ -77,6 +77,13 @@ DECLARE
     SELECT status_code INTO l FROM mfg_production_order WHERE id = p_order; RETURN l;
   END st;
   -- سطور قيد المصدر: رمز:مدين/دائن مرتبة
+  FUNCTION jlj(p_j NUMBER) RETURN VARCHAR2 IS
+    l VARCHAR2(4000);
+  BEGIN
+    SELECT LISTAGG(a.account_code || ':' || l.debit_amount || '/' || l.credit_amount, ' ') WITHIN GROUP (ORDER BY a.account_code, l.debit_amount)
+      INTO l FROM gl_journal_line l JOIN gl_account a ON a.id = l.account_id WHERE l.journal_id = p_j;
+    RETURN l;
+  END jlj;
   FUNCTION jl(p_type VARCHAR2, p_id NUMBER) RETURN VARCHAR2 IS
     l VARCHAR2(4000);
   BEGIN
@@ -270,6 +277,23 @@ BEGIN
     FROM mfg_production_order o JOIN mfg_quality_inspection q ON q.order_id = o.id WHERE o.id = l_o;
   ok('order partially completed, inspection conditional', l_s = '9|1|PARTIALLY_COMPLETED|CONDITIONAL', l_s);
   ok('WIP balance before close', NOONA_MFG_PKG.wip_balance(l_o) = 15.2, NOONA_MFG_PKG.wip_balance(l_o));
+
+  SELECT MAX(standard_cost) INTO l_x FROM inv_item_company WHERE item_id = l_fg AND company_id = NOONA_MFG_PKG.company;
+  ok('release updates the standard cost on the item card', l_x = 62.3, l_x);
+
+  -- ======================================================== الإقفال بالتكلفة الفعلية (الانحراف على المخزون) ثم التراجع
+  SAVEPOINT pre_close;
+  NOONA_MFG_PKG.save_settings('INVENTORY', 'Y');
+  ok('variance treatment setting saved', NOONA_MFG_PKG.variance_treatment = 'INVENTORY');
+  l_j := NOONA_MFG_PKG.close_order(l_o, TRUNC(SYSDATE));
+  ok('inventory mode: variance of stock still on hand goes to inventory', jlj(l_j) = '1105:15.2/0 1110:0/15.2', jlj(l_j));
+  ok('inventory mode: average cost absorbs the variance (62.3 + 15.2 / 9)', ROUND(NOONA_INV_PKG.avg_cost(l_fg), 4) = ROUND(62.3 + 15.2 / 9, 4),
+     NOONA_INV_PKG.avg_cost(l_fg));
+  ROLLBACK TO pre_close;
+  BEGIN
+    NOONA_MFG_PKG.save_settings('ACTUAL', 'Y');
+    ok('invalid variance treatment rejected', FALSE);
+  EXCEPTION WHEN OTHERS THEN expect('invalid variance treatment rejected', 'NOONA-MFG-090', SQLERRM); END;
 
   -- ======================================================== الإقفال والانحرافات
   l_j := NOONA_MFG_PKG.close_order(l_o, TRUNC(SYSDATE));

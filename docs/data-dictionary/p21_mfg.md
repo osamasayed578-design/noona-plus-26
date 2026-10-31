@@ -8,6 +8,7 @@
 
 | الجدول | الاسم العربي | English | النطاق | الحساسية |
 |---|---|---|---|---|
+| [`MFG_SETTING`](#mfg_setting) | إعدادات التصنيع | Manufacturing Settings | C | INTERNAL |
 | [`MFG_WORK_CENTER`](#mfg_work_center) | مراكز العمل | Work Centers | C | INTERNAL |
 | [`MFG_BOM`](#mfg_bom) | قوائم المواد | Bills of Materials | C | INTERNAL |
 | [`MFG_BOM_LINE`](#mfg_bom_line) | مكونات قائمة المواد | BOM Components | C | INTERNAL |
@@ -21,6 +22,32 @@
 | [`MFG_QUALITY_INSPECTION`](#mfg_quality_inspection) | فحوصات الجودة | Quality Inspections | C | INTERNAL |
 | [`MFG_WIP_COST`](#mfg_wip_cost) | تكاليف العمل تحت التشغيل | WIP Cost Accumulation | C | INTERNAL |
 | [`MFG_VARIANCE`](#mfg_variance) | انحرافات التكلفة | Production Variances | C | INTERNAL |
+
+## MFG_SETTING
+
+| البند | القيمة |
+|---|---|
+| الاسم العربي | إعدادات التصنيع |
+| English | Manufacturing Settings |
+| الحزمة المالكة | 21 — `NOONA_MANUFACTURING_PKG` |
+| نطاق الملكية | `C` — مملوك للشركة Company-Owned |
+| الحساسية | INTERNAL |
+| النمط | قابل للتعديل وفق دورة الحياة |
+| الغرض | EXPENSE: الانحراف مصروف (5105). INVENTORY: يحمل على قيمة المنتج الموجود في المخزون والباقي على تكلفة المبيعات |
+| مفاتيح فريدة | UK1: (TENANT_ID, COMPANY_ID) |
+
+| # | العمود | النوع المنطقي | Oracle Type | إلزامي | افتراضي | مفاتيح | القيم المقبولة | المصدر | PII | الوصف |
+|---:|---|---|---|:---:|---|---|---|---|:---:|---|
+| 1 | `ID` | معرف | `NUMBER(19)` | ✔ |  | PK |  | النظام/الحزمة |  | المفتاح الداخلي الثابت (Identity) - لا يعاد استخدامه |
+| 2 | `TENANT_ID` | معرف | `NUMBER(19)` | ✔ |  | FK→PLT_TENANT UK1 |  | Security Context |  | المؤسسة المالكة؛ يملأ من Security Context الموثوق لا من مدخلات المستخدم |
+| 3 | `COMPANY_ID` | معرف | `NUMBER(19)` | ✔ |  | FK→ORG_COMPANY UK1 |  | Security Context |  | الشركة (الكيان القانوني) المالكة للسجل |
+| 4 | `VARIANCE_TREATMENT` | رمز | `VARCHAR2(30 CHAR)` | ✔ | 'EXPENSE' |  | EXPENSE, INVENTORY | إدخال المستخدم |  | معالجة انحراف التكلفة عند الإقفال |
+| 5 | `UPDATE_ITEM_STD_COST` | منطقي Y/N | `CHAR(1 CHAR)` | ✔ | 'Y' |  | Y, N | إدخال المستخدم |  | تحديث التكلفة المعيارية في بطاقة الصنف عند إطلاق الأمر |
+| 6 | `ROW_VERSION` | عدد صحيح | `NUMBER(10)` | ✔ | 1 |  |  | Trigger |  | رقم الإصدار للتحكم في التزامن المتفائل |
+| 7 | `CREATED_BY` | اسم مستخدم | `VARCHAR2(128 CHAR)` | ✔ |  |  |  | Trigger |  | منشئ السجل |
+| 8 | `CREATED_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` | ✔ | SYSTIMESTAMP |  |  | Trigger |  | وقت الإنشاء |
+| 9 | `UPDATED_BY` | اسم مستخدم | `VARCHAR2(128 CHAR)` |  |  |  |  | Trigger |  | آخر من عدل السجل |
+| 10 | `UPDATED_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` |  |  |  |  | Trigger |  | وقت آخر تعديل |
 
 ## MFG_WORK_CENTER
 

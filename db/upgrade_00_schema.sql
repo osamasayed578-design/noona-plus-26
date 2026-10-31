@@ -45,5 +45,6 @@ END;
 @@upgrade_parts/40_cor_hierarchy.sql
 @@upgrade_parts/42_pricing.sql
 @@upgrade_parts/42_his_bundle.sql
+@@upgrade_parts/43_mfg_costing.sql
 PROMPT ========== Upgrade 00 done (schema)
 EXIT

@@ -78,6 +78,11 @@ CREATE OR REPLACE PACKAGE NOONA_MFG_PKG AUTHID DEFINER AS
   FUNCTION close_order(p_order_id IN NUMBER, p_date IN DATE DEFAULT NULL) RETURN NUMBER;
   -- رصيد العمل تحت التشغيل للأمر (لكل العناصر أو عنصر واحد)
   FUNCTION wip_balance(p_order_id IN NUMBER, p_element IN VARCHAR2 DEFAULT NULL) RETURN NUMBER;
+  -- إعدادات التكلفة للشركة: معالجة الانحراف عند الإقفال (EXPENSE مصروف 5105 | INVENTORY على المنتج المتبقي في المخزون والباقي
+  -- تكلفة المبيعات) وتحديث التكلفة المعيارية في بطاقة الصنف عند إطلاق الأمر (Y/N)
+  FUNCTION variance_treatment RETURN VARCHAR2;
+  FUNCTION update_item_std_cost RETURN VARCHAR2;
+  PROCEDURE save_settings(p_treatment IN VARCHAR2, p_update_std IN VARCHAR2);
 
   -- ---------------------------------------------------------- التخطيط
   -- احتياجات المواد: [{"i","n","t":"MAKE|BUY","oh","sup","gross","net","lvl","uom","bom"}]
@@ -969,6 +974,31 @@ CREATE OR REPLACE PACKAGE BODY NOONA_MFG_PKG AS
     NOONA_AUDIT_PKG.log_event('APPROVAL', c_order, p_order_id, 'APPROVE', 'SUCCESS');
   END approve_order;
 
+  FUNCTION variance_treatment RETURN VARCHAR2 IS
+    l VARCHAR2(30);
+  BEGIN
+    SELECT MAX(variance_treatment) INTO l FROM mfg_setting WHERE company_id = company;
+    RETURN NVL(l, 'EXPENSE');
+  END variance_treatment;
+
+  FUNCTION update_item_std_cost RETURN VARCHAR2 IS
+    l VARCHAR2(1);
+  BEGIN
+    SELECT MAX(update_item_std_cost) INTO l FROM mfg_setting WHERE company_id = company;
+    RETURN NVL(l, 'Y');
+  END update_item_std_cost;
+
+  PROCEDURE save_settings(p_treatment IN VARCHAR2, p_update_std IN VARCHAR2) IS
+  BEGIN
+    guard('MFG_SETTING.UPDATE');
+    NOONA_CORE_PKG.assert(p_treatment IN ('EXPENSE', 'INVENTORY') AND NVL(p_update_std, 'Y') IN ('Y', 'N'), 'NOONA-MFG-090',
+      'اختر معالجة الانحراف وتحديث التكلفة المعيارية', 'Choose the variance treatment');
+    MERGE INTO mfg_setting s USING (SELECT company c FROM dual) x ON (s.company_id = x.c)
+     WHEN MATCHED THEN UPDATE SET variance_treatment = p_treatment, update_item_std_cost = NVL(p_update_std, 'Y')
+     WHEN NOT MATCHED THEN INSERT (company_id, variance_treatment, update_item_std_cost) VALUES (x.c, p_treatment, NVL(p_update_std, 'Y'));
+    NOONA_AUDIT_PKG.log_event('CONFIG', 'MFG_SETTING', NULL, 'UPDATE', 'SUCCESS', p_new_values => '{"variance":"' || p_treatment || '"}');
+  END save_settings;
+
   PROCEDURE release_order(p_order_id IN NUMBER) IS
     l_o mfg_production_order%ROWTYPE := get_order(p_order_id);
     l_n NUMBER;
@@ -980,6 +1010,12 @@ CREATE OR REPLACE PACKAGE BODY NOONA_MFG_PKG AS
     -- تثبيت الاحتياجات والتكلفة المعيارية بأسعار وقت الإطلاق
     build_requirements(p_order_id);
     UPDATE mfg_production_order SET status_code = 'RELEASED' WHERE id = p_order_id;
+    -- التكلفة المعيارية للمنتج في بطاقة الصنف من آخر أمر مطلق (يقرؤها محرك التسعير وتقارير الهوامش)
+    IF update_item_std_cost = 'Y' THEN
+      UPDATE inv_item_company SET standard_cost = (SELECT ROUND(std_unit_cost, 4) FROM mfg_production_order WHERE id = p_order_id)
+       WHERE item_id = l_o.item_id AND company_id = company
+         AND (SELECT std_unit_cost FROM mfg_production_order WHERE id = p_order_id) > 0;
+    END IF;
     NOONA_AUDIT_PKG.log_event('DATA_CHANGE', c_order, p_order_id, 'RELEASE', 'SUCCESS');
   END release_order;
 
@@ -1500,6 +1536,10 @@ CREATE OR REPLACE PACKAGE BODY NOONA_MFG_PKG AS
     l_x     NUMBER;
     l_j     NUMBER;
     l_n     NUMBER;
+    l_mode  VARCHAR2(30) := variance_treatment;
+    l_made  NUMBER;
+    l_have  NUMBER;
+    l_inv   NUMBER := 0;
     PROCEDURE var(p_type VARCHAR2, p_std NUMBER, p_act NUMBER) IS
     BEGIN
       IF ROUND(NVL(p_act, 0) - NVL(p_std, 0), 2) <> 0 THEN
@@ -1533,7 +1573,9 @@ CREATE OR REPLACE PACKAGE BODY NOONA_MFG_PKG AS
         l_x := wip(p_order_id, NULL, e.el, l_b, l_date, 'VARIANCE', NULL, NULL, NULL, 'انحراف ' || element_label(e.el) || ' عند الإقفال',
                    c_order, p_order_id);
         l_tot := l_tot + l_b;
-        IF l_b > 0 THEN
+        IF l_mode = 'INVENTORY' THEN
+          NULL;      -- يحمل الإجمالي بعد الحلقة على المخزون وتكلفة المبيعات
+        ELSIF l_b > 0 THEN
           add_line(l_lines, acc('5105'), l_b, 0, l_cc, 'انحراف ' || element_label(e.el) || ' - ' || l_o.doc_no);
         ELSE
           add_line(l_lines, acc('5105'), 0, -l_b, l_cc, 'انحراف ' || element_label(e.el) || ' - ' || l_o.doc_no);
@@ -1548,6 +1590,24 @@ CREATE OR REPLACE PACKAGE BODY NOONA_MFG_PKG AS
         var('OVERHEAD', charged(e.el) - l_b, charged(e.el));
       END IF;
     END LOOP;
+    -- التكلفة الفعلية: الانحراف على قيمة المنتج الذي ما زال في المخزون (يعدل متوسط تكلفته)، وما بيع منه على تكلفة المبيعات
+    IF l_mode = 'INVENTORY' AND l_tot <> 0 THEN
+      -- الكمية الجيدة المستلمة للمخزون (المرفوض في الفحص لا يدخل المخزون)
+      SELECT NVL(completed_qty, 0) INTO l_made FROM mfg_production_order WHERE id = p_order_id;
+      l_have := GREATEST(NOONA_INV_PKG.on_hand(l_o.item_id, NULL), 0);
+      l_inv := CASE WHEN l_made > 0 THEN ROUND(l_tot * LEAST(l_have, l_made) / l_made, 2) ELSE 0 END;
+      IF l_inv <> 0 THEN
+        add_line(l_lines, NOONA_INV_PKG.account_for(l_o.item_id, 'INVENTORY'), GREATEST(l_inv, 0), GREATEST(-l_inv, 0), l_cc,
+                 'تحميل انحراف التكلفة على المخزون - ' || l_o.doc_no);
+        UPDATE inv_item_cost SET total_value = total_value + ROUND(l_inv * on_hand_qty / NULLIF(l_have, 0), 2),
+               average_cost = CASE WHEN on_hand_qty > 0 THEN ROUND((total_value + l_inv * on_hand_qty / l_have) / on_hand_qty, 6) ELSE average_cost END
+         WHERE company_id = company AND item_id = l_o.item_id AND on_hand_qty > 0 AND l_have > 0;
+      END IF;
+      IF l_tot - l_inv <> 0 THEN
+        add_line(l_lines, NOONA_INV_PKG.account_for(l_o.item_id, 'COGS'), GREATEST(l_tot - l_inv, 0), GREATEST(l_inv - l_tot, 0), l_cc,
+                 'انحراف التكلفة للكمية المباعة - ' || l_o.doc_no);
+      END IF;
+    END IF;
     IF l_tot > 0 THEN
       add_line(l_lines, acc('1110'), 0, l_tot, l_cc, 'تسوية الإنتاج تحت التشغيل ' || l_o.doc_no);
     ELSIF l_tot < 0 THEN
@@ -1564,7 +1624,7 @@ CREATE OR REPLACE PACKAGE BODY NOONA_MFG_PKG AS
            accounting_event_id = (SELECT MAX(id) FROM ace_accounting_event WHERE source_entity_type = c_order AND source_entity_id = p_order_id
                                      AND status_code = 'POSTED')
      WHERE id = p_order_id;
-    NOONA_AUDIT_PKG.log_event('POSTING', c_order, p_order_id, 'CLOSE', 'SUCCESS', p_new_values => '{"variance":' || fnum(l_tot) || '}');
+    NOONA_AUDIT_PKG.log_event('POSTING', c_order, p_order_id, 'CLOSE', 'SUCCESS', p_new_values => '{"variance":' || fnum(l_tot) || ',"mode":"' || l_mode || '","toInventory":' || fnum(l_inv) || '}');
     RETURN l_j;
   EXCEPTION WHEN OTHERS THEN
     ROLLBACK TO mfg_close;
