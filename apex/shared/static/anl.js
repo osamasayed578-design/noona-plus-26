@@ -16,7 +16,8 @@
     var GOOD = {REVENUE: 'UP', NET_PROFIT: 'UP', CASH_BALANCE: 'UP', SALES_INVOICED: 'UP', POS_SALES: 'UP', POS_TICKETS: 'UP',
         PRODUCTION_QTY: 'UP', PRODUCTION_ORDERS: 'UP', HIS_VISITS: 'UP', HIS_REVENUE: 'UP', AUT_JOBS: 'UP', AUT_REVENUE: 'UP',
         HOTEL_CHECKINS: 'UP', RE_SALES: 'UP', RST_SALES: 'UP', EXPENSES: 'DOWN', AP_BALANCE: 'DOWN'};
-    var state = {branch: '', metric: null, grain: 'MONTH', periods: 3, table: false, view: null, chart: null};
+    var state = {branch: '', metric: null, grain: 'MONTH', periods: 3, table: false, view: null, chart: null, scope: 'COMPANY'};
+    try { if (localStorage.getItem('nnAnlScope') === 'GROUP') state.scope = 'GROUP'; } catch (e) { /* التخزين غير متاح */ }
     var nf0 = new Intl.NumberFormat('ar-u-nu-latn', {maximumFractionDigits: 0});
     var nf2 = new Intl.NumberFormat('ar-u-nu-latn', {maximumFractionDigits: 2});
     var nfc = new Intl.NumberFormat('ar-u-nu-latn', {notation: 'compact', maximumFractionDigits: 1});
@@ -47,6 +48,8 @@
         '<div class="nn-anl-bar">' +
         '  <div class="nn-anl-title"><span class="fa fa-line-chart" aria-hidden="true"></span> ' + (UNIFIED ? 'لوحة الأداء الموحدة' : 'التحليلات والتنبؤ') +
         '    <span class="nn-anl-sub"></span></div>' +
+        '  <div class="nn-anl-seg nn-anl-scope" role="group" aria-label="نطاق التقرير" hidden>' +
+        '    <button type="button" data-s="COMPANY" aria-pressed="true">الشركة الحالية</button><button type="button" data-s="GROUP" aria-pressed="false">المجموعة كاملة</button></div>' +
         '  <label class="nn-anl-ctl">الفرع <select class="nn-anl-branch"><option value="">كل الفروع</option></select></label>' +
         '  <button type="button" class="t-Button t-Button--small nn-anl-refresh" title="تحديث"><span class="fa fa-refresh" aria-hidden="true"></span> تحديث</button>' +
         '</div>' +
@@ -60,7 +63,7 @@
         '    <label class="nn-anl-ctl nn-anl-h">التنبؤ <select class="nn-anl-periods"><option value="3">3 أشهر</option><option value="6">6 أشهر</option><option value="12">12 شهراً</option></select></label>' +
         '    <button type="button" class="t-Button t-Button--small nn-anl-tbl" aria-pressed="false"><span class="fa fa-table" aria-hidden="true"></span> جدول</button>' +
         '  </div>' +
-        '  <div class="nn-anl-plot"></div><div class="nn-anl-legend"></div><div class="nn-anl-table" hidden></div>' +
+        '  <div class="nn-anl-plot"></div><div class="nn-anl-legend"></div><div class="nn-anl-table" hidden></div><div class="nn-anl-cos" hidden></div>' +
         '</div>';
     var $ = function (s) { return root.querySelector(s); };
     var card = $('.nn-anl-chart-card'), plot = $('.nn-anl-plot'), tbl = $('.nn-anl-table');
@@ -94,12 +97,18 @@
     function loadView() {
         var mods = $('.nn-anl-mods');
         mods.innerHTML = '<div class="nn-anl-loading">جار حساب المؤشرات...</div>';
-        return call({x01: 'VIEW', x02: MODULES, x03: state.branch}).then(function (v) {
+        return call({x01: 'VIEW', x02: MODULES, x03: state.scope === 'GROUP' ? '' : state.branch, x06: state.scope}).then(function (v) {
             state.view = v;
-            var sel = $('.nn-anl-branch');
+            var sel = $('.nn-anl-branch'), sc = $('.nn-anl-scope');
             if (sel.options.length === 1) (v.branches || []).forEach(function (b) { sel.add(new Option(b.name, b.id)); });
-            sel.closest('label').hidden = (v.branches || []).length < 2;
-            $('.nn-anl-sub').textContent = 'من ' + v.from + ' إلى ' + v.asOf + ' مقارنة بالفترة المماثلة السابقة';
+            sc.hidden = v.canGroup !== 'Y';
+            if (v.canGroup !== 'Y' && state.scope === 'GROUP') { state.scope = 'COMPANY'; return loadView(); }
+            sc.querySelectorAll('button').forEach(function (b) { b.setAttribute('aria-pressed', b.dataset.s === state.scope); });
+            sel.closest('label').hidden = state.scope === 'GROUP' || (v.branches || []).length < 2;
+            var curs = {}; (v.companies || []).forEach(function (c) { curs[c.currency] = 1; });
+            $('.nn-anl-sub').textContent = (state.scope === 'GROUP' ? 'المجموعة: ' + (v.companies || []).length + ' شركة بكل فروعها · ' : '') +
+                'من ' + v.from + ' إلى ' + v.asOf + ' مقارنة بالفترة المماثلة السابقة' +
+                (Object.keys(curs).length > 1 ? ' · تنبيه: عملات وظيفية مختلفة (' + Object.keys(curs).join('، ') + ') تجمع دون تحويل' : '');
             if (!v.modules.length) {
                 mods.innerHTML = '<div class="nn-launch-empty"><span class="fa fa-lock" aria-hidden="true"></span><b>لا توجد مؤشرات متاحة لك</b>' +
                     '<span>المؤشرات تظهر حسب صلاحيات العرض في كل موديول واشتراك المؤسسة</span></div>';
@@ -123,7 +132,20 @@
         card.hidden = false;
         plot.innerHTML = '<div class="nn-anl-loading">جار الرسم...</div>';
         $('.nn-anl-h').hidden = state.grain !== 'MONTH';
-        return call({x01: 'CHART', x02: state.metric, x03: state.branch, x04: state.grain, x05: state.periods}).then(function (c) {
+        var cosHost = $('.nn-anl-cos');
+        cosHost.hidden = state.scope !== 'GROUP';
+        if (state.scope === 'GROUP') {
+            cosHost.innerHTML = '<div class="nn-anl-loading">جار توزيع المؤشر على الشركات...</div>';
+            call({x01: 'COMPANIES', x02: state.metric}).then(function (cs) {
+                var unit = (state.chart || {}).unit;
+                cosHost.innerHTML = '<h4 class="nn-anl-cos-h">توزيع الشهر الحالي على شركات المجموعة</h4><table class="nn-tbl"><thead><tr><th>الشركة</th><th>القيمة</th><th>العملة</th><th>النسبة</th><th></th></tr></thead><tbody>' +
+                    cs.map(function (c) {
+                        return '<tr><td>' + esc(c.name) + '</td><td>' + fmt(c.value, unit) + '</td><td>' + esc(c.currency) + '</td><td>' + (c.sharePct == null ? '—' : nf2.format(c.sharePct) + '%') +
+                            '</td><td class="nn-anl-bar-c"><span style="width:' + Math.min(c.sharePct || 0, 100) + '%"></span></td></tr>';
+                    }).join('') + '</tbody></table>';
+            }).catch(function (m) { err(cosHost, m); });
+        }
+        return call({x01: 'CHART', x02: state.metric, x03: state.scope === 'GROUP' ? '' : state.branch, x04: state.grain, x05: state.periods, x06: state.scope}).then(function (c) {
             state.chart = c; draw(); table();
         }).catch(function (m) { err(plot, m); });
     }
@@ -213,7 +235,7 @@
     function loadAnom() {
         var host = $('.nn-anl-anom');
         if (!host) return;
-        call({x01: 'ANOM'}).then(function (a) {
+        call({x01: 'ANOM', x06: state.scope}).then(function (a) {
             if (!a.length) { host.innerHTML = ''; return; }
             host.innerHTML = '<h3 class="nn-rh-h"><span class="fa fa-bell-o" aria-hidden="true"></span> قيم غير معتادة في آخر شهر مكتمل</h3><div class="nn-anl-anoms">' +
                 a.map(function (x) {
@@ -228,10 +250,16 @@
     root.addEventListener('click', function (e) {
         var k = e.target.closest('.nn-anl-kpi, .nn-anl-an');
         if (k) { state.metric = k.dataset.m; mark(); loadChart(); if (UNIFIED || k.classList.contains('nn-anl-an')) card.scrollIntoView({behavior: 'smooth', block: 'nearest'}); return; }
-        var g = e.target.closest('.nn-anl-seg button');
+        var sb = e.target.closest('.nn-anl-scope button');
+        if (sb) {
+            state.scope = sb.dataset.s;
+            try { localStorage.setItem('nnAnlScope', state.scope); } catch (x) { /* */ }
+            loadView(); loadAnom(); return;
+        }
+        var g = e.target.closest('.nn-anl-seg button[data-g]');
         if (g) {
             state.grain = g.dataset.g;
-            root.querySelectorAll('.nn-anl-seg button').forEach(function (b) { b.setAttribute('aria-pressed', b === g); });
+            root.querySelectorAll('.nn-anl-seg button[data-g]').forEach(function (b) { b.setAttribute('aria-pressed', b === g); });
             loadChart(); return;
         }
         if (e.target.closest('.nn-anl-tbl')) {

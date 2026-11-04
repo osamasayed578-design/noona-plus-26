@@ -1,0 +1,281 @@
+prompt --application/pages/page_00010
+begin
+--   Manifest
+--     PAGE: 00010
+--   Manifest End
+wwv_flow_imp.component_begin (
+ p_version_yyyy_mm_dd=>'2024.11.30'
+,p_release=>'24.2.0'
+,p_default_workspace_id=>17663301221950901
+,p_default_application_id=>147
+,p_default_id_offset=>0
+,p_default_owner=>'NOONA_APP'
+);
+wwv_flow_imp_page.create_page(
+ p_id=>10
+,p_name=>'Shipment Orders'
+,p_alias=>'ORDERS'
+,p_step_title=>'أوامر الشحن'
+,p_autocomplete_on_off=>'OFF'
+,p_page_template_options=>'#DEFAULT#'
+,p_required_role=>wwv_flow_imp.id(91820290000000009)
+,p_protection_level=>'C'
+);
+wwv_flow_imp_page.create_page_plug(
+ p_id=>wwv_flow_imp.id(91820290000000021)
+,p_plug_name=>'أوامر الشحن'
+,p_region_template_options=>'#DEFAULT#'
+,p_component_template_options=>'#DEFAULT#'
+,p_plug_template=>2100526641005906379
+,p_plug_display_sequence=>10
+,p_query_type=>'SQL'
+,p_plug_source=>wwv_flow_string.join(wwv_flow_t_varchar2(
+'select o.id, o.doc_no, o.doc_date, noona_sal_pkg.customer_label(o.customer_account_id) customer, f.name_ar from_loc, t.name_ar to_loc,',
+'       c.name_ar cargo, o.quantity, noona_trn_pkg.uom_label(o.uom_code) uom, round(o.weight_kg / 1000, 3) tons,',
+'       noona_trn_pkg.basis_label(o.rate_basis) basis, o.rate_amount, o.total_amount, o.pickup_date, o.required_delivery_date,',
+'       o.delivered_qty, o.shortage_qty, noona_trn_pkg.badge(o.status_code) status_html',
+'  from trn_order o join trn_location f on f.id = o.from_location_id join trn_location t on t.id = o.to_location_id',
+'  join trn_cargo_type c on c.id = o.cargo_type_id',
+' where o.company_id = noona_trn_pkg.company order by o.id desc'))
+,p_plug_source_type=>'NATIVE_IR'
+,p_prn_page_header=>'أوامر الشحن'
+);
+wwv_flow_imp_page.create_worksheet(
+ p_id=>wwv_flow_imp.id(91820290000000022)
+,p_max_row_count=>'1000000'
+,p_no_data_found_message=>'لا توجد بيانات'
+,p_pagination_type=>'ROWS_X_TO_Y'
+,p_pagination_display_pos=>'BOTTOM_RIGHT'
+,p_report_list_mode=>'TABS'
+,p_lazy_loading=>false
+,p_show_detail_link=>'C'
+,p_show_notify=>'N'
+,p_download_formats=>'CSV:HTML:XLSX:PDF'
+,p_enable_mail_download=>'N'
+,p_detail_link=>'f?p=&APP_ID.:11:&SESSION.::&DEBUG.:RP,11:P11_ID:#ID#'
+,p_detail_link_text=>'<span role="img" aria-label="تعديل" class="fa fa-edit" title="فتح"></span>'
+,p_owner=>'NOONA'
+,p_internal_uid=>91820290000000022
+);
+wwv_flow_imp_page.create_worksheet_column(
+ p_id=>wwv_flow_imp.id(91820290000000024)
+,p_db_column_name=>'ID'
+,p_display_order=>10
+,p_column_identifier=>'A'
+,p_column_label=>'#'
+,p_column_type=>'NUMBER'
+,p_display_text_as=>'HIDDEN'
+,p_heading_alignment=>'CENTER'
+,p_use_as_row_header=>'N'
+);
+wwv_flow_imp_page.create_worksheet_column(
+ p_id=>wwv_flow_imp.id(91820290000000025)
+,p_db_column_name=>'DOC_NO'
+,p_display_order=>20
+,p_column_identifier=>'B'
+,p_column_label=>'الرقم'
+,p_column_type=>'STRING'
+,p_heading_alignment=>'CENTER'
+,p_use_as_row_header=>'N'
+);
+wwv_flow_imp_page.create_worksheet_column(
+ p_id=>wwv_flow_imp.id(91820290000000026)
+,p_db_column_name=>'DOC_DATE'
+,p_display_order=>30
+,p_column_identifier=>'C'
+,p_column_label=>'التاريخ'
+,p_column_type=>'DATE'
+,p_format_mask=>'YYYY-MM-DD'
+,p_heading_alignment=>'CENTER'
+,p_use_as_row_header=>'N'
+);
+wwv_flow_imp_page.create_worksheet_column(
+ p_id=>wwv_flow_imp.id(91820290000000027)
+,p_db_column_name=>'CUSTOMER'
+,p_display_order=>40
+,p_column_identifier=>'D'
+,p_column_label=>'العميل'
+,p_column_type=>'STRING'
+,p_heading_alignment=>'CENTER'
+,p_use_as_row_header=>'N'
+);
+wwv_flow_imp_page.create_worksheet_column(
+ p_id=>wwv_flow_imp.id(91820290000000028)
+,p_db_column_name=>'FROM_LOC'
+,p_display_order=>50
+,p_column_identifier=>'E'
+,p_column_label=>'من'
+,p_column_type=>'STRING'
+,p_heading_alignment=>'CENTER'
+,p_use_as_row_header=>'N'
+);
+wwv_flow_imp_page.create_worksheet_column(
+ p_id=>wwv_flow_imp.id(91820290000000029)
+,p_db_column_name=>'TO_LOC'
+,p_display_order=>60
+,p_column_identifier=>'F'
+,p_column_label=>'إلى'
+,p_column_type=>'STRING'
+,p_heading_alignment=>'CENTER'
+,p_use_as_row_header=>'N'
+);
+wwv_flow_imp_page.create_worksheet_column(
+ p_id=>wwv_flow_imp.id(91820290000000030)
+,p_db_column_name=>'CARGO'
+,p_display_order=>70
+,p_column_identifier=>'G'
+,p_column_label=>'الشحنة'
+,p_column_type=>'STRING'
+,p_heading_alignment=>'CENTER'
+,p_use_as_row_header=>'N'
+);
+wwv_flow_imp_page.create_worksheet_column(
+ p_id=>wwv_flow_imp.id(91820290000000031)
+,p_db_column_name=>'QUANTITY'
+,p_display_order=>80
+,p_column_identifier=>'H'
+,p_column_label=>'الكمية'
+,p_column_type=>'NUMBER'
+,p_heading_alignment=>'CENTER'
+,p_use_as_row_header=>'N'
+);
+wwv_flow_imp_page.create_worksheet_column(
+ p_id=>wwv_flow_imp.id(91820290000000032)
+,p_db_column_name=>'UOM'
+,p_display_order=>90
+,p_column_identifier=>'I'
+,p_column_label=>'الوحدة'
+,p_column_type=>'STRING'
+,p_heading_alignment=>'CENTER'
+,p_use_as_row_header=>'N'
+);
+wwv_flow_imp_page.create_worksheet_column(
+ p_id=>wwv_flow_imp.id(91820290000000033)
+,p_db_column_name=>'TONS'
+,p_display_order=>100
+,p_column_identifier=>'J'
+,p_column_label=>'طن متري'
+,p_column_type=>'NUMBER'
+,p_heading_alignment=>'CENTER'
+,p_use_as_row_header=>'N'
+);
+wwv_flow_imp_page.create_worksheet_column(
+ p_id=>wwv_flow_imp.id(91820290000000034)
+,p_db_column_name=>'BASIS'
+,p_display_order=>110
+,p_column_identifier=>'K'
+,p_column_label=>'أساس السعر'
+,p_column_type=>'STRING'
+,p_heading_alignment=>'CENTER'
+,p_use_as_row_header=>'N'
+);
+wwv_flow_imp_page.create_worksheet_column(
+ p_id=>wwv_flow_imp.id(91820290000000035)
+,p_db_column_name=>'RATE_AMOUNT'
+,p_display_order=>120
+,p_column_identifier=>'L'
+,p_column_label=>'السعر'
+,p_column_type=>'NUMBER'
+,p_heading_alignment=>'CENTER'
+,p_use_as_row_header=>'N'
+);
+wwv_flow_imp_page.create_worksheet_column(
+ p_id=>wwv_flow_imp.id(91820290000000036)
+,p_db_column_name=>'TOTAL_AMOUNT'
+,p_display_order=>130
+,p_column_identifier=>'M'
+,p_column_label=>'الترحيل'
+,p_column_type=>'NUMBER'
+,p_heading_alignment=>'CENTER'
+,p_use_as_row_header=>'N'
+);
+wwv_flow_imp_page.create_worksheet_column(
+ p_id=>wwv_flow_imp.id(91820290000000037)
+,p_db_column_name=>'PICKUP_DATE'
+,p_display_order=>140
+,p_column_identifier=>'N'
+,p_column_label=>'التحميل'
+,p_column_type=>'DATE'
+,p_format_mask=>'YYYY-MM-DD'
+,p_heading_alignment=>'CENTER'
+,p_use_as_row_header=>'N'
+);
+wwv_flow_imp_page.create_worksheet_column(
+ p_id=>wwv_flow_imp.id(91820290000000038)
+,p_db_column_name=>'REQUIRED_DELIVERY_DATE'
+,p_display_order=>150
+,p_column_identifier=>'O'
+,p_column_label=>'التسليم المطلوب'
+,p_column_type=>'DATE'
+,p_format_mask=>'YYYY-MM-DD'
+,p_heading_alignment=>'CENTER'
+,p_use_as_row_header=>'N'
+);
+wwv_flow_imp_page.create_worksheet_column(
+ p_id=>wwv_flow_imp.id(91820290000000039)
+,p_db_column_name=>'DELIVERED_QTY'
+,p_display_order=>160
+,p_column_identifier=>'P'
+,p_column_label=>'المسلم'
+,p_column_type=>'NUMBER'
+,p_heading_alignment=>'CENTER'
+,p_use_as_row_header=>'N'
+);
+wwv_flow_imp_page.create_worksheet_column(
+ p_id=>wwv_flow_imp.id(91820290000000040)
+,p_db_column_name=>'SHORTAGE_QTY'
+,p_display_order=>170
+,p_column_identifier=>'Q'
+,p_column_label=>'العجز'
+,p_column_type=>'NUMBER'
+,p_heading_alignment=>'CENTER'
+,p_use_as_row_header=>'N'
+);
+wwv_flow_imp_page.create_worksheet_column(
+ p_id=>wwv_flow_imp.id(91820290000000041)
+,p_db_column_name=>'STATUS_HTML'
+,p_display_order=>180
+,p_column_identifier=>'R'
+,p_column_label=>'الحالة'
+,p_column_type=>'STRING'
+,p_display_text_as=>'WITHOUT_MODIFICATION'
+,p_heading_alignment=>'CENTER'
+,p_use_as_row_header=>'N'
+);
+wwv_flow_imp_page.create_worksheet_rpt(
+ p_id=>wwv_flow_imp.id(91820290000000023)
+,p_application_user=>'APXWS_DEFAULT'
+,p_report_seq=>10
+,p_report_alias=>'23'
+,p_status=>'PUBLIC'
+,p_is_default=>'Y'
+,p_report_columns=>'DOC_NO:DOC_DATE:CUSTOMER:FROM_LOC:TO_LOC:CARGO:QUANTITY:UOM:TONS:BASIS:RATE_AMOUNT:TOTAL_AMOUNT:PICKUP_DATE:REQUIRED_DELIVERY_DATE:DELIVERED_QTY:SHORTAGE_QTY:STATUS_HTML'
+);
+wwv_flow_imp_page.create_page_plug(
+ p_id=>wwv_flow_imp.id(91820290000000042)
+,p_plug_name=>'أمر جديد'
+,p_region_template_options=>'#DEFAULT#'
+,p_plug_template=>4072358936313175081
+,p_plug_display_sequence=>5
+,p_attributes=>wwv_flow_t_plugin_attributes(wwv_flow_t_varchar2(
+  'expand_shortcuts', 'N',
+  'output_as', 'HTML',
+  'show_line_breaks', 'Y')).to_clob
+);
+wwv_flow_imp_page.create_page_button(
+ p_id=>wwv_flow_imp.id(91820290000000043)
+,p_button_sequence=>10
+,p_button_plug_id=>wwv_flow_imp.id(91820290000000042)
+,p_button_name=>'NEW'
+,p_button_action=>'REDIRECT_URL'
+,p_button_template_options=>'#DEFAULT#'
+,p_button_template_id=>4072362960822175091
+,p_button_is_hot=>'Y'
+,p_button_image_alt=>'أمر شحن جديد'
+,p_button_position=>'NEXT'
+,p_button_redirect_url=>'f?p=&APP_ID.:11:&SESSION.::&DEBUG.:RP,11::'
+);
+
+wwv_flow_imp.component_end;
+end;
+/

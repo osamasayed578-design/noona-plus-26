@@ -1,0 +1,1414 @@
+-- =============================================================================
+-- NOONA PLUS ERP | NOONA_TRN_PKG - النقل والشحن والترحيل (التطبيق 147 NOONA_TRN)
+--   * الأسطول (العربات بحمولتها وتراخيصها) والسائقون (الرخص والمواد الخطرة)، المدن والمواقع، المسارات بالمسافة والزمن
+--   * أنواع الشحنات ووحداتها؛ التحويل بين الطن المتري والقصير والطويل والكيلوجرام
+--   * تعرفة الترحيل: لكل طن متري/قصير/طويل، كجم، م³، لتر، كم، طن-كم، رحلة، حاوية، طبلية، قطعة؛ أدنى ترحيل؛ أولوية الأخص
+--   * أمر الشحن: التسعير التلقائي، التأكيد، التحميل على الرحلة، التسليم والعجز والأضرار والمستلم، الفوترة في المبيعات
+--   * الرحلة: التحقق من التوفر والرخص والتأمين والحمولة ونوع العربة والمواد الخطرة، زمن الوصول المتوقع من المسار ونقاط
+--     التوقف والتأخير، التحرك والوصول والإقفال بالعداد والوقود، المصروفات، وتحديث حالة العربة والسائق
+--   * الأعطال والبلاغات: التسجيل والاستلام والاستجابة والحل، زمن الاستجابة، مدة التوقف تؤخر الوصول المتوقع، التكلفة مصروف رحلة
+-- =============================================================================
+SET DEFINE OFF
+
+CREATE OR REPLACE PACKAGE NOONA_TRN_PKG AUTHID DEFINER AS
+  c_rev CONSTANT VARCHAR2(10) := '4170';
+  FUNCTION company RETURN NUMBER;
+  FUNCTION qf(p IN NUMBER) RETURN VARCHAR2;
+
+  -- التجهيز: حساب إيرادات النقل وأنواع شحنات افتراضية
+  FUNCTION quick_setup RETURN NUMBER;
+  FUNCTION is_ready RETURN VARCHAR2;
+
+  -- البيانات الأساسية (JSON؛ "id" للتعديل)
+  FUNCTION save_location(p_doc IN CLOB) RETURN NUMBER;
+  FUNCTION save_route(p_doc IN CLOB) RETURN NUMBER;
+  FUNCTION save_cargo_type(p_doc IN CLOB) RETURN NUMBER;
+  FUNCTION save_vehicle(p_doc IN CLOB) RETURN NUMBER;
+  PROCEDURE set_vehicle_status(p_id IN NUMBER, p_status IN VARCHAR2);
+  FUNCTION save_driver(p_doc IN CLOB) RETURN NUMBER;
+  PROCEDURE set_driver_status(p_id IN NUMBER, p_status IN VARCHAR2);
+  FUNCTION save_rate(p_doc IN CLOB) RETURN NUMBER;
+
+  -- الوحدات والترحيل
+  FUNCTION to_kg(p_qty IN NUMBER, p_uom IN VARCHAR2) RETURN NUMBER;
+  FUNCTION convert_weight(p_qty IN NUMBER, p_from IN VARCHAR2, p_to IN VARCHAR2) RETURN NUMBER;
+  FUNCTION freight(p_basis IN VARCHAR2, p_rate IN NUMBER, p_qty IN NUMBER, p_uom IN VARCHAR2, p_weight_kg IN NUMBER,
+                   p_volume IN NUMBER, p_distance IN NUMBER, p_min IN NUMBER DEFAULT NULL) RETURN NUMBER;
+  FUNCTION find_rate(p_customer IN NUMBER, p_route IN NUMBER, p_cargo IN NUMBER, p_date IN DATE DEFAULT NULL) RETURN NUMBER;
+  FUNCTION find_route(p_from IN NUMBER, p_to IN NUMBER) RETURN NUMBER;
+  -- {"customer","from","to","cargo","qty","uom","weightKg","volume","rateId"|"basis"+"rate"} ← {rateId,basis,rate,weightKg,distanceKm,freight}
+  FUNCTION quote_json(p_doc IN CLOB) RETURN CLOB;
+
+  -- أوامر الشحن
+  FUNCTION save_order(p_doc IN CLOB) RETURN NUMBER;
+  PROCEDURE confirm_order(p_id IN NUMBER);
+  PROCEDURE cancel_order(p_id IN NUMBER, p_reason IN VARCHAR2);
+
+  -- الرحلات
+  -- {"vehicle","driver","coDriver","from","to","route","departure":"YYYY-MM-DD HH24:MI","orders":[ids],"notes"}
+  FUNCTION create_trip(p_doc IN CLOB) RETURN NUMBER;
+  PROCEDURE add_order(p_trip_id IN NUMBER, p_order_id IN NUMBER);
+  PROCEDURE remove_order(p_trip_id IN NUMBER, p_order_id IN NUMBER);
+  FUNCTION add_stop(p_trip_id IN NUMBER, p_location_id IN NUMBER, p_purpose IN VARCHAR2, p_minutes IN NUMBER DEFAULT 0,
+                    p_sort IN NUMBER DEFAULT NULL) RETURN NUMBER;
+  PROCEDURE remove_stop(p_stop_id IN NUMBER);
+  PROCEDURE depart(p_trip_id IN NUMBER, p_odometer IN NUMBER DEFAULT NULL, p_at IN TIMESTAMP DEFAULT NULL);
+  PROCEDURE stop_arrive(p_stop_id IN NUMBER, p_at IN TIMESTAMP DEFAULT NULL);
+  PROCEDURE stop_depart(p_stop_id IN NUMBER, p_at IN TIMESTAMP DEFAULT NULL);
+  PROCEDURE arrive(p_trip_id IN NUMBER, p_at IN TIMESTAMP DEFAULT NULL);
+  -- التسليم والتفريغ: الكمية المسلمة (والعجز تلقائياً) والمستلم والأضرار
+  PROCEDURE deliver_order(p_trip_id IN NUMBER, p_order_id IN NUMBER, p_delivered_qty IN NUMBER, p_receiver IN VARCHAR2,
+                          p_damage IN VARCHAR2 DEFAULT NULL, p_at IN TIMESTAMP DEFAULT NULL);
+  PROCEDURE complete_trip(p_trip_id IN NUMBER, p_odometer_end IN NUMBER, p_fuel_liters IN NUMBER DEFAULT NULL);
+  PROCEDURE cancel_trip(p_trip_id IN NUMBER, p_reason IN VARCHAR2);
+  FUNCTION add_expense(p_trip_id IN NUMBER, p_type IN VARCHAR2, p_amount IN NUMBER, p_liters IN NUMBER DEFAULT NULL,
+                       p_date IN DATE DEFAULT NULL, p_ref IN VARCHAR2 DEFAULT NULL, p_notes IN VARCHAR2 DEFAULT NULL) RETURN NUMBER;
+  -- زمن الوصول المتوقع: التحرك + الزمن القياسي + التوقفات المخططة + التأخير
+  FUNCTION eta_of(p_trip_id IN NUMBER) RETURN TIMESTAMP;
+  PROCEDURE recalc_trip(p_trip_id IN NUMBER);
+  -- ON_TIME | LATE | EARLY | AT_RISK (لم تصل وتجاوزت الوقت المتوقع)
+  FUNCTION timeliness(p_trip_id IN NUMBER) RETURN VARCHAR2;
+
+  -- الأعطال والبلاغات
+  -- {"trip","vehicle","driver","type","severity","description","location","locationText","reportedBy","at"}
+  FUNCTION report_incident(p_doc IN CLOB) RETURN NUMBER;
+  PROCEDURE acknowledge_incident(p_id IN NUMBER, p_assigned_to IN VARCHAR2);
+  PROCEDURE respond_incident(p_id IN NUMBER, p_action IN VARCHAR2);
+  PROCEDURE resolve_incident(p_id IN NUMBER, p_action IN VARCHAR2, p_downtime_minutes IN NUMBER, p_cost IN NUMBER DEFAULT NULL);
+  PROCEDURE close_incident(p_id IN NUMBER);
+
+  -- الفوترة: أوامر مسلمة لعميل واحد ← فاتورة مبيعات آجلة مرحلة
+  FUNCTION invoice_orders(p_order_ids IN VARCHAR2) RETURN NUMBER;
+
+  -- الواجهة
+  FUNCTION status_label(p_code IN VARCHAR2) RETURN VARCHAR2;
+  FUNCTION badge(p_code IN VARCHAR2) RETURN VARCHAR2;
+  FUNCTION uom_label(p_code IN VARCHAR2) RETURN VARCHAR2;
+  FUNCTION basis_label(p_code IN VARCHAR2) RETURN VARCHAR2;
+  FUNCTION board_html RETURN CLOB;
+  FUNCTION trip_html(p_trip_id IN NUMBER) RETURN CLOB;
+  FUNCTION order_label(p_order_id IN NUMBER) RETURN VARCHAR2;
+  -- حالة المستند للشاشات (شروط العرض)
+  FUNCTION incident_label(p_code IN VARCHAR2) RETURN VARCHAR2;
+  FUNCTION severity_label(p_code IN VARCHAR2) RETURN VARCHAR2;
+  FUNCTION order_status(p_id IN NUMBER) RETURN VARCHAR2;
+  FUNCTION trip_status(p_id IN NUMBER) RETURN VARCHAR2;
+  FUNCTION incident_status(p_id IN NUMBER) RETURN VARCHAR2;
+END NOONA_TRN_PKG;
+/
+
+CREATE OR REPLACE PACKAGE BODY NOONA_TRN_PKG AS
+
+  c_ord  CONSTANT VARCHAR2(30) := 'TRN_ORDER';
+  c_trip CONSTANT VARCHAR2(30) := 'TRN_TRIP';
+  c_inc  CONSTANT VARCHAR2(30) := 'TRN_INCIDENT';
+  c_short CONSTANT NUMBER := 907.18474;
+  c_long  CONSTANT NUMBER := 1016.0469088;
+
+  FUNCTION company RETURN NUMBER IS BEGIN RETURN TO_NUMBER(SYS_CONTEXT('NOONA_CTX', 'COMPANY_ID')); END company;
+  FUNCTION esc(p VARCHAR2) RETURN VARCHAR2 IS BEGIN RETURN NOONA_UI_PKG.esc(p); END esc;
+  FUNCTION jt(p VARCHAR2) RETURN VARCHAR2 IS BEGIN RETURN NOONA_CORE_PKG.json_text(p); END jt;
+  FUNCTION fmt(p NUMBER) RETURN VARCHAR2 IS
+  BEGIN
+    RETURN TRIM(TO_CHAR(NVL(p, 0), 'FM999,999,999,990.00', 'NLS_NUMERIC_CHARACTERS=''.,'''));
+  END fmt;
+  FUNCTION qf(p IN NUMBER) RETURN VARCHAR2 IS
+  BEGIN
+    RETURN RTRIM(RTRIM(TO_CHAR(NVL(p, 0), 'FM999,999,999,990.999', 'NLS_NUMERIC_CHARACTERS=''.,'''), '0'), '.');
+  END qf;
+  FUNCTION num(p NUMBER) RETURN VARCHAR2 IS
+  BEGIN
+    RETURN CASE WHEN p IS NULL THEN 'null' ELSE RTRIM(TO_CHAR(p, 'FM9999999999990.999999', 'NLS_NUMERIC_CHARACTERS=''.,'''), '.') END;
+  END num;
+  FUNCTION ts(p TIMESTAMP) RETURN VARCHAR2 IS BEGIN RETURN TO_CHAR(p, 'YYYY-MM-DD HH24:MI'); END ts;
+
+  PROCEDURE guard(p_permission VARCHAR2) IS
+  BEGIN
+    IF p_permission NOT LIKE '%.VIEW' THEN
+      NOONA_CORE_PKG.assert_tenant_writable;
+    END IF;
+    NOONA_SECURITY_PKG.assert_permission(p_permission, company);
+  END guard;
+
+  FUNCTION js(p_o JSON_OBJECT_T, p_k VARCHAR2) RETURN VARCHAR2 IS
+  BEGIN
+    RETURN CASE WHEN p_o.has(p_k) AND NOT p_o.get(p_k).is_null THEN TRIM(p_o.get_string(p_k)) END;
+  END js;
+  FUNCTION jn(p_o JSON_OBJECT_T, p_k VARCHAR2) RETURN NUMBER IS
+  BEGIN
+    RETURN CASE WHEN p_o.has(p_k) AND NOT p_o.get(p_k).is_null THEN p_o.get_number(p_k) END;
+  EXCEPTION WHEN OTHERS THEN
+    RETURN TO_NUMBER(REPLACE(p_o.get_string(p_k), ',', ''));
+  END jn;
+  FUNCTION jd(p_o JSON_OBJECT_T, p_k VARCHAR2) RETURN DATE IS
+  BEGIN
+    RETURN TO_DATE(SUBSTR(js(p_o, p_k), 1, 10), 'YYYY-MM-DD');
+  END jd;
+  FUNCTION jts(p_o JSON_OBJECT_T, p_k VARCHAR2) RETURN TIMESTAMP IS
+    l VARCHAR2(40) := REPLACE(js(p_o, p_k), 'T', ' ');
+  BEGIN
+    IF l IS NULL THEN RETURN NULL; END IF;
+    RETURN TO_TIMESTAMP(SUBSTR(l, 1, 16), 'YYYY-MM-DD HH24:MI');
+  END jts;
+
+  FUNCTION next_no(p_type VARCHAR2, p_prefix VARCHAR2) RETURN VARCHAR2 IS
+  BEGIN
+    INSERT INTO ref_doc_sequence (company_id, doc_type_code, fiscal_year, prefix, next_number, padding, is_gapless, reset_policy, is_active)
+    SELECT company, p_type, NULL, p_prefix, 1, 6, 'N', 'NEVER', 'Y' FROM dual
+     WHERE NOT EXISTS (SELECT 1 FROM ref_doc_sequence WHERE company_id = company AND doc_type_code = p_type);
+    RETURN NOONA_REFERENCE_PKG.next_doc_no(p_type, company, NULL, TRUNC(SYSDATE), p_type, NULL);
+  END next_no;
+
+  -- ================================================================ التسميات
+  FUNCTION status_label(p_code IN VARCHAR2) RETURN VARCHAR2 IS
+  BEGIN
+    RETURN CASE p_code
+      WHEN 'DRAFT' THEN 'مسودة' WHEN 'CONFIRMED' THEN 'مؤكد' WHEN 'PLANNED' THEN 'مجدول' WHEN 'DISPATCHED' THEN 'مرسل'
+      WHEN 'IN_TRANSIT' THEN 'في الطريق' WHEN 'ARRIVED' THEN 'وصلت' WHEN 'DELIVERED' THEN 'سُلّم' WHEN 'INVOICED' THEN 'مفوتر'
+      WHEN 'COMPLETED' THEN 'مكتملة' WHEN 'CANCELLED' THEN 'ملغى' WHEN 'AVAILABLE' THEN 'متاح' WHEN 'ON_TRIP' THEN 'في رحلة'
+      WHEN 'MAINTENANCE' THEN 'في الصيانة' WHEN 'OUT_OF_SERVICE' THEN 'خارج الخدمة' WHEN 'SOLD' THEN 'مباعة'
+      WHEN 'OFF_DUTY' THEN 'خارج الدوام' WHEN 'SUSPENDED' THEN 'موقوف' WHEN 'LEFT' THEN 'ترك العمل'
+      WHEN 'REPORTED' THEN 'مُبلّغ' WHEN 'ACKNOWLEDGED' THEN 'مستلم' WHEN 'IN_PROGRESS' THEN 'قيد المعالجة' WHEN 'RESOLVED' THEN 'تم الحل'
+      WHEN 'CLOSED' THEN 'مغلق' WHEN 'ON_TIME' THEN 'في الموعد' WHEN 'LATE' THEN 'متأخرة' WHEN 'EARLY' THEN 'مبكرة'
+      WHEN 'AT_RISK' THEN 'تجاوزت الموعد' WHEN 'ACTIVE' THEN 'نشطة' WHEN 'INACTIVE' THEN 'موقوفة'
+      ELSE p_code END;
+  END status_label;
+
+  FUNCTION badge(p_code IN VARCHAR2) RETURN VARCHAR2 IS
+  BEGIN
+    RETURN '<span class="nn-badge ' || CASE
+             WHEN p_code IN ('DELIVERED', 'COMPLETED', 'AVAILABLE', 'RESOLVED', 'CLOSED', 'ON_TIME', 'EARLY', 'INVOICED', 'ACTIVE') THEN 'is-success'
+             WHEN p_code IN ('IN_TRANSIT', 'DISPATCHED', 'ON_TRIP', 'CONFIRMED', 'PLANNED', 'ACKNOWLEDGED', 'IN_PROGRESS', 'ARRIVED') THEN 'is-info'
+             WHEN p_code IN ('MAINTENANCE', 'REPORTED', 'LATE', 'OFF_DUTY', 'DRAFT') THEN 'is-warning'
+             WHEN p_code IN ('CANCELLED', 'OUT_OF_SERVICE', 'SUSPENDED', 'AT_RISK', 'LEFT', 'SOLD', 'INACTIVE') THEN 'is-danger' ELSE 'is-muted' END
+        || '">' || esc(status_label(p_code)) || '</span>';
+  END badge;
+
+  FUNCTION uom_label(p_code IN VARCHAR2) RETURN VARCHAR2 IS
+  BEGIN
+    RETURN CASE p_code WHEN 'METRIC_TON' THEN 'طن متري' WHEN 'SHORT_TON' THEN 'طن قصير' WHEN 'LONG_TON' THEN 'طن طويل' WHEN 'KG' THEN 'كجم'
+      WHEN 'M3' THEN 'م³' WHEN 'LITER' THEN 'لتر' WHEN 'CONTAINER' THEN 'حاوية' WHEN 'PALLET' THEN 'طبلية' WHEN 'PIECE' THEN 'قطعة'
+      WHEN 'TRIP' THEN 'رحلة' ELSE p_code END;
+  END uom_label;
+
+  FUNCTION basis_label(p_code IN VARCHAR2) RETURN VARCHAR2 IS
+  BEGIN
+    RETURN CASE p_code WHEN 'PER_METRIC_TON' THEN 'للطن المتري' WHEN 'PER_SHORT_TON' THEN 'للطن القصير' WHEN 'PER_LONG_TON' THEN 'للطن الطويل'
+      WHEN 'PER_KG' THEN 'للكيلوجرام' WHEN 'PER_M3' THEN 'للمتر المكعب' WHEN 'PER_LITER' THEN 'للتر' WHEN 'PER_KM' THEN 'للكيلومتر'
+      WHEN 'PER_TON_KM' THEN 'للطن-كيلومتر' WHEN 'PER_TRIP' THEN 'للرحلة' WHEN 'PER_CONTAINER' THEN 'للحاوية' WHEN 'PER_PALLET' THEN 'للطبلية'
+      WHEN 'PER_PIECE' THEN 'للقطعة' ELSE p_code END;
+  END basis_label;
+
+  -- ================================================================ التجهيز
+  FUNCTION is_ready RETURN VARCHAR2 IS
+  BEGIN
+    RETURN CASE WHEN NOONA_INV_PKG.acc_id(c_rev) IS NOT NULL THEN 'Y' ELSE 'N' END;
+  END is_ready;
+
+  FUNCTION quick_setup RETURN NUMBER IS
+    l_n NUMBER;
+    PROCEDURE ct(k VARCHAR2, n VARCHAR2, c VARCHAR2, u VARCHAR2, v VARCHAR2 DEFAULT NULL) IS
+    BEGIN
+      INSERT INTO trn_cargo_type (company_id, code, name_ar, cargo_category, default_unit, required_vehicle_type)
+      VALUES (company, k, n, c, u, v);
+    END ct;
+  BEGIN
+    guard('TRN_CARGO_TYPE.CREATE');
+    IF NOONA_INV_PKG.acc_id(c_rev) IS NULL THEN
+      l_n := NOONA_GL_PKG.add_account(NOONA_GL_PKG.primary_coa, c_rev, 'إيرادات النقل والشحن', '4', 'REVENUE', 'Y', NULL);
+    END IF;
+    SELECT COUNT(*) INTO l_n FROM trn_cargo_type WHERE company_id = company;
+    IF l_n = 0 THEN
+      ct('GEN', 'بضائع عامة', 'GENERAL', 'METRIC_TON');
+      ct('BULK', 'بضائع سائبة (أسمنت، حبوب، رمل)', 'BULK', 'METRIC_TON', 'TIPPER');
+      ct('FUEL', 'وقود ومواد سائلة', 'LIQUID', 'LITER', 'TANKER');
+      ct('COLD', 'مبردة ومجمدة', 'REFRIGERATED', 'METRIC_TON', 'REFRIGERATED');
+      ct('CONT', 'حاويات', 'CONTAINER', 'CONTAINER', 'CONTAINER_CARRIER');
+      ct('HAZ', 'مواد خطرة', 'HAZARDOUS', 'METRIC_TON');
+      ct('HEAVY', 'معدات ثقيلة', 'OVERSIZED', 'PIECE', 'LOWBED');
+    END IF;
+    SELECT COUNT(*) INTO l_n FROM trn_cargo_type WHERE company_id = company;
+    RETURN l_n;
+  END quick_setup;
+
+  -- ================================================================ البيانات الأساسية
+  FUNCTION save_location(p_doc IN CLOB) RETURN NUMBER IS
+    l_o  JSON_OBJECT_T := JSON_OBJECT_T.parse(p_doc);
+    x_lat_jn NUMBER;
+    x_lng_jn NUMBER;
+    x_address_js VARCHAR2(4000);
+    x_city_js VARCHAR2(4000);
+    x_code_js VARCHAR2(4000);
+    x_contact_js VARCHAR2(4000);
+    x_country_js VARCHAR2(4000);
+    x_name_js VARCHAR2(4000);
+    x_phone_js VARCHAR2(4000);
+    x_region_js VARCHAR2(4000);
+    x_type_js VARCHAR2(4000);
+    l_id NUMBER := jn(l_o, 'id');
+  BEGIN
+    guard(CASE WHEN l_id IS NULL THEN 'TRN_LOCATION.CREATE' ELSE 'TRN_LOCATION.UPDATE' END);
+    NOONA_CORE_PKG.assert(js(l_o, 'code') IS NOT NULL AND js(l_o, 'name') IS NOT NULL, 'NOONA-TRN-001', 'رمز الموقع واسمه مطلوبان', 'Code and name required');
+    IF l_id IS NULL THEN
+      x_lat_jn := jn(l_o, 'lat');
+      x_lng_jn := jn(l_o, 'lng');
+      x_address_js := js(l_o, 'address');
+      x_city_js := js(l_o, 'city');
+      x_code_js := js(l_o, 'code');
+      x_contact_js := js(l_o, 'contact');
+      x_country_js := js(l_o, 'country');
+      x_name_js := js(l_o, 'name');
+      x_phone_js := js(l_o, 'phone');
+      x_region_js := js(l_o, 'region');
+      x_type_js := js(l_o, 'type');
+      INSERT INTO trn_location (company_id, code, name_ar, location_type, city_name, region_name, country_code, address_text, latitude, longitude,
+                                contact_name, phone)
+      VALUES (company, UPPER(x_code_js), x_name_js, NVL(x_type_js, 'CITY'), NVL(x_city_js, x_name_js),
+              x_region_js, x_country_js, x_address_js, x_lat_jn, x_lng_jn, x_contact_js, x_phone_js)
+      RETURNING id INTO l_id;
+    ELSE
+      x_lat_jn := jn(l_o, 'lat');
+      x_lng_jn := jn(l_o, 'lng');
+      x_address_js := js(l_o, 'address');
+      x_city_js := js(l_o, 'city');
+      x_contact_js := js(l_o, 'contact');
+      x_country_js := js(l_o, 'country');
+      x_name_js := js(l_o, 'name');
+      x_phone_js := js(l_o, 'phone');
+      x_region_js := js(l_o, 'region');
+      x_type_js := js(l_o, 'type');
+      UPDATE trn_location SET name_ar = x_name_js, location_type = NVL(x_type_js, location_type), city_name = x_city_js,
+             region_name = x_region_js, country_code = x_country_js, address_text = x_address_js,
+             latitude = x_lat_jn, longitude = x_lng_jn, contact_name = x_contact_js, phone = x_phone_js
+       WHERE id = l_id AND company_id = company;
+      NOONA_CORE_PKG.assert(SQL%ROWCOUNT = 1, 'NOONA-TRN-002', 'الموقع غير موجود', 'Location not found');
+    END IF;
+    RETURN l_id;
+  END save_location;
+
+  FUNCTION find_route(p_from IN NUMBER, p_to IN NUMBER) RETURN NUMBER IS
+    l NUMBER;
+  BEGIN
+    SELECT MIN(id) KEEP (DENSE_RANK FIRST ORDER BY CASE WHEN from_location_id = p_from THEN 0 ELSE 1 END, id) INTO l
+      FROM trn_route
+     WHERE company_id = company AND is_active = 'Y'
+       AND ((from_location_id = p_from AND to_location_id = p_to) OR (from_location_id = p_to AND to_location_id = p_from));
+    RETURN l;
+  END find_route;
+
+  FUNCTION save_route(p_doc IN CLOB) RETURN NUMBER IS
+    l_o  JSON_OBJECT_T := JSON_OBJECT_T.parse(p_doc);
+    x_toll_jn NUMBER;
+    x_code_js VARCHAR2(4000);
+    x_name_js VARCHAR2(4000);
+    x_roadType_js VARCHAR2(4000);
+    l_id NUMBER := jn(l_o, 'id');
+    l_f  NUMBER := jn(l_o, 'from');
+    l_t  NUMBER := jn(l_o, 'to');
+    l_d  NUMBER := jn(l_o, 'distance');
+    l_h  NUMBER := jn(l_o, 'hours');
+    l_n  NUMBER;
+  BEGIN
+    guard(CASE WHEN l_id IS NULL THEN 'TRN_ROUTE.CREATE' ELSE 'TRN_ROUTE.UPDATE' END);
+    NOONA_CORE_PKG.assert(l_f IS NOT NULL AND l_t IS NOT NULL AND l_f <> l_t, 'NOONA-TRN-003', 'اختر مدينتين مختلفتين للمسار', 'Choose two different locations');
+    NOONA_CORE_PKG.assert(NVL(l_d, 0) > 0, 'NOONA-TRN-004', 'المسافة بالكيلومتر مطلوبة', 'Distance required');
+    -- الزمن القياسي الافتراضي بسرعة متوسطة 70 كم/س
+    l_h := NVL(l_h, ROUND(l_d / 70, 1));
+    NOONA_CORE_PKG.assert(l_h > 0, 'NOONA-TRN-005', 'زمن الرحلة القياسي مطلوب', 'Standard hours required');
+    SELECT COUNT(*) INTO l_n FROM trn_location WHERE id IN (l_f, l_t) AND company_id = company;
+    NOONA_CORE_PKG.assert(l_n = 2, 'NOONA-TRN-002', 'الموقع غير موجود', 'Location not found');
+    IF l_id IS NULL THEN
+      x_toll_jn := jn(l_o, 'toll');
+      x_code_js := js(l_o, 'code');
+      x_name_js := js(l_o, 'name');
+      x_roadType_js := js(l_o, 'roadType');
+      INSERT INTO trn_route (company_id, code, name_ar, from_location_id, to_location_id, distance_km, standard_hours, toll_amount, road_type)
+      VALUES (company, NVL(UPPER(x_code_js), 'R' || l_f || '-' || l_t),
+              NVL(x_name_js, (SELECT name_ar FROM trn_location WHERE id = l_f) || ' ← ' || (SELECT name_ar FROM trn_location WHERE id = l_t)),
+              l_f, l_t, l_d, l_h, x_toll_jn, NVL(x_roadType_js, 'HIGHWAY'))
+      RETURNING id INTO l_id;
+    ELSE
+      x_toll_jn := jn(l_o, 'toll');
+      x_name_js := js(l_o, 'name');
+      x_roadType_js := js(l_o, 'roadType');
+      UPDATE trn_route SET name_ar = NVL(x_name_js, name_ar), from_location_id = l_f, to_location_id = l_t, distance_km = l_d,
+             standard_hours = l_h, toll_amount = x_toll_jn, road_type = NVL(x_roadType_js, road_type)
+       WHERE id = l_id AND company_id = company;
+      NOONA_CORE_PKG.assert(SQL%ROWCOUNT = 1, 'NOONA-TRN-006', 'المسار غير موجود', 'Route not found');
+    END IF;
+    RETURN l_id;
+  END save_route;
+
+  FUNCTION save_cargo_type(p_doc IN CLOB) RETURN NUMBER IS
+    l_o  JSON_OBJECT_T := JSON_OBJECT_T.parse(p_doc);
+    x_category_js VARCHAR2(4000);
+    x_code_js VARCHAR2(4000);
+    x_handling_js VARCHAR2(4000);
+    x_hazardClass_js VARCHAR2(4000);
+    x_name_js VARCHAR2(4000);
+    x_unit_js VARCHAR2(4000);
+    x_vehicleType_js VARCHAR2(4000);
+    l_id NUMBER := jn(l_o, 'id');
+  BEGIN
+    guard(CASE WHEN l_id IS NULL THEN 'TRN_CARGO_TYPE.CREATE' ELSE 'TRN_CARGO_TYPE.UPDATE' END);
+    NOONA_CORE_PKG.assert(js(l_o, 'code') IS NOT NULL AND js(l_o, 'name') IS NOT NULL, 'NOONA-TRN-001', 'الرمز والاسم مطلوبان', 'Code and name required');
+    IF l_id IS NULL THEN
+      x_category_js := js(l_o, 'category');
+      x_code_js := js(l_o, 'code');
+      x_handling_js := js(l_o, 'handling');
+      x_hazardClass_js := js(l_o, 'hazardClass');
+      x_name_js := js(l_o, 'name');
+      x_unit_js := js(l_o, 'unit');
+      x_vehicleType_js := js(l_o, 'vehicleType');
+      INSERT INTO trn_cargo_type (company_id, code, name_ar, cargo_category, default_unit, required_vehicle_type, hazard_class, handling_notes)
+      VALUES (company, UPPER(x_code_js), x_name_js, NVL(x_category_js, 'GENERAL'), NVL(x_unit_js, 'METRIC_TON'),
+              x_vehicleType_js, x_hazardClass_js, x_handling_js)
+      RETURNING id INTO l_id;
+    ELSE
+      x_category_js := js(l_o, 'category');
+      x_handling_js := js(l_o, 'handling');
+      x_hazardClass_js := js(l_o, 'hazardClass');
+      x_name_js := js(l_o, 'name');
+      x_unit_js := js(l_o, 'unit');
+      x_vehicleType_js := js(l_o, 'vehicleType');
+      UPDATE trn_cargo_type SET name_ar = x_name_js, cargo_category = NVL(x_category_js, cargo_category),
+             default_unit = NVL(x_unit_js, default_unit), required_vehicle_type = x_vehicleType_js,
+             hazard_class = x_hazardClass_js, handling_notes = x_handling_js
+       WHERE id = l_id AND company_id = company;
+    END IF;
+    RETURN l_id;
+  END save_cargo_type;
+
+  FUNCTION save_vehicle(p_doc IN CLOB) RETURN NUMBER IS
+    l_o  JSON_OBJECT_T := JSON_OBJECT_T.parse(p_doc);
+    x_insuranceExpiry_jd DATE;
+    x_licenseExpiry_jd DATE;
+    x_assetId_jn NUMBER;
+    x_branch_jn NUMBER;
+    x_capacityM3_jn NUMBER;
+    x_capacityTons_jn NUMBER;
+    x_fuelPer100_jn NUMBER;
+    x_odometer_jn NUMBER;
+    x_year_jn NUMBER;
+    x_code_js VARCHAR2(4000);
+    x_fuel_js VARCHAR2(4000);
+    x_make_js VARCHAR2(4000);
+    x_model_js VARCHAR2(4000);
+    x_notes_js VARCHAR2(4000);
+    x_type_js VARCHAR2(4000);
+    l_id NUMBER := jn(l_o, 'id');
+    l_pl VARCHAR2(30) := UPPER(REGEXP_REPLACE(js(l_o, 'plate'), '\s+', ' '));
+    l_n  NUMBER;
+  BEGIN
+    guard(CASE WHEN l_id IS NULL THEN 'TRN_VEHICLE.CREATE' ELSE 'TRN_VEHICLE.UPDATE' END);
+    NOONA_CORE_PKG.assert(l_pl IS NOT NULL, 'NOONA-TRN-007', 'رقم اللوحة مطلوب', 'Plate number required');
+    NOONA_CORE_PKG.assert(NVL(jn(l_o, 'capacityTons'), 0) > 0, 'NOONA-TRN-008', 'الحمولة القصوى بالطن مطلوبة', 'Capacity required');
+    SELECT COUNT(*) INTO l_n FROM trn_vehicle WHERE company_id = company AND plate_no = l_pl AND id <> NVL(l_id, -1);
+    NOONA_CORE_PKG.assert(l_n = 0, 'NOONA-TRN-009', 'رقم اللوحة مسجل لعربة أخرى', 'Plate already registered');
+    IF l_id IS NULL THEN
+      x_insuranceExpiry_jd := jd(l_o, 'insuranceExpiry');
+      x_licenseExpiry_jd := jd(l_o, 'licenseExpiry');
+      x_assetId_jn := jn(l_o, 'assetId');
+      x_branch_jn := jn(l_o, 'branch');
+      x_capacityM3_jn := jn(l_o, 'capacityM3');
+      x_capacityTons_jn := jn(l_o, 'capacityTons');
+      x_fuelPer100_jn := jn(l_o, 'fuelPer100');
+      x_odometer_jn := jn(l_o, 'odometer');
+      x_year_jn := jn(l_o, 'year');
+      x_code_js := js(l_o, 'code');
+      x_fuel_js := js(l_o, 'fuel');
+      x_make_js := js(l_o, 'make');
+      x_model_js := js(l_o, 'model');
+      x_notes_js := js(l_o, 'notes');
+      x_type_js := js(l_o, 'type');
+      INSERT INTO trn_vehicle (company_id, code, plate_no, vehicle_type, make, model, model_year, capacity_tons, capacity_m3, odometer_km,
+                               fuel_type, fuel_l_per_100km, license_expiry, insurance_expiry, asset_id, branch_id, status_code, notes)
+      VALUES (company, NVL(UPPER(x_code_js), REPLACE(l_pl, ' ', '')), l_pl, NVL(x_type_js, 'TRUCK'), x_make_js, x_model_js,
+              x_year_jn, x_capacityTons_jn, x_capacityM3_jn, NVL(x_odometer_jn, 0), NVL(x_fuel_js, 'DIESEL'),
+              x_fuelPer100_jn, x_licenseExpiry_jd, x_insuranceExpiry_jd, x_assetId_jn,
+              NVL(x_branch_jn, NOONA_CTX_PKG.branch_id), 'AVAILABLE', x_notes_js)
+      RETURNING id INTO l_id;
+    ELSE
+      x_insuranceExpiry_jd := jd(l_o, 'insuranceExpiry');
+      x_licenseExpiry_jd := jd(l_o, 'licenseExpiry');
+      x_assetId_jn := jn(l_o, 'assetId');
+      x_branch_jn := jn(l_o, 'branch');
+      x_capacityM3_jn := jn(l_o, 'capacityM3');
+      x_capacityTons_jn := jn(l_o, 'capacityTons');
+      x_fuelPer100_jn := jn(l_o, 'fuelPer100');
+      x_odometer_jn := jn(l_o, 'odometer');
+      x_year_jn := jn(l_o, 'year');
+      x_fuel_js := js(l_o, 'fuel');
+      x_make_js := js(l_o, 'make');
+      x_model_js := js(l_o, 'model');
+      x_notes_js := js(l_o, 'notes');
+      x_type_js := js(l_o, 'type');
+      UPDATE trn_vehicle SET plate_no = l_pl, vehicle_type = NVL(x_type_js, vehicle_type), make = x_make_js, model = x_model_js,
+             model_year = x_year_jn, capacity_tons = x_capacityTons_jn, capacity_m3 = x_capacityM3_jn,
+             odometer_km = NVL(x_odometer_jn, odometer_km), fuel_type = NVL(x_fuel_js, fuel_type), fuel_l_per_100km = x_fuelPer100_jn,
+             license_expiry = x_licenseExpiry_jd, insurance_expiry = x_insuranceExpiry_jd, asset_id = x_assetId_jn,
+             branch_id = NVL(x_branch_jn, branch_id), notes = x_notes_js
+       WHERE id = l_id AND company_id = company;
+      NOONA_CORE_PKG.assert(SQL%ROWCOUNT = 1, 'NOONA-TRN-010', 'العربة غير موجودة', 'Vehicle not found');
+    END IF;
+    RETURN l_id;
+  END save_vehicle;
+
+  PROCEDURE set_vehicle_status(p_id IN NUMBER, p_status IN VARCHAR2) IS
+    l_n NUMBER;
+  BEGIN
+    guard('TRN_VEHICLE.UPDATE');
+    NOONA_CORE_PKG.assert(p_status IN ('AVAILABLE', 'MAINTENANCE', 'OUT_OF_SERVICE', 'SOLD'), 'NOONA-TRN-011', 'حالة غير صحيحة', 'Invalid status');
+    SELECT COUNT(*) INTO l_n FROM trn_trip WHERE vehicle_id = p_id AND status_code IN ('DISPATCHED', 'IN_TRANSIT', 'ARRIVED');
+    NOONA_CORE_PKG.assert(l_n = 0, 'NOONA-TRN-012', 'العربة في رحلة جارية؛ أكمل الرحلة أولاً', 'Vehicle is on an active trip');
+    UPDATE trn_vehicle SET status_code = p_status WHERE id = p_id AND company_id = company;
+    NOONA_CORE_PKG.assert(SQL%ROWCOUNT = 1, 'NOONA-TRN-010', 'العربة غير موجودة', 'Vehicle not found');
+  END set_vehicle_status;
+
+  FUNCTION save_driver(p_doc IN CLOB) RETURN NUMBER IS
+    l_o  JSON_OBJECT_T := JSON_OBJECT_T.parse(p_doc);
+    x_licenseExpiry_jd DATE;
+    x_allowance_jn NUMBER;
+    x_branch_jn NUMBER;
+    x_employeeId_jn NUMBER;
+    x_code_js VARCHAR2(4000);
+    x_hazmat_js VARCHAR2(4000);
+    x_licenseClass_js VARCHAR2(4000);
+    x_licenseNo_js VARCHAR2(4000);
+    x_name_js VARCHAR2(4000);
+    x_nationalId_js VARCHAR2(4000);
+    x_notes_js VARCHAR2(4000);
+    x_phone_js VARCHAR2(4000);
+    l_id NUMBER := jn(l_o, 'id');
+  BEGIN
+    guard(CASE WHEN l_id IS NULL THEN 'TRN_DRIVER.CREATE' ELSE 'TRN_DRIVER.UPDATE' END);
+    NOONA_CORE_PKG.assert(js(l_o, 'name') IS NOT NULL AND js(l_o, 'licenseNo') IS NOT NULL AND jd(l_o, 'licenseExpiry') IS NOT NULL,
+      'NOONA-TRN-013', 'اسم السائق ورقم الرخصة وتاريخ انتهائها مطلوبة', 'Name, license and expiry required');
+    IF l_id IS NULL THEN
+      x_licenseExpiry_jd := jd(l_o, 'licenseExpiry');
+      x_allowance_jn := jn(l_o, 'allowance');
+      x_branch_jn := jn(l_o, 'branch');
+      x_employeeId_jn := jn(l_o, 'employeeId');
+      x_code_js := js(l_o, 'code');
+      x_hazmat_js := js(l_o, 'hazmat');
+      x_licenseClass_js := js(l_o, 'licenseClass');
+      x_licenseNo_js := js(l_o, 'licenseNo');
+      x_name_js := js(l_o, 'name');
+      x_nationalId_js := js(l_o, 'nationalId');
+      x_notes_js := js(l_o, 'notes');
+      x_phone_js := js(l_o, 'phone');
+      INSERT INTO trn_driver (company_id, code, full_name, employee_id, phone, national_id, license_no, license_class, license_expiry,
+                              hazmat_certified, trip_allowance, branch_id, status_code, notes)
+      VALUES (company, NVL(UPPER(x_code_js), 'D' || x_licenseNo_js), x_name_js, x_employeeId_jn, x_phone_js,
+              x_nationalId_js, x_licenseNo_js, x_licenseClass_js, x_licenseExpiry_jd, NVL(x_hazmat_js, 'N'),
+              x_allowance_jn, NVL(x_branch_jn, NOONA_CTX_PKG.branch_id), 'AVAILABLE', x_notes_js)
+      RETURNING id INTO l_id;
+    ELSE
+      x_licenseExpiry_jd := jd(l_o, 'licenseExpiry');
+      x_allowance_jn := jn(l_o, 'allowance');
+      x_branch_jn := jn(l_o, 'branch');
+      x_employeeId_jn := jn(l_o, 'employeeId');
+      x_hazmat_js := js(l_o, 'hazmat');
+      x_licenseClass_js := js(l_o, 'licenseClass');
+      x_licenseNo_js := js(l_o, 'licenseNo');
+      x_name_js := js(l_o, 'name');
+      x_nationalId_js := js(l_o, 'nationalId');
+      x_notes_js := js(l_o, 'notes');
+      x_phone_js := js(l_o, 'phone');
+      UPDATE trn_driver SET full_name = x_name_js, employee_id = x_employeeId_jn, phone = x_phone_js,
+             national_id = x_nationalId_js, license_no = x_licenseNo_js, license_class = x_licenseClass_js,
+             license_expiry = x_licenseExpiry_jd, hazmat_certified = NVL(x_hazmat_js, hazmat_certified),
+             trip_allowance = x_allowance_jn, branch_id = NVL(x_branch_jn, branch_id), notes = x_notes_js
+       WHERE id = l_id AND company_id = company;
+      NOONA_CORE_PKG.assert(SQL%ROWCOUNT = 1, 'NOONA-TRN-014', 'السائق غير موجود', 'Driver not found');
+    END IF;
+    RETURN l_id;
+  END save_driver;
+
+  PROCEDURE set_driver_status(p_id IN NUMBER, p_status IN VARCHAR2) IS
+    l_n NUMBER;
+  BEGIN
+    guard('TRN_DRIVER.UPDATE');
+    NOONA_CORE_PKG.assert(p_status IN ('AVAILABLE', 'OFF_DUTY', 'SUSPENDED', 'LEFT'), 'NOONA-TRN-011', 'حالة غير صحيحة', 'Invalid status');
+    SELECT COUNT(*) INTO l_n FROM trn_trip WHERE (driver_id = p_id OR co_driver_id = p_id) AND status_code IN ('DISPATCHED', 'IN_TRANSIT', 'ARRIVED');
+    NOONA_CORE_PKG.assert(l_n = 0, 'NOONA-TRN-015', 'السائق في رحلة جارية', 'Driver is on an active trip');
+    UPDATE trn_driver SET status_code = p_status WHERE id = p_id AND company_id = company;
+    NOONA_CORE_PKG.assert(SQL%ROWCOUNT = 1, 'NOONA-TRN-014', 'السائق غير موجود', 'Driver not found');
+  END set_driver_status;
+
+  FUNCTION save_rate(p_doc IN CLOB) RETURN NUMBER IS
+    l_o  JSON_OBJECT_T := JSON_OBJECT_T.parse(p_doc);
+    x_from_jd DATE;
+    x_to_jd DATE;
+    x_cargo_jn NUMBER;
+    x_customer_jn NUMBER;
+    x_minCharge_jn NUMBER;
+    x_priority_jn NUMBER;
+    x_rate_jn NUMBER;
+    x_route_jn NUMBER;
+    x_code_js VARCHAR2(4000);
+    x_name_js VARCHAR2(4000);
+    l_id NUMBER := jn(l_o, 'id');
+    l_b  VARCHAR2(30) := UPPER(js(l_o, 'basis'));
+  BEGIN
+    guard(CASE WHEN l_id IS NULL THEN 'TRN_RATE.CREATE' ELSE 'TRN_RATE.UPDATE' END);
+    NOONA_CORE_PKG.assert(l_b IN ('PER_METRIC_TON', 'PER_SHORT_TON', 'PER_LONG_TON', 'PER_KG', 'PER_M3', 'PER_LITER', 'PER_KM', 'PER_TON_KM',
+      'PER_TRIP', 'PER_CONTAINER', 'PER_PALLET', 'PER_PIECE'), 'NOONA-TRN-016', 'اختر أساس حساب الترحيل', 'Choose a rate basis');
+    NOONA_CORE_PKG.assert(NVL(jn(l_o, 'rate'), -1) >= 0, 'NOONA-TRN-017', 'السعر مطلوب', 'Rate required');
+    IF l_id IS NULL THEN
+      x_from_jd := jd(l_o, 'from');
+      x_to_jd := jd(l_o, 'to');
+      x_cargo_jn := jn(l_o, 'cargo');
+      x_customer_jn := jn(l_o, 'customer');
+      x_minCharge_jn := jn(l_o, 'minCharge');
+      x_priority_jn := jn(l_o, 'priority');
+      x_rate_jn := jn(l_o, 'rate');
+      x_route_jn := jn(l_o, 'route');
+      x_code_js := js(l_o, 'code');
+      x_name_js := js(l_o, 'name');
+      INSERT INTO trn_rate (company_id, code, name_ar, customer_account_id, route_id, cargo_type_id, rate_basis, rate_amount, min_charge,
+                            priority_no, effective_from, effective_to, status_code)
+      VALUES (company, NVL(UPPER(x_code_js), 'RT-' || RAWTOHEX(SYS_GUID())), NVL(x_name_js, basis_label(l_b)),
+              x_customer_jn, x_route_jn, x_cargo_jn, l_b, x_rate_jn, x_minCharge_jn, NVL(x_priority_jn, 100),
+              NVL(x_from_jd, TRUNC(SYSDATE)), x_to_jd, 'ACTIVE')
+      RETURNING id INTO l_id;
+    ELSE
+      x_to_jd := jd(l_o, 'to');
+      x_cargo_jn := jn(l_o, 'cargo');
+      x_customer_jn := jn(l_o, 'customer');
+      x_minCharge_jn := jn(l_o, 'minCharge');
+      x_priority_jn := jn(l_o, 'priority');
+      x_rate_jn := jn(l_o, 'rate');
+      x_route_jn := jn(l_o, 'route');
+      x_name_js := js(l_o, 'name');
+      UPDATE trn_rate SET name_ar = NVL(x_name_js, name_ar), customer_account_id = x_customer_jn, route_id = x_route_jn,
+             cargo_type_id = x_cargo_jn, rate_basis = l_b, rate_amount = x_rate_jn, min_charge = x_minCharge_jn,
+             priority_no = NVL(x_priority_jn, priority_no), effective_to = x_to_jd
+       WHERE id = l_id AND company_id = company;
+    END IF;
+    RETURN l_id;
+  END save_rate;
+
+  -- ================================================================ الوحدات والترحيل
+  FUNCTION to_kg(p_qty IN NUMBER, p_uom IN VARCHAR2) RETURN NUMBER IS
+  BEGIN
+    RETURN ROUND(p_qty * CASE p_uom WHEN 'METRIC_TON' THEN 1000 WHEN 'SHORT_TON' THEN c_short WHEN 'LONG_TON' THEN c_long WHEN 'KG' THEN 1 END, 3);
+  END to_kg;
+
+  FUNCTION convert_weight(p_qty IN NUMBER, p_from IN VARCHAR2, p_to IN VARCHAR2) RETURN NUMBER IS
+    l_kg NUMBER := to_kg(p_qty, p_from);
+  BEGIN
+    RETURN ROUND(l_kg / CASE p_to WHEN 'METRIC_TON' THEN 1000 WHEN 'SHORT_TON' THEN c_short WHEN 'LONG_TON' THEN c_long WHEN 'KG' THEN 1 END, 6);
+  END convert_weight;
+
+  FUNCTION freight(p_basis IN VARCHAR2, p_rate IN NUMBER, p_qty IN NUMBER, p_uom IN VARCHAR2, p_weight_kg IN NUMBER,
+                   p_volume IN NUMBER, p_distance IN NUMBER, p_min IN NUMBER DEFAULT NULL) RETURN NUMBER IS
+    l_kg NUMBER := NVL(p_weight_kg, to_kg(p_qty, p_uom));
+    l    NUMBER;
+    PROCEDURE need(p_ok BOOLEAN, p_what VARCHAR2) IS
+    BEGIN
+      NOONA_CORE_PKG.assert(p_ok, 'NOONA-TRN-018', 'لحساب الترحيل ' || basis_label(p_basis) || ' أدخل ' || p_what, 'Missing measure for rate basis');
+    END need;
+  BEGIN
+    CASE p_basis
+      WHEN 'PER_METRIC_TON' THEN need(l_kg IS NOT NULL, 'الوزن'); l := p_rate * l_kg / 1000;
+      WHEN 'PER_SHORT_TON' THEN need(l_kg IS NOT NULL, 'الوزن'); l := p_rate * l_kg / c_short;
+      WHEN 'PER_LONG_TON' THEN need(l_kg IS NOT NULL, 'الوزن'); l := p_rate * l_kg / c_long;
+      WHEN 'PER_KG' THEN need(l_kg IS NOT NULL, 'الوزن'); l := p_rate * l_kg;
+      WHEN 'PER_M3' THEN need(NVL(p_volume, CASE WHEN p_uom = 'M3' THEN p_qty END) IS NOT NULL, 'الحجم بالمتر المكعب');
+                        l := p_rate * NVL(p_volume, p_qty);
+      WHEN 'PER_LITER' THEN need(p_uom = 'LITER', 'الكمية باللتر'); l := p_rate * p_qty;
+      WHEN 'PER_KM' THEN need(p_distance IS NOT NULL, 'المسافة (اختر المسار)'); l := p_rate * p_distance;
+      WHEN 'PER_TON_KM' THEN need(l_kg IS NOT NULL AND p_distance IS NOT NULL, 'الوزن والمسافة'); l := p_rate * l_kg / 1000 * p_distance;
+      WHEN 'PER_TRIP' THEN l := p_rate * CASE WHEN p_uom = 'TRIP' THEN p_qty ELSE 1 END;
+      WHEN 'PER_CONTAINER' THEN need(p_uom = 'CONTAINER', 'عدد الحاويات'); l := p_rate * p_qty;
+      WHEN 'PER_PALLET' THEN need(p_uom = 'PALLET', 'عدد الطبليات'); l := p_rate * p_qty;
+      WHEN 'PER_PIECE' THEN need(p_uom = 'PIECE', 'عدد القطع'); l := p_rate * p_qty;
+      ELSE NOONA_CORE_PKG.raise_error('NOONA-TRN-016', 'اختر أساس حساب الترحيل', 'Choose a rate basis');
+    END CASE;
+    RETURN ROUND(GREATEST(l, NVL(p_min, 0)), 2);
+  END freight;
+
+  -- أخص تعرفة سارية: العميل ثم المسار ثم نوع الشحنة، ثم الأولوية
+  FUNCTION find_rate(p_customer IN NUMBER, p_route IN NUMBER, p_cargo IN NUMBER, p_date IN DATE DEFAULT NULL) RETURN NUMBER IS
+    l NUMBER;
+  BEGIN
+    SELECT MIN(id) KEEP (DENSE_RANK FIRST ORDER BY
+             CASE WHEN customer_account_id IS NOT NULL THEN 0 ELSE 1 END, CASE WHEN route_id IS NOT NULL THEN 0 ELSE 1 END,
+             CASE WHEN cargo_type_id IS NOT NULL THEN 0 ELSE 1 END, priority_no, id) INTO l
+      FROM trn_rate
+     WHERE company_id = company AND status_code = 'ACTIVE'
+       AND NVL(p_date, TRUNC(SYSDATE)) BETWEEN effective_from AND NVL(effective_to, DATE '9999-12-31')
+       AND (customer_account_id IS NULL OR customer_account_id = p_customer)
+       AND (route_id IS NULL OR route_id = p_route)
+       AND (cargo_type_id IS NULL OR cargo_type_id = p_cargo);
+    RETURN l;
+  END find_rate;
+
+  -- يحسب الترحيل لأمر (أو مسودة): يعيد التعرفة والأساس والسعر والوزن والمسافة والقيمة
+  PROCEDURE price(p_customer NUMBER, p_from NUMBER, p_to NUMBER, p_cargo NUMBER, p_qty NUMBER, p_uom VARCHAR2, p_kg NUMBER, p_vol NUMBER,
+                  p_rate_id NUMBER, p_basis VARCHAR2, p_rate NUMBER, p_date DATE,
+                  o_route OUT NUMBER, o_rate_id OUT NUMBER, o_basis OUT VARCHAR2, o_rate OUT NUMBER, o_kg OUT NUMBER, o_dist OUT NUMBER,
+                  o_freight OUT NUMBER) IS
+    r trn_rate%ROWTYPE;
+  BEGIN
+    o_route := find_route(p_from, p_to);
+    IF o_route IS NOT NULL THEN SELECT distance_km INTO o_dist FROM trn_route WHERE id = o_route; END IF;
+    o_kg := NVL(p_kg, to_kg(p_qty, p_uom));
+    IF p_basis IS NOT NULL THEN
+      -- سعر يدوي متفق عليه
+      o_rate_id := NULL; o_basis := p_basis; o_rate := p_rate;
+      o_freight := freight(o_basis, o_rate, p_qty, p_uom, o_kg, p_vol, o_dist);
+    ELSE
+      o_rate_id := NVL(p_rate_id, find_rate(p_customer, o_route, p_cargo, p_date));
+      NOONA_CORE_PKG.assert(o_rate_id IS NOT NULL, 'NOONA-TRN-019',
+        'لا توجد تعرفة سارية لهذا العميل والمسار ونوع الشحنة؛ أضف تعرفة أو أدخل السعر يدوياً', 'No applicable rate');
+      SELECT * INTO r FROM trn_rate WHERE id = o_rate_id AND company_id = company;
+      o_basis := r.rate_basis; o_rate := r.rate_amount;
+      o_freight := freight(o_basis, o_rate, p_qty, p_uom, o_kg, p_vol, o_dist, r.min_charge);
+    END IF;
+  END price;
+
+  FUNCTION quote_json(p_doc IN CLOB) RETURN CLOB IS
+    l_o JSON_OBJECT_T := JSON_OBJECT_T.parse(p_doc);
+    l_route NUMBER; l_rid NUMBER; l_basis VARCHAR2(30); l_rate NUMBER; l_kg NUMBER; l_dist NUMBER; l_fr NUMBER;
+  BEGIN
+    guard('TRN_ORDER.VIEW');
+    price(jn(l_o, 'customer'), jn(l_o, 'from'), jn(l_o, 'to'), jn(l_o, 'cargo'), jn(l_o, 'qty'), js(l_o, 'uom'), jn(l_o, 'weightKg'),
+          jn(l_o, 'volume'), jn(l_o, 'rateId'), js(l_o, 'basis'), jn(l_o, 'rate'), NVL(jd(l_o, 'date'), TRUNC(SYSDATE)),
+          l_route, l_rid, l_basis, l_rate, l_kg, l_dist, l_fr);
+    RETURN '{"routeId":' || num(l_route) || ',"rateId":' || num(l_rid) || ',"basis":"' || l_basis || '","basisLabel":' || jt(basis_label(l_basis))
+        || ',"rate":' || num(l_rate) || ',"weightKg":' || num(l_kg) || ',"distanceKm":' || num(l_dist) || ',"freight":' || num(l_fr) || '}';
+  END quote_json;
+
+  -- ================================================================ أوامر الشحن
+  FUNCTION get_order(p_id NUMBER, p_lock BOOLEAN DEFAULT FALSE) RETURN trn_order%ROWTYPE IS
+    r trn_order%ROWTYPE;
+  BEGIN
+    IF p_lock THEN
+      SELECT * INTO r FROM trn_order WHERE id = p_id AND company_id = company FOR UPDATE;
+    ELSE
+      SELECT * INTO r FROM trn_order WHERE id = p_id AND company_id = company;
+    END IF;
+    RETURN r;
+  EXCEPTION WHEN NO_DATA_FOUND THEN
+    NOONA_CORE_PKG.raise_error('NOONA-TRN-020', 'أمر الشحن غير موجود', 'Shipment order not found');
+  END get_order;
+
+  FUNCTION order_label(p_order_id IN NUMBER) RETURN VARCHAR2 IS
+    l VARCHAR2(1000);
+  BEGIN
+    SELECT o.doc_no || ' · ' || c.name_ar || ' · ' || qf(o.quantity) || ' ' || uom_label(o.uom_code) || ' · '
+           || f.name_ar || ' ← ' || t.name_ar INTO l
+      FROM trn_order o JOIN trn_cargo_type c ON c.id = o.cargo_type_id
+      JOIN trn_location f ON f.id = o.from_location_id JOIN trn_location t ON t.id = o.to_location_id
+     WHERE o.id = p_order_id;
+    RETURN l;
+  EXCEPTION WHEN NO_DATA_FOUND THEN RETURN NULL;
+  END order_label;
+
+  FUNCTION save_order(p_doc IN CLOB) RETURN NUMBER IS
+    l_o    JSON_OBJECT_T := JSON_OBJECT_T.parse(p_doc);
+    l_no VARCHAR2(50);
+    x_date_jd DATE;
+    x_deliveryDate_jd DATE;
+    x_pickupDate_jd DATE;
+    x_declaredValue_jn NUMBER;
+    x_packages_jn NUMBER;
+    x_volume_jn NUMBER;
+    x_customerRef_js VARCHAR2(4000);
+    x_description_js VARCHAR2(4000);
+    x_notes_js VARCHAR2(4000);
+    l_id   NUMBER := jn(l_o, 'id');
+    l_cust NUMBER := jn(l_o, 'customer');
+    l_f    NUMBER := jn(l_o, 'from');
+    l_t    NUMBER := jn(l_o, 'to');
+    l_cg   NUMBER := jn(l_o, 'cargo');
+    l_q    NUMBER := jn(l_o, 'qty');
+    l_u    VARCHAR2(30) := UPPER(js(l_o, 'uom'));
+    l_oc   NUMBER := NVL(jn(l_o, 'otherCharges'), 0);
+    l_route NUMBER; l_rid NUMBER; l_basis VARCHAR2(30); l_rate NUMBER; l_kg NUMBER; l_dist NUMBER; l_fr NUMBER;
+    l_n    NUMBER;
+    r      trn_order%ROWTYPE;
+  BEGIN
+    guard(CASE WHEN l_id IS NULL THEN 'TRN_ORDER.CREATE' ELSE 'TRN_ORDER.UPDATE' END);
+    NOONA_CORE_PKG.assert(l_cust IS NOT NULL, 'NOONA-TRN-021', 'اختر العميل', 'Customer required');
+    SELECT COUNT(*) INTO l_n FROM ar_customer_account WHERE id = l_cust AND company_id = company;
+    NOONA_CORE_PKG.assert(l_n = 1, 'NOONA-TRN-021', 'العميل غير موجود في الشركة', 'Customer not found');
+    NOONA_CORE_PKG.assert(l_f IS NOT NULL AND l_t IS NOT NULL AND l_f <> l_t, 'NOONA-TRN-022', 'اختر مكان التحميل ومكان التفريغ (مختلفين)', 'Choose pickup and delivery');
+    NOONA_CORE_PKG.assert(l_cg IS NOT NULL, 'NOONA-TRN-023', 'اختر نوع الشحنة', 'Cargo type required');
+    NOONA_CORE_PKG.assert(NVL(l_q, 0) > 0, 'NOONA-TRN-024', 'الكمية أكبر من صفر', 'Quantity must be positive');
+    IF l_u IS NULL THEN SELECT default_unit INTO l_u FROM trn_cargo_type WHERE id = l_cg; END IF;
+    NOONA_CORE_PKG.assert(l_u IN ('METRIC_TON', 'SHORT_TON', 'LONG_TON', 'KG', 'M3', 'LITER', 'CONTAINER', 'PALLET', 'PIECE', 'TRIP'),
+      'NOONA-TRN-025', 'وحدة القياس غير صحيحة', 'Invalid unit');
+    NOONA_CORE_PKG.assert(jd(l_o, 'deliveryDate') IS NULL OR jd(l_o, 'pickupDate') IS NULL OR jd(l_o, 'deliveryDate') >= jd(l_o, 'pickupDate'),
+      'NOONA-TRN-026', 'تاريخ التسليم قبل تاريخ التحميل', 'Delivery before pickup');
+    price(l_cust, l_f, l_t, l_cg, l_q, l_u, jn(l_o, 'weightKg'), jn(l_o, 'volume'), jn(l_o, 'rateId'), UPPER(js(l_o, 'basis')), jn(l_o, 'rate'),
+          NVL(jd(l_o, 'pickupDate'), TRUNC(SYSDATE)), l_route, l_rid, l_basis, l_rate, l_kg, l_dist, l_fr);
+    IF l_id IS NULL THEN
+      x_date_jd := jd(l_o, 'date');
+      x_deliveryDate_jd := jd(l_o, 'deliveryDate');
+      x_pickupDate_jd := jd(l_o, 'pickupDate');
+      x_declaredValue_jn := jn(l_o, 'declaredValue');
+      x_packages_jn := jn(l_o, 'packages');
+      x_volume_jn := jn(l_o, 'volume');
+      x_customerRef_js := js(l_o, 'customerRef');
+      x_description_js := js(l_o, 'description');
+      x_notes_js := js(l_o, 'notes');
+      l_no := next_no(c_ord, 'SHP-');
+      INSERT INTO trn_order (company_id, branch_id, doc_no, doc_date, customer_account_id, customer_ref, from_location_id, to_location_id, route_id,
+                             cargo_type_id, cargo_description, quantity, uom_code, weight_kg, volume_m3, packages_count, declared_value, rate_id,
+                             rate_basis, rate_amount, freight_amount, other_charges, total_amount, pickup_date, required_delivery_date, status_code, notes)
+      VALUES (company, NOONA_CTX_PKG.branch_id, l_no, NVL(x_date_jd, TRUNC(SYSDATE)), l_cust, x_customerRef_js,
+              l_f, l_t, l_route, l_cg, x_description_js, l_q, l_u, l_kg, x_volume_jn, x_packages_jn, x_declaredValue_jn,
+              l_rid, l_basis, l_rate, l_fr, l_oc, l_fr + l_oc, x_pickupDate_jd, x_deliveryDate_jd, 'DRAFT', x_notes_js)
+      RETURNING id INTO l_id;
+    ELSE
+      r := get_order(l_id, TRUE);
+      NOONA_CORE_PKG.assert(r.status_code IN ('DRAFT', 'CONFIRMED'), 'NOONA-TRN-027', 'لا يعدل أمر شحن بعد جدولته في رحلة', 'Order already scheduled');
+      x_deliveryDate_jd := jd(l_o, 'deliveryDate');
+      x_pickupDate_jd := jd(l_o, 'pickupDate');
+      x_declaredValue_jn := jn(l_o, 'declaredValue');
+      x_packages_jn := jn(l_o, 'packages');
+      x_volume_jn := jn(l_o, 'volume');
+      x_customerRef_js := js(l_o, 'customerRef');
+      x_description_js := js(l_o, 'description');
+      x_notes_js := js(l_o, 'notes');
+      UPDATE trn_order SET customer_account_id = l_cust, customer_ref = x_customerRef_js, from_location_id = l_f, to_location_id = l_t,
+             route_id = l_route, cargo_type_id = l_cg, cargo_description = x_description_js, quantity = l_q, uom_code = l_u, weight_kg = l_kg,
+             volume_m3 = x_volume_jn, packages_count = x_packages_jn, declared_value = x_declaredValue_jn, rate_id = l_rid,
+             rate_basis = l_basis, rate_amount = l_rate, freight_amount = l_fr, other_charges = l_oc, total_amount = l_fr + l_oc,
+             pickup_date = x_pickupDate_jd, required_delivery_date = x_deliveryDate_jd, notes = x_notes_js
+       WHERE id = l_id;
+    END IF;
+    RETURN l_id;
+  END save_order;
+
+  PROCEDURE confirm_order(p_id IN NUMBER) IS
+    r trn_order%ROWTYPE;
+  BEGIN
+    guard('TRN_ORDER.UPDATE');
+    r := get_order(p_id, TRUE);
+    NOONA_CORE_PKG.assert(r.status_code = 'DRAFT', 'NOONA-TRN-028', 'الأمر مؤكد مسبقاً', 'Order already confirmed');
+    NOONA_CORE_PKG.assert(r.total_amount > 0, 'NOONA-TRN-029', 'قيمة الترحيل صفر؛ راجع التعرفة', 'Freight is zero');
+    UPDATE trn_order SET status_code = 'CONFIRMED' WHERE id = p_id;
+  END confirm_order;
+
+  PROCEDURE cancel_order(p_id IN NUMBER, p_reason IN VARCHAR2) IS
+    r trn_order%ROWTYPE;
+  BEGIN
+    guard('TRN_ORDER.UPDATE');
+    r := get_order(p_id, TRUE);
+    NOONA_CORE_PKG.assert(r.status_code IN ('DRAFT', 'CONFIRMED'), 'NOONA-TRN-030', 'لا يلغى أمر مجدول في رحلة؛ أخرجه منها أولاً', 'Order is on a trip');
+    NOONA_CORE_PKG.assert(TRIM(p_reason) IS NOT NULL, 'NOONA-TRN-031', 'سبب الإلغاء مطلوب', 'Reason required');
+    UPDATE trn_order SET status_code = 'CANCELLED', notes = SUBSTR(notes || CHR(10) || 'إلغاء: ' || p_reason, 1, 4000) WHERE id = p_id;
+  END cancel_order;
+
+  -- ================================================================ الرحلات
+  FUNCTION get_trip(p_id NUMBER, p_lock BOOLEAN DEFAULT FALSE) RETURN trn_trip%ROWTYPE IS
+    r trn_trip%ROWTYPE;
+  BEGIN
+    IF p_lock THEN
+      SELECT * INTO r FROM trn_trip WHERE id = p_id AND company_id = company FOR UPDATE;
+    ELSE
+      SELECT * INTO r FROM trn_trip WHERE id = p_id AND company_id = company;
+    END IF;
+    RETURN r;
+  EXCEPTION WHEN NO_DATA_FOUND THEN
+    NOONA_CORE_PKG.raise_error('NOONA-TRN-040', 'الرحلة غير موجودة', 'Trip not found');
+  END get_trip;
+
+  FUNCTION eta_of(p_trip_id IN NUMBER) RETURN TIMESTAMP IS
+    t     trn_trip%ROWTYPE;
+    l_h   NUMBER;
+    l_min NUMBER;
+  BEGIN
+    SELECT * INTO t FROM trn_trip WHERE id = p_trip_id;
+    IF t.route_id IS NOT NULL THEN
+      SELECT standard_hours INTO l_h FROM trn_route WHERE id = t.route_id;
+    ELSE
+      l_h := NVL(t.planned_distance_km, 0) / 70;
+    END IF;
+    SELECT NVL(SUM(planned_minutes), 0) INTO l_min FROM trn_trip_stop WHERE trip_id = p_trip_id;
+    RETURN NVL(t.actual_departure, t.planned_departure) + NUMTODSINTERVAL(l_h * 60 + l_min + NVL(t.delay_minutes, 0), 'MINUTE');
+  END eta_of;
+
+  PROCEDURE recalc_trip(p_trip_id IN NUMBER) IS
+    l_eta TIMESTAMP;
+  BEGIN
+    UPDATE trn_trip t SET
+      load_kg = (SELECT NVL(SUM(loaded_kg), 0) FROM trn_trip_order WHERE trip_id = t.id),
+      revenue_amount = (SELECT NVL(SUM(o.total_amount), 0) FROM trn_trip_order x JOIN trn_order o ON o.id = x.order_id WHERE x.trip_id = t.id),
+      expense_amount = (SELECT NVL(SUM(amount), 0) FROM trn_trip_expense WHERE trip_id = t.id)
+     WHERE id = p_trip_id;
+    l_eta := eta_of(p_trip_id);
+    UPDATE trn_trip SET eta = l_eta WHERE id = p_trip_id AND actual_arrival IS NULL;
+  END recalc_trip;
+
+  FUNCTION timeliness(p_trip_id IN NUMBER) RETURN VARCHAR2 IS
+    t trn_trip%ROWTYPE;
+  BEGIN
+    SELECT * INTO t FROM trn_trip WHERE id = p_trip_id;
+    IF t.status_code IN ('PLANNED', 'CANCELLED') THEN RETURN NULL; END IF;
+    IF t.actual_arrival IS NULL THEN
+      RETURN CASE WHEN SYSTIMESTAMP > t.eta THEN 'AT_RISK' WHEN t.delay_minutes > 0 THEN 'LATE' ELSE 'ON_TIME' END;
+    END IF;
+    -- المقارنة بالموعد الأصلي (بلا تأخير الأعطال) مع سماحية 30 دقيقة
+    RETURN CASE WHEN t.actual_arrival > t.eta - NUMTODSINTERVAL(t.delay_minutes, 'MINUTE') + INTERVAL '30' MINUTE THEN 'LATE'
+                WHEN t.actual_arrival < t.eta - NUMTODSINTERVAL(t.delay_minutes, 'MINUTE') - INTERVAL '60' MINUTE THEN 'EARLY'
+                ELSE 'ON_TIME' END;
+  END timeliness;
+
+  PROCEDURE check_vehicle_driver(p_vehicle NUMBER, p_driver NUMBER, p_codriver NUMBER, p_at TIMESTAMP, p_trip NUMBER) IS
+    v trn_vehicle%ROWTYPE;
+    d trn_driver%ROWTYPE;
+    l_n NUMBER;
+  BEGIN
+    BEGIN
+      SELECT * INTO v FROM trn_vehicle WHERE id = p_vehicle AND company_id = company;
+    EXCEPTION WHEN NO_DATA_FOUND THEN
+      NOONA_CORE_PKG.raise_error('NOONA-TRN-010', 'العربة غير موجودة', 'Vehicle not found');
+    END;
+    NOONA_CORE_PKG.assert(v.status_code IN ('AVAILABLE', 'ON_TRIP'), 'NOONA-TRN-041', 'العربة ' || v.plate_no || ' ' || status_label(v.status_code),
+      'Vehicle not available');
+    NOONA_CORE_PKG.assert(v.license_expiry IS NULL OR v.license_expiry >= TRUNC(CAST(p_at AS DATE)), 'NOONA-TRN-042',
+      'ترخيص العربة ' || v.plate_no || ' منتهٍ في ' || TO_CHAR(v.license_expiry, 'YYYY-MM-DD'), 'Vehicle license expired');
+    NOONA_CORE_PKG.assert(v.insurance_expiry IS NULL OR v.insurance_expiry >= TRUNC(CAST(p_at AS DATE)), 'NOONA-TRN-043',
+      'تأمين العربة ' || v.plate_no || ' منتهٍ في ' || TO_CHAR(v.insurance_expiry, 'YYYY-MM-DD'), 'Vehicle insurance expired');
+    SELECT COUNT(*) INTO l_n FROM trn_trip WHERE vehicle_id = p_vehicle AND id <> NVL(p_trip, -1)
+       AND status_code IN ('DISPATCHED', 'IN_TRANSIT', 'ARRIVED');
+    NOONA_CORE_PKG.assert(l_n = 0, 'NOONA-TRN-044', 'العربة ' || v.plate_no || ' في رحلة جارية', 'Vehicle on another active trip');
+    FOR x IN (SELECT p_driver id FROM dual UNION ALL SELECT p_codriver FROM dual WHERE p_codriver IS NOT NULL) LOOP
+      BEGIN
+        SELECT * INTO d FROM trn_driver WHERE id = x.id AND company_id = company;
+      EXCEPTION WHEN NO_DATA_FOUND THEN
+        NOONA_CORE_PKG.raise_error('NOONA-TRN-014', 'السائق غير موجود', 'Driver not found');
+      END;
+      NOONA_CORE_PKG.assert(d.status_code IN ('AVAILABLE', 'ON_TRIP'), 'NOONA-TRN-045', 'السائق ' || d.full_name || ' ' || status_label(d.status_code),
+        'Driver not available');
+      NOONA_CORE_PKG.assert(d.license_expiry >= TRUNC(CAST(p_at AS DATE)), 'NOONA-TRN-046',
+        'رخصة السائق ' || d.full_name || ' منتهية في ' || TO_CHAR(d.license_expiry, 'YYYY-MM-DD'), 'Driver license expired');
+      SELECT COUNT(*) INTO l_n FROM trn_trip WHERE (driver_id = x.id OR co_driver_id = x.id) AND id <> NVL(p_trip, -1)
+         AND status_code IN ('DISPATCHED', 'IN_TRANSIT', 'ARRIVED');
+      NOONA_CORE_PKG.assert(l_n = 0, 'NOONA-TRN-047', 'السائق ' || d.full_name || ' في رحلة جارية', 'Driver on another active trip');
+    END LOOP;
+    NOONA_CORE_PKG.assert(p_codriver IS NULL OR p_codriver <> p_driver, 'NOONA-TRN-048', 'السائق المساعد هو نفسه السائق', 'Co-driver equals driver');
+  END check_vehicle_driver;
+
+  FUNCTION create_trip(p_doc IN CLOB) RETURN NUMBER IS
+    l_o   JSON_OBJECT_T := JSON_OBJECT_T.parse(p_doc);
+    l_no VARCHAR2(50);
+    x_notes_js VARCHAR2(4000);
+    l_v   NUMBER := jn(l_o, 'vehicle');
+    l_d   NUMBER := jn(l_o, 'driver');
+    l_cd  NUMBER := jn(l_o, 'coDriver');
+    l_f   NUMBER := jn(l_o, 'from');
+    l_t   NUMBER := jn(l_o, 'to');
+    l_r   NUMBER := jn(l_o, 'route');
+    l_at  TIMESTAMP := NVL(jts(l_o, 'departure'), SYSTIMESTAMP);
+    l_id  NUMBER;
+    l_dist NUMBER;
+    l_ord JSON_ARRAY_T;
+  BEGIN
+    guard('TRN_TRIP.CREATE');
+    IF l_r IS NOT NULL THEN
+      SELECT from_location_id, to_location_id INTO l_f, l_t FROM trn_route WHERE id = l_r AND company_id = company;
+    END IF;
+    NOONA_CORE_PKG.assert(l_f IS NOT NULL AND l_t IS NOT NULL AND l_f <> l_t, 'NOONA-TRN-049', 'اختر المسار أو مدينتي البداية والوصول', 'Choose route');
+    l_r := NVL(l_r, find_route(l_f, l_t));
+    IF l_r IS NOT NULL THEN SELECT distance_km INTO l_dist FROM trn_route WHERE id = l_r; END IF;
+    NOONA_CORE_PKG.assert(l_v IS NOT NULL AND l_d IS NOT NULL, 'NOONA-TRN-050', 'اختر العربة والسائق', 'Vehicle and driver required');
+    check_vehicle_driver(l_v, l_d, l_cd, l_at, NULL);
+    x_notes_js := js(l_o, 'notes');
+    l_no := next_no(c_trip, 'TRP-');
+    INSERT INTO trn_trip (company_id, branch_id, doc_no, doc_date, vehicle_id, driver_id, co_driver_id, route_id, from_location_id, to_location_id,
+                          planned_departure, planned_distance_km, status_code, notes)
+    VALUES (company, NOONA_CTX_PKG.branch_id, l_no, TRUNC(CAST(l_at AS DATE)), l_v, l_d, l_cd, l_r, l_f, l_t,
+            l_at, l_dist, 'PLANNED', x_notes_js)
+    RETURNING id INTO l_id;
+    IF l_o.has('orders') THEN
+      l_ord := l_o.get_array('orders');
+      FOR i IN 0 .. l_ord.get_size - 1 LOOP
+        add_order(l_id, l_ord.get_number(i));
+      END LOOP;
+    END IF;
+    recalc_trip(l_id);
+    RETURN l_id;
+  END create_trip;
+
+  PROCEDURE add_order(p_trip_id IN NUMBER, p_order_id IN NUMBER) IS
+    t   trn_trip%ROWTYPE;
+    o   trn_order%ROWTYPE;
+    v   trn_vehicle%ROWTYPE;
+    c   trn_cargo_type%ROWTYPE;
+    l_load NUMBER;
+    l_hz   NUMBER;
+  BEGIN
+    guard('TRN_TRIP.UPDATE');
+    t := get_trip(p_trip_id, TRUE);
+    NOONA_CORE_PKG.assert(t.status_code = 'PLANNED', 'NOONA-TRN-051', 'تضاف الشحنات قبل تحرك الرحلة فقط', 'Trip already departed');
+    o := get_order(p_order_id, TRUE);
+    NOONA_CORE_PKG.assert(o.status_code = 'CONFIRMED', 'NOONA-TRN-052', 'أمر الشحن ' || o.doc_no || ' غير مؤكد أو مجدول في رحلة أخرى', 'Order not confirmed');
+    SELECT * INTO v FROM trn_vehicle WHERE id = t.vehicle_id;
+    SELECT * INTO c FROM trn_cargo_type WHERE id = o.cargo_type_id;
+    SELECT NVL(SUM(loaded_kg), 0) INTO l_load FROM trn_trip_order WHERE trip_id = p_trip_id;
+    NOONA_CORE_PKG.assert(o.weight_kg IS NULL OR l_load + o.weight_kg <= v.capacity_tons * 1000, 'NOONA-TRN-053',
+      'الحمولة تتجاوز طاقة العربة ' || v.plate_no || ': ' || qf((l_load + o.weight_kg) / 1000) || ' طن من ' || qf(v.capacity_tons) || ' طن',
+      'Vehicle capacity exceeded');
+    NOONA_CORE_PKG.assert(c.required_vehicle_type IS NULL OR c.required_vehicle_type = v.vehicle_type, 'NOONA-TRN-054',
+      'الشحنة «' || c.name_ar || '» تتطلب عربة من نوع ' || c.required_vehicle_type, 'Cargo requires another vehicle type');
+    IF c.cargo_category = 'HAZARDOUS' THEN
+      SELECT COUNT(*) INTO l_hz FROM trn_driver WHERE id = t.driver_id AND hazmat_certified = 'Y';
+      NOONA_CORE_PKG.assert(l_hz = 1, 'NOONA-TRN-055', 'المواد الخطرة تتطلب سائقاً مؤهلاً لنقلها', 'Hazmat certified driver required');
+    END IF;
+    INSERT INTO trn_trip_order (company_id, trip_id, order_id, loaded_qty, loaded_kg) VALUES (company, p_trip_id, p_order_id, o.quantity, NVL(o.weight_kg, 0));
+    UPDATE trn_order SET status_code = 'PLANNED' WHERE id = p_order_id;
+    -- محطتا التحميل والتفريغ للشحنة إذا كانت خارج طرفي الرحلة
+    IF o.from_location_id <> t.from_location_id THEN
+      INSERT INTO trn_trip_stop (company_id, trip_id, location_id, stop_purpose, planned_minutes, sort_order)
+      SELECT company, p_trip_id, o.from_location_id, 'LOADING', 60, 10 FROM dual
+       WHERE NOT EXISTS (SELECT 1 FROM trn_trip_stop WHERE trip_id = p_trip_id AND location_id = o.from_location_id AND stop_purpose = 'LOADING');
+    END IF;
+    IF o.to_location_id <> t.to_location_id THEN
+      INSERT INTO trn_trip_stop (company_id, trip_id, location_id, stop_purpose, planned_minutes, sort_order)
+      SELECT company, p_trip_id, o.to_location_id, 'UNLOADING', 60, 90 FROM dual
+       WHERE NOT EXISTS (SELECT 1 FROM trn_trip_stop WHERE trip_id = p_trip_id AND location_id = o.to_location_id AND stop_purpose = 'UNLOADING');
+    END IF;
+    recalc_trip(p_trip_id);
+  END add_order;
+
+  PROCEDURE remove_order(p_trip_id IN NUMBER, p_order_id IN NUMBER) IS
+    t trn_trip%ROWTYPE;
+  BEGIN
+    guard('TRN_TRIP.UPDATE');
+    t := get_trip(p_trip_id, TRUE);
+    NOONA_CORE_PKG.assert(t.status_code = 'PLANNED', 'NOONA-TRN-051', 'تعدل الشحنات قبل تحرك الرحلة فقط', 'Trip already departed');
+    DELETE FROM trn_trip_order WHERE trip_id = p_trip_id AND order_id = p_order_id;
+    NOONA_CORE_PKG.assert(SQL%ROWCOUNT = 1, 'NOONA-TRN-056', 'الشحنة ليست في هذه الرحلة', 'Order not on trip');
+    UPDATE trn_order SET status_code = 'CONFIRMED' WHERE id = p_order_id;
+    recalc_trip(p_trip_id);
+  END remove_order;
+
+  FUNCTION add_stop(p_trip_id IN NUMBER, p_location_id IN NUMBER, p_purpose IN VARCHAR2, p_minutes IN NUMBER DEFAULT 0,
+                    p_sort IN NUMBER DEFAULT NULL) RETURN NUMBER IS
+    t    trn_trip%ROWTYPE;
+    l_id NUMBER;
+    l_s  NUMBER;
+  BEGIN
+    guard('TRN_TRIP.UPDATE');
+    t := get_trip(p_trip_id, TRUE);
+    NOONA_CORE_PKG.assert(t.status_code IN ('PLANNED', 'DISPATCHED', 'IN_TRANSIT'), 'NOONA-TRN-057', 'الرحلة مكتملة أو ملغاة', 'Trip closed');
+    NOONA_CORE_PKG.assert(p_location_id IS NOT NULL, 'NOONA-TRN-058', 'اختر موقع التوقف', 'Choose stop location');
+    NOONA_CORE_PKG.assert(NVL(p_minutes, 0) BETWEEN 0 AND 4320, 'NOONA-TRN-059', 'مدة التوقف بين 0 و 72 ساعة', 'Stop minutes 0-4320');
+    SELECT NVL(MAX(sort_order), 0) + 10 INTO l_s FROM trn_trip_stop WHERE trip_id = p_trip_id;
+    INSERT INTO trn_trip_stop (company_id, trip_id, location_id, stop_purpose, planned_minutes, sort_order)
+    VALUES (company, p_trip_id, p_location_id, NVL(p_purpose, 'CHECKPOINT'), NVL(p_minutes, 0), NVL(p_sort, l_s))
+    RETURNING id INTO l_id;
+    recalc_trip(p_trip_id);
+    RETURN l_id;
+  END add_stop;
+
+  PROCEDURE remove_stop(p_stop_id IN NUMBER) IS
+    l_trip NUMBER;
+  BEGIN
+    guard('TRN_TRIP.UPDATE');
+    SELECT trip_id INTO l_trip FROM trn_trip_stop WHERE id = p_stop_id AND company_id = company AND actual_arrival IS NULL;
+    DELETE FROM trn_trip_stop WHERE id = p_stop_id;
+    recalc_trip(l_trip);
+  EXCEPTION WHEN NO_DATA_FOUND THEN
+    NOONA_CORE_PKG.raise_error('NOONA-TRN-060', 'نقطة التوقف غير موجودة أو تم الوصول إليها', 'Stop not found or reached');
+  END remove_stop;
+
+  PROCEDURE depart(p_trip_id IN NUMBER, p_odometer IN NUMBER DEFAULT NULL, p_at IN TIMESTAMP DEFAULT NULL) IS
+    t trn_trip%ROWTYPE;
+    l_n NUMBER;
+    l_odo NUMBER;
+  BEGIN
+    guard('TRN_TRIP.UPDATE');
+    t := get_trip(p_trip_id, TRUE);
+    NOONA_CORE_PKG.assert(t.status_code = 'PLANNED', 'NOONA-TRN-061', 'الرحلة تحركت مسبقاً أو أغلقت', 'Trip not planned');
+    SELECT COUNT(*) INTO l_n FROM trn_trip_order WHERE trip_id = p_trip_id;
+    NOONA_CORE_PKG.assert(l_n > 0, 'NOONA-TRN-062', 'أضف شحنة واحدة على الأقل قبل التحرك', 'Add a shipment first');
+    check_vehicle_driver(t.vehicle_id, t.driver_id, t.co_driver_id, NVL(p_at, SYSTIMESTAMP), p_trip_id);
+    SELECT odometer_km INTO l_odo FROM trn_vehicle WHERE id = t.vehicle_id;
+    NOONA_CORE_PKG.assert(p_odometer IS NULL OR p_odometer >= l_odo, 'NOONA-TRN-063', 'قراءة العداد أقل من آخر قراءة للعربة (' || qf(l_odo) || ')',
+      'Odometer lower than last reading');
+    UPDATE trn_trip SET status_code = 'IN_TRANSIT', actual_departure = NVL(p_at, SYSTIMESTAMP), odometer_start = NVL(p_odometer, l_odo)
+     WHERE id = p_trip_id;
+    UPDATE trn_vehicle SET status_code = 'ON_TRIP' WHERE id = t.vehicle_id;
+    UPDATE trn_driver SET status_code = 'ON_TRIP' WHERE id IN (t.driver_id, t.co_driver_id);
+    UPDATE trn_order SET status_code = 'IN_TRANSIT' WHERE id IN (SELECT order_id FROM trn_trip_order WHERE trip_id = p_trip_id);
+    recalc_trip(p_trip_id);
+    NOONA_AUDIT_PKG.log_event('DATA_CHANGE', c_trip, p_trip_id, 'DEPART', 'SUCCESS');
+  END depart;
+
+  PROCEDURE stop_arrive(p_stop_id IN NUMBER, p_at IN TIMESTAMP DEFAULT NULL) IS
+    l_trip NUMBER;
+  BEGIN
+    guard('TRN_TRIP.UPDATE');
+    UPDATE trn_trip_stop SET actual_arrival = NVL(p_at, SYSTIMESTAMP)
+     WHERE id = p_stop_id AND company_id = company AND actual_arrival IS NULL RETURNING trip_id INTO l_trip;
+    NOONA_CORE_PKG.assert(SQL%ROWCOUNT = 1, 'NOONA-TRN-060', 'نقطة التوقف غير موجودة أو سجل الوصول مسبقاً', 'Stop not found or reached');
+  END stop_arrive;
+
+  PROCEDURE stop_depart(p_stop_id IN NUMBER, p_at IN TIMESTAMP DEFAULT NULL) IS
+    s     trn_trip_stop%ROWTYPE;
+    l_ext NUMBER;
+  BEGIN
+    guard('TRN_TRIP.UPDATE');
+    SELECT * INTO s FROM trn_trip_stop WHERE id = p_stop_id AND company_id = company FOR UPDATE;
+    NOONA_CORE_PKG.assert(s.actual_arrival IS NOT NULL AND s.actual_departure IS NULL, 'NOONA-TRN-064', 'سجل الوصول للنقطة أولاً', 'Record arrival first');
+    UPDATE trn_trip_stop SET actual_departure = NVL(p_at, SYSTIMESTAMP) WHERE id = p_stop_id;
+    -- تجاوز مدة التوقف المخططة يضاف للتأخير ويؤخر زمن الوصول المتوقع
+    l_ext := GREATEST(ROUND((CAST(NVL(p_at, SYSTIMESTAMP) AS DATE) - CAST(s.actual_arrival AS DATE)) * 1440) - s.planned_minutes, 0);
+    IF l_ext > 0 THEN
+      UPDATE trn_trip SET delay_minutes = delay_minutes + l_ext WHERE id = s.trip_id;
+    END IF;
+    recalc_trip(s.trip_id);
+  EXCEPTION WHEN NO_DATA_FOUND THEN
+    NOONA_CORE_PKG.raise_error('NOONA-TRN-060', 'نقطة التوقف غير موجودة', 'Stop not found');
+  END stop_depart;
+
+  PROCEDURE arrive(p_trip_id IN NUMBER, p_at IN TIMESTAMP DEFAULT NULL) IS
+    t trn_trip%ROWTYPE;
+  BEGIN
+    guard('TRN_TRIP.UPDATE');
+    t := get_trip(p_trip_id, TRUE);
+    NOONA_CORE_PKG.assert(t.status_code = 'IN_TRANSIT', 'NOONA-TRN-065', 'الرحلة ليست في الطريق', 'Trip not in transit');
+    NOONA_CORE_PKG.assert(NVL(p_at, SYSTIMESTAMP) >= t.actual_departure, 'NOONA-TRN-066', 'وقت الوصول قبل وقت التحرك', 'Arrival before departure');
+    UPDATE trn_trip SET status_code = 'ARRIVED', actual_arrival = NVL(p_at, SYSTIMESTAMP) WHERE id = p_trip_id;
+  END arrive;
+
+  PROCEDURE deliver_order(p_trip_id IN NUMBER, p_order_id IN NUMBER, p_delivered_qty IN NUMBER, p_receiver IN VARCHAR2,
+                          p_damage IN VARCHAR2 DEFAULT NULL, p_at IN TIMESTAMP DEFAULT NULL) IS
+    t trn_trip%ROWTYPE;
+    o trn_order%ROWTYPE;
+    l_n NUMBER;
+  BEGIN
+    guard('TRN_TRIP.UPDATE');
+    t := get_trip(p_trip_id, TRUE);
+    NOONA_CORE_PKG.assert(t.status_code IN ('IN_TRANSIT', 'ARRIVED'), 'NOONA-TRN-067', 'التسليم بعد تحرك الرحلة', 'Trip has not departed');
+    SELECT COUNT(*) INTO l_n FROM trn_trip_order WHERE trip_id = p_trip_id AND order_id = p_order_id;
+    NOONA_CORE_PKG.assert(l_n = 1, 'NOONA-TRN-056', 'الشحنة ليست في هذه الرحلة', 'Order not on trip');
+    o := get_order(p_order_id, TRUE);
+    NOONA_CORE_PKG.assert(o.status_code = 'IN_TRANSIT', 'NOONA-TRN-068', 'الشحنة سلمت مسبقاً', 'Already delivered');
+    NOONA_CORE_PKG.assert(p_delivered_qty BETWEEN 0 AND o.quantity, 'NOONA-TRN-069', 'الكمية المسلمة بين صفر والكمية المحملة ' || qf(o.quantity),
+      'Delivered quantity out of range');
+    NOONA_CORE_PKG.assert(TRIM(p_receiver) IS NOT NULL, 'NOONA-TRN-070', 'اسم المستلم مطلوب', 'Receiver required');
+    UPDATE trn_order SET status_code = 'DELIVERED', delivered_qty = p_delivered_qty, shortage_qty = quantity - p_delivered_qty,
+           receiver_name = p_receiver, damage_notes = p_damage, delivered_at = NVL(p_at, SYSTIMESTAMP)
+     WHERE id = p_order_id;
+  END deliver_order;
+
+  PROCEDURE complete_trip(p_trip_id IN NUMBER, p_odometer_end IN NUMBER, p_fuel_liters IN NUMBER DEFAULT NULL) IS
+    t trn_trip%ROWTYPE;
+    l_n NUMBER;
+  BEGIN
+    guard('TRN_TRIP.UPDATE');
+    t := get_trip(p_trip_id, TRUE);
+    NOONA_CORE_PKG.assert(t.status_code IN ('IN_TRANSIT', 'ARRIVED'), 'NOONA-TRN-071', 'الرحلة لم تتحرك أو أغلقت', 'Trip not active');
+    SELECT COUNT(*) INTO l_n FROM trn_trip_order x JOIN trn_order o ON o.id = x.order_id WHERE x.trip_id = p_trip_id AND o.status_code = 'IN_TRANSIT';
+    NOONA_CORE_PKG.assert(l_n = 0, 'NOONA-TRN-072', 'سجل تسليم كل الشحنات قبل إقفال الرحلة (' || l_n || ' متبقية)', 'Deliver all shipments first');
+    NOONA_CORE_PKG.assert(p_odometer_end IS NOT NULL AND p_odometer_end >= NVL(t.odometer_start, 0), 'NOONA-TRN-073',
+      'قراءة العداد عند العودة مطلوبة ولا تقل عن قراءة التحرك (' || qf(t.odometer_start) || ')', 'Odometer end required');
+    UPDATE trn_trip SET status_code = 'COMPLETED', actual_arrival = NVL(actual_arrival, SYSTIMESTAMP), odometer_end = p_odometer_end,
+           actual_distance_km = p_odometer_end - odometer_start, fuel_liters = NVL(p_fuel_liters, fuel_liters)
+     WHERE id = p_trip_id;
+    UPDATE trn_vehicle SET status_code = 'AVAILABLE', odometer_km = GREATEST(odometer_km, p_odometer_end)
+     WHERE id = t.vehicle_id AND status_code = 'ON_TRIP';
+    UPDATE trn_driver SET status_code = 'AVAILABLE' WHERE id IN (t.driver_id, t.co_driver_id) AND status_code = 'ON_TRIP';
+    recalc_trip(p_trip_id);
+    NOONA_AUDIT_PKG.log_event('DATA_CHANGE', c_trip, p_trip_id, 'COMPLETE', 'SUCCESS');
+  END complete_trip;
+
+  PROCEDURE cancel_trip(p_trip_id IN NUMBER, p_reason IN VARCHAR2) IS
+    t trn_trip%ROWTYPE;
+  BEGIN
+    guard('TRN_TRIP.UPDATE');
+    t := get_trip(p_trip_id, TRUE);
+    NOONA_CORE_PKG.assert(t.status_code = 'PLANNED', 'NOONA-TRN-074', 'تلغى الرحلة قبل تحركها فقط', 'Only planned trips can be cancelled');
+    NOONA_CORE_PKG.assert(TRIM(p_reason) IS NOT NULL, 'NOONA-TRN-031', 'سبب الإلغاء مطلوب', 'Reason required');
+    UPDATE trn_order SET status_code = 'CONFIRMED' WHERE id IN (SELECT order_id FROM trn_trip_order WHERE trip_id = p_trip_id);
+    DELETE FROM trn_trip_order WHERE trip_id = p_trip_id;
+    UPDATE trn_trip SET status_code = 'CANCELLED', notes = SUBSTR(notes || CHR(10) || 'إلغاء: ' || p_reason, 1, 4000) WHERE id = p_trip_id;
+    recalc_trip(p_trip_id);
+  END cancel_trip;
+
+  FUNCTION add_expense(p_trip_id IN NUMBER, p_type IN VARCHAR2, p_amount IN NUMBER, p_liters IN NUMBER DEFAULT NULL,
+                       p_date IN DATE DEFAULT NULL, p_ref IN VARCHAR2 DEFAULT NULL, p_notes IN VARCHAR2 DEFAULT NULL) RETURN NUMBER IS
+    t    trn_trip%ROWTYPE;
+    l_id NUMBER;
+  BEGIN
+    guard('TRN_TRIP_EXPENSE.CREATE');
+    t := get_trip(p_trip_id);
+    NOONA_CORE_PKG.assert(t.status_code <> 'CANCELLED', 'NOONA-TRN-075', 'الرحلة ملغاة', 'Trip cancelled');
+    NOONA_CORE_PKG.assert(p_type IN ('FUEL', 'TOLL', 'DRIVER_ALLOWANCE', 'LOADING', 'UNLOADING', 'PARKING', 'REPAIR', 'TIRES', 'FINE', 'WEIGHBRIDGE',
+      'CUSTOMS', 'OTHER'), 'NOONA-TRN-076', 'نوع المصروف غير صحيح', 'Invalid expense type');
+    NOONA_CORE_PKG.assert(NVL(p_amount, -1) > 0, 'NOONA-TRN-077', 'مبلغ المصروف أكبر من صفر', 'Amount must be positive');
+    INSERT INTO trn_trip_expense (company_id, trip_id, expense_type, expense_date, amount, liters, reference_no, notes)
+    VALUES (company, p_trip_id, p_type, NVL(p_date, TRUNC(SYSDATE)), p_amount, p_liters, p_ref, p_notes)
+    RETURNING id INTO l_id;
+    IF p_type = 'FUEL' AND p_liters IS NOT NULL THEN
+      UPDATE trn_trip SET fuel_liters = NVL(fuel_liters, 0) + p_liters WHERE id = p_trip_id;
+    END IF;
+    recalc_trip(p_trip_id);
+    RETURN l_id;
+  END add_expense;
+
+  -- ================================================================ الأعطال والبلاغات
+  FUNCTION get_incident(p_id NUMBER) RETURN trn_incident%ROWTYPE IS
+    r trn_incident%ROWTYPE;
+  BEGIN
+    SELECT * INTO r FROM trn_incident WHERE id = p_id AND company_id = company FOR UPDATE;
+    RETURN r;
+  EXCEPTION WHEN NO_DATA_FOUND THEN
+    NOONA_CORE_PKG.raise_error('NOONA-TRN-080', 'البلاغ غير موجود', 'Incident not found');
+  END get_incident;
+
+  FUNCTION report_incident(p_doc IN CLOB) RETURN NUMBER IS
+    l_o    JSON_OBJECT_T := JSON_OBJECT_T.parse(p_doc);
+    l_no VARCHAR2(50);
+    x_location_jn NUMBER;
+    x_description_js VARCHAR2(4000);
+    x_locationText_js VARCHAR2(4000);
+    x_reportedBy_js VARCHAR2(4000);
+    x_at_jts TIMESTAMP;
+    l_trip NUMBER := jn(l_o, 'trip');
+    l_v    NUMBER := jn(l_o, 'vehicle');
+    l_d    NUMBER := jn(l_o, 'driver');
+    l_tp   VARCHAR2(30) := UPPER(js(l_o, 'type'));
+    l_sv   VARCHAR2(30) := NVL(UPPER(js(l_o, 'severity')), 'MEDIUM');
+    l_id   NUMBER;
+    t      trn_trip%ROWTYPE;
+  BEGIN
+    guard('TRN_INCIDENT.CREATE');
+    IF l_trip IS NOT NULL THEN
+      t := get_trip(l_trip);
+      l_v := NVL(l_v, t.vehicle_id); l_d := NVL(l_d, t.driver_id);
+    END IF;
+    NOONA_CORE_PKG.assert(l_v IS NOT NULL, 'NOONA-TRN-081', 'اختر الرحلة أو العربة', 'Trip or vehicle required');
+    NOONA_CORE_PKG.assert(l_tp IN ('BREAKDOWN', 'TIRE', 'ACCIDENT', 'DELAY', 'CARGO_DAMAGE', 'THEFT', 'POLICE', 'WEATHER', 'ROAD_CLOSURE', 'MEDICAL',
+      'BORDER_HOLD', 'OTHER'), 'NOONA-TRN-082', 'نوع البلاغ غير صحيح', 'Invalid incident type');
+    NOONA_CORE_PKG.assert(l_sv IN ('LOW', 'MEDIUM', 'HIGH', 'CRITICAL'), 'NOONA-TRN-083', 'درجة الخطورة غير صحيحة', 'Invalid severity');
+    NOONA_CORE_PKG.assert(TRIM(js(l_o, 'description')) IS NOT NULL, 'NOONA-TRN-084', 'وصف البلاغ مطلوب', 'Description required');
+    x_location_jn := jn(l_o, 'location');
+    x_description_js := js(l_o, 'description');
+    x_locationText_js := js(l_o, 'locationText');
+    x_reportedBy_js := js(l_o, 'reportedBy');
+    x_at_jts := jts(l_o, 'at');
+    l_no := next_no(c_inc, 'INC-');
+    INSERT INTO trn_incident (company_id, doc_no, doc_date, trip_id, vehicle_id, driver_id, incident_type, severity, reported_at, reported_by,
+                              location_id, location_text, description, status_code)
+    VALUES (company, l_no, TRUNC(SYSDATE), l_trip, l_v, l_d, l_tp, l_sv, NVL(x_at_jts, SYSTIMESTAMP),
+            NVL(x_reportedBy_js, NOONA_APEX_PKG.display_name), x_location_jn, x_locationText_js, x_description_js, 'REPORTED')
+    RETURNING id INTO l_id;
+    NOONA_AUDIT_PKG.log_event('DATA_CHANGE', c_inc, l_id, 'REPORT', 'SUCCESS');
+    RETURN l_id;
+  END report_incident;
+
+  PROCEDURE acknowledge_incident(p_id IN NUMBER, p_assigned_to IN VARCHAR2) IS
+    r trn_incident%ROWTYPE;
+  BEGIN
+    guard('TRN_INCIDENT.UPDATE');
+    r := get_incident(p_id);
+    NOONA_CORE_PKG.assert(r.status_code = 'REPORTED', 'NOONA-TRN-085', 'البلاغ مستلم مسبقاً', 'Already acknowledged');
+    NOONA_CORE_PKG.assert(TRIM(p_assigned_to) IS NOT NULL, 'NOONA-TRN-086', 'حدد المكلف بالاستجابة', 'Assignee required');
+    UPDATE trn_incident SET status_code = 'ACKNOWLEDGED', acknowledged_at = SYSTIMESTAMP, assigned_to = p_assigned_to WHERE id = p_id;
+  END acknowledge_incident;
+
+  PROCEDURE respond_incident(p_id IN NUMBER, p_action IN VARCHAR2) IS
+    r trn_incident%ROWTYPE;
+  BEGIN
+    guard('TRN_INCIDENT.UPDATE');
+    r := get_incident(p_id);
+    NOONA_CORE_PKG.assert(r.status_code IN ('REPORTED', 'ACKNOWLEDGED'), 'NOONA-TRN-087', 'البلاغ قيد المعالجة أو محلول', 'Already in progress');
+    UPDATE trn_incident SET status_code = 'IN_PROGRESS', responded_at = SYSTIMESTAMP, acknowledged_at = NVL(acknowledged_at, SYSTIMESTAMP),
+           response_action = p_action
+     WHERE id = p_id;
+  END respond_incident;
+
+  PROCEDURE resolve_incident(p_id IN NUMBER, p_action IN VARCHAR2, p_downtime_minutes IN NUMBER, p_cost IN NUMBER DEFAULT NULL) IS
+    r    trn_incident%ROWTYPE;
+    l_x  NUMBER;
+  BEGIN
+    guard('TRN_INCIDENT.UPDATE');
+    r := get_incident(p_id);
+    NOONA_CORE_PKG.assert(r.status_code IN ('REPORTED', 'ACKNOWLEDGED', 'IN_PROGRESS'), 'NOONA-TRN-088', 'البلاغ محلول مسبقاً', 'Already resolved');
+    NOONA_CORE_PKG.assert(TRIM(p_action) IS NOT NULL, 'NOONA-TRN-089', 'اكتب إجراء الحل', 'Resolution action required');
+    NOONA_CORE_PKG.assert(NVL(p_downtime_minutes, 0) >= 0 AND NVL(p_cost, 0) >= 0, 'NOONA-TRN-090', 'مدة التوقف والتكلفة لا تكون سالبة', 'Negative values');
+    UPDATE trn_incident SET status_code = 'RESOLVED', resolved_at = SYSTIMESTAMP, acknowledged_at = NVL(acknowledged_at, SYSTIMESTAMP),
+           responded_at = NVL(responded_at, SYSTIMESTAMP), response_action = SUBSTR(NVL2(response_action, response_action || CHR(10), NULL) || p_action, 1, 2000),
+           downtime_minutes = p_downtime_minutes, cost_amount = p_cost
+     WHERE id = p_id;
+    IF r.trip_id IS NOT NULL THEN
+      -- مدة التوقف تؤخر الوصول المتوقع، والتكلفة مصروف إصلاح على الرحلة
+      UPDATE trn_trip SET delay_minutes = delay_minutes + NVL(p_downtime_minutes, 0) WHERE id = r.trip_id AND status_code NOT IN ('COMPLETED', 'CANCELLED');
+      IF NVL(p_cost, 0) > 0 THEN
+        l_x := add_expense(r.trip_id, CASE WHEN r.incident_type = 'TIRE' THEN 'TIRES' ELSE 'REPAIR' END, p_cost, NULL, TRUNC(SYSDATE), r.doc_no,
+                           'بلاغ ' || r.doc_no);
+      END IF;
+      recalc_trip(r.trip_id);
+    END IF;
+  END resolve_incident;
+
+  PROCEDURE close_incident(p_id IN NUMBER) IS
+    r trn_incident%ROWTYPE;
+  BEGIN
+    guard('TRN_INCIDENT.UPDATE');
+    r := get_incident(p_id);
+    NOONA_CORE_PKG.assert(r.status_code = 'RESOLVED', 'NOONA-TRN-091', 'يغلق البلاغ بعد حله', 'Resolve first');
+    UPDATE trn_incident SET status_code = 'CLOSED' WHERE id = p_id;
+  END close_incident;
+
+  -- ================================================================ الفوترة
+  FUNCTION invoice_orders(p_order_ids IN VARCHAR2) RETURN NUMBER IS
+    l_d    JSON_OBJECT_T := JSON_OBJECT_T();
+    l_ls   JSON_ARRAY_T := JSON_ARRAY_T();
+    l_x    JSON_OBJECT_T;
+    l_cust NUMBER;
+    l_n    NUMBER := 0;
+    l_inv  NUMBER;
+    l_docs VARCHAR2(4000);
+  BEGIN
+    guard('TRN_ORDER.UPDATE');
+    NOONA_CORE_PKG.assert(is_ready = 'Y', 'NOONA-TRN-092', 'جهز النظام أولاً (حساب إيرادات النقل) من الإعداد', 'Run quick setup first');
+    FOR o IN (SELECT o.*, c.name_ar cargo, f.name_ar fn, t.name_ar tn
+                FROM trn_order o JOIN trn_cargo_type c ON c.id = o.cargo_type_id
+                JOIN trn_location f ON f.id = o.from_location_id JOIN trn_location t ON t.id = o.to_location_id
+               WHERE o.company_id = company AND INSTR(',' || REPLACE(p_order_ids, ' ', '') || ',', ',' || o.id || ',') > 0
+               ORDER BY o.id FOR UPDATE OF o.status_code) LOOP
+      NOONA_CORE_PKG.assert(o.status_code = 'DELIVERED', 'NOONA-TRN-093', 'الأمر ' || o.doc_no || ' غير مسلم أو مفوتر', 'Order not delivered');
+      NOONA_CORE_PKG.assert(l_cust IS NULL OR l_cust = o.customer_account_id, 'NOONA-TRN-094', 'الأوامر لعملاء مختلفين؛ افترها منفصلة',
+        'Orders belong to different customers');
+      l_cust := o.customer_account_id;
+      l_x := JSON_OBJECT_T();
+      l_x.put('d', 'ترحيل ' || o.cargo || ' من ' || o.fn || ' إلى ' || o.tn || ' - أمر ' || o.doc_no || ' - ' || qf(o.quantity) || ' '
+               || uom_label(o.uom_code) || CASE WHEN NVL(o.shortage_qty, 0) > 0 THEN ' (عجز ' || qf(o.shortage_qty) || ')' END);
+      l_x.put('acc', c_rev); l_x.put('q', 1); l_x.put('p', o.total_amount); l_x.put('inc', 'N');
+      l_ls.append(l_x);
+      l_n := l_n + 1;
+      l_docs := SUBSTR(l_docs || CASE WHEN l_docs IS NOT NULL THEN '، ' END || o.doc_no, 1, 3000);
+    END LOOP;
+    NOONA_CORE_PKG.assert(l_n > 0, 'NOONA-TRN-095', 'اختر أوامر شحن مسلمة', 'Choose delivered orders');
+    l_d.put('cust', l_cust); l_d.put('mode', 'CREDIT'); l_d.put('action', 'POST');
+    l_d.put('notes', 'فاتورة ترحيل لأوامر الشحن: ' || l_docs);
+    l_d.put('lines', l_ls);
+    l_inv := NOONA_SAL_PKG.save_invoice(l_d.to_clob);
+    UPDATE trn_order SET status_code = 'INVOICED', sales_invoice_id = l_inv
+     WHERE company_id = company AND INSTR(',' || REPLACE(p_order_ids, ' ', '') || ',', ',' || id || ',') > 0;
+    RETURN l_inv;
+  END invoice_orders;
+
+  -- ================================================================ الواجهة
+  FUNCTION board_html RETURN CLOB IS
+    l   CLOB;
+    l_n PLS_INTEGER := 0;
+    l_t VARCHAR2(30);
+  BEGIN
+    guard('TRN_TRIP.VIEW');
+    l := '<div class="nn-trn-kpis">';
+    FOR k IN (SELECT 'في الطريق' t, COUNT(*) v, 'fa-truck' i FROM trn_trip WHERE company_id = company AND status_code IN ('DISPATCHED', 'IN_TRANSIT', 'ARRIVED')
+              UNION ALL SELECT 'مجدولة', COUNT(*), 'fa-calendar' FROM trn_trip WHERE company_id = company AND status_code = 'PLANNED'
+              UNION ALL SELECT 'شحنات بانتظار رحلة', COUNT(*), 'fa-cubes' FROM trn_order WHERE company_id = company AND status_code = 'CONFIRMED'
+              UNION ALL SELECT 'بلاغات مفتوحة', COUNT(*), 'fa-exclamation-triangle' FROM trn_incident WHERE company_id = company AND status_code IN ('REPORTED', 'ACKNOWLEDGED', 'IN_PROGRESS')
+              UNION ALL SELECT 'عربات متاحة', COUNT(*), 'fa-check-circle' FROM trn_vehicle WHERE company_id = company AND status_code = 'AVAILABLE'
+              UNION ALL SELECT 'عربات في الصيانة', COUNT(*), 'fa-wrench' FROM trn_vehicle WHERE company_id = company AND status_code = 'MAINTENANCE') LOOP
+      l := l || '<div class="nn-trn-kpi"><span class="fa ' || k.i || '" aria-hidden="true"></span><b>' || k.v || '</b><small>' || esc(k.t) || '</small></div>';
+    END LOOP;
+    l := l || '</div><h3 class="nn-rh-h"><span class="fa fa-road" aria-hidden="true"></span> الرحلات الجارية</h3><div class="nn-trn-trips">';
+    FOR t IN (SELECT t.id, t.doc_no, t.status_code, t.eta, t.actual_departure, t.planned_departure, t.delay_minutes, t.load_kg, v.plate_no, v.capacity_tons,
+                     d.full_name, f.name_ar fn, tl.name_ar tn,
+                     (SELECT COUNT(*) FROM trn_incident i WHERE i.trip_id = t.id AND i.status_code IN ('REPORTED', 'ACKNOWLEDGED', 'IN_PROGRESS')) open_inc
+                FROM trn_trip t JOIN trn_vehicle v ON v.id = t.vehicle_id JOIN trn_driver d ON d.id = t.driver_id
+                JOIN trn_location f ON f.id = t.from_location_id JOIN trn_location tl ON tl.id = t.to_location_id
+               WHERE t.company_id = company AND t.status_code IN ('PLANNED', 'DISPATCHED', 'IN_TRANSIT', 'ARRIVED')
+               ORDER BY CASE t.status_code WHEN 'IN_TRANSIT' THEN 0 WHEN 'ARRIVED' THEN 1 ELSE 2 END, t.eta) LOOP
+      l_n := l_n + 1;
+      l_t := timeliness(t.id);
+      l := l || '<a class="nn-trn-trip' || CASE WHEN l_t = 'AT_RISK' OR t.open_inc > 0 THEN ' is-alert' END || '" href="'
+          || NOONA_UI_PKG.url('NOONA_TRN', 'TRIP', V('APP_SESSION'), 'P21_ID', t.id) || '">'
+          || '<span class="nn-trn-trip-h"><b>' || esc(t.doc_no) || '</b>' || badge(t.status_code) || CASE WHEN l_t IS NOT NULL THEN ' ' || badge(l_t) END
+          || CASE WHEN t.open_inc > 0 THEN ' <span class="nn-badge is-danger"><span class="fa fa-exclamation-triangle" aria-hidden="true"></span> ' || t.open_inc || ' بلاغ</span>' END
+          || '</span><span class="nn-trn-route">' || esc(t.fn) || ' <span class="fa fa-long-arrow-right" aria-hidden="true"></span> ' || esc(t.tn) || '</span>'
+          || '<span class="nn-trn-meta"><span class="fa fa-truck" aria-hidden="true"></span> ' || esc(t.plate_no)
+          || ' · <span class="fa fa-user" aria-hidden="true"></span> ' || esc(t.full_name)
+          || ' · الحمولة ' || qf(t.load_kg / 1000) || ' / ' || qf(t.capacity_tons) || ' طن</span>'
+          || '<span class="nn-trn-eta">' || CASE WHEN t.actual_departure IS NULL THEN 'التحرك المخطط: ' || ts(t.planned_departure)
+                                                ELSE 'الوصول المتوقع: <b>' || ts(t.eta) || '</b>' END
+          || CASE WHEN t.delay_minutes > 0 THEN ' · تأخير ' || ROUND(t.delay_minutes / 60, 1) || ' ساعة' END || '</span></a>';
+    END LOOP;
+    IF l_n = 0 THEN
+      l := l || '<div class="nn-empty">لا توجد رحلات جارية أو مجدولة</div>';
+    END IF;
+    RETURN l || '</div>';
+  END board_html;
+
+  FUNCTION trip_html(p_trip_id IN NUMBER) RETURN CLOB IS
+    t   trn_trip%ROWTYPE;
+    l   CLOB;
+    l_v VARCHAR2(400); l_d VARCHAR2(400); l_cd VARCHAR2(400); l_f VARCHAR2(200); l_to VARCHAR2(200); l_cap NUMBER;
+  BEGIN
+    guard('TRN_TRIP.VIEW');
+    t := get_trip(p_trip_id);
+    SELECT plate_no || ' · ' || NVL(make, '') || ' ' || NVL(model, ''), capacity_tons INTO l_v, l_cap FROM trn_vehicle WHERE id = t.vehicle_id;
+    SELECT full_name || NVL2(phone, ' · ' || phone, '') INTO l_d FROM trn_driver WHERE id = t.driver_id;
+    SELECT MAX(full_name) INTO l_cd FROM trn_driver WHERE id = t.co_driver_id;
+    SELECT name_ar INTO l_f FROM trn_location WHERE id = t.from_location_id;
+    SELECT name_ar INTO l_to FROM trn_location WHERE id = t.to_location_id;
+    l := '<div class="nn-trn-head"><div><div class="nn-hello-title">' || esc(t.doc_no) || ' ' || badge(t.status_code)
+      || CASE WHEN timeliness(t.id) IS NOT NULL THEN ' ' || badge(timeliness(t.id)) END || '</div>'
+      || '<div class="nn-trn-route">' || esc(l_f) || ' <span class="fa fa-long-arrow-right" aria-hidden="true"></span> ' || esc(l_to)
+      || CASE WHEN t.planned_distance_km IS NOT NULL THEN ' · ' || qf(t.planned_distance_km) || ' كم' END || '</div></div>'
+      || '<dl class="nn-trn-facts">'
+      || '<div><dt>العربة</dt><dd>' || esc(l_v) || '</dd></div>'
+      || '<div><dt>السائق</dt><dd>' || esc(l_d) || CASE WHEN l_cd IS NOT NULL THEN ' + ' || esc(l_cd) END || '</dd></div>'
+      || '<div><dt>التحرك</dt><dd>' || ts(NVL(t.actual_departure, t.planned_departure)) || CASE WHEN t.actual_departure IS NULL THEN ' (مخطط)' END || '</dd></div>'
+      || '<div><dt>الوصول المتوقع</dt><dd><b>' || ts(t.eta) || '</b>' || CASE WHEN t.delay_minutes > 0 THEN ' (تأخير ' || t.delay_minutes || ' دقيقة)' END || '</dd></div>'
+      || CASE WHEN t.actual_arrival IS NOT NULL THEN '<div><dt>الوصول الفعلي</dt><dd>' || ts(t.actual_arrival) || '</dd></div>' END
+      || '<div><dt>الحمولة</dt><dd>' || qf(t.load_kg / 1000) || ' من ' || qf(l_cap) || ' طن (' || ROUND(t.load_kg / 10 / l_cap) || '%)</dd></div>'
+      || '<div><dt>الإيراد</dt><dd>' || fmt(t.revenue_amount) || '</dd></div>'
+      || '<div><dt>المصروفات</dt><dd>' || fmt(t.expense_amount) || '</dd></div>'
+      || '<div><dt>صافي الرحلة</dt><dd><b>' || fmt(t.revenue_amount - t.expense_amount) || '</b></dd></div>'
+      || CASE WHEN t.actual_distance_km IS NOT NULL THEN '<div><dt>المسافة الفعلية</dt><dd>' || qf(t.actual_distance_km) || ' كم'
+              || CASE WHEN t.fuel_liters > 0 AND t.actual_distance_km > 0 THEN ' · ' || ROUND(t.fuel_liters / t.actual_distance_km * 100, 1) || ' لتر/100كم' END
+              || '</dd></div>' END
+      || '</dl></div>';
+    RETURN l;
+  END trip_html;
+
+  FUNCTION incident_label(p_code IN VARCHAR2) RETURN VARCHAR2 IS
+  BEGIN
+    RETURN CASE p_code WHEN 'BREAKDOWN' THEN 'عطل ميكانيكي' WHEN 'TIRE' THEN 'إطار' WHEN 'ACCIDENT' THEN 'حادث' WHEN 'DELAY' THEN 'تأخير'
+      WHEN 'CARGO_DAMAGE' THEN 'تلف الشحنة' WHEN 'THEFT' THEN 'سرقة' WHEN 'POLICE' THEN 'إيقاف أمني/مروري' WHEN 'WEATHER' THEN 'طقس'
+      WHEN 'ROAD_CLOSURE' THEN 'إغلاق طريق' WHEN 'MEDICAL' THEN 'حالة صحية' WHEN 'BORDER_HOLD' THEN 'احتجاز حدودي' WHEN 'OTHER' THEN 'أخرى'
+      ELSE p_code END;
+  END incident_label;
+
+  FUNCTION severity_label(p_code IN VARCHAR2) RETURN VARCHAR2 IS
+  BEGIN
+    RETURN CASE p_code WHEN 'LOW' THEN 'منخفضة' WHEN 'MEDIUM' THEN 'متوسطة' WHEN 'HIGH' THEN 'عالية' WHEN 'CRITICAL' THEN 'حرجة' ELSE p_code END;
+  END severity_label;
+
+  FUNCTION order_status(p_id IN NUMBER) RETURN VARCHAR2 IS
+    l VARCHAR2(30);
+  BEGIN
+    SELECT MAX(status_code) INTO l FROM trn_order WHERE id = p_id AND company_id = company;
+    RETURN l;
+  END order_status;
+
+  FUNCTION trip_status(p_id IN NUMBER) RETURN VARCHAR2 IS
+    l VARCHAR2(30);
+  BEGIN
+    SELECT MAX(status_code) INTO l FROM trn_trip WHERE id = p_id AND company_id = company;
+    RETURN l;
+  END trip_status;
+
+  FUNCTION incident_status(p_id IN NUMBER) RETURN VARCHAR2 IS
+    l VARCHAR2(30);
+  BEGIN
+    SELECT MAX(status_code) INTO l FROM trn_incident WHERE id = p_id AND company_id = company;
+    RETURN l;
+  END incident_status;
+END NOONA_TRN_PKG;
+/
+SHOW ERRORS PACKAGE BODY NOONA_TRN_PKG

@@ -61,6 +61,7 @@ sqlplus -S -L NOONA_APP/"%APP_PWD%"@%CONN% @demo/demo_real_estate.sql %ADMIN_USE
 if errorlevel 1 goto fail
 echo.
 sqlplus -S -L NOONA_APP/"%APP_PWD%"@%CONN% @demo/demo_auto_service.sql %ADMIN_USER% < nul
+sqlplus -S -L NOONA_APP/"%APP_PWD%"@%CONN% @demo/transport_demo.sql %ADMIN_USER% < nul
 if errorlevel 1 goto fail
 echo.
 echo ===== Demo data loaded. Open Finance (incl. Fixed Assets), Supply Chain, Sales/POS, Manufacturing, Documents, HR and Real Estate and Hospitality, Projects and Tax to review it. Restaurants are in Sales and POS. Hospital data is in Hospital and Clinics.

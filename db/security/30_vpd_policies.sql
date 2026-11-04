@@ -578,6 +578,18 @@ BEGIN
   NOONA_VPD_PKG.add_shared_policy('SEC_SOD_RULE');
   NOONA_VPD_PKG.add_tenant_policy('SEC_SOD_VIOLATION');
   NOONA_VPD_PKG.add_tenant_policy('SEC_USER_MEMBERSHIP');
+  NOONA_VPD_PKG.add_tenant_policy('TRN_CARGO_TYPE');
+  NOONA_VPD_PKG.add_tenant_policy('TRN_DRIVER');
+  NOONA_VPD_PKG.add_tenant_policy('TRN_INCIDENT');
+  NOONA_VPD_PKG.add_tenant_policy('TRN_LOCATION');
+  NOONA_VPD_PKG.add_tenant_policy('TRN_ORDER');
+  NOONA_VPD_PKG.add_tenant_policy('TRN_RATE');
+  NOONA_VPD_PKG.add_tenant_policy('TRN_ROUTE');
+  NOONA_VPD_PKG.add_tenant_policy('TRN_TRIP');
+  NOONA_VPD_PKG.add_tenant_policy('TRN_TRIP_EXPENSE');
+  NOONA_VPD_PKG.add_tenant_policy('TRN_TRIP_ORDER');
+  NOONA_VPD_PKG.add_tenant_policy('TRN_TRIP_STOP');
+  NOONA_VPD_PKG.add_tenant_policy('TRN_VEHICLE');
   NOONA_VPD_PKG.add_tenant_policy('WF_APPROVAL_CONDITION');
   NOONA_VPD_PKG.add_tenant_policy('WF_ATTESTATION');
   NOONA_VPD_PKG.add_tenant_policy('WF_AUTHORITY_MATRIX');

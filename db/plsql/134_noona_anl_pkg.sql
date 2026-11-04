@@ -14,29 +14,34 @@ SET DEFINE OFF
 CREATE OR REPLACE PACKAGE NOONA_ANL_PKG AUTHID DEFINER AS
   FUNCTION company RETURN NUMBER;
   -- [{code, name, module, moduleName, unit, kind}] للموديول (فارغ = كل ما يملك المستخدم صلاحيته)
-  FUNCTION metrics_json(p_module IN VARCHAR2 DEFAULT NULL) RETURN CLOB;
+  FUNCTION metrics_json(p_module IN VARCHAR2 DEFAULT NULL, p_scope IN VARCHAR2 DEFAULT NULL) RETURN CLOB;
   FUNCTION metric_name(p_metric IN VARCHAR2) RETURN VARCHAR2;
   FUNCTION is_allowed(p_metric IN VARCHAR2) RETURN VARCHAR2;
   -- قيمة المؤشر لفترة (رصيد لحظي لمؤشرات الأرصدة)
-  FUNCTION kpi(p_metric IN VARCHAR2, p_from IN DATE, p_to IN DATE, p_branch IN NUMBER DEFAULT NULL) RETURN NUMBER;
+  FUNCTION kpi(p_metric IN VARCHAR2, p_from IN DATE, p_to IN DATE, p_branch IN NUMBER DEFAULT NULL, p_scope IN VARCHAR2 DEFAULT NULL) RETURN NUMBER;
   -- {metric, name, value, previous, changePct, unit, from, to}
-  FUNCTION kpi_json(p_metric IN VARCHAR2, p_from IN DATE, p_to IN DATE, p_branch IN NUMBER DEFAULT NULL) RETURN CLOB;
+  FUNCTION kpi_json(p_metric IN VARCHAR2, p_from IN DATE, p_to IN DATE, p_branch IN NUMBER DEFAULT NULL, p_scope IN VARCHAR2 DEFAULT NULL) RETURN CLOB;
   -- [{p:'2026-01', v:123}] بكل الفترات (الفارغة صفر)؛ p_grain: MONTH, WEEK, DAY
   FUNCTION series_json(p_metric IN VARCHAR2, p_from IN DATE, p_to IN DATE, p_grain IN VARCHAR2 DEFAULT 'MONTH',
-                       p_branch IN NUMBER DEFAULT NULL) RETURN CLOB;
+                       p_branch IN NUMBER DEFAULT NULL, p_scope IN VARCHAR2 DEFAULT NULL) RETURN CLOB;
   -- التنبؤ الشهري: {metric, name, method, history:[{p,v}], forecast:[{p,v,lo,hi}], rmse, trendPct}
   FUNCTION forecast_json(p_metric IN VARCHAR2, p_periods IN NUMBER DEFAULT 3, p_history_months IN NUMBER DEFAULT 24,
-                         p_branch IN NUMBER DEFAULT NULL) RETURN CLOB;
+                         p_branch IN NUMBER DEFAULT NULL, p_scope IN VARCHAR2 DEFAULT NULL) RETURN CLOB;
   -- لوحة موديول: مؤشرات الشهر الحالي مقابل السابق {module, name, kpis:[...]}
-  FUNCTION dashboard_json(p_module IN VARCHAR2, p_branch IN NUMBER DEFAULT NULL) RETURN CLOB;
+  FUNCTION dashboard_json(p_module IN VARCHAR2, p_branch IN NUMBER DEFAULT NULL, p_scope IN VARCHAR2 DEFAULT NULL) RETURN CLOB;
   -- أكبر الانحرافات في آخر شهر مكتمل لكل المؤشرات المسموحة: [{metric, name, value, mean, z, direction}]
-  FUNCTION anomalies_json(p_months IN NUMBER DEFAULT 12, p_z IN NUMBER DEFAULT 2) RETURN CLOB;
+  FUNCTION anomalies_json(p_months IN NUMBER DEFAULT 12, p_z IN NUMBER DEFAULT 2, p_scope IN VARCHAR2 DEFAULT NULL) RETURN CLOB;
   -- شاشة التحليلات: لكل موديول مسموح من القائمة (FIN,SAL...) مؤشرات الشهر الحالي مع سلسلة 12 شهراً مصغرة، والفروع للمرشح
   --   {"asOf","branches":[{id,name}],"modules":[{code,name,kpis:[{metric,name,unit,kind,value,previous,changePct,spark:[..]}]}]}
-  FUNCTION view_json(p_modules IN VARCHAR2, p_branch IN NUMBER DEFAULT NULL) RETURN CLOB;
+  FUNCTION view_json(p_modules IN VARCHAR2, p_branch IN NUMBER DEFAULT NULL, p_scope IN VARCHAR2 DEFAULT NULL) RETURN CLOB;
   -- رسم مؤشر: شهري مع التنبؤ، أو أسبوعي/يومي بلا تنبؤ {metric,name,unit,grain,history:[{p,v}],forecast:[...]}
   FUNCTION chart_json(p_metric IN VARCHAR2, p_grain IN VARCHAR2 DEFAULT 'MONTH', p_periods IN NUMBER DEFAULT 3,
-                      p_branch IN NUMBER DEFAULT NULL) RETURN CLOB;
+                      p_branch IN NUMBER DEFAULT NULL, p_scope IN VARCHAR2 DEFAULT NULL) RETURN CLOB;
+  -- المجموعة (الشركة القابضة): p_scope = 'GROUP' يجمع كل الشركات التي يصلها المستخدم وله فيها صلاحية المؤشر
+  --   (المدير العام ومسؤول المؤسسة: كل الشركات والفروع)؛ الافتراضي الشركة الحالية
+  FUNCTION can_group RETURN VARCHAR2;
+  -- توزيع مؤشر على شركات المجموعة لفترة: [{id,name,currency,value,sharePct}]
+  FUNCTION companies_json(p_metric IN VARCHAR2, p_from IN DATE, p_to IN DATE) RETURN CLOB;
   -- الحساب الإحصائي (عام لاختباره منفرداً): السلسلة مفصولة بفواصل ← JSON التنبؤ
   FUNCTION forecast_values(p_values IN VARCHAR2, p_periods IN NUMBER, p_season IN NUMBER DEFAULT 12) RETURN CLOB;
 END NOONA_ANL_PKG;
@@ -49,6 +54,9 @@ CREATE OR REPLACE PACKAGE BODY NOONA_ANL_PKG AS
   TYPE t_defs IS TABLE OF t_def INDEX BY PLS_INTEGER;
   TYPE t_nums IS TABLE OF NUMBER INDEX BY PLS_INTEGER;
   g_defs t_defs;
+  TYPE t_cos IS TABLE OF SYS.ODCINUMBERLIST INDEX BY VARCHAR2(100);
+  g_scope VARCHAR2(10) := 'COMPANY';
+  g_cos   t_cos;      -- شركات المجموعة المسموحة لكل صلاحية (يصفر مع كل طلب)
 
   FUNCTION company RETURN NUMBER IS BEGIN RETURN TO_NUMBER(SYS_CONTEXT('NOONA_CTX', 'COMPANY_ID')); END company;
   FUNCTION jt(p VARCHAR2) RETURN VARCHAR2 IS BEGIN RETURN NOONA_CORE_PKG.json_text(p); END jt;
@@ -61,7 +69,7 @@ CREATE OR REPLACE PACKAGE BODY NOONA_ANL_PKG AS
   BEGIN
     RETURN CASE p WHEN 'FIN' THEN 'المالية' WHEN 'SAL' THEN 'المبيعات ونقاط البيع' WHEN 'SCM' THEN 'المشتريات والمخزون'
                   WHEN 'HR' THEN 'الموارد البشرية والرواتب' WHEN 'MFG' THEN 'التصنيع' WHEN 'HIS' THEN 'المستشفيات'
-                  WHEN 'AUT' THEN 'خدمة السيارات' WHEN 'HSP' THEN 'الضيافة والفنادق' WHEN 'RE' THEN 'العقارات' WHEN 'RST' THEN 'المطاعم'
+                  WHEN 'AUT' THEN 'خدمة السيارات' WHEN 'TRN' THEN 'النقل والشحن' WHEN 'HSP' THEN 'الضيافة والفنادق' WHEN 'RE' THEN 'العقارات' WHEN 'RST' THEN 'المطاعم'
                   ELSE p END;
   END module_name;
 
@@ -137,6 +145,18 @@ CREATE OR REPLACE PACKAGE BODY NOONA_ANL_PKG AS
         ' re_sale_contract c WHERE c.company_id = :co AND c.status_code NOT IN (''DRAFT'', ''CANCELLED'', ''TERMINATED'')');
     def('RST_SALES', 'مبيعات المطاعم', 'RST', 'AMOUNT', 'FLOW', 'RST_ORDER.VIEW', 'CAST(o.closed_at AS DATE)', 'SUM(o.total_amount)',
         ' rst_order o WHERE o.company_id = :co AND o.status_code IN (''PAID'', ''CHARGED'')', 'o.branch_id');
+    -- النقل والشحن
+    def('TRN_REVENUE', 'إيرادات الترحيل', 'TRN', 'AMOUNT', 'FLOW', 'TRN_ORDER.VIEW', 'CAST(o.delivered_at AS DATE)', 'SUM(o.total_amount)',
+        ' trn_order o WHERE o.company_id = :co AND o.status_code IN (''DELIVERED'', ''INVOICED'')', 'o.branch_id');
+    def('TRN_TONNAGE', 'الأطنان المنقولة', 'TRN', 'QTY', 'FLOW', 'TRN_ORDER.VIEW', 'CAST(o.delivered_at AS DATE)',
+        'SUM(o.weight_kg * NVL(o.delivered_qty, o.quantity) / NULLIF(o.quantity, 0) / 1000)',
+        ' trn_order o WHERE o.company_id = :co AND o.status_code IN (''DELIVERED'', ''INVOICED'')', 'o.branch_id');
+    def('TRN_TRIPS', 'الرحلات المكتملة', 'TRN', 'COUNT', 'FLOW', 'TRN_TRIP.VIEW', 'CAST(t.actual_arrival AS DATE)', 'COUNT(*)',
+        ' trn_trip t WHERE t.company_id = :co AND t.status_code = ''COMPLETED''', 't.branch_id');
+    def('TRN_DISTANCE', 'الكيلومترات المقطوعة', 'TRN', 'QTY', 'FLOW', 'TRN_TRIP.VIEW', 'CAST(t.actual_arrival AS DATE)', 'SUM(t.actual_distance_km)',
+        ' trn_trip t WHERE t.company_id = :co AND t.status_code = ''COMPLETED''', 't.branch_id');
+    def('TRN_INCIDENTS', 'الأعطال والبلاغات', 'TRN', 'COUNT', 'FLOW', 'TRN_INCIDENT.VIEW', 'CAST(i.reported_at AS DATE)', 'COUNT(*)',
+        ' trn_incident i WHERE i.company_id = :co');
   END load_defs;
 
   FUNCTION find(p_metric VARCHAR2) RETURN t_def IS
@@ -150,11 +170,49 @@ CREATE OR REPLACE PACKAGE BODY NOONA_ANL_PKG AS
     RETURN l;
   END find;
 
+  PROCEDURE scope(p VARCHAR2) IS
+  BEGIN
+    g_scope := CASE WHEN UPPER(p) = 'GROUP' THEN 'GROUP' ELSE 'COMPANY' END;
+    g_cos.DELETE;
+  END scope;
+
+  -- الشركات التي يجمع منها المؤشر: الحالية، أو في المجموعة كل شركة نشطة يصلها المستخدم وله فيها صلاحية المؤشر
+  FUNCTION cos(d t_def) RETURN SYS.ODCINUMBERLIST IS
+    l SYS.ODCINUMBERLIST := SYS.ODCINUMBERLIST();
+  BEGIN
+    IF g_scope <> 'GROUP' THEN RETURN SYS.ODCINUMBERLIST(company); END IF;
+    IF g_cos.EXISTS(d.perm) THEN RETURN g_cos(d.perm); END IF;
+    FOR c IN (SELECT id FROM org_company WHERE tenant_id = TO_NUMBER(SYS_CONTEXT('NOONA_CTX', 'TENANT_ID'))
+                 AND (status_code = 'ACTIVE' OR id = company) ORDER BY id) LOOP
+      IF NOONA_SECURITY_PKG.can_access_company(c.id) = 'Y' AND NOONA_SECURITY_PKG.has_permission(d.perm, c.id) = 'Y' THEN
+        l.EXTEND; l(l.COUNT) := c.id;
+      END IF;
+    END LOOP;
+    g_cos(d.perm) := l;
+    RETURN l;
+  END cos;
+
+  FUNCTION src(d t_def) RETURN VARCHAR2 IS
+  BEGIN
+    RETURN REPLACE(d.src, '= :co', 'IN (SELECT column_value FROM TABLE(:co))');
+  END src;
+
   FUNCTION allowed(d t_def) RETURN BOOLEAN IS
   BEGIN
+    IF g_scope = 'GROUP' THEN RETURN cos(d).COUNT > 0; END IF;
     RETURN NOONA_SECURITY_PKG.has_permission(d.perm, company) = 'Y';
   EXCEPTION WHEN OTHERS THEN RETURN FALSE;
   END allowed;
+
+  FUNCTION can_group RETURN VARCHAR2 IS
+    l_n NUMBER := 0;
+  BEGIN
+    FOR c IN (SELECT id FROM org_company WHERE tenant_id = TO_NUMBER(SYS_CONTEXT('NOONA_CTX', 'TENANT_ID')) AND status_code = 'ACTIVE') LOOP
+      IF NOONA_SECURITY_PKG.can_access_company(c.id) = 'Y' THEN l_n := l_n + 1; END IF;
+      EXIT WHEN l_n > 1;
+    END LOOP;
+    RETURN CASE WHEN l_n > 1 THEN 'Y' ELSE 'N' END;
+  END can_group;
 
   FUNCTION is_allowed(p_metric IN VARCHAR2) RETURN VARCHAR2 IS
   BEGIN
@@ -169,10 +227,11 @@ CREATE OR REPLACE PACKAGE BODY NOONA_ANL_PKG AS
 
   FUNCTION metric_name(p_metric IN VARCHAR2) RETURN VARCHAR2 IS BEGIN RETURN find(p_metric).name; END metric_name;
 
-  FUNCTION metrics_json(p_module IN VARCHAR2 DEFAULT NULL) RETURN CLOB IS
+  FUNCTION metrics_json(p_module IN VARCHAR2 DEFAULT NULL, p_scope IN VARCHAR2 DEFAULT NULL) RETURN CLOB IS
     l CLOB := '[';
     l_first BOOLEAN := TRUE;
   BEGIN
+    scope(p_scope);
     load_defs;
     FOR i IN 1 .. g_defs.COUNT LOOP
       IF (p_module IS NULL OR g_defs(i).module = UPPER(p_module)) AND allowed(g_defs(i)) THEN
@@ -189,30 +248,36 @@ CREATE OR REPLACE PACKAGE BODY NOONA_ANL_PKG AS
   FUNCTION where_period(d t_def, p_branch NUMBER) RETURN VARCHAR2 IS
   BEGIN
     RETURN CASE WHEN d.kind = 'BALANCE' THEN ' AND ' || d.dt || ' <= :t' ELSE ' AND ' || d.dt || ' BETWEEN :f AND :t' END
-        || CASE WHEN p_branch IS NOT NULL AND d.br IS NOT NULL THEN ' AND ' || d.br || ' = ' || TO_CHAR(TRUNC(p_branch)) END;
+        || CASE WHEN g_scope = 'COMPANY' AND p_branch IS NOT NULL AND d.br IS NOT NULL THEN ' AND ' || d.br || ' = ' || TO_CHAR(TRUNC(p_branch)) END;
   END where_period;
 
-  FUNCTION kpi(p_metric IN VARCHAR2, p_from IN DATE, p_to IN DATE, p_branch IN NUMBER DEFAULT NULL) RETURN NUMBER IS
-    d t_def := find(p_metric);
+  FUNCTION kpi_val(d t_def, p_cos SYS.ODCINUMBERLIST, p_from DATE, p_to DATE, p_branch NUMBER) RETURN NUMBER IS
     l NUMBER;
   BEGIN
-    guard(d);
     IF d.kind = 'BALANCE' THEN
-      EXECUTE IMMEDIATE 'SELECT ' || d.val || ' FROM' || d.src || where_period(d, p_branch) INTO l USING company, p_to;
+      EXECUTE IMMEDIATE 'SELECT ' || d.val || ' FROM' || src(d) || where_period(d, p_branch) INTO l USING p_cos, p_to;
     ELSE
-      EXECUTE IMMEDIATE 'SELECT ' || d.val || ' FROM' || d.src || where_period(d, p_branch) INTO l USING company, TRUNC(p_from), TRUNC(p_to);
+      EXECUTE IMMEDIATE 'SELECT ' || d.val || ' FROM' || src(d) || where_period(d, p_branch) INTO l USING p_cos, TRUNC(p_from), TRUNC(p_to);
     END IF;
     RETURN ROUND(NVL(l, 0), 2);
+  END kpi_val;
+
+  FUNCTION kpi(p_metric IN VARCHAR2, p_from IN DATE, p_to IN DATE, p_branch IN NUMBER DEFAULT NULL, p_scope IN VARCHAR2 DEFAULT NULL) RETURN NUMBER IS
+    d t_def := find(p_metric);
+  BEGIN
+    scope(p_scope);
+    guard(d);
+    RETURN kpi_val(d, cos(d), p_from, p_to, p_branch);
   END kpi;
 
-  FUNCTION kpi_json(p_metric IN VARCHAR2, p_from IN DATE, p_to IN DATE, p_branch IN NUMBER DEFAULT NULL) RETURN CLOB IS
+  FUNCTION kpi_json(p_metric IN VARCHAR2, p_from IN DATE, p_to IN DATE, p_branch IN NUMBER DEFAULT NULL, p_scope IN VARCHAR2 DEFAULT NULL) RETURN CLOB IS
     d     t_def := find(p_metric);
     l_len NUMBER := TRUNC(p_to) - TRUNC(p_from) + 1;
     l_cur NUMBER;
     l_prv NUMBER;
   BEGIN
-    l_cur := kpi(p_metric, p_from, p_to, p_branch);
-    l_prv := kpi(p_metric, TRUNC(p_from) - l_len, TRUNC(p_from) - 1, p_branch);
+    l_cur := kpi(p_metric, p_from, p_to, p_branch, p_scope);
+    l_prv := kpi(p_metric, TRUNC(p_from) - l_len, TRUNC(p_from) - 1, p_branch, p_scope);
     RETURN '{"metric":"' || d.code || '","name":' || jt(d.name) || ',"unit":"' || d.unit || '","kind":"' || d.kind
         || '","value":' || num(l_cur) || ',"previous":' || num(l_prv)
         || ',"changePct":' || num(CASE WHEN l_prv <> 0 THEN ROUND((l_cur - l_prv) / ABS(l_prv) * 100, 1) END)
@@ -237,17 +302,17 @@ CREATE OR REPLACE PACKAGE BODY NOONA_ANL_PKG AS
     l_g   VARCHAR2(10) := CASE p_grain WHEN 'DAY' THEN 'DD' WHEN 'WEEK' THEN 'IW' ELSE 'MM' END;
   BEGIN
     IF d.kind = 'BALANCE' THEN
-      EXECUTE IMMEDIATE 'SELECT ' || d.val || ' FROM' || d.src || ' AND ' || d.dt || ' < :b'
-        || CASE WHEN p_branch IS NOT NULL AND d.br IS NOT NULL THEN ' AND ' || d.br || ' = ' || TO_CHAR(TRUNC(p_branch)) END
-        INTO l_open USING company, l_b;
+      EXECUTE IMMEDIATE 'SELECT ' || d.val || ' FROM' || src(d) || ' AND ' || d.dt || ' < :b'
+        || CASE WHEN g_scope = 'COMPANY' AND p_branch IS NOT NULL AND d.br IS NOT NULL THEN ' AND ' || d.br || ' = ' || TO_CHAR(TRUNC(p_branch)) END
+        INTO l_open USING cos(d), l_b;
       l_open := NVL(l_open, 0);
     END IF;
-    EXECUTE IMMEDIATE 'SELECT TRUNC(' || d.dt || ', ''' || l_g || '''), ' || d.val || ' FROM' || d.src || ' AND ' || d.dt
+    EXECUTE IMMEDIATE 'SELECT TRUNC(' || d.dt || ', ''' || l_g || '''), ' || d.val || ' FROM' || src(d) || ' AND ' || d.dt
       || ' >= :b AND ' || d.dt || ' < :e'
-      || CASE WHEN p_branch IS NOT NULL AND d.br IS NOT NULL THEN ' AND ' || d.br || ' = ' || TO_CHAR(TRUNC(p_branch)) END
+      || CASE WHEN g_scope = 'COMPANY' AND p_branch IS NOT NULL AND d.br IS NOT NULL THEN ' AND ' || d.br || ' = ' || TO_CHAR(TRUNC(p_branch)) END
       || ' GROUP BY TRUNC(' || d.dt || ', ''' || l_g || ''') ORDER BY 1'
       BULK COLLECT INTO l_ds, l_vs
-      USING company, l_b, CASE p_grain WHEN 'DAY' THEN l_e + 1 WHEN 'WEEK' THEN l_e + 7 ELSE ADD_MONTHS(l_e, 1) END;
+      USING cos(d), l_b, CASE p_grain WHEN 'DAY' THEN l_e + 1 WHEN 'WEEK' THEN l_e + 7 ELSE ADD_MONTHS(l_e, 1) END;
     WHILE l_b <= l_e LOOP
       l_k := l_k + 1;
       o_p(l_k) := TO_NUMBER(TO_CHAR(l_b, 'J'));
@@ -267,12 +332,13 @@ CREATE OR REPLACE PACKAGE BODY NOONA_ANL_PKG AS
   END plabel;
 
   FUNCTION series_json(p_metric IN VARCHAR2, p_from IN DATE, p_to IN DATE, p_grain IN VARCHAR2 DEFAULT 'MONTH',
-                       p_branch IN NUMBER DEFAULT NULL) RETURN CLOB IS
+                       p_branch IN NUMBER DEFAULT NULL, p_scope IN VARCHAR2 DEFAULT NULL) RETURN CLOB IS
     d   t_def := find(p_metric);
     l_p t_nums; l_v t_nums;
     l   CLOB := '[';
     l_g VARCHAR2(10) := NVL(UPPER(p_grain), 'MONTH');
   BEGIN
+    scope(p_scope);
     guard(d);
     NOONA_CORE_PKG.assert(l_g IN ('DAY', 'WEEK', 'MONTH'), 'NOONA-ANL-004', 'الفترة يوم أو أسبوع أو شهر', 'Grain must be DAY, WEEK or MONTH');
     NOONA_CORE_PKG.assert(p_to >= p_from AND p_to - p_from <= 3700, 'NOONA-ANL-005', 'المدى بين يوم وعشر سنوات', 'Range 1 day to 10 years');
@@ -388,13 +454,14 @@ CREATE OR REPLACE PACKAGE BODY NOONA_ANL_PKG AS
   END forecast_values;
 
   FUNCTION forecast_json(p_metric IN VARCHAR2, p_periods IN NUMBER DEFAULT 3, p_history_months IN NUMBER DEFAULT 24,
-                         p_branch IN NUMBER DEFAULT NULL) RETURN CLOB IS
+                         p_branch IN NUMBER DEFAULT NULL, p_scope IN VARCHAR2 DEFAULT NULL) RETURN CLOB IS
     d    t_def := find(p_metric);
     l_p  t_nums; l_v t_nums;
     l_to DATE := TRUNC(SYSDATE, 'MM') - 1;      -- آخر شهر مكتمل
     l_h  PLS_INTEGER := LEAST(GREATEST(NVL(p_periods, 3), 1), 24);
     l_m  PLS_INTEGER := LEAST(GREATEST(NVL(p_history_months, 24), 3), 120);
   BEGIN
+    scope(p_scope);
     guard(d);
     series(d, ADD_MONTHS(TRUNC(l_to, 'MM'), 1 - l_m), l_to, 'MONTH', p_branch, l_p, l_v);
     RETURN '{"metric":"' || d.code || '","name":' || jt(d.name) || ',"unit":"' || d.unit || '",'
@@ -402,28 +469,30 @@ CREATE OR REPLACE PACKAGE BODY NOONA_ANL_PKG AS
   END forecast_json;
 
   -- ---------------------------------------------------------------- اللوحات والتنبيهات
-  FUNCTION dashboard_json(p_module IN VARCHAR2, p_branch IN NUMBER DEFAULT NULL) RETURN CLOB IS
+  FUNCTION dashboard_json(p_module IN VARCHAR2, p_branch IN NUMBER DEFAULT NULL, p_scope IN VARCHAR2 DEFAULT NULL) RETURN CLOB IS
     l CLOB := '[';
     l_first BOOLEAN := TRUE;
     l_from DATE := TRUNC(SYSDATE, 'MM');
   BEGIN
+    scope(p_scope);
     load_defs;
     FOR i IN 1 .. g_defs.COUNT LOOP
       IF g_defs(i).module = UPPER(p_module) AND allowed(g_defs(i)) THEN
-        l := l || CASE WHEN NOT l_first THEN ',' END || kpi_json(g_defs(i).code, l_from, TRUNC(SYSDATE), p_branch);
+        l := l || CASE WHEN NOT l_first THEN ',' END || kpi_json(g_defs(i).code, l_from, TRUNC(SYSDATE), p_branch, p_scope);
         l_first := FALSE;
       END IF;
     END LOOP;
     RETURN '{"module":"' || UPPER(p_module) || '","name":' || jt(module_name(UPPER(p_module))) || ',"kpis":' || l || ']}';
   END dashboard_json;
 
-  FUNCTION anomalies_json(p_months IN NUMBER DEFAULT 12, p_z IN NUMBER DEFAULT 2) RETURN CLOB IS
+  FUNCTION anomalies_json(p_months IN NUMBER DEFAULT 12, p_z IN NUMBER DEFAULT 2, p_scope IN VARCHAR2 DEFAULT NULL) RETURN CLOB IS
     l CLOB := '[';
     l_first BOOLEAN := TRUE;
     l_p t_nums; l_v t_nums;
     l_to DATE := TRUNC(SYSDATE, 'MM') - 1;
     l_n PLS_INTEGER; l_mean NUMBER; l_sd NUMBER; l_z NUMBER;
   BEGIN
+    scope(p_scope);
     load_defs;
     FOR i IN 1 .. g_defs.COUNT LOOP
       IF g_defs(i).kind = 'FLOW' AND allowed(g_defs(i)) THEN
@@ -448,19 +517,20 @@ CREATE OR REPLACE PACKAGE BODY NOONA_ANL_PKG AS
   END anomalies_json;
 
   -- ---------------------------------------------------------------- الشاشات
-  FUNCTION view_json(p_modules IN VARCHAR2, p_branch IN NUMBER DEFAULT NULL) RETURN CLOB IS
+  FUNCTION view_json(p_modules IN VARCHAR2, p_branch IN NUMBER DEFAULT NULL, p_scope IN VARCHAR2 DEFAULT NULL) RETURN CLOB IS
     l       CLOB;
     l_mods  CLOB;
     l_kpis  CLOB;
     l_sp    VARCHAR2(4000);
     l_p     t_nums; l_v t_nums;
     l_to    DATE := TRUNC(SYSDATE);
-    l_mlist VARCHAR2(400) := ',' || REPLACE(UPPER(NVL(p_modules, 'FIN,SAL,SCM,HR,MFG,HIS,AUT,HSP,RE,RST')), ' ', '') || ',';
+    l_mlist VARCHAR2(400) := ',' || REPLACE(UPPER(NVL(p_modules, 'FIN,SAL,SCM,HR,MFG,HIS,AUT,TRN,HSP,RE,RST')), ' ', '') || ',';
     l_first BOOLEAN := TRUE;
     l_kf    BOOLEAN;
     l_n     PLS_INTEGER := 0;
   BEGIN
     NOONA_CORE_PKG.assert(company IS NOT NULL, 'NOONA-ANL-002', 'اختر الشركة أولاً', 'No company context');
+    scope(p_scope);
     load_defs;
     FOR m IN (SELECT REGEXP_SUBSTR(l_mlist, '[^,]+', 1, LEVEL) code, LEVEL o FROM dual
                CONNECT BY REGEXP_SUBSTR(l_mlist, '[^,]+', 1, LEVEL) IS NOT NULL ORDER BY 2) LOOP
@@ -472,7 +542,7 @@ CREATE OR REPLACE PACKAGE BODY NOONA_ANL_PKG AS
           FOR k IN 1 .. l_v.COUNT LOOP l_sp := l_sp || CASE WHEN k > 1 THEN ',' END || num(ROUND(l_v(k), 2)); END LOOP;
           l_p.DELETE; l_v.DELETE;
           l_kpis := l_kpis || CASE WHEN NOT l_kf THEN ',' END
-                 || RTRIM(kpi_json(g_defs(i).code, TRUNC(l_to, 'MM'), l_to, p_branch), '}') || ',"spark":[' || l_sp || ']}';
+                 || RTRIM(kpi_json(g_defs(i).code, TRUNC(l_to, 'MM'), l_to, p_branch, g_scope), '}') || ',"spark":[' || l_sp || ']}';
           l_kf := FALSE; l_n := l_n + 1;
         END IF;
       END LOOP;
@@ -483,9 +553,21 @@ CREATE OR REPLACE PACKAGE BODY NOONA_ANL_PKG AS
       END IF;
     END LOOP;
     l := '{"asOf":"' || TO_CHAR(l_to, 'YYYY-MM-DD') || '","from":"' || TO_CHAR(TRUNC(l_to, 'MM'), 'YYYY-MM-DD') || '","count":' || l_n
-      || ',"branch":' || NVL(TO_CHAR(p_branch), 'null') || ',"branches":[';
+      || ',"scope":"' || g_scope || '","canGroup":"' || can_group || '","companies":[';
     l_first := TRUE;
-    FOR b IN (SELECT id, name_ar FROM org_branch WHERE company_id = company AND status_code = 'ACTIVE' ORDER BY is_head_office DESC, name_ar) LOOP
+    IF g_scope = 'GROUP' THEN
+      FOR c IN (SELECT id, NVL(trade_name_ar, legal_name_ar) nm, functional_currency cur FROM org_company
+                 WHERE tenant_id = TO_NUMBER(SYS_CONTEXT('NOONA_CTX', 'TENANT_ID')) AND (status_code = 'ACTIVE' OR id = company) ORDER BY id) LOOP
+        IF NOONA_SECURITY_PKG.can_access_company(c.id) = 'Y' THEN
+          l := l || CASE WHEN NOT l_first THEN ',' END || '{"id":' || c.id || ',"name":' || jt(c.nm) || ',"currency":"' || c.cur || '"}';
+          l_first := FALSE;
+        END IF;
+      END LOOP;
+    END IF;
+    l := l || '],"branch":' || CASE WHEN g_scope = 'GROUP' THEN 'null' ELSE NVL(TO_CHAR(p_branch), 'null') END || ',"branches":[';
+    l_first := TRUE;
+    FOR b IN (SELECT id, name_ar FROM org_branch WHERE company_id = company AND status_code = 'ACTIVE' AND g_scope = 'COMPANY'
+               ORDER BY is_head_office DESC, name_ar) LOOP
       l := l || CASE WHEN NOT l_first THEN ',' END || '{"id":' || b.id || ',"name":' || jt(b.name_ar) || '}';
       l_first := FALSE;
     END LOOP;
@@ -493,18 +575,44 @@ CREATE OR REPLACE PACKAGE BODY NOONA_ANL_PKG AS
   END view_json;
 
   FUNCTION chart_json(p_metric IN VARCHAR2, p_grain IN VARCHAR2 DEFAULT 'MONTH', p_periods IN NUMBER DEFAULT 3,
-                      p_branch IN NUMBER DEFAULT NULL) RETURN CLOB IS
+                      p_branch IN NUMBER DEFAULT NULL, p_scope IN VARCHAR2 DEFAULT NULL) RETURN CLOB IS
     d   t_def := find(p_metric);
     l_g VARCHAR2(10) := NVL(UPPER(p_grain), 'MONTH');
   BEGIN
     IF l_g = 'MONTH' THEN
-      RETURN RTRIM(forecast_json(p_metric, p_periods, 24, p_branch), '}') || ',"grain":"MONTH","kind":"' || d.kind || '"}';
+      RETURN RTRIM(forecast_json(p_metric, p_periods, 24, p_branch, p_scope), '}') || ',"grain":"MONTH","kind":"' || d.kind
+          || '","scope":"' || g_scope || '"}';
     END IF;
     RETURN '{"metric":"' || d.code || '","name":' || jt(d.name) || ',"unit":"' || d.unit || '","kind":"' || d.kind || '","grain":"' || l_g
         || '","history":' || series_json(p_metric, CASE l_g WHEN 'WEEK' THEN TRUNC(SYSDATE, 'IW') - 7 * 25 ELSE TRUNC(SYSDATE) - 59 END,
-                                         TRUNC(SYSDATE), l_g, p_branch)
-        || ',"forecast":[]}';
+                                         TRUNC(SYSDATE), l_g, p_branch, p_scope)
+        || ',"forecast":[],"scope":"' || g_scope || '"}';
   END chart_json;
+
+  FUNCTION companies_json(p_metric IN VARCHAR2, p_from IN DATE, p_to IN DATE) RETURN CLOB IS
+    d     t_def := find(p_metric);
+    l_cs  SYS.ODCINUMBERLIST;
+    l     CLOB := '[';
+    l_tot NUMBER := 0;
+    TYPE t_v IS TABLE OF NUMBER INDEX BY PLS_INTEGER;
+    l_v   t_v;
+    l_nm  VARCHAR2(400);
+    l_cur VARCHAR2(10);
+  BEGIN
+    scope('GROUP');
+    guard(d);
+    l_cs := cos(d);
+    FOR i IN 1 .. l_cs.COUNT LOOP
+      l_v(i) := kpi_val(d, SYS.ODCINUMBERLIST(l_cs(i)), p_from, p_to, NULL);
+      l_tot := l_tot + ABS(l_v(i));
+    END LOOP;
+    FOR i IN 1 .. l_cs.COUNT LOOP
+      SELECT NVL(trade_name_ar, legal_name_ar), functional_currency INTO l_nm, l_cur FROM org_company WHERE id = l_cs(i);
+      l := l || CASE WHEN i > 1 THEN ',' END || '{"id":' || l_cs(i) || ',"name":' || jt(l_nm) || ',"currency":"' || l_cur
+             || '","value":' || num(l_v(i)) || ',"sharePct":' || num(CASE WHEN l_tot <> 0 THEN ROUND(ABS(l_v(i)) / l_tot * 100, 1) END) || '}';
+    END LOOP;
+    RETURN l || ']';
+  END companies_json;
 END NOONA_ANL_PKG;
 /
 SHOW ERRORS PACKAGE BODY NOONA_ANL_PKG

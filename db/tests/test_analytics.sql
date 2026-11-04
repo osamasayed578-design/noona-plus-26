@@ -173,6 +173,31 @@ BEGIN
   l_j := JSON_OBJECT_T.parse(NOONA_ANL_PKG.chart_json('CASH_BALANCE', 'DAY'));
   ok('chart daily: 60 days', l_j.get_array('history').get_size = 60 AND l_j.get_string('kind') = 'BALANCE');
 
+  -- ---------------------------------------------------------------- المجموعة (الشركة القابضة)
+  DECLARE
+    l_g   NUMBER;
+    l_cs  NUMBER := 0;
+    l_a   JSON_ARRAY_T;
+    l_nco NUMBER;
+  BEGIN
+    SELECT COUNT(*) INTO l_nco FROM org_company WHERE status_code = 'ACTIVE' AND NOONA_SECURITY_PKG.can_access_company(id) = 'Y';
+    l_g := NOONA_ANL_PKG.kpi('REVENUE', l_from, l_to, NULL, 'GROUP');
+    l_a := JSON_ARRAY_T.parse(NOONA_ANL_PKG.companies_json('REVENUE', l_from, l_to));
+    FOR i IN 0 .. l_a.get_size - 1 LOOP l_cs := l_cs + TREAT(l_a.get(i) AS JSON_OBJECT_T).get_number('value'); END LOOP;
+    ok('group breakdown lists every accessible company', l_a.get_size = l_nco, l_a.get_size || ' vs ' || l_nco);
+    ok('group total = sum of companies', ABS(l_g - l_cs) < 0.05, l_g || ' vs ' || l_cs);
+    ok('group includes the current company', l_g = NOONA_ANL_PKG.kpi('REVENUE', l_from, l_to) + (l_cs - NOONA_ANL_PKG.kpi('REVENUE', l_from, l_to)));
+    ok('can_group reflects company count', NOONA_ANL_PKG.can_group = CASE WHEN l_nco > 1 THEN 'Y' ELSE 'N' END);
+    l_j := JSON_OBJECT_T.parse(NOONA_ANL_PKG.view_json('FIN', NULL, 'GROUP'));
+    ok('group view: scope, companies, no branch filter', l_j.get_string('scope') = 'GROUP' AND l_j.get_array('companies').get_size = l_nco
+       AND l_j.get_array('branches').get_size = 0);
+    l_j := JSON_OBJECT_T.parse(NOONA_ANL_PKG.view_json('FIN'));
+    ok('company view stays company scope', l_j.get_string('scope') = 'COMPANY' AND l_j.get_array('companies').get_size = 0);
+    l_j := JSON_OBJECT_T.parse(NOONA_ANL_PKG.chart_json('REVENUE', 'MONTH', 3, NULL, 'GROUP'));
+    ok('group chart with forecast', l_j.get_string('scope') = 'GROUP' AND l_j.get_array('forecast').get_size = 3);
+    ok('group series sums like kpi', JSON_ARRAY_T.parse(NOONA_ANL_PKG.series_json('REVENUE', ADD_MONTHS(l_to, -3), l_to, 'MONTH', NULL, 'GROUP')).get_size = 4);
+  END;
+
   -- ---------------------------------------------------------------- الفرع
   DECLARE
     l_br NUMBER;

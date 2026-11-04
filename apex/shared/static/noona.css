@@ -1636,3 +1636,42 @@ pre.nn-einv-xml { direction: ltr; text-align: left; max-height: 480px; overflow:
   .nn-anl-kpi-val { font-size: 1.25rem; }
   .nn-anl-spark { display: none; }
 }
+.nn-anl-cos { margin-top: 14px; }
+.nn-anl-cos-h { font-size: .95rem; margin: 0 0 8px; color: var(--nn-text); }
+.nn-anl-cos table { width: 100%; border-collapse: collapse; font-size: .88rem; }
+.nn-anl-cos th, .nn-anl-cos td { padding: 6px 10px; border-bottom: 1px solid var(--nn-border); text-align: start; font-variant-numeric: tabular-nums; }
+.nn-anl-bar-c { width: 30%; }
+.nn-anl-bar-c span { display: block; height: 10px; border-radius: 0 4px 4px 0; background: var(--anl-s1); min-width: 2px; }
+
+/* ===================================================================== الطباعة الآمنة
+   هامش الصفحة صفر يمنع المتصفح من طباعة الرأس والتذييل (رابط الصفحة برقم التطبيق والجلسة، رقم الصفحة، العنوان، التاريخ)؛
+   المسافة الداخلية للمحتوى بديلاً عن الهامش وتتكرر في كل صفحة مطبوعة */
+@media print {
+  @page { margin: 0; }
+  html, body { margin: 0 !important; }
+  body { padding: 12mm 12mm 14mm !important; box-decoration-break: clone; -webkit-box-decoration-break: clone; }
+  .nn-ai-fab, .nn-ai-panel, .t-Header, .t-Body-nav, .t-Footer, .t-Body-actions, .a-IRR-toolbar, .t-Breadcrumb-region .t-Button,
+  .nn-anl-bar button, .nn-anl-seg, .apex-rds-container { display: none !important; }
+  .t-Body-main, .t-Body-content, .t-Body-contentInner { margin: 0 !important; padding: 0 !important; }
+}
+
+/* ===================================================================== النقل والشحن */
+.nn-trn-kpis { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 12px; margin-bottom: 8px; }
+.nn-trn-kpi { display: flex; flex-direction: column; gap: 4px; padding: 14px 16px; background: var(--nn-surface); border: 1px solid var(--nn-border); border-radius: var(--nn-radius, 10px); }
+.nn-trn-kpi .fa { color: var(--nn-primary); font-size: 1.1rem; }
+.nn-trn-kpi b { font-size: 1.6rem; color: var(--nn-text); font-variant-numeric: tabular-nums; }
+.nn-trn-kpi small { color: var(--nn-muted); font-size: .85rem; }
+.nn-trn-trips { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 12px; }
+.nn-trn-trip { display: flex; flex-direction: column; gap: 6px; padding: 14px 16px; background: var(--nn-surface); border: 1px solid var(--nn-border);
+  border-inline-start: 4px solid var(--nn-primary); border-radius: var(--nn-radius, 10px); color: var(--nn-text); text-decoration: none; }
+.nn-trn-trip:hover { box-shadow: 0 4px 14px rgba(16, 24, 40, .08); text-decoration: none; color: var(--nn-text); }
+.nn-trn-trip.is-alert { border-inline-start-color: #c42b1c; }
+.nn-trn-trip-h { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.nn-trn-route { font-weight: 700; font-size: 1.02rem; }
+.nn-trn-meta, .nn-trn-eta { color: var(--nn-muted); font-size: .86rem; }
+.nn-trn-eta b { color: var(--nn-text); }
+.nn-trn-head { display: flex; flex-direction: column; gap: 10px; }
+.nn-trn-facts { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 10px; margin: 6px 0 0; }
+.nn-trn-facts > div { padding: 10px 12px; border: 1px solid var(--nn-border); border-radius: 8px; background: var(--nn-surface); }
+.nn-trn-facts dt { color: var(--nn-muted); font-size: .8rem; margin-bottom: 3px; }
+.nn-trn-facts dd { margin: 0; font-weight: 600; font-variant-numeric: tabular-nums; }
