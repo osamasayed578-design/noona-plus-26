@@ -178,7 +178,7 @@ wwv_flow_imp_page.create_page_plug(
 ,p_plug_template=>4072358936313175081
 ,p_plug_display_sequence=>11
 ,p_plug_display_condition_type=>'EXPRESSION'
-,p_plug_display_when_condition=>'noona_his_pkg.is_open(:P31_ID) = ''Y'' and exists (select 1 from sal_bundle where company_id = noona_prc_pkg.company and status_code = ''ACTIVE'')'
+,p_plug_display_when_condition=>'noona_his_pkg.is_open(:P31_ID) = ''Y'' and noona_prc_pkg.has_bundles = ''Y'''
 ,p_plug_display_when_cond2=>'PLSQL'
 ,p_attributes=>wwv_flow_t_plugin_attributes(wwv_flow_t_varchar2(
   'expand_shortcuts', 'N',

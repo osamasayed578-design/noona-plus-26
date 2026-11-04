@@ -21,6 +21,7 @@ const APPS = [
   ['noona_pos', 'المبيعات ونقاط البيع', 'ADMIN'], ['noona_mfg', 'التصنيع', 'ADMIN'], ['noona_hr', 'الموارد البشرية والرواتب', 'ADMIN'],
   ['noona_prj', 'العقارات والضيافة والمشروعات', 'ADMIN'], ['noona_his', 'المستشفيات والمراكز الطبية', 'ADMIN'],
   ['noona_bi', 'مركز التقارير', 'ADMIN'], ['noona_auto', 'مراكز خدمة السيارات', 'ADMIN'],
+  ['noona_trn', 'النقل والشحن', 'ADMIN'],
 ].filter((a) => !ONLY.length || ONLY.includes(a[0]));
 const PWD = { ADMIN: process.env.NOONA_PWD_ADMIN, PLATFORM: process.env.NOONA_PWD_PLATFORM };
 // أزرار لا تضغط: تغير بيانات لا رجعة فيها أو تخرج من الجلسة

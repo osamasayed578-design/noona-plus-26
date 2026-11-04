@@ -270,7 +270,7 @@ wwv_flow_imp_page.create_page_process(
 ,p_process_clob_language=>'PLSQL'
 ,p_error_display_location=>'INLINE_IN_NOTIFICATION'
 ,p_process_when_button_id=>wwv_flow_imp.id(91820275000000716)
-,p_process_success_message=>'Parameter saved'
+,p_process_success_message=>'تم حفظ مكون التحليل'
 ,p_internal_uid=>91820275000000719
 );
 wwv_flow_imp_page.create_page_plug(
@@ -528,7 +528,7 @@ wwv_flow_imp_page.create_page_process(
 ,p_process_clob_language=>'PLSQL'
 ,p_error_display_location=>'INLINE_IN_NOTIFICATION'
 ,p_process_when_button_id=>wwv_flow_imp.id(91820275000000739)
-,p_process_success_message=>'Template saved'
+,p_process_success_message=>'تم حفظ القالب'
 ,p_internal_uid=>91820275000000740
 );
 wwv_flow_imp_page.create_page_plug(

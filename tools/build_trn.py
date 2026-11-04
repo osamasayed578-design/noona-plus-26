@@ -471,7 +471,7 @@ p = master(50, 'LOCATIONS', 'المدن والمواقع', [
     [('ID', '#', {'hidden': True, 'type': 'NUMBER'}), ('CODE', 'الرمز', {}), ('NAME_AR', 'الاسم', {}), ('LOCATION_TYPE', 'النوع', {}),
      ('CITY_NAME', 'المدينة', {}), ('REGION_NAME', 'المنطقة', {}), ('COUNTRY_CODE', 'الدولة', {}), ('CONTACT_NAME', 'جهة الاتصال', {}), ('PHONE', 'الهاتف', {})],
     [('code', 'CODE', 'T', 'الرمز', 50), ('name', 'NAME', 'T', 'الاسم', 200), ('type', 'TYPE', 'S1', 'النوع', LTYPE), ('city', 'CITY', 'T', 'المدينة', 100),
-     ('region', 'REGION', 'T', 'المنطقة/الولاية', 100), ('country', 'COUNTRY', 'T', 'رمز الدولة (SD, SA...)', 2), ('address', 'ADDR', 'T', 'العنوان', 500),
+     ('region', 'REGION', 'T', 'المنطقة/الولاية', 100), ('country', 'COUNTRY', 'S', 'الدولة', "select name_ar d, country_code r from ref_country where is_active = 'Y' order by nvl(sort_order, 999), name_ar"), ('address', 'ADDR', 'T', 'العنوان', 500),
      ('lat', 'LAT', 'N', 'خط العرض', None), ('lng', 'LNG', 'N', 'خط الطول', None), ('contact', 'CONTACT', 'T', 'جهة الاتصال', 200), ('phone', 'PHONE', 'T', 'الهاتف', 30)],
     'noona_trn_pkg.save_location')
 p.process(5, 'BEFORE_HEADER', 'Load', ['begin', '  for l in (select * from trn_location where id = :P50_ID and company_id = noona_trn_pkg.company) loop',

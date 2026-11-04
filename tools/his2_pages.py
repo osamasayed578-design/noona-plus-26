@@ -258,7 +258,7 @@ def build(app, url, link, scheme, L):
     p.process(10, 'AFTER_SUBMIT', 'Param', ['declare l number;', 'begin',
         '    l := noona_his_care_pkg.set_lab_param(to_number(:P64_SRV), :P64_CODE, nvl(:P64_NAME_AR, :P64_NAME_EN), :P64_UNIT, to_number(:P64_LOW),',
         '         to_number(:P64_HIGH), to_number(:P64_CLOW), to_number(:P64_CHIGH), :P64_GENDER, null, null, :P64_REF, :P64_NAME_EN);',
-        '    :P64_CODE := null; :P64_NAME_EN := null; :P64_NAME_AR := null;', 'end;'], when_button=b_pa, success='Parameter saved')
+        '    :P64_CODE := null; :P64_NAME_EN := null; :P64_NAME_AR := null;', 'end;'], when_button=b_pa, success='تم حفظ مكون التحليل')
     p.ir('المكونات', 15, [
         "select p.id, p.code, p.name_en, p.name_ar, p.unit, decode(p.gender, 'M', 'Male', 'F', 'Female', 'All') as sex, p.ref_low, p.ref_high,",
         "       p.crit_low, p.crit_high, p.ref_text from his_lab_param p where p.service_id = :P64_SRV order by p.sort_order, p.gender"],
@@ -273,7 +273,7 @@ def build(app, url, link, scheme, L):
     b_tp = p.button(ft, 10, 'SAVE_TPL', 'حفظ القالب')
     p.process(20, 'AFTER_SUBMIT', 'Template', ['declare l number;', 'begin',
         '    l := noona_his_care_pkg.save_template(null, :P64_TCODE, :P64_TNAME, null, :P64_TMOD, :P64_TBODY);', 'end;'], when_button=b_tp,
-        success='Template saved')
+        success='تم حفظ القالب')
     p.ir('القوالب', 25, [f"select t.id, t.code, t.name_ar, noona_his_pkg.modality_label(t.modality) as modality, substr(t.body, 1, 200) as body "
                            f"from his_report_template t where t.company_id = {CO} order by t.code"],
          [('ID', '#', {'hidden': True, 'type': 'NUMBER'}), ('CODE', 'الرمز', {}), ('NAME_AR', 'الاسم', {}), ('MODALITY', 'نوع الجهاز', {}), ('BODY', 'النص', {})],

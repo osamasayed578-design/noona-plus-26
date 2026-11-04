@@ -262,18 +262,18 @@ wwv_flow_imp_page.create_page_item(
 ,p_name=>'P50_COUNTRY'
 ,p_item_sequence=>60
 ,p_item_plug_id=>wwv_flow_imp.id(91820290000000362)
-,p_prompt=>'رمز الدولة (SD, SA...)'
-,p_display_as=>'NATIVE_TEXT_FIELD'
-,p_cSize=>30
-,p_cMaxlength=>2
+,p_prompt=>'الدولة'
+,p_display_as=>'NATIVE_SELECT_LIST'
+,p_lov=>'select name_ar d, country_code r from ref_country where is_active = ''Y'' order by nvl(sort_order, 999), name_ar'
+,p_lov_display_null=>'YES'
+,p_lov_null_text=>'- اختر -'
+,p_cHeight=>1
+,p_lov_display_extra=>'NO'
 ,p_begin_on_new_line=>'N'
 ,p_field_template=>1609121967514267634
 ,p_item_template_options=>'#DEFAULT#'
 ,p_attributes=>wwv_flow_t_plugin_attributes(wwv_flow_t_varchar2(
-  'disabled', 'N',
-  'submit_when_enter_pressed', 'N',
-  'subtype', 'TEXT',
-  'trim_spaces', 'BOTH')).to_clob
+  'page_action_on_selection', 'NONE')).to_clob
 );
 wwv_flow_imp_page.create_page_item(
  p_id=>wwv_flow_imp.id(91820290000000370)
