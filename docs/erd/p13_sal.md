@@ -1,6 +1,6 @@
 # ERD — الحزمة 13: المبيعات ونقاط البيع
 
-**Sales & Point of Sale** · الحزمة البرمجية `NOONA_SALES_PKG` · عدد الجداول: **33**
+**Sales & Point of Sale** · الحزمة البرمجية `NOONA_SALES_PKG` · عدد الجداول: **34**
 
 Quotation → Sales Order → Reservation → Delivery → Sales Invoice → Collection → Accounting، مع لقطات السعر والضريبة وسعر الصرف، والمرتجعات بإشعار دائن؛ ونقاط البيع POS بالوردية والدرج والدفع المختلط و Offline Mode مضبوط بمزامنة Idempotent.
 
@@ -79,6 +79,15 @@ erDiagram
     VARCHAR2 NAME_AR
     NUMBER BRANCH_ID FK
     VARCHAR2 STATUS_CODE
+  }
+  SAL_PROMOTION_USE {
+    NUMBER ID PK
+    NUMBER TENANT_ID FK,UK
+    NUMBER COMPANY_ID FK
+    NUMBER PROMOTION_ID FK,UK
+    VARCHAR2 DOC_TYPE UK
+    NUMBER DOC_ID UK
+    NUMBER CUSTOMER_ACCOUNT_ID FK
   }
   SAL_PROMOTION_TARGET {
     NUMBER ID PK
@@ -476,6 +485,7 @@ erDiagram
   AR_CREDIT_OVERRIDE |o--o{ SAL_ORDER : "CREDIT_OVERRIDE_ID"
   AR_CUSTOMER_ACCOUNT |o--o{ POS_SALE : "CUSTOMER_ACCOUNT_ID"
   AR_CUSTOMER_ACCOUNT |o--o{ RST_ORDER : "CUSTOMER_ACCOUNT_ID"
+  AR_CUSTOMER_ACCOUNT |o--o{ SAL_PROMOTION_USE : "CUSTOMER_ACCOUNT_ID"
   AR_CUSTOMER_ACCOUNT ||--o{ SAL_DELIVERY : "CUSTOMER_ACCOUNT_ID"
   AR_CUSTOMER_ACCOUNT ||--o{ SAL_INVOICE : "CUSTOMER_ACCOUNT_ID"
   AR_CUSTOMER_ACCOUNT ||--o{ SAL_ORDER : "CUSTOMER_ACCOUNT_ID"
@@ -573,6 +583,7 @@ erDiagram
   ORG_COMPANY ||--o{ SAL_PRICING_POLICY : "COMPANY_ID"
   ORG_COMPANY ||--o{ SAL_PROMOTION : "COMPANY_ID"
   ORG_COMPANY ||--o{ SAL_PROMOTION_TARGET : "COMPANY_ID"
+  ORG_COMPANY ||--o{ SAL_PROMOTION_USE : "COMPANY_ID"
   ORG_COMPANY ||--o{ SAL_QUOTATION : "COMPANY_ID"
   ORG_COMPANY ||--o{ SAL_QUOTATION_LINE : "COMPANY_ID"
   ORG_COMPANY ||--o{ SAL_RETURN_AUTH : "COMPANY_ID"
@@ -629,6 +640,7 @@ erDiagram
   SAL_PRICE_RUN ||--o{ SAL_PRICE_RUN_LINE : "RUN_ID"
   SAL_PRICING_POLICY |o--o{ SAL_PRICE_RUN_LINE : "POLICY_ID"
   SAL_PROMOTION ||--o{ SAL_PROMOTION_TARGET : "PROMOTION_ID"
+  SAL_PROMOTION ||--o{ SAL_PROMOTION_USE : "PROMOTION_ID"
   SAL_QUOTATION |o--o{ SAL_ORDER : "QUOTATION_ID"
   SAL_QUOTATION ||--o{ SAL_QUOTATION_LINE : "QUOTATION_ID"
   SAL_RETURN_AUTH |o--o{ SAL_INVOICE : "RETURN_AUTH_ID"
@@ -656,6 +668,7 @@ erDiagram
 | `SAL_PRICE_RUN_LINE` | أسطر إعادة التسعير | Repricing Run Lines | C |
 | `SAL_PRICE_HISTORY` | سجل تغيير الأسعار | Price Change History | C |
 | `SAL_PROMOTION` | العروض والتخفيضات | Promotions & Discounts | C |
+| `SAL_PROMOTION_USE` | استخدامات العروض | Promotion Usage | C |
 | `SAL_PROMOTION_TARGET` | أصناف وخدمات العرض | Promotion Targets | C |
 | `SAL_BUNDLE` | الباقات | Bundles & Packages | C |
 | `SAL_BUNDLE_LINE` | مكونات الباقة | Bundle Components | C |
