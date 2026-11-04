@@ -533,5 +533,9 @@ app.nav_item('الموردون', 30, 'fa-users', 34, parent=pu)
 app.nav_item('سداد الموردين', 37, 'fa-money', 35, parent=pu)
 app.nav_item('التقارير', 50, 'fa-bar-chart', 40)
 
+# التحليلات والتنبؤ (NOONA_ANL_PKG + anl.js)
+import anl_pages
+anl_pages.add(app, ['SCM'], TENANT, 11)
+
 app.finalize()
 print('NOONA_SCM built:', len(app.pages), 'pages')

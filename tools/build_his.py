@@ -762,5 +762,9 @@ import prc_pages
 prc_pages.build(app, url, HIS, 90, ('HIS', 'ITEMS'), 'HIS')
 prc_pages.nav(app, 90, 70)
 
+# التحليلات والتنبؤ (NOONA_ANL_PKG + anl.js)
+import anl_pages
+anl_pages.add(app, ['HIS'], HIS, 11)
+
 app.finalize()
 print('NOONA_HIS built:', len(app.pages), 'pages')

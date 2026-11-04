@@ -972,5 +972,9 @@ import prj_pages
 prj_pages.build(app, url, link, PRJ)
 import res_pages
 res_pages.build(app, url, link, get_url)
+# التحليلات والتنبؤ (NOONA_ANL_PKG + anl.js)
+import anl_pages
+anl_pages.add(app, ['HSP', 'RE'], TENANT, 11)
+
 app.finalize()
 print('NOONA_PRJ built:', len(app.pages), 'pages')

@@ -425,5 +425,9 @@ app.nav_item('مراكز العمل', 10, 'fa-building-o', 43, parent=en)
 app.nav_item('إعدادات التكلفة', 60, 'fa-calculator', 44, parent=en)
 app.nav_item('التقارير', 50, 'fa-bar-chart', 50)
 
+# التحليلات والتنبؤ (NOONA_ANL_PKG + anl.js)
+import anl_pages
+anl_pages.add(app, ['MFG'], TENANT, 11)
+
 app.finalize()
 print('NOONA_MFG built:', len(app.pages), 'pages')

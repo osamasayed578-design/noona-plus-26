@@ -672,5 +672,9 @@ app.nav_item('السلف والقروض', 30, 'fa-credit-card', 43, parent=py, s
 app.nav_item('مخالصة نهاية الخدمة', url(50, clear='RP,50'), 'fa-sign-out', 44, parent=py, scheme=PAY)
 app.nav_item('التقارير', 60, 'fa-bar-chart', 50)
 app.nav_item('الإعدادات', 70, 'fa-cog', 60, scheme=PAY)
+# التحليلات والتنبؤ (NOONA_ANL_PKG + anl.js)
+import anl_pages
+anl_pages.add(app, ['HR'], TENANT, 11)
+
 app.finalize()
 print('NOONA_HR built:', len(app.pages), 'pages')

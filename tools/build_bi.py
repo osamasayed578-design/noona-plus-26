@@ -119,6 +119,10 @@ p.process(1, 'ON_DEMAND', 'FAV', FAV)
 p.process(2, 'ON_DEMAND', 'FORGET', FORGET)
 p.onload(JS_FAV + JS_FORGET)
 
+# =============================================================== 5) لوحة الأداء الموحدة: مؤشرات كل الموديولات المسموحة + التنبؤ + القيم غير المعتادة
+import anl_pages
+anl_pages.add(app, [], TENANT, 5, unified=True, page_no=5, title='لوحة الأداء الموحدة', icon='fa-tachometer')
+
 app.nav_item('مركز التقارير', 1, 'fa-bar-chart', 10)
 app.nav_item('تقاريري', 4, 'fa-star', 20)
 

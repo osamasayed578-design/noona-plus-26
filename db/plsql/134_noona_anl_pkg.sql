@@ -31,6 +31,12 @@ CREATE OR REPLACE PACKAGE NOONA_ANL_PKG AUTHID DEFINER AS
   FUNCTION dashboard_json(p_module IN VARCHAR2, p_branch IN NUMBER DEFAULT NULL) RETURN CLOB;
   -- أكبر الانحرافات في آخر شهر مكتمل لكل المؤشرات المسموحة: [{metric, name, value, mean, z, direction}]
   FUNCTION anomalies_json(p_months IN NUMBER DEFAULT 12, p_z IN NUMBER DEFAULT 2) RETURN CLOB;
+  -- شاشة التحليلات: لكل موديول مسموح من القائمة (FIN,SAL...) مؤشرات الشهر الحالي مع سلسلة 12 شهراً مصغرة، والفروع للمرشح
+  --   {"asOf","branches":[{id,name}],"modules":[{code,name,kpis:[{metric,name,unit,kind,value,previous,changePct,spark:[..]}]}]}
+  FUNCTION view_json(p_modules IN VARCHAR2, p_branch IN NUMBER DEFAULT NULL) RETURN CLOB;
+  -- رسم مؤشر: شهري مع التنبؤ، أو أسبوعي/يومي بلا تنبؤ {metric,name,unit,grain,history:[{p,v}],forecast:[...]}
+  FUNCTION chart_json(p_metric IN VARCHAR2, p_grain IN VARCHAR2 DEFAULT 'MONTH', p_periods IN NUMBER DEFAULT 3,
+                      p_branch IN NUMBER DEFAULT NULL) RETURN CLOB;
   -- الحساب الإحصائي (عام لاختباره منفرداً): السلسلة مفصولة بفواصل ← JSON التنبؤ
   FUNCTION forecast_values(p_values IN VARCHAR2, p_periods IN NUMBER, p_season IN NUMBER DEFAULT 12) RETURN CLOB;
 END NOONA_ANL_PKG;
@@ -440,6 +446,65 @@ CREATE OR REPLACE PACKAGE BODY NOONA_ANL_PKG AS
     END LOOP;
     RETURN l || ']';
   END anomalies_json;
+
+  -- ---------------------------------------------------------------- الشاشات
+  FUNCTION view_json(p_modules IN VARCHAR2, p_branch IN NUMBER DEFAULT NULL) RETURN CLOB IS
+    l       CLOB;
+    l_mods  CLOB;
+    l_kpis  CLOB;
+    l_sp    VARCHAR2(4000);
+    l_p     t_nums; l_v t_nums;
+    l_to    DATE := TRUNC(SYSDATE);
+    l_mlist VARCHAR2(400) := ',' || REPLACE(UPPER(NVL(p_modules, 'FIN,SAL,SCM,HR,MFG,HIS,AUT,HSP,RE,RST')), ' ', '') || ',';
+    l_first BOOLEAN := TRUE;
+    l_kf    BOOLEAN;
+    l_n     PLS_INTEGER := 0;
+  BEGIN
+    NOONA_CORE_PKG.assert(company IS NOT NULL, 'NOONA-ANL-002', 'اختر الشركة أولاً', 'No company context');
+    load_defs;
+    FOR m IN (SELECT REGEXP_SUBSTR(l_mlist, '[^,]+', 1, LEVEL) code, LEVEL o FROM dual
+               CONNECT BY REGEXP_SUBSTR(l_mlist, '[^,]+', 1, LEVEL) IS NOT NULL ORDER BY 2) LOOP
+      l_kpis := NULL; l_kf := TRUE;
+      FOR i IN 1 .. g_defs.COUNT LOOP
+        IF g_defs(i).module = m.code AND allowed(g_defs(i)) THEN
+          series(g_defs(i), ADD_MONTHS(TRUNC(l_to, 'MM'), -11), l_to, 'MONTH', p_branch, l_p, l_v);
+          l_sp := NULL;
+          FOR k IN 1 .. l_v.COUNT LOOP l_sp := l_sp || CASE WHEN k > 1 THEN ',' END || num(ROUND(l_v(k), 2)); END LOOP;
+          l_p.DELETE; l_v.DELETE;
+          l_kpis := l_kpis || CASE WHEN NOT l_kf THEN ',' END
+                 || RTRIM(kpi_json(g_defs(i).code, TRUNC(l_to, 'MM'), l_to, p_branch), '}') || ',"spark":[' || l_sp || ']}';
+          l_kf := FALSE; l_n := l_n + 1;
+        END IF;
+      END LOOP;
+      IF l_kpis IS NOT NULL THEN
+        l_mods := l_mods || CASE WHEN NOT l_first THEN ',' END || '{"code":"' || m.code || '","name":' || jt(module_name(m.code))
+               || ',"kpis":[' || l_kpis || ']}';
+        l_first := FALSE;
+      END IF;
+    END LOOP;
+    l := '{"asOf":"' || TO_CHAR(l_to, 'YYYY-MM-DD') || '","from":"' || TO_CHAR(TRUNC(l_to, 'MM'), 'YYYY-MM-DD') || '","count":' || l_n
+      || ',"branch":' || NVL(TO_CHAR(p_branch), 'null') || ',"branches":[';
+    l_first := TRUE;
+    FOR b IN (SELECT id, name_ar FROM org_branch WHERE company_id = company AND status_code = 'ACTIVE' ORDER BY is_head_office DESC, name_ar) LOOP
+      l := l || CASE WHEN NOT l_first THEN ',' END || '{"id":' || b.id || ',"name":' || jt(b.name_ar) || '}';
+      l_first := FALSE;
+    END LOOP;
+    RETURN l || '],"modules":[' || l_mods || ']}';
+  END view_json;
+
+  FUNCTION chart_json(p_metric IN VARCHAR2, p_grain IN VARCHAR2 DEFAULT 'MONTH', p_periods IN NUMBER DEFAULT 3,
+                      p_branch IN NUMBER DEFAULT NULL) RETURN CLOB IS
+    d   t_def := find(p_metric);
+    l_g VARCHAR2(10) := NVL(UPPER(p_grain), 'MONTH');
+  BEGIN
+    IF l_g = 'MONTH' THEN
+      RETURN RTRIM(forecast_json(p_metric, p_periods, 24, p_branch), '}') || ',"grain":"MONTH","kind":"' || d.kind || '"}';
+    END IF;
+    RETURN '{"metric":"' || d.code || '","name":' || jt(d.name) || ',"unit":"' || d.unit || '","kind":"' || d.kind || '","grain":"' || l_g
+        || '","history":' || series_json(p_metric, CASE l_g WHEN 'WEEK' THEN TRUNC(SYSDATE, 'IW') - 7 * 25 ELSE TRUNC(SYSDATE) - 59 END,
+                                         TRUNC(SYSDATE), l_g, p_branch)
+        || ',"forecast":[]}';
+  END chart_json;
 END NOONA_ANL_PKG;
 /
 SHOW ERRORS PACKAGE BODY NOONA_ANL_PKG

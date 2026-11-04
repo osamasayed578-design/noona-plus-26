@@ -18,7 +18,15 @@ wwv_flow_imp_shared.create_list(
 ,p_version_scn=>137120771
 );
 wwv_flow_imp_shared.create_list_item(
- p_id=>wwv_flow_imp.id(91820277000000025)
+ p_id=>wwv_flow_imp.id(91820277000000027)
+,p_list_item_display_sequence=>5
+,p_list_item_link_text=>'لوحة الأداء الموحدة'
+,p_list_item_link_target=>'f?p=&APP_ID.:5:&APP_SESSION.::&DEBUG.:5::'
+,p_list_item_icon=>'fa-tachometer'
+,p_list_item_current_type=>'TARGET_PAGE'
+);
+wwv_flow_imp_shared.create_list_item(
+ p_id=>wwv_flow_imp.id(91820277000000028)
 ,p_list_item_display_sequence=>10
 ,p_list_item_link_text=>'مركز التقارير'
 ,p_list_item_link_target=>'f?p=&APP_ID.:1:&APP_SESSION.::&DEBUG.:1::'
@@ -26,7 +34,7 @@ wwv_flow_imp_shared.create_list_item(
 ,p_list_item_current_type=>'TARGET_PAGE'
 );
 wwv_flow_imp_shared.create_list_item(
- p_id=>wwv_flow_imp.id(91820277000000026)
+ p_id=>wwv_flow_imp.id(91820277000000029)
 ,p_list_item_display_sequence=>20
 ,p_list_item_link_text=>'تقاريري'
 ,p_list_item_link_target=>'f?p=&APP_ID.:4:&APP_SESSION.::&DEBUG.:4::'

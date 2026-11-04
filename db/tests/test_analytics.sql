@@ -154,6 +154,25 @@ BEGIN
   l_a := JSON_ARRAY_T.parse(NOONA_ANL_PKG.anomalies_json(12, 2));
   ok('anomalies returns a valid list', l_a.get_size >= 0);
 
+  -- ---------------------------------------------------------------- الشاشات
+  l_j := JSON_OBJECT_T.parse(NOONA_ANL_PKG.view_json('FIN,SAL'));
+  ok('view: two modules in requested order', l_j.get_array('modules').get_size = 2
+     AND TREAT(l_j.get_array('modules').get(0) AS JSON_OBJECT_T).get_string('code') = 'FIN');
+  l_o := TREAT(TREAT(l_j.get_array('modules').get(0) AS JSON_OBJECT_T).get_array('kpis').get(0) AS JSON_OBJECT_T);
+  ok('view: kpi carries 12-month spark', l_o.get_array('spark').get_size = 12 AND l_o.has('changePct'));
+  ok('view: count = 9 kpis', l_j.get_number('count') = 9, l_j.get_number('count'));
+  ok('view: branches listed', l_j.get_array('branches').get_size >= 1);
+  l_j := JSON_OBJECT_T.parse(NOONA_ANL_PKG.view_json(NULL));
+  ok('unified view: all allowed modules', l_j.get_array('modules').get_size >= 8, l_j.get_array('modules').get_size);
+  l_j := JSON_OBJECT_T.parse(NOONA_ANL_PKG.chart_json('REVENUE', 'MONTH', 6));
+  ok('chart monthly: 24 history + 6 forecast', l_j.get_array('history').get_size = 24 AND l_j.get_array('forecast').get_size = 6
+     AND l_j.get_string('grain') = 'MONTH');
+  l_j := JSON_OBJECT_T.parse(NOONA_ANL_PKG.chart_json('POS_SALES', 'WEEK'));
+  ok('chart weekly: 26 weeks, no forecast', l_j.get_array('history').get_size = 26 AND l_j.get_array('forecast').get_size = 0,
+     l_j.get_array('history').get_size);
+  l_j := JSON_OBJECT_T.parse(NOONA_ANL_PKG.chart_json('CASH_BALANCE', 'DAY'));
+  ok('chart daily: 60 days', l_j.get_array('history').get_size = 60 AND l_j.get_string('kind') = 'BALANCE');
+
   -- ---------------------------------------------------------------- الفرع
   DECLARE
     l_br NUMBER;

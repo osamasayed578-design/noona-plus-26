@@ -399,5 +399,9 @@ app.nav_item('إعداد نقاط البيع', 40, 'fa-cogs', 32, parent=po)
 app.nav_item('التقارير', 50, 'fa-bar-chart', 40)
 prc_pages.nav(app, 80, 35)
 
+# التحليلات والتنبؤ (NOONA_ANL_PKG + anl.js)
+import anl_pages
+anl_pages.add(app, ['SAL', 'RST'], TENANT, 11)
+
 app.finalize()
 print('NOONA_POS built:', len(app.pages), 'pages')

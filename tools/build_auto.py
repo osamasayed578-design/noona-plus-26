@@ -629,5 +629,9 @@ import prc_pages
 prc_pages.build(app, url, SETUP, 20, ('AUT', 'ITEMS'), 'AUT')
 prc_pages.nav(app, 20, 75)
 
+# التحليلات والتنبؤ (NOONA_ANL_PKG + anl.js)
+import anl_pages
+anl_pages.add(app, ['AUT'], AUT, 11)
+
 app.finalize()
 print('NOONA_AUTO built:', len(app.pages), 'pages')
