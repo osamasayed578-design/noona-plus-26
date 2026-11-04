@@ -1075,5 +1075,12 @@ def url(page_no, items='', values='', clear=''):
 
 from api_pages import build_admin as api_pages
 api_pages(app, url)
+# نسخة 26 فقط: إعدادات مساعد الذكاء الاصطناعي للمؤسسة (tools/ai_admin_pages.py غير موجود في نسخة 21c)
+try:
+    import ai_admin_pages
+    ai_admin_pages.add(app, ADMIN, 75)
+except ImportError:
+    pass
+
 app.finalize()
 print('NOONA_ADMIN built:', len(app.pages), 'pages')
