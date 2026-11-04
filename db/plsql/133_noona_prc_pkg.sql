@@ -14,6 +14,8 @@ SET DEFINE OFF
 
 CREATE OR REPLACE PACKAGE NOONA_PRC_PKG AUTHID DEFINER AS
   FUNCTION company RETURN NUMBER;
+  -- للشاشات: Y إن وجدت باقة نشطة للشركة (شرط عرض منطقة الباقات)
+  FUNCTION has_bundles RETURN VARCHAR2;
   FUNCTION target_name(p_type IN VARCHAR2, p_id IN NUMBER) RETURN VARCHAR2;
 
   -- ---------------------------------------------------------------- التكلفة
@@ -120,6 +122,13 @@ CREATE OR REPLACE PACKAGE BODY NOONA_PRC_PKG AS
   TYPE t_alloc IS TABLE OF NUMBER INDEX BY PLS_INTEGER;
 
   FUNCTION company RETURN NUMBER IS BEGIN RETURN TO_NUMBER(SYS_CONTEXT('NOONA_CTX', 'COMPANY_ID')); END company;
+
+  FUNCTION has_bundles RETURN VARCHAR2 IS
+    l NUMBER;
+  BEGIN
+    SELECT COUNT(*) INTO l FROM sal_bundle WHERE company_id = company AND status_code = 'ACTIVE' AND ROWNUM = 1;
+    RETURN CASE WHEN l > 0 THEN 'Y' ELSE 'N' END;
+  END has_bundles;
   FUNCTION esc(p VARCHAR2) RETURN VARCHAR2 IS BEGIN RETURN NOONA_UI_PKG.esc(p); END esc;
   FUNCTION jt(p VARCHAR2) RETURN VARCHAR2 IS BEGIN RETURN NOONA_CORE_PKG.json_text(p); END jt;
   FUNCTION fmt(p NUMBER) RETURN VARCHAR2 IS

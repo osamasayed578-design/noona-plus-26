@@ -9,6 +9,13 @@
 """
 import os, re, shutil, zlib
 
+
+def _plsql_expr_ok(expr):
+    """شروط العرض تقيم كتعبير PL/SQL: الاستعلام الفرعي (exists/select) يعمل على APEX 24.2 ويفشل على 26.2
+    (Error processing condition)؛ استخدم دالة في الحزمة بدلاً منه."""
+    if re.search(r'\bselect\b', expr, re.I):
+        raise ValueError('Subquery in a PL/SQL condition (fails on APEX 26.2); use a package function: ' + expr[:120])
+
 # قوالب Universal Theme 42 (ثابتة في كل التطبيقات)
 T_STD = 4072358936313175081       # Region: Standard
 T_IRR = 2100526641005906379       # Region: Interactive Report
@@ -283,6 +290,14 @@ class App:
     # رسائل تشغيل APEX التي لا تُترجم للعربية تلقائياً (تظهر للمستخدم بالإنجليزية): تُعرَّف رسالة تطبيق بنفس الاسم
     RUNTIME_MESSAGES = {
         'LINK': 'فتح',   # رأس عمود رابط فتح السجل في التقارير التفاعلية
+        # عناوين التنبيهات وعدد الأخطاء: بالعربية حتى لو لم تثبت حزمة اللغة العربية لـ APEX على الخادم (تظهر بالإنجليزية في 26.2)
+        'FLOW.SINGLE_VALIDATION_ERROR': 'حدث خطأ واحد',
+        'FLOW.VALIDATION_ERROR': 'حدثت %0 أخطاء',
+        'APEX.ERROR_MESSAGE_HEADING': 'رسالة خطأ',
+        'APEX.SUCCESS_MESSAGE_HEADING': 'رسالة نجاح',
+        'ERROR_MESSAGE': 'رسالة خطأ',
+        'LAYOUT.T_SUCCESS_MSG': 'رسالة نجاح',
+        'LAYOUT.T_ALT_SUCCESS_MSG': 'رسالة نجاح',
     }
 
     def write_messages(self):
@@ -377,6 +392,7 @@ class Page:
     def _cond(condition):
         if not condition:
             return ''
+        _plsql_expr_ok(condition)
         return (f"\n,p_plug_display_condition_type=>'EXPRESSION'\n,p_plug_display_when_condition=>'{q(condition)}'"
                 "\n,p_plug_display_when_cond2=>'PLSQL'")
 
@@ -606,6 +622,7 @@ wwv_flow_imp_page.create_worksheet(
 );
 """)
         if condition:
+            _plsql_expr_ok(condition)
             s += f"\n,p_button_condition=>'{q(condition)}'\n,p_button_condition2=>'PLSQL'\n,p_button_condition_type=>'EXPRESSION'"
         self.add(s + "\n);\n")
         return bid

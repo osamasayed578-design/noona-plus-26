@@ -274,7 +274,7 @@ b_add = p.button(fo, 10, 'ADD', 'إضافة الطلب', hot=True)
 p.process(10, 'AFTER_SUBMIT', 'Add Order', ['declare l number;', 'begin',
     '    l := noona_his_pkg.add_order(:P31_ID, to_number(:P31_SERVICE), nvl(to_number(:P31_QTY), 1), null, :P31_ONOTES);',
     '    :P31_SERVICE := null; :P31_QTY := null; :P31_ONOTES := null;', 'end;'], when_button=b_add, success='أضيف الطلب')
-fb = p.static('باقة خدمات (فحص شامل، متابعة، باقات العروض)', 11, condition=OPEN + " and exists (select 1 from sal_bundle where company_id = noona_prc_pkg.company and status_code = 'ACTIVE')")
+fb = p.static('باقة خدمات (فحص شامل، متابعة، باقات العروض)', 11, condition=OPEN + " and noona_prc_pkg.has_bundles = 'Y'")
 p.select('P31_BUNDLE', fb, 10, 'الباقة', lov_sql=(
     "select name_ar || ' - ' || to_char(noona_prc_pkg.bundle_price(id), 'FM999,990.00') d, id r from sal_bundle "
     "where company_id = noona_prc_pkg.company and status_code = 'ACTIVE' and trunc(sysdate) between effective_from and nvl(effective_to, trunc(sysdate)) "
