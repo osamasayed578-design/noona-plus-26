@@ -1,0 +1,251 @@
+prompt --application/pages/page_00061
+begin
+--   Manifest
+--     PAGE: 00061
+--   Manifest End
+wwv_flow_imp.component_begin (
+ p_version_yyyy_mm_dd=>'2024.11.30'
+,p_release=>'24.2.0'
+,p_default_workspace_id=>17663301221950901
+,p_default_application_id=>147
+,p_default_id_offset=>0
+,p_default_owner=>'NOONA_APP'
+);
+wwv_flow_imp_page.create_page(
+ p_id=>61
+,p_name=>'Trips-Report'
+,p_alias=>'TRIPS-REPORT'
+,p_step_title=>'تقرير الرحلات والالتزام بالمواعيد'
+,p_autocomplete_on_off=>'OFF'
+,p_page_template_options=>'#DEFAULT#'
+,p_required_role=>wwv_flow_imp.id(91820290000000009)
+,p_protection_level=>'C'
+);
+wwv_flow_imp_page.create_page_plug(
+ p_id=>wwv_flow_imp.id(91820290000000476)
+,p_plug_name=>'تقرير الرحلات والالتزام بالمواعيد'
+,p_region_template_options=>'#DEFAULT#'
+,p_component_template_options=>'#DEFAULT#'
+,p_plug_template=>2100526641005906379
+,p_plug_display_sequence=>10
+,p_query_type=>'SQL'
+,p_plug_source=>wwv_flow_string.join(wwv_flow_t_varchar2(
+'select t.doc_no, t.doc_date, v.plate_no, d.full_name driver, f.name_ar || '' ← '' || tl.name_ar route, t.planned_departure, t.actual_departure,',
+'       t.eta, t.actual_arrival, t.delay_minutes, noona_trn_pkg.status_label(noona_trn_pkg.timeliness(t.id)) timeliness,',
+'       round(t.load_kg / 1000, 2) tons, t.actual_distance_km, t.fuel_liters, t.revenue_amount, t.expense_amount, t.revenue_amount - t.expense_amount net_amount,',
+'       noona_trn_pkg.status_label(t.status_code) status',
+'  from trn_trip t join trn_vehicle v on v.id = t.vehicle_id join trn_driver d on d.id = t.driver_id',
+'  join trn_location f on f.id = t.from_location_id join trn_location tl on tl.id = t.to_location_id',
+' where t.company_id = noona_trn_pkg.company and t.status_code <> ''CANCELLED'' order by t.doc_date desc, t.id desc'))
+,p_plug_source_type=>'NATIVE_IR'
+,p_prn_page_header=>'تقرير الرحلات والالتزام بالمواعيد'
+);
+wwv_flow_imp_page.create_worksheet(
+ p_id=>wwv_flow_imp.id(91820290000000477)
+,p_max_row_count=>'1000000'
+,p_no_data_found_message=>'لا توجد بيانات'
+,p_pagination_type=>'ROWS_X_TO_Y'
+,p_pagination_display_pos=>'BOTTOM_RIGHT'
+,p_report_list_mode=>'TABS'
+,p_lazy_loading=>false
+,p_show_detail_link=>'N'
+,p_show_notify=>'N'
+,p_download_formats=>'CSV:HTML:XLSX:PDF'
+,p_enable_mail_download=>'N'
+,p_owner=>'NOONA'
+,p_internal_uid=>91820290000000477
+);
+wwv_flow_imp_page.create_worksheet_column(
+ p_id=>wwv_flow_imp.id(91820290000000479)
+,p_db_column_name=>'DOC_NO'
+,p_display_order=>10
+,p_column_identifier=>'A'
+,p_column_label=>'الرحلة'
+,p_column_type=>'STRING'
+,p_heading_alignment=>'CENTER'
+,p_use_as_row_header=>'N'
+);
+wwv_flow_imp_page.create_worksheet_column(
+ p_id=>wwv_flow_imp.id(91820290000000480)
+,p_db_column_name=>'DOC_DATE'
+,p_display_order=>20
+,p_column_identifier=>'B'
+,p_column_label=>'التاريخ'
+,p_column_type=>'DATE'
+,p_format_mask=>'YYYY-MM-DD'
+,p_heading_alignment=>'CENTER'
+,p_use_as_row_header=>'N'
+);
+wwv_flow_imp_page.create_worksheet_column(
+ p_id=>wwv_flow_imp.id(91820290000000481)
+,p_db_column_name=>'PLATE_NO'
+,p_display_order=>30
+,p_column_identifier=>'C'
+,p_column_label=>'العربة'
+,p_column_type=>'STRING'
+,p_heading_alignment=>'CENTER'
+,p_use_as_row_header=>'N'
+);
+wwv_flow_imp_page.create_worksheet_column(
+ p_id=>wwv_flow_imp.id(91820290000000482)
+,p_db_column_name=>'DRIVER'
+,p_display_order=>40
+,p_column_identifier=>'D'
+,p_column_label=>'السائق'
+,p_column_type=>'STRING'
+,p_heading_alignment=>'CENTER'
+,p_use_as_row_header=>'N'
+);
+wwv_flow_imp_page.create_worksheet_column(
+ p_id=>wwv_flow_imp.id(91820290000000483)
+,p_db_column_name=>'ROUTE'
+,p_display_order=>50
+,p_column_identifier=>'E'
+,p_column_label=>'المسار'
+,p_column_type=>'STRING'
+,p_heading_alignment=>'CENTER'
+,p_use_as_row_header=>'N'
+);
+wwv_flow_imp_page.create_worksheet_column(
+ p_id=>wwv_flow_imp.id(91820290000000484)
+,p_db_column_name=>'PLANNED_DEPARTURE'
+,p_display_order=>60
+,p_column_identifier=>'F'
+,p_column_label=>'التحرك المخطط'
+,p_column_type=>'STRING'
+,p_heading_alignment=>'CENTER'
+,p_use_as_row_header=>'N'
+);
+wwv_flow_imp_page.create_worksheet_column(
+ p_id=>wwv_flow_imp.id(91820290000000485)
+,p_db_column_name=>'ACTUAL_DEPARTURE'
+,p_display_order=>70
+,p_column_identifier=>'G'
+,p_column_label=>'التحرك الفعلي'
+,p_column_type=>'STRING'
+,p_heading_alignment=>'CENTER'
+,p_use_as_row_header=>'N'
+);
+wwv_flow_imp_page.create_worksheet_column(
+ p_id=>wwv_flow_imp.id(91820290000000486)
+,p_db_column_name=>'ETA'
+,p_display_order=>80
+,p_column_identifier=>'H'
+,p_column_label=>'الوصول المتوقع'
+,p_column_type=>'STRING'
+,p_heading_alignment=>'CENTER'
+,p_use_as_row_header=>'N'
+);
+wwv_flow_imp_page.create_worksheet_column(
+ p_id=>wwv_flow_imp.id(91820290000000487)
+,p_db_column_name=>'ACTUAL_ARRIVAL'
+,p_display_order=>90
+,p_column_identifier=>'I'
+,p_column_label=>'الوصول الفعلي'
+,p_column_type=>'STRING'
+,p_heading_alignment=>'CENTER'
+,p_use_as_row_header=>'N'
+);
+wwv_flow_imp_page.create_worksheet_column(
+ p_id=>wwv_flow_imp.id(91820290000000488)
+,p_db_column_name=>'DELAY_MINUTES'
+,p_display_order=>100
+,p_column_identifier=>'J'
+,p_column_label=>'التأخير (د)'
+,p_column_type=>'NUMBER'
+,p_heading_alignment=>'CENTER'
+,p_use_as_row_header=>'N'
+);
+wwv_flow_imp_page.create_worksheet_column(
+ p_id=>wwv_flow_imp.id(91820290000000489)
+,p_db_column_name=>'TIMELINESS'
+,p_display_order=>110
+,p_column_identifier=>'K'
+,p_column_label=>'الالتزام'
+,p_column_type=>'STRING'
+,p_heading_alignment=>'CENTER'
+,p_use_as_row_header=>'N'
+);
+wwv_flow_imp_page.create_worksheet_column(
+ p_id=>wwv_flow_imp.id(91820290000000490)
+,p_db_column_name=>'TONS'
+,p_display_order=>120
+,p_column_identifier=>'L'
+,p_column_label=>'طن'
+,p_column_type=>'NUMBER'
+,p_heading_alignment=>'CENTER'
+,p_use_as_row_header=>'N'
+);
+wwv_flow_imp_page.create_worksheet_column(
+ p_id=>wwv_flow_imp.id(91820290000000491)
+,p_db_column_name=>'ACTUAL_DISTANCE_KM'
+,p_display_order=>130
+,p_column_identifier=>'M'
+,p_column_label=>'كم'
+,p_column_type=>'NUMBER'
+,p_heading_alignment=>'CENTER'
+,p_use_as_row_header=>'N'
+);
+wwv_flow_imp_page.create_worksheet_column(
+ p_id=>wwv_flow_imp.id(91820290000000492)
+,p_db_column_name=>'FUEL_LITERS'
+,p_display_order=>140
+,p_column_identifier=>'N'
+,p_column_label=>'وقود (لتر)'
+,p_column_type=>'NUMBER'
+,p_heading_alignment=>'CENTER'
+,p_use_as_row_header=>'N'
+);
+wwv_flow_imp_page.create_worksheet_column(
+ p_id=>wwv_flow_imp.id(91820290000000493)
+,p_db_column_name=>'REVENUE_AMOUNT'
+,p_display_order=>150
+,p_column_identifier=>'O'
+,p_column_label=>'الإيراد'
+,p_column_type=>'NUMBER'
+,p_heading_alignment=>'CENTER'
+,p_use_as_row_header=>'N'
+);
+wwv_flow_imp_page.create_worksheet_column(
+ p_id=>wwv_flow_imp.id(91820290000000494)
+,p_db_column_name=>'EXPENSE_AMOUNT'
+,p_display_order=>160
+,p_column_identifier=>'P'
+,p_column_label=>'المصروف'
+,p_column_type=>'NUMBER'
+,p_heading_alignment=>'CENTER'
+,p_use_as_row_header=>'N'
+);
+wwv_flow_imp_page.create_worksheet_column(
+ p_id=>wwv_flow_imp.id(91820290000000495)
+,p_db_column_name=>'NET_AMOUNT'
+,p_display_order=>170
+,p_column_identifier=>'Q'
+,p_column_label=>'الصافي'
+,p_column_type=>'NUMBER'
+,p_heading_alignment=>'CENTER'
+,p_use_as_row_header=>'N'
+);
+wwv_flow_imp_page.create_worksheet_column(
+ p_id=>wwv_flow_imp.id(91820290000000496)
+,p_db_column_name=>'STATUS'
+,p_display_order=>180
+,p_column_identifier=>'R'
+,p_column_label=>'الحالة'
+,p_column_type=>'STRING'
+,p_heading_alignment=>'CENTER'
+,p_use_as_row_header=>'N'
+);
+wwv_flow_imp_page.create_worksheet_rpt(
+ p_id=>wwv_flow_imp.id(91820290000000478)
+,p_application_user=>'APXWS_DEFAULT'
+,p_report_seq=>10
+,p_report_alias=>'478'
+,p_status=>'PUBLIC'
+,p_is_default=>'Y'
+,p_report_columns=>'DOC_NO:DOC_DATE:PLATE_NO:DRIVER:ROUTE:PLANNED_DEPARTURE:ACTUAL_DEPARTURE:ETA:ACTUAL_ARRIVAL:DELAY_MINUTES:TIMELINESS:TONS:ACTUAL_DISTANCE_KM:FUEL_LITERS:REVENUE_AMOUNT:EXPENSE_AMOUNT:NET_AMOUNT:STATUS'
+);
+
+wwv_flow_imp.component_end;
+end;
+/

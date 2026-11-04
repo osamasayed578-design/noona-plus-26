@@ -1,0 +1,200 @@
+prompt --application/pages/page_00062
+begin
+--   Manifest
+--     PAGE: 00062
+--   Manifest End
+wwv_flow_imp.component_begin (
+ p_version_yyyy_mm_dd=>'2024.11.30'
+,p_release=>'24.2.0'
+,p_default_workspace_id=>17663301221950901
+,p_default_application_id=>147
+,p_default_id_offset=>0
+,p_default_owner=>'NOONA_APP'
+);
+wwv_flow_imp_page.create_page(
+ p_id=>62
+,p_name=>'Fleet-Report'
+,p_alias=>'FLEET-REPORT'
+,p_step_title=>'استغلال الأسطول وربحية العربات'
+,p_autocomplete_on_off=>'OFF'
+,p_page_template_options=>'#DEFAULT#'
+,p_required_role=>wwv_flow_imp.id(91820290000000009)
+,p_protection_level=>'C'
+);
+wwv_flow_imp_page.create_page_plug(
+ p_id=>wwv_flow_imp.id(91820290000000497)
+,p_plug_name=>'استغلال الأسطول وربحية العربات'
+,p_region_template_options=>'#DEFAULT#'
+,p_component_template_options=>'#DEFAULT#'
+,p_plug_template=>2100526641005906379
+,p_plug_display_sequence=>10
+,p_query_type=>'SQL'
+,p_plug_source=>wwv_flow_string.join(wwv_flow_t_varchar2(
+'select v.plate_no, v.vehicle_type, v.capacity_tons, count(t.id) trips, nvl(sum(t.actual_distance_km), 0) km,',
+'       round(nvl(sum(t.load_kg), 0) / 1000, 2) tons, round(avg(t.load_kg / 10 / v.capacity_tons)) avg_load_pct, nvl(sum(t.fuel_liters), 0) fuel,',
+'       round(nvl(sum(t.fuel_liters), 0) / nullif(sum(t.actual_distance_km), 0) * 100, 1) l_per_100, nvl(sum(t.revenue_amount), 0) revenue,',
+'       nvl(sum(t.expense_amount), 0) expense, nvl(sum(t.revenue_amount - t.expense_amount), 0) net_amount,',
+'       (select count(*) from trn_incident i where i.vehicle_id = v.id) incidents',
+'  from trn_vehicle v left join trn_trip t on t.vehicle_id = v.id and t.status_code = ''COMPLETED''',
+' where v.company_id = noona_trn_pkg.company group by v.id, v.plate_no, v.vehicle_type, v.capacity_tons order by revenue desc'))
+,p_plug_source_type=>'NATIVE_IR'
+,p_prn_page_header=>'استغلال الأسطول وربحية العربات'
+);
+wwv_flow_imp_page.create_worksheet(
+ p_id=>wwv_flow_imp.id(91820290000000498)
+,p_max_row_count=>'1000000'
+,p_no_data_found_message=>'لا توجد بيانات'
+,p_pagination_type=>'ROWS_X_TO_Y'
+,p_pagination_display_pos=>'BOTTOM_RIGHT'
+,p_report_list_mode=>'TABS'
+,p_lazy_loading=>false
+,p_show_detail_link=>'N'
+,p_show_notify=>'N'
+,p_download_formats=>'CSV:HTML:XLSX:PDF'
+,p_enable_mail_download=>'N'
+,p_owner=>'NOONA'
+,p_internal_uid=>91820290000000498
+);
+wwv_flow_imp_page.create_worksheet_column(
+ p_id=>wwv_flow_imp.id(91820290000000500)
+,p_db_column_name=>'PLATE_NO'
+,p_display_order=>10
+,p_column_identifier=>'A'
+,p_column_label=>'العربة'
+,p_column_type=>'STRING'
+,p_heading_alignment=>'CENTER'
+,p_use_as_row_header=>'N'
+);
+wwv_flow_imp_page.create_worksheet_column(
+ p_id=>wwv_flow_imp.id(91820290000000501)
+,p_db_column_name=>'VEHICLE_TYPE'
+,p_display_order=>20
+,p_column_identifier=>'B'
+,p_column_label=>'النوع'
+,p_column_type=>'STRING'
+,p_heading_alignment=>'CENTER'
+,p_use_as_row_header=>'N'
+);
+wwv_flow_imp_page.create_worksheet_column(
+ p_id=>wwv_flow_imp.id(91820290000000502)
+,p_db_column_name=>'CAPACITY_TONS'
+,p_display_order=>30
+,p_column_identifier=>'C'
+,p_column_label=>'الحمولة'
+,p_column_type=>'NUMBER'
+,p_heading_alignment=>'CENTER'
+,p_use_as_row_header=>'N'
+);
+wwv_flow_imp_page.create_worksheet_column(
+ p_id=>wwv_flow_imp.id(91820290000000503)
+,p_db_column_name=>'TRIPS'
+,p_display_order=>40
+,p_column_identifier=>'D'
+,p_column_label=>'الرحلات'
+,p_column_type=>'NUMBER'
+,p_heading_alignment=>'CENTER'
+,p_use_as_row_header=>'N'
+);
+wwv_flow_imp_page.create_worksheet_column(
+ p_id=>wwv_flow_imp.id(91820290000000504)
+,p_db_column_name=>'KM'
+,p_display_order=>50
+,p_column_identifier=>'E'
+,p_column_label=>'الكيلومترات'
+,p_column_type=>'NUMBER'
+,p_heading_alignment=>'CENTER'
+,p_use_as_row_header=>'N'
+);
+wwv_flow_imp_page.create_worksheet_column(
+ p_id=>wwv_flow_imp.id(91820290000000505)
+,p_db_column_name=>'TONS'
+,p_display_order=>60
+,p_column_identifier=>'F'
+,p_column_label=>'الأطنان'
+,p_column_type=>'NUMBER'
+,p_heading_alignment=>'CENTER'
+,p_use_as_row_header=>'N'
+);
+wwv_flow_imp_page.create_worksheet_column(
+ p_id=>wwv_flow_imp.id(91820290000000506)
+,p_db_column_name=>'AVG_LOAD_PCT'
+,p_display_order=>70
+,p_column_identifier=>'G'
+,p_column_label=>'متوسط التحميل %'
+,p_column_type=>'NUMBER'
+,p_heading_alignment=>'CENTER'
+,p_use_as_row_header=>'N'
+);
+wwv_flow_imp_page.create_worksheet_column(
+ p_id=>wwv_flow_imp.id(91820290000000507)
+,p_db_column_name=>'FUEL'
+,p_display_order=>80
+,p_column_identifier=>'H'
+,p_column_label=>'الوقود (لتر)'
+,p_column_type=>'NUMBER'
+,p_heading_alignment=>'CENTER'
+,p_use_as_row_header=>'N'
+);
+wwv_flow_imp_page.create_worksheet_column(
+ p_id=>wwv_flow_imp.id(91820290000000508)
+,p_db_column_name=>'L_PER_100'
+,p_display_order=>90
+,p_column_identifier=>'I'
+,p_column_label=>'لتر/100كم'
+,p_column_type=>'NUMBER'
+,p_heading_alignment=>'CENTER'
+,p_use_as_row_header=>'N'
+);
+wwv_flow_imp_page.create_worksheet_column(
+ p_id=>wwv_flow_imp.id(91820290000000509)
+,p_db_column_name=>'REVENUE'
+,p_display_order=>100
+,p_column_identifier=>'J'
+,p_column_label=>'الإيراد'
+,p_column_type=>'NUMBER'
+,p_heading_alignment=>'CENTER'
+,p_use_as_row_header=>'N'
+);
+wwv_flow_imp_page.create_worksheet_column(
+ p_id=>wwv_flow_imp.id(91820290000000510)
+,p_db_column_name=>'EXPENSE'
+,p_display_order=>110
+,p_column_identifier=>'K'
+,p_column_label=>'المصروف'
+,p_column_type=>'NUMBER'
+,p_heading_alignment=>'CENTER'
+,p_use_as_row_header=>'N'
+);
+wwv_flow_imp_page.create_worksheet_column(
+ p_id=>wwv_flow_imp.id(91820290000000511)
+,p_db_column_name=>'NET_AMOUNT'
+,p_display_order=>120
+,p_column_identifier=>'L'
+,p_column_label=>'الصافي'
+,p_column_type=>'NUMBER'
+,p_heading_alignment=>'CENTER'
+,p_use_as_row_header=>'N'
+);
+wwv_flow_imp_page.create_worksheet_column(
+ p_id=>wwv_flow_imp.id(91820290000000512)
+,p_db_column_name=>'INCIDENTS'
+,p_display_order=>130
+,p_column_identifier=>'M'
+,p_column_label=>'الأعطال'
+,p_column_type=>'NUMBER'
+,p_heading_alignment=>'CENTER'
+,p_use_as_row_header=>'N'
+);
+wwv_flow_imp_page.create_worksheet_rpt(
+ p_id=>wwv_flow_imp.id(91820290000000499)
+,p_application_user=>'APXWS_DEFAULT'
+,p_report_seq=>10
+,p_report_alias=>'499'
+,p_status=>'PUBLIC'
+,p_is_default=>'Y'
+,p_report_columns=>'PLATE_NO:VEHICLE_TYPE:CAPACITY_TONS:TRIPS:KM:TONS:AVG_LOAD_PCT:FUEL:L_PER_100:REVENUE:EXPENSE:NET_AMOUNT:INCIDENTS'
+);
+
+wwv_flow_imp.component_end;
+end;
+/

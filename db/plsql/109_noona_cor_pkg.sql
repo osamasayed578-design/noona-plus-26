@@ -1459,7 +1459,8 @@ CREATE OR REPLACE PACKAGE BODY NOONA_COR_PKG AS
       l_to := NVL(party_name(p_id), l_to);
     END IF;
     RETURN '<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><title>' || esc(l_c.correspondence_no) || '</title>'
-        || '<style>body{font-family:Tahoma,Arial,sans-serif;margin:0;color:#1f2937}.pg{max-width:780px;margin:24px auto;padding:40px 48px;'
+        || '<style>@page{margin:0}@media print{.pg{border:0 !important;margin:0 auto !important;padding:14mm 16mm !important}}'
+        || 'body{font-family:Tahoma,Arial,sans-serif;margin:0;color:#1f2937}.pg{max-width:780px;margin:24px auto;padding:40px 48px;'
         || 'border:1px solid #e5e7eb}.hd{display:flex;justify-content:space-between;border-bottom:3px solid #0f766e;padding-bottom:12px}'
         || '.co{font-size:20px;font-weight:bold;color:#0f766e}.meta{font-size:13px;line-height:1.9}.ttl{text-align:center;font-size:18px;'
         || 'font-weight:bold;margin:24px 0 8px}.row{margin:6px 0}.lbl{color:#6b7280;display:inline-block;min-width:90px}'

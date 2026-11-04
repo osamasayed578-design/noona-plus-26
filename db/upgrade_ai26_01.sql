@@ -57,6 +57,7 @@ BEGIN
   tool('GET_ANOMALIES', 'القيم غير المعتادة', NULL);
   tool('GET_MODULE_DASHBOARD', 'لوحة موديول', NULL);
   tool('GET_PAGE_CONTEXT', 'سياق الصفحة الحالية', NULL);
+  tool('GET_COMPANY_BREAKDOWN', 'توزيع مؤشر على شركات المجموعة', NULL);
   NOONA_CTX_PKG.disable_system_mode;
   COMMIT;
 EXCEPTION WHEN OTHERS THEN

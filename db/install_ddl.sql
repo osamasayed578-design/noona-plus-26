@@ -55,6 +55,8 @@ PROMPT == p31_his: Hospital & Clinics
 @@ddl/p31_his.sql
 PROMPT == p32_aut: Auto Service Centers
 @@ddl/p32_aut.sql
+PROMPT == p33_trn: Transport & Logistics
+@@ddl/p33_trn.sql
 PROMPT == p22_bi: Reporting & Business Intelligence
 @@ddl/p22_bi.sql
 PROMPT == p23_api: ORDS, APIs & Integrations

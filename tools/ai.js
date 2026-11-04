@@ -7,7 +7,7 @@
     'use strict';
     if (window.nnAi || !window.apex || !apex.server) return;
     var MOD = {NOONA_FIN: 'FIN', NOONA_POS: 'SAL', NOONA_SCM: 'SCM', NOONA_HR: 'HR', NOONA_MFG: 'MFG', NOONA_HIS: 'HIS',
-        NOONA_PRJ: 'HSP', NOONA_AUTO: 'AUT', NOONA_BI: '', NOONA_DOC: '', NOONA_ADMIN: '', NOONA_MASTER: ''};
+        NOONA_PRJ: 'HSP', NOONA_AUTO: 'AUT', NOONA_TRN: 'TRN', NOONA_BI: '', NOONA_DOC: '', NOONA_ADMIN: '', NOONA_MASTER: ''};
     var SUGGEST = {
         FIN: ['كم الإيرادات هذا الشهر مقارنة بالسابق؟', 'ما توقع صافي الربح للأشهر الثلاثة القادمة؟', 'كم رصيد النقدية والبنوك الآن؟'],
         SAL: ['كم مبيعات نقاط البيع هذا الأسبوع؟', 'ما اتجاه مبيعات الفواتير آخر 6 أشهر؟', 'توقع المبيعات للشهر القادم'],
@@ -17,7 +17,8 @@
         HIS: ['كم زيارة للمرضى هذا الشهر؟', 'ما توقع إيرادات المستشفى؟'],
         AUT: ['كم أمر إصلاح هذا الشهر؟', 'ما إيرادات خدمة السيارات هذا العام؟'],
         HSP: ['كم نزيلاً سجل دخولاً هذا الشهر؟', 'ما مبيعات الوحدات العقارية هذا العام؟'],
-        '': ['ما المؤشرات غير المعتادة هذا الشهر؟', 'لخص أداء الشركة هذا الشهر', 'ما الذي في هذه الصفحة؟']
+        TRN: ['كم طناً نقلنا هذا الشهر؟', 'ما إيرادات الترحيل المتوقعة للأشهر القادمة؟', 'كم عطلاً وبلاغاً هذا الشهر؟'],
+        '': ['ما المؤشرات غير المعتادة هذا الشهر؟', 'لخص أداء الشركة هذا الشهر', 'قارن إيرادات شركات المجموعة هذا الشهر', 'ما الذي في هذه الصفحة؟']
     };
     var CSS = [
         '.nn-ai-fab{position:fixed;bottom:20px;inset-inline-start:20px;z-index:900;display:inline-flex;align-items:center;gap:8px;padding:12px 18px;border:0;border-radius:999px;',
