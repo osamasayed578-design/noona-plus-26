@@ -24,6 +24,9 @@ CREATE OR REPLACE PACKAGE NOONA_FIN_RPT_PKG AUTHID DEFINER AS
   FUNCTION cash_flow(p_from IN DATE, p_to IN DATE) RETURN CLOB;
   FUNCTION equity_changes(p_from IN DATE, p_to IN DATE) RETURN CLOB;
   FUNCTION income_compare(p_from IN DATE, p_to IN DATE, p_from2 IN DATE, p_to2 IN DATE) RETURN CLOB;
+  -- قائمة الدخل لعدة سنوات: عمود لكل سنة (2 إلى 6) حتى السنة الحالية، ونمو آخر سنة عن سابقتها؛
+  -- p_same_period = 'Y' يقارن الفترة نفسها من كل سنة (من يناير حتى اليوم والشهر الحاليين)
+  FUNCTION income_years(p_years IN NUMBER DEFAULT 3, p_same_period IN VARCHAR2 DEFAULT 'N') RETURN CLOB;
   FUNCTION ratios(p_from IN DATE, p_to IN DATE) RETURN CLOB;
   FUNCTION controls(p_as_of IN DATE DEFAULT NULL) RETURN CLOB;
   -- p_scope: ALL / GL_JOURNAL / CSH_TRANSACTION / CONFIG
@@ -497,6 +500,81 @@ CREATE OR REPLACE PACKAGE BODY NOONA_FIN_RPT_PKG AS
     total_row('صافي الربح (الخسارة)', r1 - e1, r2 - e2, 'nn-rpt-net');
     RETURN l_html || (('</tfoot></table>' || NOONA_GL_PKG.report_footer('القيود المرحلة بتاريخ القيد دون قيود إقفال السنة')));
   END income_compare;
+
+  FUNCTION income_years(p_years IN NUMBER DEFAULT 3, p_same_period IN VARCHAR2 DEFAULT 'N') RETURN CLOB IS
+    l_led  NUMBER := NOONA_GL_PKG.primary_ledger;
+    l_coa  NUMBER := NOONA_GL_PKG.primary_coa;
+    l_n    PLS_INTEGER := LEAST(GREATEST(NVL(TRUNC(p_years), 3), 2), 6);
+    l_y    PLS_INTEGER := EXTRACT(YEAR FROM SYSDATE);
+    l_y0   PLS_INTEGER := EXTRACT(YEAR FROM SYSDATE) - LEAST(GREATEST(NVL(TRUNC(p_years), 3), 2), 6) + 1;
+    l_same BOOLEAN := NVL(p_same_period, 'N') = 'Y';
+    l_sm   VARCHAR2(1) := CASE WHEN NVL(p_same_period, 'N') = 'Y' THEN 'Y' ELSE 'N' END;
+    l_md   VARCHAR2(5) := TO_CHAR(SYSDATE, 'MM-DD');
+    l_html CLOB;
+    l_type VARCHAR2(20);
+    TYPE t_n IS TABLE OF NUMBER INDEX BY PLS_INTEGER;
+    l_r t_n; l_e t_n; l_v t_n;
+    FUNCTION cells(p t_n) RETURN VARCHAR2 IS
+      l VARCHAR2(4000);
+    BEGIN
+      FOR i IN 1 .. l_n LOOP l := l || '<td>' || fmt0(p(i)) || '</td>'; END LOOP;
+      RETURN l || '<td>' || pct(p(l_n) - p(l_n - 1), ABS(p(l_n - 1))) || '</td>';
+    END cells;
+    PROCEDURE total_row(p_label VARCHAR2, p t_n, p_class VARCHAR2 DEFAULT 'nn-rpt-total') IS
+    BEGIN
+      l_html := l_html || ('<tr class="' || p_class || '"><td colspan="2">' || p_label || '</td>' || cells(p) || '</tr>');
+    END total_row;
+  BEGIN
+    view_guard;
+    FOR i IN 1 .. l_n LOOP l_r(i) := 0; l_e(i) := 0; END LOOP;
+    l_html := NOONA_BRAND_PKG.report_header('قائمة الدخل لعدة سنوات'
+                || CASE WHEN l_same THEN ' (من يناير حتى ' || TO_CHAR(SYSDATE, 'DD/MM') || ' من كل سنة)' END)
+           || '<table class="nn-rpt"><thead><tr><th>الحساب</th><th>البيان</th>';
+    FOR i IN 1 .. l_n LOOP
+      l_html := l_html || '<th>' || (l_y0 + i - 1) || CASE WHEN l_y0 + i - 1 = l_y AND NOT l_same THEN '<br><small>حتى تاريخه</small>' END || '</th>';
+    END LOOP;
+    l_html := l_html || '<th>نمو ' || l_y || ' عن ' || (l_y - 1) || '</th></tr></thead><tbody>';
+    -- صف لكل حساب بأعمدة السنوات
+    FOR a IN (
+      SELECT a.account_code, a.name_ar, a.account_type
+        FROM gl_journal_line l JOIN gl_journal j ON j.id = l.journal_id JOIN gl_account a ON a.id = l.account_id
+       WHERE j.ledger_id = l_led AND j.status_code IN ('POSTED', 'REVERSED') AND NVL(j.journal_category, '-') <> 'CLOSING'
+         AND a.coa_id = l_coa AND a.account_type IN ('REVENUE', 'EXPENSE')
+         AND j.doc_date >= TO_DATE(l_y0 || '-01-01', 'YYYY-MM-DD') AND j.doc_date < TO_DATE((l_y + 1) || '-01-01', 'YYYY-MM-DD')
+       GROUP BY a.account_code, a.name_ar, a.account_type
+       ORDER BY CASE a.account_type WHEN 'REVENUE' THEN 0 ELSE 1 END, a.account_code) LOOP
+      FOR i IN 1 .. l_n LOOP
+        SELECT NVL(SUM(l.credit_func - l.debit_func), 0) * CASE a.account_type WHEN 'REVENUE' THEN 1 ELSE -1 END INTO l_v(i)
+          FROM gl_journal_line l JOIN gl_journal j ON j.id = l.journal_id JOIN gl_account x ON x.id = l.account_id
+         WHERE j.ledger_id = l_led AND j.status_code IN ('POSTED', 'REVERSED') AND NVL(j.journal_category, '-') <> 'CLOSING'
+           AND x.coa_id = l_coa AND x.account_code = a.account_code
+           AND j.doc_date >= TO_DATE((l_y0 + i - 1) || '-01-01', 'YYYY-MM-DD')
+           AND j.doc_date < CASE WHEN l_sm = 'Y' THEN ADD_MONTHS(TRUNC(SYSDATE), -12 * (l_n - i)) + 1
+                                 ELSE TO_DATE((l_y0 + i) || '-01-01', 'YYYY-MM-DD') END;
+      END LOOP;
+      CONTINUE WHEN l_v.COUNT = 0;
+      IF l_type IS NULL OR l_type <> a.account_type THEN
+        IF l_type = 'REVENUE' THEN total_row('إجمالي الإيرادات', l_r); END IF;
+        l_type := a.account_type;
+        l_html := l_html || ('<tr class="nn-rpt-group"><td colspan="' || (l_n + 3) || '">' || CASE a.account_type WHEN 'REVENUE' THEN 'الإيرادات'
+                  ELSE 'التكاليف والمصروفات' END || '</td></tr>');
+      END IF;
+      l_html := l_html || ('<tr><td class="nn-num-code">' || esc(a.account_code) || '</td><td>' || esc(a.name_ar) || '</td>' || cells(l_v) || '</tr>');
+      FOR i IN 1 .. l_n LOOP
+        IF a.account_type = 'REVENUE' THEN l_r(i) := l_r(i) + l_v(i); ELSE l_e(i) := l_e(i) + l_v(i); END IF;
+      END LOOP;
+    END LOOP;
+    IF l_type = 'REVENUE' THEN total_row('إجمالي الإيرادات', l_r); END IF;
+    total_row('إجمالي التكاليف والمصروفات', l_e);
+    FOR i IN 1 .. l_n LOOP l_v(i) := l_r(i) - l_e(i); END LOOP;
+    l_html := l_html || '</tbody><tfoot>';
+    total_row('صافي الربح (الخسارة)', l_v, 'nn-rpt-net');
+    FOR i IN 1 .. l_n LOOP l_v(i) := CASE WHEN l_r(i) <> 0 THEN ROUND((l_r(i) - l_e(i)) / l_r(i) * 100, 1) END; END LOOP;
+    l_html := l_html || '<tr class="nn-rpt-total"><td colspan="2">هامش صافي الربح %</td>';
+    FOR i IN 1 .. l_n LOOP l_html := l_html || '<td>' || CASE WHEN l_v(i) IS NULL THEN '-' ELSE TO_CHAR(l_v(i), 'FM9990.0') || '%' END || '</td>'; END LOOP;
+    l_html := l_html || '<td></td></tr>';
+    RETURN l_html || (('</tfoot></table>' || NOONA_GL_PKG.report_footer('القيود المرحلة بتاريخ القيد دون قيود إقفال السنة؛ السنوات السابقة تفتح من «فتح السنة السابقة»')));
+  END income_years;
 
   -- ================================================================ النسب المالية
   FUNCTION ratios(p_from IN DATE, p_to IN DATE) RETURN CLOB IS

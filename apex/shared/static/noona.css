@@ -1619,6 +1619,25 @@ pre.nn-einv-xml { direction: ltr; text-align: left; max-height: 480px; overflow:
 .nn-anl-key { display: inline-flex; align-items: center; gap: 6px; }
 .nn-anl-key i { display: inline-block; width: 20px; height: 0; border-top: 2px solid var(--anl-s1); }
 .nn-anl-key i.is-fc { border-top-style: dashed; }
+/* مقارنة السنوات: السنة الحالية بلون السلسلة، السابقة برتقالي، الأقدم رمادي وبنفسجي */
+.nn-anl { --anl-y1: #e8833a; --anl-y2: #8a94a3; --anl-y3: #9b6bd1; --anl-y4: #2e9e8f; }
+.nn-anl-yl { fill: none; stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
+.nn-anl-yl.nn-anl-y0 { stroke: var(--anl-s1); stroke-width: 2.6; }
+.nn-anl-yl.nn-anl-y1 { stroke: var(--anl-y1); }
+.nn-anl-yl.nn-anl-y2 { stroke: var(--anl-y2); stroke-dasharray: 5 4; }
+.nn-anl-yl.nn-anl-y3 { stroke: var(--anl-y3); stroke-dasharray: 2 3; }
+.nn-anl-yl.nn-anl-y4 { stroke: var(--anl-y4); stroke-dasharray: 8 3; }
+.nn-anl-key i.nn-anl-y0 { border-top-color: var(--anl-s1); border-top-width: 3px; }
+.nn-anl-key i.nn-anl-y1 { border-top-color: var(--anl-y1); }
+.nn-anl-key i.nn-anl-y2 { border-top: 2px dashed var(--anl-y2); }
+.nn-anl-key i.nn-anl-y3 { border-top: 2px dotted var(--anl-y3); }
+.nn-anl-key i.nn-anl-y4 { border-top: 2px dashed var(--anl-y4); }
+.nn-anl-dotk { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--anl-s1); margin-inline-end: 4px; }
+.nn-anl-dotk.nn-anl-y1 { background: var(--anl-y1); } .nn-anl-dotk.nn-anl-y2 { background: var(--anl-y2); }
+.nn-anl-dotk.nn-anl-y3 { background: var(--anl-y3); } .nn-anl-dotk.nn-anl-y4 { background: var(--anl-y4); }
+.nn-anl-table tr.nn-anl-ytot td { font-weight: 700; background: var(--nn-surface-2, #f6f8fa); }
+.nn-anl-table td.nn-anl-chg.is-good { color: var(--anl-good); } .nn-anl-table td.nn-anl-chg.is-bad { color: var(--anl-bad); }
+html[data-theme="dark"] .nn-anl { --anl-y1: #ff9f5a; --anl-y2: #a7b0bd; --anl-y3: #b994ff; --anl-y4: #4fc3b2; }
 .nn-anl-key i.is-band { height: 10px; border: 0; background: var(--anl-band); border-radius: 2px; }
 .nn-anl-table { margin-top: 10px; max-height: 360px; overflow: auto; }
 .nn-anl-table table { width: 100%; border-collapse: collapse; font-size: .86rem; }
@@ -1841,6 +1860,49 @@ html[data-theme="dark"] img.nn-logo-light { display: none; }
 @media (prefers-reduced-motion: reduce) {
   * { transition: none !important; animation: none !important; }
 }
+
+
+/* الوضع الداكن: صفوف التقارير عند المرور وحقول البحث وشارة الشركة */
+html[data-theme="dark"] .a-IRR-table tbody tr:hover > td, html[data-theme="dark"] .a-IRR-table tr:hover > td,
+html[data-theme="dark"] .t-Report-report tbody tr:hover > td { background-color: var(--nn-row-hover) !important; color: var(--nn-text) !important; }
+html[data-theme="dark"] .a-IRR-table tbody tr:nth-child(even) > td { background-color: var(--nn-row-alt); }
+html[data-theme="dark"] input, html[data-theme="dark"] select, html[data-theme="dark"] textarea { background-color: #0f1623; color: var(--nn-text); border-color: var(--nn-border); }
+html[data-theme="dark"] .a-IRR-toolbar .t-Button, html[data-theme="dark"] .a-IRR-button { background: var(--nn-surface-2) !important; color: var(--nn-text) !important; border-color: var(--nn-border) !important; }
+html[data-theme="dark"] .a-Button--calendar, html[data-theme="dark"] .a-Button--popupLOV, html[data-theme="dark"] .t-Form-itemWrapper .a-Button {
+  background: var(--nn-surface-2) !important; color: var(--nn-text) !important; border-color: var(--nn-border) !important; }
+html[data-theme="dark"] .t-Button--hot { background: linear-gradient(135deg, #1f6fe0, #3a55c9) !important; color: #fff !important; }
+html[data-theme="dark"] .t-Header .t-Button, html[data-theme="dark"] .t-NavigationBar .t-Button { color: var(--nn-text) !important; }
+
+/* ==== أرقام السنوات السابقة (hist.js) ==== */
+.nn-hist-intro { display: flex; gap: 12px; align-items: flex-start; padding: 14px 16px; border: 1px solid var(--nn-border); border-radius: 12px;
+  background: var(--nn-surface-2, #f8fafd); margin-bottom: 14px; }
+.nn-hist-intro > .fa { font-size: 1.6rem; color: var(--nn-primary, #2a78d6); margin-top: 2px; }
+.nn-hist-intro p { margin: 4px 0 0; color: var(--nn-muted); line-height: 1.7; }
+.nn-hist-bar { display: flex; gap: 12px; flex-wrap: wrap; align-items: flex-end; margin-bottom: 12px; }
+.nn-hist-bar select { min-width: 160px; }
+.nn-hist-tbl { width: 100%; max-width: 760px; border-collapse: collapse; }
+.nn-hist-tbl th, .nn-hist-tbl td { padding: 6px 10px; border-bottom: 1px solid var(--nn-border); text-align: start; }
+.nn-hist-tbl td.nn-num { font-variant-numeric: tabular-nums; color: var(--nn-muted); }
+.nn-hist-in { width: 100%; max-width: 220px; padding: 6px 8px; border: 1px solid var(--nn-border); border-radius: 8px; font-variant-numeric: tabular-nums;
+  background: var(--nn-surface); color: var(--nn-text); text-align: right; }
+.nn-hist-in:focus { outline: 2px solid var(--nn-primary, #2a78d6); outline-offset: -1px; }
+.nn-hist-in:disabled { background: var(--nn-surface-2, #f3f5f8); color: var(--nn-muted); cursor: not-allowed; }
+.nn-hist-tot td { font-weight: 700; }
+.nn-hist-tot td.nn-hist-total { color: var(--nn-text); }
+.nn-hist-note { color: var(--nn-muted); font-size: .86rem; }
+.nn-hist-actions { display: flex; gap: 10px; flex-wrap: wrap; align-items: flex-end; margin: 14px 0; }
+.nn-hist-notes { min-width: 280px; padding: 6px 8px; border: 1px solid var(--nn-border); border-radius: 8px; background: var(--nn-surface); color: var(--nn-text); }
+.nn-hist-import { margin: 16px 0; border: 1px solid var(--nn-border); border-radius: 12px; padding: 10px 14px; background: var(--nn-surface); }
+.nn-hist-import summary { cursor: pointer; font-weight: 700; }
+.nn-hist-import p { color: var(--nn-muted); }
+.nn-hist-import code { direction: ltr; unicode-bidi: embed; background: var(--nn-surface-2, #f3f5f8); padding: 1px 6px; border-radius: 4px; }
+.nn-hist-imp-row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-bottom: 8px; }
+.nn-hist-csv { width: 100%; font-family: ui-monospace, Consolas, monospace; font-size: .86rem; padding: 8px; border: 1px solid var(--nn-border);
+  border-radius: 8px; background: var(--nn-surface); color: var(--nn-text); margin-bottom: 8px; }
+.nn-hist-chip { border: 1px solid var(--nn-border); background: var(--nn-surface-2, #f3f5f8); color: var(--nn-text); border-radius: 999px; padding: 2px 10px;
+  margin: 2px; cursor: pointer; font-size: .84rem; }
+.nn-hist-chip:hover { border-color: var(--nn-primary, #2a78d6); }
+@media (max-width: 640px) { .nn-hist-notes { min-width: 0; width: 100%; } .nn-hist-notes-l { width: 100%; } }
 
 /* ==== DARK AUTO (tools/dark_css.py) ==== */
 html[data-theme="dark"] .t-Form-label, html[data-theme="dark"] label { color: var(--nn-text) !important; }
@@ -2109,13 +2171,3 @@ html[data-theme="dark"] .nn-rpt tr.nn-bad td { background: var(--nn-surface-2) !
 html[data-theme="dark"] .nn-anl-err { border-color: var(--nn-border) !important; background: var(--nn-surface-2) !important; }
 html[data-theme="dark"] .nn-anl-an { background: color-mix(in srgb, #fff8e6 14%, var(--nn-surface)) !important; border-color: var(--nn-border) !important; }
 /* ==== /DARK AUTO ==== */
-/* الوضع الداكن: صفوف التقارير عند المرور وحقول البحث وشارة الشركة */
-html[data-theme="dark"] .a-IRR-table tbody tr:hover > td, html[data-theme="dark"] .a-IRR-table tr:hover > td,
-html[data-theme="dark"] .t-Report-report tbody tr:hover > td { background-color: var(--nn-row-hover) !important; color: var(--nn-text) !important; }
-html[data-theme="dark"] .a-IRR-table tbody tr:nth-child(even) > td { background-color: var(--nn-row-alt); }
-html[data-theme="dark"] input, html[data-theme="dark"] select, html[data-theme="dark"] textarea { background-color: #0f1623; color: var(--nn-text); border-color: var(--nn-border); }
-html[data-theme="dark"] .a-IRR-toolbar .t-Button, html[data-theme="dark"] .a-IRR-button { background: var(--nn-surface-2) !important; color: var(--nn-text) !important; border-color: var(--nn-border) !important; }
-html[data-theme="dark"] .a-Button--calendar, html[data-theme="dark"] .a-Button--popupLOV, html[data-theme="dark"] .t-Form-itemWrapper .a-Button {
-  background: var(--nn-surface-2) !important; color: var(--nn-text) !important; border-color: var(--nn-border) !important; }
-html[data-theme="dark"] .t-Button--hot { background: linear-gradient(135deg, #1f6fe0, #3a55c9) !important; color: #fff !important; }
-html[data-theme="dark"] .t-Header .t-Button, html[data-theme="dark"] .t-NavigationBar .t-Button { color: var(--nn-text) !important; }

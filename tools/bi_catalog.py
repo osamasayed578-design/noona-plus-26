@@ -25,6 +25,8 @@ CATALOG = [
      'حركة رأس المال والاحتياطيات والأرباح المبقاة'),
     ('GL_CMP', 'GL', A, 'NOONA_FIN', 'INCOME-COMPARE', None, None, None, GL, 'fa-bar-chart', 'مقارنة الفترات', 'Period comparison',
      'قائمة الدخل لفترتين جنباً إلى جنب بالفرق ونسبته'),
+    ('GL_YEARS', 'GL', A, 'NOONA_FIN', 'INCOME-YEARS', None, None, None, GL, 'fa-calendar', 'قائمة الدخل لعدة سنوات', 'Income statement by year',
+     'الإيرادات والمصروفات وصافي الربح لكل سنة من السنوات السابقة حتى الحالية بالنمو وهامش الربح'),
     ('GL_RATIOS', 'GL', A, 'NOONA_FIN', 'RATIOS', None, None, None, GL, 'fa-percent', 'النسب المالية', 'Financial ratios',
      'السيولة والربحية والمديونية والنشاط'),
     ('GL_ANALYSIS', 'GL', A, 'NOONA_FIN', 'ANALYSIS', None, None, None, GL, 'fa-area-chart', 'تحليل الإيرادات والمصروفات', 'Revenue & expense analysis',

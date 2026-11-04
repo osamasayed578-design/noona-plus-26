@@ -3,6 +3,7 @@
  *   x01=VIEW  x02=الموديولات (FIN,SAL...) x03=الفرع            ← مؤشرات الشهر الحالي + سلسلة 12 شهراً مصغرة
  *   x01=CHART x02=المؤشر x03=الفرع x04=الفترة (MONTH/WEEK/DAY) x05=أشهر التنبؤ ← السلسلة والتنبؤ بنطاق الثقة
  *   x01=ANOM                                                    ← القيم غير المعتادة في آخر شهر مكتمل (اللوحة الموحدة)
+ *   x01=YEARS x02=المؤشر x03=الفرع x05=عدد السنوات              ← مقارنة السنوات: أشهر كل سنة متقابلة مع الإجمالي والنمو
  * الأرقام كلها تحسب داخل القاعدة بصلاحيات المستخدم وشركته وفرعه؛ الرسوم SVG بلا مكتبات خارجية.
  */
 (function () {
@@ -16,7 +17,7 @@
     var GOOD = {REVENUE: 'UP', NET_PROFIT: 'UP', CASH_BALANCE: 'UP', SALES_INVOICED: 'UP', POS_SALES: 'UP', POS_TICKETS: 'UP',
         PRODUCTION_QTY: 'UP', PRODUCTION_ORDERS: 'UP', HIS_VISITS: 'UP', HIS_REVENUE: 'UP', AUT_JOBS: 'UP', AUT_REVENUE: 'UP',
         HOTEL_CHECKINS: 'UP', RE_SALES: 'UP', RST_SALES: 'UP', EXPENSES: 'DOWN', AP_BALANCE: 'DOWN'};
-    var state = {branch: '', metric: null, grain: 'MONTH', periods: 3, table: false, view: null, chart: null, scope: 'COMPANY'};
+    var state = {branch: '', metric: null, grain: 'MONTH', periods: 3, nyears: 3, table: false, view: null, chart: null, scope: 'COMPANY'};
     try { if (localStorage.getItem('nnAnlScope') === 'GROUP') state.scope = 'GROUP'; } catch (e) { /* التخزين غير متاح */ }
     var nf0 = new Intl.NumberFormat('ar-u-nu-latn', {maximumFractionDigits: 0});
     var nf2 = new Intl.NumberFormat('ar-u-nu-latn', {maximumFractionDigits: 2});
@@ -59,7 +60,9 @@
         '  <div class="nn-anl-chart-head"><div><div class="nn-anl-chart-title"></div><div class="nn-anl-chart-note"></div></div>' +
         '    <div class="nn-anl-seg" role="group" aria-label="الفترة">' +
         '      <button type="button" data-g="MONTH" aria-pressed="true">شهري</button><button type="button" data-g="WEEK" aria-pressed="false">أسبوعي</button>' +
-        '      <button type="button" data-g="DAY" aria-pressed="false">يومي</button></div>' +
+        '      <button type="button" data-g="DAY" aria-pressed="false">يومي</button>' +
+        '      <button type="button" data-g="YEARS" aria-pressed="false"><span class="fa fa-calendar" aria-hidden="true"></span> مقارنة السنوات</button></div>' +
+        '    <label class="nn-anl-ctl nn-anl-ny" hidden>السنوات <select class="nn-anl-nyears"><option value="2">سنتان</option><option value="3" selected>3 سنوات</option><option value="5">5 سنوات</option></select></label>' +
         '    <label class="nn-anl-ctl nn-anl-h">التنبؤ <select class="nn-anl-periods"><option value="3">3 أشهر</option><option value="6">6 أشهر</option><option value="12">12 شهراً</option></select></label>' +
         '    <button type="button" class="t-Button t-Button--small nn-anl-tbl" aria-pressed="false"><span class="fa fa-table" aria-hidden="true"></span> جدول</button>' +
         '  </div>' +
@@ -119,6 +122,12 @@
                     '<div class="nn-anl-kpis">' + m.kpis.map(tile).join('') + '</div></section>';
             }).join('');
             var all = [].concat.apply([], v.modules.map(function (m) { return m.kpis; }));
+            // قادم من شاشة أرقام السنوات السابقة: افتح مقارنة السنوات للمؤشر نفسه
+            var want = null; try { want = localStorage.getItem('nnAnlYears'); localStorage.removeItem('nnAnlYears'); } catch (x) { /* */ }
+            if (want && all.some(function (k) { return k.metric === want; })) {
+                state.metric = want; state.grain = 'YEARS';
+                root.querySelectorAll('.nn-anl-seg button[data-g]').forEach(function (b) { b.setAttribute('aria-pressed', b.dataset.g === 'YEARS'); });
+            }
             if (!state.metric || !all.some(function (k) { return k.metric === state.metric; })) state.metric = all[0].metric;
             mark(); return loadChart();
         }).catch(function (m) { err(mods, m); });
@@ -132,6 +141,7 @@
         card.hidden = false;
         plot.innerHTML = '<div class="nn-anl-loading">جار الرسم...</div>';
         $('.nn-anl-h').hidden = state.grain !== 'MONTH';
+        $('.nn-anl-ny').hidden = state.grain !== 'YEARS';
         var cosHost = $('.nn-anl-cos');
         cosHost.hidden = state.scope !== 'GROUP';
         if (state.scope === 'GROUP') {
@@ -144,6 +154,11 @@
                             '</td><td class="nn-anl-bar-c"><span style="width:' + Math.min(c.sharePct || 0, 100) + '%"></span></td></tr>';
                     }).join('') + '</tbody></table>';
             }).catch(function (m) { err(cosHost, m); });
+        }
+        if (state.grain === 'YEARS') {
+            return call({x01: 'YEARS', x02: state.metric, x03: state.scope === 'GROUP' ? '' : state.branch, x05: state.nyears, x06: state.scope}).then(function (c) {
+                state.chart = c; drawYears(); tableYears();
+            }).catch(function (m) { err(plot, m); });
         }
         return call({x01: 'CHART', x02: state.metric, x03: state.scope === 'GROUP' ? '' : state.branch, x04: state.grain, x05: state.periods, x06: state.scope}).then(function (c) {
             state.chart = c; draw(); table();
@@ -220,6 +235,84 @@
         });
         svg.querySelector('.nn-anl-hit').addEventListener('mouseleave', function () { cross.hidden = true; dot.hidden = true; tip.hidden = true; });
     }
+    // ------------------------------------------------------------------ مقارنة السنوات
+    function pct(v) { return v == null ? '—' : (v > 0 ? '+' : '') + nf2.format(v) + '%'; }
+    function chgCls(v) {
+        var g = GOOD[state.metric];
+        if (v == null || !g || v === 0) return '';
+        return (v > 0) === (g === 'UP') ? ' is-good' : ' is-bad';
+    }
+    function drawYears() {
+        var c = state.chart, ys = c.years || [], n = ys.length;
+        $('.nn-anl-chart-title').textContent = c.name + ' — مقارنة السنوات';
+        var cur = ys[n - 1], prv = ys[n - 2];
+        $('.nn-anl-chart-note').textContent = cur && prv ?
+            (c.kind === 'BALANCE' ? 'الرصيد حتى ' : 'المنقضي من ' + cur.year + ' حتى ') + MONTHS[c.ytdMonth - 1] + ': ' + fmt(cur.ytd, c.unit) +
+            ' مقابل ' + fmt(prv.ytd, c.unit) + ' في الفترة نفسها من ' + prv.year + ' (' + pct(cur.ytdGrowthPct) + ')' : '';
+        var vals = [].concat.apply([], ys.map(function (y) { return y.months.filter(function (v) { return v != null; }); }));
+        if (!vals.length) { plot.innerHTML = '<div class="nn-empty">لا توجد بيانات</div>'; return; }
+        var W = Math.max(plot.clientWidth, 320), H = 300, m = {t: 16, r: 16, b: 34, l: 64};
+        var iw = W - m.l - m.r, ih = H - m.t - m.b;
+        var ticks = nice(Math.min(0, Math.min.apply(null, vals)), Math.max.apply(null, vals)), y0 = ticks[0], y1 = ticks[ticks.length - 1];
+        var X = function (i) { return m.l + (i / 11) * iw; };
+        var Y = function (v) { return m.t + ih - ((v - y0) / (y1 - y0 || 1)) * ih; };
+        var s = '<svg class="nn-anl-svg" viewBox="0 0 ' + W + ' ' + H + '" width="100%" height="' + H + '" dir="ltr" role="img" aria-label="' + esc(c.name) + '">';
+        ticks.forEach(function (t) {
+            s += '<line class="nn-anl-grid' + (t === 0 ? ' is-zero' : '') + '" x1="' + m.l + '" x2="' + (W - m.r) + '" y1="' + Y(t) + '" y2="' + Y(t) + '"/>' +
+                '<text class="nn-anl-axis" x="' + (m.l - 8) + '" y="' + (Y(t) + 4) + '" text-anchor="end">' + nfc.format(t) + '</text>';
+        });
+        var every = iw < 500 ? 2 : 1;
+        MONTHS.forEach(function (mn, i) {
+            if (i % every === 0) s += '<text class="nn-anl-axis" x="' + X(i) + '" y="' + (H - 10) + '" text-anchor="middle">' + mn.substr(0, 3) + '</text>';
+        });
+        ys.forEach(function (y, k) {
+            var d = '', pen = false;
+            y.months.forEach(function (v, i) {
+                if (v == null) { pen = false; return; }
+                d += (pen ? ' L' : 'M') + X(i).toFixed(1) + ' ' + Y(v).toFixed(1); pen = true;
+            });
+            s += '<path class="nn-anl-yl nn-anl-y' + (n - 1 - k) + '" d="' + d + '"/>';
+        });
+        s += '<line class="nn-anl-cross" y1="' + m.t + '" y2="' + (m.t + ih) + '" hidden/>' +
+            '<rect class="nn-anl-hit" x="' + m.l + '" y="' + m.t + '" width="' + iw + '" height="' + ih + '"/></svg><div class="nn-anl-tip" hidden></div>';
+        plot.innerHTML = s;
+        $('.nn-anl-legend').innerHTML = ys.slice().reverse().map(function (y, k) {
+            return '<span class="nn-anl-key"><i class="nn-anl-y' + k + '"></i> ' + y.year + '</span>';
+        }).join('');
+        var svg = plot.querySelector('svg'), cross = svg.querySelector('.nn-anl-cross'), tip = plot.querySelector('.nn-anl-tip');
+        svg.querySelector('.nn-anl-hit').addEventListener('mousemove', function (e) {
+            var r = svg.getBoundingClientRect(), x = (e.clientX - r.left) / r.width * W, i = Math.max(0, Math.min(11, Math.round((x - m.l) / (iw || 1) * 11)));
+            cross.setAttribute('x1', X(i)); cross.setAttribute('x2', X(i)); cross.hidden = false;
+            tip.innerHTML = '<b>' + MONTHS[i] + '</b>' + ys.slice().reverse().map(function (y, k) {
+                return '<small style="display:block"><i class="nn-anl-dotk nn-anl-y' + k + '"></i> ' + y.year + ': ' + fmt(y.months[i], c.unit) + '</small>';
+            }).join('');
+            tip.hidden = false;
+            var px = X(i) / W * r.width;
+            tip.style.left = Math.min(Math.max(px - tip.offsetWidth / 2, 0), r.width - tip.offsetWidth) + 'px';
+            tip.style.top = '4px';
+        });
+        svg.querySelector('.nn-anl-hit').addEventListener('mouseleave', function () { cross.hidden = true; tip.hidden = true; });
+    }
+    function tableYears() {
+        var c = state.chart, ys = c.years || [];
+        tbl.innerHTML = '<table class="nn-tbl"><thead><tr><th>الشهر</th>' + ys.map(function (y) { return '<th>' + y.year + '</th>'; }).join('') +
+            (ys.length > 1 ? '<th>التغير عن ' + ys[ys.length - 2].year + '</th>' : '') + '</tr></thead><tbody>' +
+            MONTHS.map(function (mn, i) {
+                var a = ys[ys.length - 1].months[i], b = ys.length > 1 ? ys[ys.length - 2].months[i] : null;
+                var g = a != null && b ? Math.round((a - b) / Math.abs(b) * 1000) / 10 : null;
+                return '<tr><td>' + mn + '</td>' + ys.map(function (y) { return '<td>' + fmt(y.months[i], c.unit) + '</td>'; }).join('') +
+                    (ys.length > 1 ? '<td class="nn-anl-chg' + chgCls(g) + '">' + pct(g) + '</td>' : '') + '</tr>';
+            }).join('') +
+            '<tr class="nn-anl-ytot"><td>' + (c.kind === 'BALANCE' ? 'رصيد نهاية السنة' : 'إجمالي السنة') + '</td>' +
+            ys.map(function (y) { return '<td>' + fmt(y.total, c.unit) + (y.partial ? ' <small>(حتى الآن)</small>' : '') + '</td>'; }).join('') + (ys.length > 1 ? '<td></td>' : '') + '</tr>' +
+            '<tr class="nn-anl-ytot"><td>' + (c.kind === 'BALANCE' ? 'الرصيد في ' : 'من يناير حتى ') + MONTHS[c.ytdMonth - 1] + '</td>' +
+            ys.map(function (y) { return '<td>' + fmt(y.ytd, c.unit) + '</td>'; }).join('') +
+            (ys.length > 1 ? '<td class="nn-anl-chg' + chgCls(ys[ys.length - 1].ytdGrowthPct) + '">' + pct(ys[ys.length - 1].ytdGrowthPct) + '</td>' : '') + '</tr>' +
+            '<tr class="nn-anl-ytot"><td>نمو السنة عن سابقتها</td>' +
+            ys.map(function (y) { var v = y.partial ? y.ytdGrowthPct : y.growthPct; return '<td class="nn-anl-chg' + chgCls(v) + '">' + pct(v) + (y.partial && v != null ? ' <small>(للفترة المماثلة)</small>' : '') + '</td>'; }).join('') +
+            (ys.length > 1 ? '<td></td>' : '') + '</tr></tbody></table>';
+        tbl.hidden = false;
+    }
     function table() {
         var c = state.chart, rows = (c.history || []).map(function (p) { return [p, false]; }).concat((c.forecast || []).map(function (p) { return [p, true]; }));
         tbl.innerHTML = '<table class="nn-tbl"><thead><tr><th>الفترة</th><th>القيمة</th><th>الحد الأدنى المتوقع</th><th>الحد الأعلى المتوقع</th></tr></thead><tbody>' +
@@ -263,12 +356,14 @@
             loadChart(); return;
         }
         if (e.target.closest('.nn-anl-tbl')) {
+            if (state.grain === 'YEARS') return;
             state.table = !state.table; e.target.closest('.nn-anl-tbl').setAttribute('aria-pressed', state.table); tbl.hidden = !state.table; return;
         }
         if (e.target.closest('.nn-anl-refresh')) { loadView(); loadAnom(); }
     });
     $('.nn-anl-branch').addEventListener('change', function (e) { state.branch = e.target.value; loadView(); });
     $('.nn-anl-periods').addEventListener('change', function (e) { state.periods = +e.target.value; loadChart(); });
-    var rt; window.addEventListener('resize', function () { clearTimeout(rt); rt = setTimeout(function () { if (state.chart) draw(); }, 150); });
+    $('.nn-anl-nyears').addEventListener('change', function (e) { state.nyears = +e.target.value; loadChart(); });
+    var rt; window.addEventListener('resize', function () { clearTimeout(rt); rt = setTimeout(function () { if (state.chart) { if (state.grain === 'YEARS') drawYears(); else draw(); } }, 150); });
     loadView(); loadAnom();
 })();

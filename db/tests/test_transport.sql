@@ -102,7 +102,8 @@ BEGIN
 
   -- ---------------------------------------------------------------- التعرفة والعميل
   SELECT MIN(a.id) INTO l_cust FROM ar_customer_account a JOIN ar_customer c ON c.id = a.customer_id
-   WHERE a.company_id = NOONA_TRN_PKG.company AND NVL(c.is_walk_in, 'N') = 'N' AND a.status_code = 'ACTIVE';
+   WHERE a.company_id = NOONA_TRN_PKG.company AND NVL(c.is_walk_in, 'N') = 'N' AND a.status_code = 'ACTIVE'
+     AND NOT EXISTS (SELECT 1 FROM trn_rate r WHERE r.customer_account_id = a.id);   -- عميل بلا تعرفة خاصة سابقة
   ok('a credit customer exists', l_cust IS NOT NULL);
   l_rt1 := NOONA_TRN_PKG.save_rate('{"name":"عام للطن","basis":"PER_METRIC_TON","rate":40,"minCharge":300}');
   l_rt2 := NOONA_TRN_PKG.save_rate('{"name":"عقد العميل","customer":' || l_cust || ',"route":' || l_r || ',"basis":"PER_METRIC_TON","rate":45}');

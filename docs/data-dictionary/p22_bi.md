@@ -17,6 +17,7 @@
 | [`BI_REPORT_SCHEDULE`](#bi_report_schedule) | جدولة التقارير | Report Schedules | T | INTERNAL |
 | [`BI_EXPORT_LOG`](#bi_export_log) | سجل التصدير | Export Log | T | INTERNAL |
 | [`BI_REFRESH_LOG`](#bi_refresh_log) | سجل تحديث الملخصات | Summary Refresh Log | G | INTERNAL |
+| [`BI_HISTORY_VALUE`](#bi_history_value) | أرقام السنوات السابقة | Prior Years Figures | C | INTERNAL |
 
 ## BI_KPI
 
@@ -288,4 +289,34 @@
 | 7 | `ERROR_MESSAGE` | نص | `VARCHAR2(2000 CHAR)` |  |  |  |  | إدخال المستخدم |  | الخطأ |
 | 8 | `CREATED_BY` | اسم مستخدم | `VARCHAR2(128 CHAR)` | ✔ |  |  |  | Trigger |  | منشئ السجل |
 | 9 | `CREATED_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` | ✔ | SYSTIMESTAMP |  |  | Trigger |  | وقت الإنشاء UTC |
+
+## BI_HISTORY_VALUE
+
+| البند | القيمة |
+|---|---|
+| الاسم العربي | أرقام السنوات السابقة |
+| English | Prior Years Figures |
+| الحزمة المالكة | 22 — `NOONA_BI_PKG` |
+| نطاق الملكية | `C` — مملوك للشركة Company-Owned |
+| الحساسية | INTERNAL |
+| النمط | قابل للتعديل وفق دورة الحياة |
+| الغرض | أرقام شهرية من النظام السابق قبل بدء العمل على نونا، تضاف لسلاسل التحليلات للمقارنة بين السنوات في أي موديول |
+| مفاتيح فريدة | UK1: (TENANT_ID, COMPANY_ID, METRIC_CODE, PERIOD_MONTH, BRANCH_ID) |
+
+| # | العمود | النوع المنطقي | Oracle Type | إلزامي | افتراضي | مفاتيح | القيم المقبولة | المصدر | PII | الوصف |
+|---:|---|---|---|:---:|---|---|---|---|:---:|---|
+| 1 | `ID` | معرف | `NUMBER(19)` | ✔ |  | PK |  | النظام/الحزمة |  | المفتاح الداخلي الثابت (Identity) - لا يعاد استخدامه |
+| 2 | `TENANT_ID` | معرف | `NUMBER(19)` | ✔ |  | FK→PLT_TENANT UK1 |  | Security Context |  | المؤسسة المالكة؛ يملأ من Security Context الموثوق لا من مدخلات المستخدم |
+| 3 | `COMPANY_ID` | معرف | `NUMBER(19)` | ✔ |  | FK→ORG_COMPANY UK1 |  | Security Context |  | الشركة (الكيان القانوني) المالكة للسجل |
+| 4 | `METRIC_CODE` | رمز | `VARCHAR2(30 CHAR)` | ✔ |  | UK1 |  | إدخال المستخدم |  | المؤشر (من كتالوج NOONA_ANL_PKG) |
+| 5 | `PERIOD_MONTH` | تاريخ | `DATE` | ✔ |  | UK1 |  | إدخال المستخدم |  | الشهر (أول يوم فيه) |
+| 6 | `BRANCH_ID` | معرف | `NUMBER(19)` |  |  | FK→ORG_BRANCH UK1 |  | إدخال المستخدم |  | الفرع (فارغ = الشركة كلها) |
+| 7 | `VALUE_AMOUNT` | رقم | `NUMBER` | ✔ |  |  |  | إدخال المستخدم |  | القيمة الشهرية (للأرصدة: رصيد نهاية الشهر) |
+| 8 | `SOURCE_CODE` | رمز | `VARCHAR2(30 CHAR)` | ✔ | 'MANUAL' |  | MANUAL, IMPORT, LEGACY | إدخال المستخدم |  | المصدر |
+| 9 | `NOTES` | نص | `VARCHAR2(4000 CHAR)` |  |  |  |  | إدخال المستخدم |  | ملاحظات |
+| 10 | `ROW_VERSION` | عدد صحيح | `NUMBER(10)` | ✔ | 1 |  |  | Trigger |  | رقم الإصدار للتحكم في التزامن المتفائل |
+| 11 | `CREATED_BY` | اسم مستخدم | `VARCHAR2(128 CHAR)` | ✔ |  |  |  | Trigger |  | منشئ السجل |
+| 12 | `CREATED_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` | ✔ | SYSTIMESTAMP |  |  | Trigger |  | وقت الإنشاء |
+| 13 | `UPDATED_BY` | اسم مستخدم | `VARCHAR2(128 CHAR)` |  |  |  |  | Trigger |  | آخر من عدل السجل |
+| 14 | `UPDATED_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` |  |  |  |  | Trigger |  | وقت آخر تعديل |
 

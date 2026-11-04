@@ -27,7 +27,7 @@
 | 19 | الموارد البشرية | Human Resources | 24 | [p19_hr](p19_hr.md) |
 | 20 | الرواتب | Payroll | 16 | [p20_pay](p20_pay.md) |
 | 21 | التصنيع | Manufacturing | 14 | [p21_mfg](p21_mfg.md) |
-| 22 | التقارير وذكاء الأعمال | Reporting & Business Intelligence | 9 | [p22_bi](p22_bi.md) |
+| 22 | التقارير وذكاء الأعمال | Reporting & Business Intelligence | 10 | [p22_bi](p22_bi.md) |
 | 23 | ORDS وواجهات API والتكاملات | ORDS, APIs & Integrations | 13 | [p23_api](p23_api.md) |
 | 24 | الذكاء الاصطناعي و RAG والوكلاء | AI, RAG & Agents | 15 | [p24_ai](p24_ai.md) |
 | 25 | حزم الدول والتوطين والضرائب | Country Packs, Localization & Tax Engine | 15 | [p25_loc](p25_loc.md) |
@@ -40,7 +40,7 @@
 | 32 | مراكز خدمة السيارات | Auto Service Centers | 10 | [p32_aut](p32_aut.md) |
 | 33 | النقل والشحن والترحيل | Transport & Logistics | 12 | [p33_trn](p33_trn.md) |
 
-**الإجمالي: 658 جدول.**
+**الإجمالي: 659 جدول.**
 
 ## خريطة اعتماديات الحزم
 

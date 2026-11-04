@@ -94,6 +94,7 @@ BEGIN
   NOONA_VPD_PKG.add_shared_policy('BI_DASHBOARD');
   NOONA_VPD_PKG.add_shared_policy('BI_DASHBOARD_WIDGET');
   NOONA_VPD_PKG.add_tenant_policy('BI_EXPORT_LOG');
+  NOONA_VPD_PKG.add_tenant_policy('BI_HISTORY_VALUE');
   NOONA_VPD_PKG.add_shared_policy('BI_KPI');
   NOONA_VPD_PKG.add_tenant_policy('BI_KPI_VALUE');
   NOONA_VPD_PKG.add_shared_policy('BI_REPORT');

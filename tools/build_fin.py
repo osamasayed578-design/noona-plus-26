@@ -645,6 +645,19 @@ p.dynamic('مقارنة الفترات', 20, [
     "    to_date(:P39_FROM2, 'YYYY-MM-DD'), to_date(:P39_TO2, 'YYYY-MM-DD'));"],
     hide_header=True, opts='#DEFAULT#:t-Region--scrollBody:nn-print-area')
 
+# 51) قائمة الدخل لعدة سنوات (السنوات السابقة تفتح من «فتح السنة السابقة» وترحل قيودها)
+p = app.page(51, 'Income by Year', 'INCOME-YEARS', 'قائمة الدخل لعدة سنوات', scheme=TENANT)
+f = p.static('معايير التقرير', 10)
+p.select('P51_YEARS', f, 10, 'عدد السنوات', null_text=None, lov_sql='STATIC2:سنتان;2,3 سنوات;3,4 سنوات;4,5 سنوات;5,6 سنوات;6')
+p.select('P51_SAME', f, 20, 'المقارنة', null_text=None,
+         lov_sql='STATIC2:السنة كاملة (والحالية حتى تاريخه);N,الفترة نفسها من كل سنة (من يناير حتى اليوم);Y')
+p.button(f, 10, 'RUN', 'عرض', hot=True)
+p.button(f, 20, 'PRINT', 'طباعة', redirect='javascript:window.print();')
+p.process(10, 'BEFORE_HEADER', 'Defaults', [":P51_YEARS := nvl(:P51_YEARS, '3');", ":P51_SAME := nvl(:P51_SAME, 'N');"])
+p.dynamic('قائمة الدخل لعدة سنوات', 20, [
+    "return noona_fin_rpt_pkg.income_years(to_number(:P51_YEARS), :P51_SAME);"],
+    hide_header=True, opts='#DEFAULT#:t-Region--scrollBody:nn-print-area')
+
 # 46) الرقابة والتسويات
 p = app.page(46, 'Controls', 'CONTROLS', 'الرقابة والتسويات', scheme=TENANT)
 f = p.static('معايير التقرير', 10)
@@ -792,7 +805,8 @@ app.nav_item('القيود حسب النوع', 50, 'fa-tags', 55, parent=lr)
 an = app.nav_item('التحليل المالي', None, 'fa-bar-chart', 60)
 app.nav_item('تحليل الإيرادات والمصروفات', 34, 'fa-pie-chart', 61, parent=an)
 app.nav_item('مقارنة الفترات', 39, 'fa-sliders', 62, parent=an)
-app.nav_item('النسب المالية', 45, 'fa-percent', 63, parent=an)
+app.nav_item('قائمة الدخل لعدة سنوات', 51, 'fa-calendar', 63, parent=an)
+app.nav_item('النسب المالية', 45, 'fa-percent', 64, parent=an)
 ct = app.nav_item('الرقابة والتدقيق', None, 'fa-shield', 70)
 app.nav_item('الرقابة والتسويات', 46, 'fa-check-square-o', 71, parent=ct)
 app.nav_item('سجل التدقيق المالي', 47, 'fa-history', 72, parent=ct)

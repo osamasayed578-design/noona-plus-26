@@ -42,6 +42,22 @@ CREATE OR REPLACE PACKAGE NOONA_ANL_PKG AUTHID DEFINER AS
   FUNCTION can_group RETURN VARCHAR2;
   -- توزيع مؤشر على شركات المجموعة لفترة: [{id,name,currency,value,sharePct}]
   FUNCTION companies_json(p_metric IN VARCHAR2, p_from IN DATE, p_to IN DATE) RETURN CLOB;
+  -- مقارنة السنوات: أشهر كل سنة متقابلة (يناير..ديسمبر) لآخر p_years سنوات حتى الشهر الحالي، مع إجمالي السنة
+  --   والمنقضي منها (YTD) حتى الشهر نفسه ونمو كل سنة عن سابقتها
+  --   {metric,name,unit,kind,ytdMonth,years:[{year,months:[12 قيمة، المستقبل null],total,ytd,growthPct,ytdGrowthPct}]}
+  FUNCTION years_json(p_metric IN VARCHAR2, p_years IN NUMBER DEFAULT 3, p_branch IN NUMBER DEFAULT NULL,
+                      p_scope IN VARCHAR2 DEFAULT NULL) RETURN CLOB;
+  -- أرقام السنوات السابقة (BI_HISTORY_VALUE): أرقام شهرية من النظام السابق قبل بدء العمل على نونا تضاف للسلاسل
+  -- الشهرية والمؤشرات فتظهر في مقارنة السنوات والتنبؤ؛ لا تقبل لشهر فيه بيانات فعلية في النظام (منعاً للازدواج)
+  --   {metric,name,unit,kind,module,year,branch,months:[{m,value,actual,locked,source,notes}],canEdit}
+  FUNCTION history_json(p_metric IN VARCHAR2, p_year IN NUMBER, p_branch IN NUMBER DEFAULT NULL) RETURN CLOB;
+  -- p_values: JSON بمصفوفة 12 قيمة (null = حذف قيمة الشهر)؛ يعيد عدد الأشهر المحفوظة
+  FUNCTION save_history(p_metric IN VARCHAR2, p_year IN NUMBER, p_branch IN NUMBER, p_values IN CLOB,
+                        p_source IN VARCHAR2 DEFAULT 'MANUAL', p_notes IN VARCHAR2 DEFAULT NULL) RETURN NUMBER;
+  -- ملخص ما أدخل: [{metric,name,module,moduleName,unit,years:[{year,months,total}]}]
+  FUNCTION history_summary_json RETURN CLOB;
+  -- استيراد CSV: metric,yyyy-mm,value[,branch_code] سطر لكل شهر ← {saved, errors:[{line,msg}]}
+  FUNCTION import_history_csv(p_csv IN CLOB, p_source IN VARCHAR2 DEFAULT 'IMPORT') RETURN CLOB;
   -- الحساب الإحصائي (عام لاختباره منفرداً): السلسلة مفصولة بفواصل ← JSON التنبؤ
   FUNCTION forecast_values(p_values IN VARCHAR2, p_periods IN NUMBER, p_season IN NUMBER DEFAULT 12) RETURN CLOB;
 END NOONA_ANL_PKG;
@@ -86,8 +102,8 @@ CREATE OR REPLACE PACKAGE BODY NOONA_ANL_PKG AS
   END def;
 
   PROCEDURE load_defs IS
-    c_gl CONSTANT VARCHAR2(400) := ' gl_journal_line l JOIN gl_journal j ON j.id = l.journal_id JOIN gl_account a ON a.id = l.account_id'
-                                || ' WHERE j.company_id = :co AND j.status_code = ''POSTED''';
+    c_gl CONSTANT VARCHAR2(500) := ' gl_journal_line l JOIN gl_journal j ON j.id = l.journal_id JOIN gl_account a ON a.id = l.account_id'
+                                || ' WHERE j.company_id = :co AND j.status_code = ''POSTED'' AND NVL(j.journal_category, ''-'') <> ''CLOSING''';
   BEGIN
     IF g_defs.COUNT > 0 THEN RETURN; END IF;
     -- المالية (من القيود المرحلة: كل الموديولات تقيد في الأستاذ العام)
@@ -251,6 +267,24 @@ CREATE OR REPLACE PACKAGE BODY NOONA_ANL_PKG AS
         || CASE WHEN g_scope = 'COMPANY' AND p_branch IS NOT NULL AND d.br IS NOT NULL THEN ' AND ' || d.br || ' = ' || TO_CHAR(TRUNC(p_branch)) END;
   END where_period;
 
+  -- مجموع أرقام السنوات السابقة لأشهر كاملة داخل الفترة (للأرصدة: رصيد شهر نهاية الفترة)
+  FUNCTION hist_sum(d t_def, p_cos SYS.ODCINUMBERLIST, p_from DATE, p_to DATE, p_branch NUMBER) RETURN NUMBER IS
+    l NUMBER;
+    l_b NUMBER := CASE WHEN g_scope = 'COMPANY' THEN p_branch END;
+  BEGIN
+    IF d.kind = 'BALANCE' THEN
+      SELECT SUM(h.value_amount) INTO l FROM bi_history_value h
+       WHERE h.metric_code = d.code AND h.company_id IN (SELECT column_value FROM TABLE(p_cos))
+         AND (l_b IS NULL OR h.branch_id = l_b) AND h.period_month = TRUNC(p_to, 'MM');
+    ELSE
+      SELECT SUM(h.value_amount) INTO l FROM bi_history_value h
+       WHERE h.metric_code = d.code AND h.company_id IN (SELECT column_value FROM TABLE(p_cos))
+         AND (l_b IS NULL OR h.branch_id = l_b)
+         AND h.period_month >= TRUNC(p_from) AND LAST_DAY(h.period_month) <= TRUNC(p_to);
+    END IF;
+    RETURN NVL(l, 0);
+  END hist_sum;
+
   FUNCTION kpi_val(d t_def, p_cos SYS.ODCINUMBERLIST, p_from DATE, p_to DATE, p_branch NUMBER) RETURN NUMBER IS
     l NUMBER;
   BEGIN
@@ -259,7 +293,7 @@ CREATE OR REPLACE PACKAGE BODY NOONA_ANL_PKG AS
     ELSE
       EXECUTE IMMEDIATE 'SELECT ' || d.val || ' FROM' || src(d) || where_period(d, p_branch) INTO l USING p_cos, TRUNC(p_from), TRUNC(p_to);
     END IF;
-    RETURN ROUND(NVL(l, 0), 2);
+    RETURN ROUND(NVL(l, 0) + hist_sum(d, p_cos, p_from, p_to, p_branch), 2);
   END kpi_val;
 
   FUNCTION kpi(p_metric IN VARCHAR2, p_from IN DATE, p_to IN DATE, p_branch IN NUMBER DEFAULT NULL, p_scope IN VARCHAR2 DEFAULT NULL) RETURN NUMBER IS
@@ -300,6 +334,8 @@ CREATE OR REPLACE PACKAGE BODY NOONA_ANL_PKG AS
     l_k   PLS_INTEGER := 0;
     l_open NUMBER := 0;
     l_g   VARCHAR2(10) := CASE p_grain WHEN 'DAY' THEN 'DD' WHEN 'WEEK' THEN 'IW' ELSE 'MM' END;
+    l_cs  SYS.ODCINUMBERLIST;
+    l_hb  DATE := TRUNC(p_from, 'MM');
   BEGIN
     IF d.kind = 'BALANCE' THEN
       EXECUTE IMMEDIATE 'SELECT ' || d.val || ' FROM' || src(d) || ' AND ' || d.dt || ' < :b'
@@ -323,6 +359,19 @@ CREATE OR REPLACE PACKAGE BODY NOONA_ANL_PKG AS
       IF d.kind = 'BALANCE' THEN l_open := l_open + o_v(l_k); o_v(l_k) := l_open; END IF;
       l_b := CASE p_grain WHEN 'DAY' THEN l_b + 1 WHEN 'WEEK' THEN l_b + 7 ELSE ADD_MONTHS(l_b, 1) END;
     END LOOP;
+    -- أرقام السنوات السابقة تضاف للعرض الشهري
+    IF p_grain = 'MONTH' AND l_k > 0 THEN
+      l_cs := cos(d);
+      FOR h IN (SELECT TO_NUMBER(TO_CHAR(period_month, 'J')) j, SUM(value_amount) v FROM bi_history_value
+                 WHERE metric_code = d.code AND company_id IN (SELECT column_value FROM TABLE(l_cs))
+                   AND (g_scope <> 'COMPANY' OR p_branch IS NULL OR branch_id = p_branch)
+                   AND period_month BETWEEN l_hb AND l_e
+                 GROUP BY period_month) LOOP
+        FOR i IN 1 .. l_k LOOP
+          IF o_p(i) = h.j THEN o_v(i) := o_v(i) + h.v; END IF;
+        END LOOP;
+      END LOOP;
+    END IF;
   END series;
 
   FUNCTION plabel(p_j NUMBER, p_grain VARCHAR2) RETURN VARCHAR2 IS
@@ -588,6 +637,268 @@ CREATE OR REPLACE PACKAGE BODY NOONA_ANL_PKG AS
                                          TRUNC(SYSDATE), l_g, p_branch, p_scope)
         || ',"forecast":[],"scope":"' || g_scope || '"}';
   END chart_json;
+
+  FUNCTION years_json(p_metric IN VARCHAR2, p_years IN NUMBER DEFAULT 3, p_branch IN NUMBER DEFAULT NULL,
+                      p_scope IN VARCHAR2 DEFAULT NULL) RETURN CLOB IS
+    d      t_def := find(p_metric);
+    l_n    PLS_INTEGER := LEAST(GREATEST(NVL(TRUNC(p_years), 3), 2), 6);
+    l_m    PLS_INTEGER := TO_NUMBER(TO_CHAR(SYSDATE, 'MM'));
+    l_y    PLS_INTEGER := TO_NUMBER(TO_CHAR(SYSDATE, 'YYYY'));
+    l_p    t_nums;
+    l_v    t_nums;
+    l      CLOB;
+    l_tot  t_nums;
+    l_ytd  t_nums;
+    l_last t_nums;   -- قيمة آخر شهر في السنة (للأرصدة: الإجمالي هو رصيد نهاية الفترة)
+    k      PLS_INTEGER;
+    l_yr   PLS_INTEGER;
+  BEGIN
+    scope(p_scope);
+    guard(d);
+    series(d, TO_DATE((l_y - l_n + 1) || '-01-01', 'YYYY-MM-DD'), TRUNC(SYSDATE, 'MM'), 'MONTH', p_branch, l_p, l_v);
+    l := '{"metric":"' || d.code || '","name":' || jt(d.name) || ',"unit":"' || d.unit || '","kind":"' || d.kind
+      || '","ytdMonth":' || l_m || ',"scope":"' || g_scope || '","years":[';
+    FOR i IN 1 .. l_n LOOP
+      l_yr := l_y - l_n + i;
+      l_tot(i) := 0; l_ytd(i) := 0; l_last(i) := NULL;
+      l := l || CASE WHEN i > 1 THEN ',' END || '{"year":' || l_yr || ',"months":[';
+      FOR m IN 1 .. 12 LOOP
+        k := (i - 1) * 12 + m;
+        IF k <= l_v.COUNT THEN
+          l := l || CASE WHEN m > 1 THEN ',' END || num(l_v(k));
+          IF d.kind = 'BALANCE' THEN
+            l_last(i) := l_v(k);
+            IF m = l_m THEN l_ytd(i) := l_v(k); END IF;
+          ELSE
+            l_tot(i) := l_tot(i) + l_v(k);
+            IF m <= l_m THEN l_ytd(i) := l_ytd(i) + l_v(k); END IF;
+          END IF;
+        ELSE
+          l := l || CASE WHEN m > 1 THEN ',' END || 'null';
+        END IF;
+      END LOOP;
+      IF d.kind = 'BALANCE' THEN l_tot(i) := l_last(i); END IF;
+      l := l || '],"total":' || num(l_tot(i)) || ',"ytd":' || num(l_ytd(i))
+        || ',"growthPct":' || num(CASE WHEN i > 1 AND i < l_n AND l_tot(i - 1) <> 0
+                                       THEN ROUND((l_tot(i) - l_tot(i - 1)) / ABS(l_tot(i - 1)) * 100, 1) END)
+        || ',"ytdGrowthPct":' || num(CASE WHEN i > 1 AND l_ytd(i - 1) <> 0
+                                          THEN ROUND((l_ytd(i) - l_ytd(i - 1)) / ABS(l_ytd(i - 1)) * 100, 1) END)
+        || ',"partial":' || CASE WHEN i = l_n THEN 'true' ELSE 'false' END || '}';
+    END LOOP;
+    RETURN l || ']}';
+  END years_json;
+
+  -- ---------------------------------------------------------------- أرقام السنوات السابقة
+  -- القيمة الفعلية من النظام لشهر (بلا أرقام السنوات السابقة)
+  FUNCTION actual_month(d t_def, p_month DATE, p_branch NUMBER) RETURN NUMBER IS
+    l NUMBER;
+    l_to DATE := LAST_DAY(p_month);
+  BEGIN
+    IF d.kind = 'BALANCE' THEN
+      EXECUTE IMMEDIATE 'SELECT ' || d.val || ' FROM' || src(d) || where_period(d, p_branch) INTO l USING SYS.ODCINUMBERLIST(company), l_to;
+    ELSE
+      EXECUTE IMMEDIATE 'SELECT ' || d.val || ' FROM' || src(d) || where_period(d, p_branch) INTO l USING SYS.ODCINUMBERLIST(company), p_month, l_to;
+    END IF;
+    RETURN ROUND(NVL(l, 0), 2);
+  END actual_month;
+
+  FUNCTION history_json(p_metric IN VARCHAR2, p_year IN NUMBER, p_branch IN NUMBER DEFAULT NULL) RETURN CLOB IS
+    d     t_def := find(p_metric);
+    l     CLOB;
+    l_m   DATE;
+    l_act NUMBER;
+    l_val NUMBER;
+    l_src VARCHAR2(30);
+    l_nt  VARCHAR2(4000);
+    l_can VARCHAR2(1) := NOONA_SECURITY_PKG.has_permission('BI_HISTORY_VALUE.CREATE', company);
+  BEGIN
+    scope('COMPANY');
+    guard(d);
+    NOONA_SECURITY_PKG.assert_permission('BI_HISTORY_VALUE.VIEW', company);
+    NOONA_CORE_PKG.assert(p_year BETWEEN 1990 AND TO_NUMBER(TO_CHAR(SYSDATE, 'YYYY')), 'NOONA-ANL-010', 'السنة غير صحيحة', 'Invalid year');
+    l := '{"metric":"' || d.code || '","name":' || jt(d.name) || ',"unit":"' || d.unit || '","kind":"' || d.kind
+      || '","module":"' || d.module || '","moduleName":' || jt(module_name(d.module)) || ',"year":' || TRUNC(p_year)
+      || ',"branch":' || NVL(TO_CHAR(p_branch), 'null') || ',"canEdit":' || CASE WHEN l_can = 'Y' THEN 'true' ELSE 'false' END
+      || ',"branchApplies":' || CASE WHEN d.br IS NOT NULL THEN 'true' ELSE 'false' END || ',"months":[';
+    FOR m IN 1 .. 12 LOOP
+      l_m := TO_DATE(TRUNC(p_year) || '-' || LPAD(m, 2, '0') || '-01', 'YYYY-MM-DD');
+      l_val := NULL; l_src := NULL; l_nt := NULL;
+      BEGIN
+        SELECT value_amount, source_code, notes INTO l_val, l_src, l_nt FROM bi_history_value
+         WHERE company_id = company AND metric_code = d.code AND period_month = l_m
+           AND (branch_id = p_branch OR (branch_id IS NULL AND p_branch IS NULL));
+      EXCEPTION WHEN NO_DATA_FOUND THEN NULL;
+      END;
+      l_act := CASE WHEN l_m <= SYSDATE THEN actual_month(d, l_m, p_branch) END;
+      l := l || CASE WHEN m > 1 THEN ',' END || '{"m":' || m || ',"value":' || num(l_val) || ',"actual":' || num(l_act)
+        || ',"locked":' || CASE WHEN l_m > TRUNC(SYSDATE, 'MM') OR (NVL(l_act, 0) <> 0 AND l_val IS NULL) THEN 'true' ELSE 'false' END
+        || ',"future":' || CASE WHEN l_m > TRUNC(SYSDATE, 'MM') THEN 'true' ELSE 'false' END
+        || ',"source":' || CASE WHEN l_src IS NULL THEN 'null' ELSE '"' || l_src || '"' END || ',"notes":' || jt(l_nt) || '}';
+    END LOOP;
+    RETURN l || ']}';
+  END history_json;
+
+  FUNCTION put_history(d t_def, p_month DATE, p_branch NUMBER, p_value NUMBER, p_source VARCHAR2, p_notes VARCHAR2) RETURN NUMBER IS
+    l_act NUMBER;
+  BEGIN
+    IF p_value IS NULL THEN
+      DELETE FROM bi_history_value WHERE company_id = company AND metric_code = d.code AND period_month = p_month
+         AND (branch_id = p_branch OR (branch_id IS NULL AND p_branch IS NULL));
+      RETURN 0;
+    END IF;
+    NOONA_CORE_PKG.assert(p_month <= TRUNC(SYSDATE, 'MM'), 'NOONA-ANL-011', 'لا تدخل أرقاماً لشهر لم يأت بعد: ' || TO_CHAR(p_month, 'YYYY-MM'),
+      'Future month');
+    l_act := actual_month(d, p_month, p_branch);
+    NOONA_CORE_PKG.assert(l_act = 0, 'NOONA-ANL-012',
+      'شهر ' || TO_CHAR(p_month, 'YYYY-MM') || ' فيه بيانات فعلية في النظام (' || TO_CHAR(l_act) || ')؛ أرقام السنوات السابقة للأشهر قبل بدء العمل فقط',
+      'Month has actual data');
+    NOONA_CORE_PKG.assert(d.unit = 'AMOUNT' OR p_value >= 0, 'NOONA-ANL-013', 'القيمة لا تكون سالبة لهذا المؤشر', 'Negative value');
+    MERGE INTO bi_history_value t
+    USING (SELECT company c, d.code mc, p_month pm, p_branch br FROM dual) s
+       ON (t.company_id = s.c AND t.metric_code = s.mc AND t.period_month = s.pm AND (t.branch_id = s.br OR (t.branch_id IS NULL AND s.br IS NULL)))
+     WHEN MATCHED THEN UPDATE SET t.value_amount = p_value, t.source_code = NVL(p_source, 'MANUAL'), t.notes = NVL(p_notes, t.notes)
+     WHEN NOT MATCHED THEN INSERT (tenant_id, company_id, metric_code, period_month, branch_id, value_amount, source_code, notes)
+          VALUES (TO_NUMBER(SYS_CONTEXT('NOONA_CTX', 'TENANT_ID')), s.c, s.mc, s.pm, s.br, p_value, NVL(p_source, 'MANUAL'), p_notes);
+    RETURN 1;
+  END put_history;
+
+  PROCEDURE check_branch(d t_def, p_branch NUMBER) IS
+    l_n NUMBER;
+  BEGIN
+    IF p_branch IS NULL THEN RETURN; END IF;
+    NOONA_CORE_PKG.assert(d.br IS NOT NULL, 'NOONA-ANL-014', 'هذا المؤشر لا يفصل بالفروع؛ أدخله للشركة كلها', 'Metric has no branch');
+    SELECT COUNT(*) INTO l_n FROM org_branch WHERE id = p_branch AND company_id = company;
+    NOONA_CORE_PKG.assert(l_n = 1, 'NOONA-ANL-015', 'الفرع غير موجود في الشركة الحالية', 'Branch not in company');
+  END check_branch;
+
+  FUNCTION save_history(p_metric IN VARCHAR2, p_year IN NUMBER, p_branch IN NUMBER, p_values IN CLOB,
+                        p_source IN VARCHAR2 DEFAULT 'MANUAL', p_notes IN VARCHAR2 DEFAULT NULL) RETURN NUMBER IS
+    d    t_def := find(p_metric);
+    l_n  NUMBER := 0;
+    l_v  NUMBER;
+    l_tx VARCHAR2(100);
+    l_ar JSON_ARRAY_T;
+  BEGIN
+    scope('COMPANY');
+    guard(d);
+    NOONA_CORE_PKG.assert_tenant_writable;
+    NOONA_SECURITY_PKG.assert_permission('BI_HISTORY_VALUE.CREATE', company);
+    NOONA_CORE_PKG.assert(p_year BETWEEN 1990 AND TO_NUMBER(TO_CHAR(SYSDATE, 'YYYY')), 'NOONA-ANL-010', 'السنة غير صحيحة', 'Invalid year');
+    check_branch(d, p_branch);
+    l_ar := JSON_ARRAY_T.parse(p_values);
+    NOONA_CORE_PKG.assert(l_ar.get_size = 12, 'NOONA-ANL-016', 'المطلوب 12 قيمة شهرية', '12 values expected');
+    FOR m IN 1 .. 12 LOOP
+      l_v := NULL;
+      IF NOT l_ar.get(m - 1).is_null THEN
+        l_tx := TRIM(REPLACE(l_ar.get(m - 1).to_string, '"'));
+        IF l_tx IS NOT NULL THEN
+          BEGIN
+            l_v := TO_NUMBER(REPLACE(l_tx, ','), '99999999999999990D9999', 'NLS_NUMERIC_CHARACTERS=''.,''');
+          EXCEPTION WHEN VALUE_ERROR OR INVALID_NUMBER THEN
+            NOONA_CORE_PKG.raise_error('NOONA-ANL-017', 'قيمة غير رقمية لشهر ' || m || ': ' || l_tx, 'Not a number');
+          END;
+        END IF;
+      END IF;
+      l_n := l_n + put_history(d, TO_DATE(TRUNC(p_year) || '-' || LPAD(m, 2, '0') || '-01', 'YYYY-MM-DD'), p_branch, l_v, p_source, p_notes);
+    END LOOP;
+    NOONA_AUDIT_PKG.log_event('DATA_CHANGE', 'BI_HISTORY_VALUE', NULL, 'SAVE_HISTORY ' || d.code || ' ' || TRUNC(p_year), 'SUCCESS');
+    RETURN l_n;
+  END save_history;
+
+  FUNCTION history_summary_json RETURN CLOB IS
+    l     CLOB := '[';
+    l_cur VARCHAR2(40);
+    l_d   t_def;
+    l_fy  BOOLEAN := TRUE;
+  BEGIN
+    scope('COMPANY');
+    NOONA_SECURITY_PKG.assert_permission('BI_HISTORY_VALUE.VIEW', company);
+    FOR r IN (SELECT metric_code, EXTRACT(YEAR FROM period_month) yr, COUNT(DISTINCT period_month) n, SUM(value_amount) tot,
+                     MAX(source_code) src
+                FROM bi_history_value WHERE company_id = company
+               GROUP BY metric_code, EXTRACT(YEAR FROM period_month) ORDER BY metric_code, yr) LOOP
+      IF l_cur IS NULL OR l_cur <> r.metric_code THEN
+        IF l_cur IS NOT NULL THEN l := l || ']}'; END IF;
+        l_d := find(r.metric_code);
+        l := l || CASE WHEN l_cur IS NOT NULL THEN ',' END || '{"metric":"' || l_d.code || '","name":' || jt(l_d.name)
+          || ',"module":"' || l_d.module || '","moduleName":' || jt(module_name(l_d.module)) || ',"unit":"' || l_d.unit
+          || '","kind":"' || l_d.kind || '","years":[';
+        l_cur := r.metric_code; l_fy := TRUE;
+      END IF;
+      l := l || CASE WHEN NOT l_fy THEN ',' END || '{"year":' || r.yr || ',"months":' || r.n || ',"total":' || num(r.tot) || '}';
+      l_fy := FALSE;
+    END LOOP;
+    IF l_cur IS NOT NULL THEN l := l || ']}'; END IF;
+    RETURN l || ']';
+  END history_summary_json;
+
+  FUNCTION import_history_csv(p_csv IN CLOB, p_source IN VARCHAR2 DEFAULT 'IMPORT') RETURN CLOB IS
+    l_line  VARCHAR2(4000);
+    l_pos   PLS_INTEGER := 1;
+    l_nl    PLS_INTEGER;
+    l_no    PLS_INTEGER := 0;
+    l_ok    PLS_INTEGER := 0;
+    l_err   CLOB := '[';
+    l_ne    PLS_INTEGER := 0;
+    l_len   PLS_INTEGER := NVL(DBMS_LOB.getlength(p_csv), 0);
+    l_f1    VARCHAR2(100);
+    l_f2    VARCHAR2(100);
+    l_f3    VARCHAR2(100);
+    l_f4    VARCHAR2(100);
+    l_br    NUMBER;
+    l_d     t_def;
+    l_month DATE;
+    l_val   NUMBER;
+  BEGIN
+    scope('COMPANY');
+    NOONA_CORE_PKG.assert_tenant_writable;
+    NOONA_SECURITY_PKG.assert_permission('BI_HISTORY_VALUE.CREATE', company);
+    WHILE l_pos <= l_len AND l_no < 20000 LOOP
+      l_nl := DBMS_LOB.instr(p_csv, CHR(10), l_pos);
+      IF l_nl = 0 THEN l_nl := l_len + 1; END IF;
+      l_line := TRIM(REPLACE(DBMS_LOB.substr(p_csv, LEAST(l_nl - l_pos, 4000), l_pos), CHR(13)));
+      l_pos := l_nl + 1;
+      l_no := l_no + 1;
+      CONTINUE WHEN l_line IS NULL OR (l_no = 1 AND UPPER(l_line) LIKE 'METRIC%');
+      BEGIN
+        l_line := REPLACE(l_line, ';', ',');
+        l_f1 := UPPER(TRIM(REGEXP_SUBSTR(l_line, '[^,]*', 1, 1)));
+        l_f2 := TRIM(REGEXP_SUBSTR(l_line, '[^,]*', 1, 3));
+        l_f3 := TRIM(REGEXP_SUBSTR(l_line, '[^,]*', 1, 5));
+        l_f4 := TRIM(REGEXP_SUBSTR(l_line, '[^,]*', 1, 7));
+        l_d := find(l_f1);
+        guard(l_d);
+        BEGIN
+          l_month := TO_DATE(SUBSTR(REPLACE(l_f2, '/', '-'), 1, 7) || '-01', 'YYYY-MM-DD');
+        EXCEPTION WHEN OTHERS THEN
+          NOONA_CORE_PKG.raise_error('NOONA-ANL-018', 'الشهر يكتب YYYY-MM: ' || l_f2, 'Month format YYYY-MM');
+        END;
+        BEGIN
+          l_val := TO_NUMBER(l_f3, '99999999999999990D9999', 'NLS_NUMERIC_CHARACTERS=''.,''');
+        EXCEPTION WHEN OTHERS THEN
+          NOONA_CORE_PKG.raise_error('NOONA-ANL-017', 'قيمة غير رقمية: ' || l_f3, 'Not a number');
+        END;
+        l_br := NULL;
+        IF l_f4 IS NOT NULL THEN
+          BEGIN
+            SELECT id INTO l_br FROM org_branch WHERE company_id = company AND UPPER(code) = UPPER(l_f4);
+          EXCEPTION WHEN NO_DATA_FOUND THEN
+            NOONA_CORE_PKG.raise_error('NOONA-ANL-015', 'رمز الفرع غير موجود: ' || l_f4, 'Unknown branch');
+          END;
+          check_branch(l_d, l_br);
+        END IF;
+        l_ok := l_ok + put_history(l_d, l_month, l_br, l_val, NVL(p_source, 'IMPORT'), NULL);
+      EXCEPTION WHEN OTHERS THEN
+        IF l_ne < 200 THEN
+          l_err := l_err || CASE WHEN l_ne > 0 THEN ',' END || '{"line":' || l_no || ',"msg":'
+            || jt(NVL(REGEXP_SUBSTR(SQLERRM, 'NOONA-[A-Z]+-[0-9]+: [^' || CHR(10) || ']+'), SQLERRM)) || '}';
+        END IF;
+        l_ne := l_ne + 1;
+      END;
+    END LOOP;
+    NOONA_AUDIT_PKG.log_event('DATA_CHANGE', 'BI_HISTORY_VALUE', NULL, 'IMPORT_HISTORY ' || l_ok, 'SUCCESS');
+    RETURN '{"saved":' || l_ok || ',"errorCount":' || l_ne || ',"errors":' || l_err || ']}';
+  END import_history_csv;
 
   FUNCTION companies_json(p_metric IN VARCHAR2, p_from IN DATE, p_to IN DATE) RETURN CLOB IS
     d     t_def := find(p_metric);
