@@ -42,13 +42,23 @@ DECLARE
   BEGIN
     RETURN TO_CHAR(ROUND(p, 2), 'FM9999999990.00', 'NLS_NUMERIC_CHARACTERS=''.,''');
   END amt;
+  -- حسابات الشركة الموجودة فعلاً (موديول غير مجهز في الشركة = حسابه غير موجود فيتجاهل)
+  FUNCTION has_acc(p_acc VARCHAR2) RETURN BOOLEAN IS
+    l NUMBER;
+  BEGIN
+    SELECT COUNT(*) INTO l FROM gl_account a JOIN gl_ledger g ON g.coa_id = a.coa_id
+     WHERE g.id = NOONA_GL_PKG.primary_ledger AND a.account_code = p_acc AND a.is_postable = 'Y' AND a.allow_manual_posting = 'Y';
+    RETURN l > 0;
+  END has_acc;
   PROCEDURE cr(p_acc VARCHAR2, p NUMBER) IS
   BEGIN
+    IF NOT has_acc(p_acc) THEN RETURN; END IF;
     l_lines := l_lines || CASE WHEN l_lines IS NOT NULL THEN ',' END || '{"a":"' || p_acc || '","c":' || amt(p) || '}';
     l_rev := l_rev + ROUND(p, 2);
   END cr;
   PROCEDURE dr(p_acc VARCHAR2, p NUMBER) IS
   BEGIN
+    IF NOT has_acc(p_acc) THEN RETURN; END IF;
     l_lines := l_lines || CASE WHEN l_lines IS NOT NULL THEN ',' END || '{"a":"' || p_acc || '","d":' || amt(p) || '}';
     l_exp := l_exp + ROUND(p, 2);
   END dr;
