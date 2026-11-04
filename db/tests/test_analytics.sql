@@ -1,0 +1,179 @@
+-- =============================================================================
+-- NOONA PLUS ERP | اختبار محرك التحليلات والتنبؤ بحساب NOONA_APP - يتراجع في النهاية
+--   الحساب الإحصائي (Holt/Holt-Winters/المتوسط)، الكتالوج والصلاحيات، قيمة المؤشر وتطابقها مع القيود المرحلة،
+--   السلسلة الشهرية، الأرصدة التراكمية، المقارنة بالفترة السابقة، التنبؤ، اللوحات، والقيم الشاذة
+-- التشغيل: sqlplus NOONA_APP@//host:1521/PDB @tests/test_analytics.sql
+-- =============================================================================
+SET DEFINE OFF
+SET SERVEROUTPUT ON SIZE UNLIMITED
+SET FEEDBACK OFF
+WHENEVER SQLERROR EXIT SQL.SQLCODE
+
+PROMPT ========== Client character set check (NLS_LANG must end with .AL32UTF8)
+BEGIN
+  IF LENGTH('نونا') <> 4 THEN
+    RAISE_APPLICATION_ERROR(-20000, 'NOONA-INS-001: Client character set is not UTF-8; Arabic text would be corrupted. '
+      || 'Windows CMD: set NLS_LANG=AMERICAN_AMERICA.AL32UTF8  then run sqlplus again.');
+  END IF;
+END;
+/
+
+DECLARE
+  g_pass PLS_INTEGER := 0;
+  g_fail PLS_INTEGER := 0;
+  l_c    CLOB;
+  l_j    JSON_OBJECT_T;
+  l_a    JSON_ARRAY_T;
+  l_o    JSON_OBJECT_T;
+  l_v    NUMBER;
+  l_x    NUMBER;
+  l_sum  NUMBER;
+  l_from DATE := ADD_MONTHS(TRUNC(SYSDATE, 'YYYY'), -24);
+  l_to   DATE := TRUNC(SYSDATE);
+  l_ok   BOOLEAN;
+
+  PROCEDURE ok(p_name VARCHAR2, p_cond BOOLEAN, p_info VARCHAR2 DEFAULT NULL) IS
+  BEGIN
+    IF p_cond THEN g_pass := g_pass + 1; DBMS_OUTPUT.PUT_LINE('PASS  ' || p_name);
+    ELSE g_fail := g_fail + 1; DBMS_OUTPUT.PUT_LINE('FAIL  ' || p_name || CASE WHEN p_info IS NOT NULL THEN '  -> ' || p_info END);
+    END IF;
+  END ok;
+  PROCEDURE rejects(p_name VARCHAR2, p_code VARCHAR2, p_sql VARCHAR2) IS
+  BEGIN
+    EXECUTE IMMEDIATE p_sql;
+    ok(p_name, FALSE, 'accepted');
+  EXCEPTION WHEN OTHERS THEN
+    ok(p_name, INSTR(SQLERRM, p_code) > 0, SUBSTR(SQLERRM, 1, 200));
+  END rejects;
+  FUNCTION fv(p_doc CLOB, p_i PLS_INTEGER, p_k VARCHAR2 DEFAULT 'v') RETURN NUMBER IS
+    l JSON_ARRAY_T := JSON_OBJECT_T.parse(p_doc).get_array('forecast');
+  BEGIN
+    RETURN TREAT(l.get(p_i - 1) AS JSON_OBJECT_T).get_number(p_k);
+  END fv;
+BEGIN
+  -- ---------------------------------------------------------------- الحساب الإحصائي
+  l_c := NOONA_ANL_PKG.forecast_values('10,20,30,40,50,60,70,80', 3, 12);
+  l_j := JSON_OBJECT_T.parse(l_c);
+  ok('linear series uses Holt', l_j.get_string('method') = 'HOLT', l_j.get_string('method'));
+  ok('Holt continues a perfect line: 90, 100, 110',
+     ABS(fv(l_c, 1) - 90) < 0.5 AND ABS(fv(l_c, 2) - 100) < 0.5 AND ABS(fv(l_c, 3) - 110) < 0.5, fv(l_c, 1) || ' ' || fv(l_c, 3));
+  ok('perfect line has ~zero error', l_j.get_number('rmse') < 0.01, l_j.get_number('rmse'));
+  ok('forecast has 3 periods', l_j.get_array('forecast').get_size = 3);
+  ok('confidence band widens with horizon',
+     fv(l_c, 3, 'hi') - fv(l_c, 3, 'lo') >= fv(l_c, 1, 'hi') - fv(l_c, 1, 'lo'));
+
+  -- موسمية: سنتان بنمط شهري متكرر حول اتجاه
+  l_c := NOONA_ANL_PKG.forecast_values('100,120,140,110,90,80,100,130,150,120,100,90,'
+                                    || '110,130,150,120,100,90,110,140,160,130,110,100', 12, 12);
+  l_j := JSON_OBJECT_T.parse(l_c);
+  ok('24 points use Holt-Winters', l_j.get_string('method') = 'HOLT_WINTERS', l_j.get_string('method'));
+  ok('seasonal peak (month 9) above trough (month 6)', fv(l_c, 9) > fv(l_c, 6), fv(l_c, 9) || ' vs ' || fv(l_c, 6));
+  ok('seasonal forecast near next-year pattern (month 1 ~ 120)', ABS(fv(l_c, 1) - 120) < 15, fv(l_c, 1));
+  ok('trend percent positive', l_j.get_number('trendPct') > 0, l_j.get_number('trendPct'));
+
+  l_c := NOONA_ANL_PKG.forecast_values('50,70', 2, 12);
+  ok('two points fall back to the average', JSON_OBJECT_T.parse(l_c).get_string('method') = 'AVERAGE' AND fv(l_c, 1) = 60);
+
+  -- ---------------------------------------------------------------- السياق والصلاحيات
+  rejects('no company context is rejected', 'NOONA-ANL-002',
+          'DECLARE x NUMBER; BEGIN x := NOONA_ANL_PKG.kpi(''REVENUE'', SYSDATE - 30, SYSDATE); END;');
+  NOONA_APEX_PKG.post_auth('ADMIN', TRUNC(DBMS_RANDOM.VALUE(1e12, 9e12)));
+  ok('company context set', NOONA_ANL_PKG.company IS NOT NULL);
+  rejects('unknown metric is rejected', 'NOONA-ANL-001',
+          'DECLARE x NUMBER; BEGIN x := NOONA_ANL_PKG.kpi(''NO_SUCH'', SYSDATE - 30, SYSDATE); END;');
+
+  l_a := JSON_ARRAY_T.parse(NOONA_ANL_PKG.metrics_json);
+  ok('admin sees the full catalog (20+ metrics)', l_a.get_size >= 20, l_a.get_size);
+  l_a := JSON_ARRAY_T.parse(NOONA_ANL_PKG.metrics_json('FIN'));
+  ok('finance catalog has 6 metrics', l_a.get_size = 6, l_a.get_size);
+  l_o := TREAT(l_a.get(0) AS JSON_OBJECT_T);
+  ok('catalog entry carries Arabic name and module name', l_o.get_string('name') = 'الإيرادات' AND l_o.get_string('moduleName') = 'المالية');
+  ok('metric_name works', NOONA_ANL_PKG.metric_name('pos_sales') = 'مبيعات نقاط البيع');
+  ok('is_allowed for admin', NOONA_ANL_PKG.is_allowed('REVENUE') = 'Y');
+
+  -- ---------------------------------------------------------------- كل مؤشر يعمل (يكشف أخطاء SQL الديناميكي)
+  l_ok := TRUE;
+  l_a := JSON_ARRAY_T.parse(NOONA_ANL_PKG.metrics_json);
+  FOR i IN 0 .. l_a.get_size - 1 LOOP
+    DECLARE
+      l_m VARCHAR2(40) := TREAT(l_a.get(i) AS JSON_OBJECT_T).get_string('code');
+    BEGIN
+      l_v := NOONA_ANL_PKG.kpi(l_m, l_from, l_to);
+      l_c := NOONA_ANL_PKG.series_json(l_m, ADD_MONTHS(l_to, -6), l_to, 'MONTH');
+      l_c := NOONA_ANL_PKG.series_json(l_m, l_to - 13, l_to, 'WEEK');
+    EXCEPTION WHEN OTHERS THEN
+      l_ok := FALSE; DBMS_OUTPUT.PUT_LINE('   metric ' || l_m || ': ' || SUBSTR(SQLERRM, 1, 200));
+    END;
+  END LOOP;
+  ok('every metric computes value + monthly + weekly series', l_ok);
+
+  -- ---------------------------------------------------------------- مطابقة الإيرادات مع القيود
+  SELECT NVL(SUM(l.credit_func - l.debit_func), 0) INTO l_x
+    FROM gl_journal_line l JOIN gl_journal j ON j.id = l.journal_id JOIN gl_account a ON a.id = l.account_id
+   WHERE j.company_id = NOONA_ANL_PKG.company AND j.status_code = 'POSTED' AND a.account_type = 'REVENUE'
+     AND j.posting_date BETWEEN l_from AND l_to;
+  l_v := NOONA_ANL_PKG.kpi('REVENUE', l_from, l_to);
+  ok('REVENUE kpi equals posted GL revenue', l_v = ROUND(l_x, 2), l_v || ' vs ' || l_x);
+  ok('NET_PROFIT = REVENUE - EXPENSES',
+     NOONA_ANL_PKG.kpi('NET_PROFIT', l_from, l_to) = l_v - NOONA_ANL_PKG.kpi('EXPENSES', l_from, l_to));
+
+  -- السلسلة الشهرية: كل الأشهر موجودة ومجموعها = قيمة الفترة
+  l_a := JSON_ARRAY_T.parse(NOONA_ANL_PKG.series_json('REVENUE', TRUNC(l_from, 'MM'), LAST_DAY(l_to), 'MONTH'));
+  ok('monthly series has every month (empty = 0)', l_a.get_size = MONTHS_BETWEEN(TRUNC(l_to, 'MM'), TRUNC(l_from, 'MM')) + 1, l_a.get_size);
+  l_sum := 0;
+  FOR i IN 0 .. l_a.get_size - 1 LOOP l_sum := l_sum + TREAT(l_a.get(i) AS JSON_OBJECT_T).get_number('v'); END LOOP;
+  ok('monthly series sums to period kpi', ABS(l_sum - NOONA_ANL_PKG.kpi('REVENUE', TRUNC(l_from, 'MM'), LAST_DAY(l_to))) < 0.05,
+     l_sum);
+  ok('first label is YYYY-MM', TREAT(l_a.get(0) AS JSON_OBJECT_T).get_string('p') = TO_CHAR(l_from, 'YYYY-MM'));
+
+  -- الرصيد التراكمي: آخر نقطة = الرصيد حتى النهاية
+  l_a := JSON_ARRAY_T.parse(NOONA_ANL_PKG.series_json('CASH_BALANCE', ADD_MONTHS(TRUNC(l_to, 'MM'), -5), l_to, 'MONTH'));
+  ok('balance series last point = balance at end', TREAT(l_a.get(l_a.get_size - 1) AS JSON_OBJECT_T).get_number('v')
+     = NOONA_ANL_PKG.kpi('CASH_BALANCE', NULL, LAST_DAY(l_to)));
+
+  rejects('bad grain rejected', 'NOONA-ANL-004',
+          'DECLARE x CLOB; BEGIN x := NOONA_ANL_PKG.series_json(''REVENUE'', SYSDATE - 30, SYSDATE, ''YEAR''); END;');
+  rejects('range over 10 years rejected', 'NOONA-ANL-005',
+          'DECLARE x CLOB; BEGIN x := NOONA_ANL_PKG.series_json(''REVENUE'', SYSDATE - 4000, SYSDATE); END;');
+
+  -- ---------------------------------------------------------------- المقارنة والتنبؤ واللوحات
+  l_j := JSON_OBJECT_T.parse(NOONA_ANL_PKG.kpi_json('REVENUE', TRUNC(l_to, 'MM'), l_to));
+  ok('kpi_json has value and previous', l_j.has('value') AND l_j.has('previous') AND l_j.get_string('unit') = 'AMOUNT');
+
+  l_c := NOONA_ANL_PKG.forecast_json('REVENUE', 3, 24);
+  l_j := JSON_OBJECT_T.parse(l_c);
+  ok('forecast_json returns 24 history + 3 forecast', l_j.get_array('history').get_size = 24 AND l_j.get_array('forecast').get_size = 3,
+     l_j.get_array('history').get_size);
+  ok('forecast months follow last complete month',
+     TREAT(l_j.get_array('forecast').get(0) AS JSON_OBJECT_T).get_string('p') = TO_CHAR(TRUNC(SYSDATE, 'MM'), 'YYYY-MM'));
+  ok('revenue forecast is not negative', fv(l_c, 1, 'lo') >= 0);
+
+  l_j := JSON_OBJECT_T.parse(NOONA_ANL_PKG.dashboard_json('SAL'));
+  ok('sales dashboard has 3 kpis', l_j.get_array('kpis').get_size = 3 AND l_j.get_string('name') = 'المبيعات ونقاط البيع',
+     l_j.get_array('kpis').get_size);
+  l_a := JSON_ARRAY_T.parse(NOONA_ANL_PKG.anomalies_json(12, 2));
+  ok('anomalies returns a valid list', l_a.get_size >= 0);
+
+  -- ---------------------------------------------------------------- الفرع
+  DECLARE
+    l_br NUMBER;
+  BEGIN
+    SELECT MIN(id) INTO l_br FROM org_branch WHERE company_id = NOONA_ANL_PKG.company;
+    IF l_br IS NOT NULL THEN
+      ok('branch filter never exceeds company total',
+         ABS(NOONA_ANL_PKG.kpi('REVENUE', l_from, l_to, l_br)) <= ABS(NOONA_ANL_PKG.kpi('REVENUE', l_from, l_to)) + 0.01
+         OR NOONA_ANL_PKG.kpi('REVENUE', l_from, l_to) < 0);
+    ELSE
+      ok('branch filter (no branch, skipped)', TRUE);
+    END IF;
+  END;
+
+  ROLLBACK;
+  DBMS_OUTPUT.PUT_LINE('========== analytics: ' || g_pass || ' passed, ' || g_fail || ' failed');
+EXCEPTION WHEN OTHERS THEN
+  ROLLBACK;
+  DBMS_OUTPUT.PUT_LINE('ERROR ' || SQLERRM || ' ' || DBMS_UTILITY.FORMAT_ERROR_BACKTRACE);
+  DBMS_OUTPUT.PUT_LINE('========== analytics: ' || g_pass || ' passed, ' || (g_fail + 1) || ' failed');
+END;
+/
+EXIT
