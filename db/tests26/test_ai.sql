@@ -83,10 +83,14 @@ BEGIN
   l_j := ask('ما توقع الإيرادات للأشهر القادمة؟', l_conv);
   ok('follow-up stays in the conversation', l_j.get_number('conversationId') = l_conv);
   ok('forecast question uses get_forecast', l_j.get_array('tools').get_string(0) = 'get_forecast');
+  l_j := ask('قارن الإيرادات هذا العام بالعام الماضي', l_conv);
+  ok('year question uses get_year_comparison', l_j.get_array('tools').get_string(0) = 'get_year_comparison');
+  ok('year comparison answer carries the years', INSTR(l_j.get_string('answer'), '"years"') > 0 OR INSTR(l_j.get_string('answer'), 'ytd') > 0,
+     SUBSTR(l_j.get_string('answer'), 1, 200));
   l_j := ask('ما الذي في هذه الصفحة؟', l_conv);
   ok('page question uses the page context', INSTR(l_j.get_string('answer'), 'التحليلات والتنبؤ') > 0, SUBSTR(l_j.get_string('answer'), 1, 200));
   ok('conversation listed for the user', DBMS_LOB.INSTR(NOONA_AI_PKG.conversations_json, '"id":' || l_conv) > 0);
-  ok('messages of the conversation', JSON_ARRAY_T.parse(NOONA_AI_PKG.messages_json(l_conv)).get_size = 6);
+  ok('messages of the conversation', JSON_ARRAY_T.parse(NOONA_AI_PKG.messages_json(l_conv)).get_size = 8);
   NOONA_AI_PKG.feedback(l_msg, 1, 'مفيدة');
   SELECT COUNT(*) INTO l_n FROM ai_feedback WHERE message_id = l_msg AND rating = 1;
   ok('feedback stored', l_n = 1);

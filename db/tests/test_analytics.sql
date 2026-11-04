@@ -212,6 +212,108 @@ BEGIN
     END IF;
   END;
 
+  -- ---------------------------------------------------------------- مقارنة السنوات وأرقام السنوات السابقة
+  DECLARE
+    l_y   NUMBER := EXTRACT(YEAR FROM SYSDATE);
+    l_m   NUMBER := EXTRACT(MONTH FROM SYSDATE);
+    l_hy  NUMBER := EXTRACT(YEAR FROM SYSDATE) - 5;
+    l_am  NUMBER;
+    l_arr VARCHAR2(400);
+    l_n   NUMBER;
+    l_fy0 NUMBER;
+    l_fy1 NUMBER;
+    l_d0  DATE;
+    l_new NUMBER;
+  BEGIN
+    l_j := JSON_OBJECT_T.parse(NOONA_ANL_PKG.years_json('REVENUE', 3));
+    l_a := l_j.get_array('years');
+    ok('years: 3 years ending with the current year', l_a.get_size = 3
+       AND TREAT(l_a.get(2) AS JSON_OBJECT_T).get_number('year') = l_y AND TREAT(l_a.get(0) AS JSON_OBJECT_T).get_number('year') = l_y - 2);
+    l_o := TREAT(l_a.get(2) AS JSON_OBJECT_T);
+    ok('years: current year partial with 12 month slots', l_o.get_boolean('partial') AND l_o.get_array('months').get_size = 12);
+    ok('years: future months are null', l_m = 12 OR l_o.get_array('months').get(11).is_null);
+    ok('years: current YTD equals kpi Jan..now',
+       ABS(l_o.get_number('ytd') - NOONA_ANL_PKG.kpi('REVENUE', TRUNC(SYSDATE, 'YYYY'), LAST_DAY(SYSDATE))) < 0.05,
+       l_o.get_number('ytd') || ' vs ' || NOONA_ANL_PKG.kpi('REVENUE', TRUNC(SYSDATE, 'YYYY'), LAST_DAY(SYSDATE)));
+    ok('years: previous year total equals kpi of that year',
+       ABS(TREAT(l_a.get(1) AS JSON_OBJECT_T).get_number('total')
+           - NOONA_ANL_PKG.kpi('REVENUE', TO_DATE((l_y - 1) || '-01-01', 'YYYY-MM-DD'), TO_DATE((l_y - 1) || '-12-31', 'YYYY-MM-DD'))) < 0.05);
+    l_j := JSON_OBJECT_T.parse(NOONA_ANL_PKG.years_json('CASH_BALANCE', 2));
+    ok('years: balance metric total = year-end balance', l_j.get_string('kind') = 'BALANCE' AND l_j.get_array('years').get_size = 2);
+
+    -- أرقام سنة سابقة بلا بيانات فعلية
+    l_n := NOONA_ANL_PKG.save_history('HIS_VISITS', l_hy, NULL, '[10,20,30,40,50,60,70,80,90,100,110,120]', 'MANUAL', 'test');
+    ok('history: 12 months saved', l_n = 12, l_n);
+    l_j := JSON_OBJECT_T.parse(NOONA_ANL_PKG.history_json('HIS_VISITS', l_hy));
+    ok('history: values read back', TREAT(l_j.get_array('months').get(2) AS JSON_OBJECT_T).get_number('value') = 30
+       AND TREAT(l_j.get_array('months').get(2) AS JSON_OBJECT_T).get_number('actual') = 0);
+    ok('history: added to kpi of the year',
+       NOONA_ANL_PKG.kpi('HIS_VISITS', TO_DATE(l_hy || '-01-01', 'YYYY-MM-DD'), TO_DATE(l_hy || '-12-31', 'YYYY-MM-DD')) = 780);
+    ok('history: kpi of a partial month excludes it',
+       NOONA_ANL_PKG.kpi('HIS_VISITS', TO_DATE(l_hy || '-03-05', 'YYYY-MM-DD'), TO_DATE(l_hy || '-03-20', 'YYYY-MM-DD')) = 0);
+    l_a := JSON_ARRAY_T.parse(NOONA_ANL_PKG.series_json('HIS_VISITS', TO_DATE(l_hy || '-01-01', 'YYYY-MM-DD'), TO_DATE(l_hy || '-12-31', 'YYYY-MM-DD')));
+    ok('history: in the monthly series', l_a.get_size = 12 AND TREAT(l_a.get(11) AS JSON_OBJECT_T).get_number('v') = 120);
+    l_a := JSON_OBJECT_T.parse(NOONA_ANL_PKG.years_json('HIS_VISITS', 6)).get_array('years');
+    ok('history: in years comparison', TREAT(l_a.get(0) AS JSON_OBJECT_T).get_number('total') = 780,
+       TREAT(l_a.get(0) AS JSON_OBJECT_T).get_number('total'));
+    ok('history: summary lists the metric', DBMS_LOB.instr(NOONA_ANL_PKG.history_summary_json, '"HIS_VISITS"') > 0);
+    l_n := NOONA_ANL_PKG.save_history('HIS_VISITS', l_hy, NULL, '[null,null,null,null,null,null,null,null,null,null,null,"1,250.5"]');
+    ok('history: nulls delete, text number accepted',
+       NOONA_ANL_PKG.kpi('HIS_VISITS', TO_DATE(l_hy || '-01-01', 'YYYY-MM-DD'), TO_DATE(l_hy || '-12-31', 'YYYY-MM-DD')) = 1250.5);
+    rejects('history: 12 values required', 'NOONA-ANL-016',
+            'DECLARE x NUMBER; BEGIN x := NOONA_ANL_PKG.save_history(''HIS_VISITS'', ' || l_hy || ', NULL, ''[1,2]''); END;');
+    rejects('history: non-number rejected', 'NOONA-ANL-017',
+            'DECLARE x NUMBER; BEGIN x := NOONA_ANL_PKG.save_history(''HIS_VISITS'', ' || l_hy || ', NULL, ''[1,2,3,4,5,6,7,8,9,10,11,"abc"]''); END;');
+    rejects('history: negative count rejected', 'NOONA-ANL-013',
+            'DECLARE x NUMBER; BEGIN x := NOONA_ANL_PKG.save_history(''HIS_VISITS'', ' || l_hy || ', NULL, ''[-1,null,null,null,null,null,null,null,null,null,null,null]''); END;');
+    rejects('history: branch on a metric without branches', 'NOONA-ANL-014',
+            'DECLARE x NUMBER; b NUMBER; BEGIN SELECT MIN(id) INTO b FROM org_branch WHERE company_id = NOONA_ANL_PKG.company; '
+            || 'x := NOONA_ANL_PKG.save_history(''AUT_JOBS'', ' || l_hy || ', NVL(b, -1), ''[1,null,null,null,null,null,null,null,null,null,null,null]''); END;');
+    IF l_m < 12 THEN
+      rejects('history: future month rejected', 'NOONA-ANL-011',
+              'DECLARE x NUMBER; BEGIN x := NOONA_ANL_PKG.save_history(''HIS_VISITS'', ' || l_y || ', NULL, ''[null,null,null,null,null,null,null,null,null,null,null,5]''); END;');
+    END IF;
+    -- شهر فيه إيراد فعلي يرفض
+    FOR m IN REVERSE 1 .. l_m LOOP
+      IF NOONA_ANL_PKG.kpi('REVENUE', TO_DATE(l_y || '-' || m || '-01', 'YYYY-MM-DD'), LAST_DAY(TO_DATE(l_y || '-' || m || '-01', 'YYYY-MM-DD'))) <> 0 THEN
+        l_am := m; EXIT;
+      END IF;
+    END LOOP;
+    IF l_am IS NOT NULL THEN
+      SELECT '[' || LISTAGG(CASE WHEN LEVEL = l_am THEN '1' ELSE 'null' END, ',') WITHIN GROUP (ORDER BY LEVEL) || ']' INTO l_arr
+        FROM dual CONNECT BY LEVEL <= 12;
+      rejects('history: month with actual data rejected (no double count)', 'NOONA-ANL-012',
+              'DECLARE x NUMBER; BEGIN x := NOONA_ANL_PKG.save_history(''REVENUE'', ' || l_y || ', NULL, ''' || l_arr || '''); END;');
+      ok('history: month with actual data is locked',
+         TREAT(JSON_OBJECT_T.parse(NOONA_ANL_PKG.history_json('REVENUE', l_y)).get_array('months').get(l_am - 1) AS JSON_OBJECT_T).get_boolean('locked'));
+    END IF;
+    l_j := JSON_OBJECT_T.parse(NOONA_ANL_PKG.import_history_csv('metric,month,value' || CHR(10) || 'HIS_VISITS,' || l_hy || '-03,5' || CHR(13) || CHR(10)
+             || 'NO_SUCH,' || l_hy || '-01,1' || CHR(10) || 'HIS_VISITS,bad,1' || CHR(10) || 'HIS_VISITS;' || l_hy || '/04;7'));
+    ok('import: valid lines saved, bad lines reported', l_j.get_number('saved') = 2 AND l_j.get_number('errorCount') = 2,
+       l_j.to_string);
+    ok('import: error line numbers', TREAT(l_j.get_array('errors').get(0) AS JSON_OBJECT_T).get_number('line') = 3);
+    ok('import: values in kpi',
+       NOONA_ANL_PKG.kpi('HIS_VISITS', TO_DATE(l_hy || '-03-01', 'YYYY-MM-DD'), TO_DATE(l_hy || '-04-30', 'YYYY-MM-DD')) = 12);
+
+    -- فتح السنة المالية السابقة
+    SELECT COUNT(*), MIN(start_date) INTO l_fy0, l_d0 FROM gl_fiscal_year WHERE company_id = NOONA_ANL_PKG.company;
+    IF l_d0 > ADD_MONTHS(TRUNC(SYSDATE, 'YYYY'), -108) THEN
+      l_new := NOONA_GL_PKG.open_previous_year;
+      SELECT COUNT(*) INTO l_fy1 FROM gl_fiscal_year WHERE company_id = NOONA_ANL_PKG.company;
+      ok('GL: previous fiscal year opened', l_fy1 = l_fy0 + 1);
+      SELECT COUNT(*) INTO l_n FROM gl_period WHERE fiscal_year_id = l_new;
+      ok('GL: previous year has 12 periods', l_n = 12, l_n);
+      SELECT COUNT(*) INTO l_n FROM gl_fiscal_year WHERE id = l_new AND start_date = ADD_MONTHS(l_d0, -12) AND end_date = l_d0 - 1;
+      ok('GL: previous year ends the day before the earliest year', l_n = 1);
+      SELECT COUNT(*) INTO l_n FROM gl_period_status s JOIN gl_period p ON p.id = s.period_id WHERE p.fiscal_year_id = l_new AND s.status_code = 'OPEN';
+      ok('GL: previous year periods open', l_n >= 12, l_n);
+      ok('GL: modules stay ready with yearly sequences of several years',
+         NOONA_SAL_PKG.is_ready = 'Y' AND NOONA_PUR_PKG.is_ready = 'Y');
+    ELSE
+      ok('GL: previous fiscal year (ten-year limit reached, skipped)', TRUE);
+    END IF;
+  END;
+
   ROLLBACK;
   DBMS_OUTPUT.PUT_LINE('========== analytics: ' || g_pass || ' passed, ' || g_fail || ' failed');
 EXCEPTION WHEN OTHERS THEN

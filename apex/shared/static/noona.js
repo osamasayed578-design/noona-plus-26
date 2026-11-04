@@ -56,3 +56,31 @@
     if (window.MutationObserver) new MutationObserver(later).observe(document.documentElement, { childList: true, subtree: true });
     window.noonaA11y = fix;
 })();
+
+/* NOONA PLUS | الوضع الداكن: يتبع إعداد النظام افتراضياً، وزر في الترويسة يبدل ويحفظ الاختيار على هذا الجهاز */
+(function () {
+    'use strict';
+    var KEY = 'nnTheme', root = document.documentElement;
+    function saved() { try { return localStorage.getItem(KEY); } catch (e) { return null; } }
+    function system() { return window.matchMedia && matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'; }
+    function apply(t) { root.setAttribute('data-theme', t); var b = document.querySelector('.nn-theme-toggle');
+        if (b) { b.title = t === 'dark' ? 'الوضع الفاتح' : 'الوضع الداكن'; b.setAttribute('aria-label', b.title);
+                 b.firstElementChild.className = 'fa ' + (t === 'dark' ? 'fa-sun-o' : 'fa-moon-o'); } }
+    apply(saved() || system());
+    if (window.matchMedia) matchMedia('(prefers-color-scheme: dark)').addEventListener('change', function () { if (!saved()) apply(system()); });
+    function addButton() {
+        if (document.querySelector('.nn-theme-toggle')) return;
+        var bar = document.querySelector('.t-NavigationBar, .t-Header-navBar');
+        if (!bar) return;
+        var b = document.createElement('button');
+        b.type = 'button'; b.className = 'nn-theme-toggle'; b.innerHTML = '<span class="fa fa-moon-o" aria-hidden="true"></span>';
+        b.addEventListener('click', function () {
+            var t = root.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+            try { localStorage.setItem(KEY, t); } catch (e) { /* التخزين غير متاح */ }
+            apply(t);
+        });
+        bar.insertBefore(b, bar.firstChild);
+        apply(root.getAttribute('data-theme'));
+    }
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', addButton); else addButton();
+})();

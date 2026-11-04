@@ -113,7 +113,7 @@ CREATE OR REPLACE PACKAGE BODY NOONA_SAL_PKG AS
   FUNCTION is_ready RETURN VARCHAR2 IS
     l NUMBER;
   BEGIN
-    SELECT COUNT(*) INTO l FROM ref_doc_sequence WHERE company_id = company AND doc_type_code IN ('SAL_INVOICE', 'AR_RECEIPT', 'AR_CUSTOMER');
+    SELECT COUNT(DISTINCT doc_type_code) INTO l FROM ref_doc_sequence WHERE company_id = company AND doc_type_code IN ('SAL_INVOICE', 'AR_RECEIPT', 'AR_CUSTOMER');
     RETURN CASE WHEN l = 3 AND NOONA_INV_PKG.is_ready = 'Y' THEN 'Y' ELSE 'N' END;
   END is_ready;
 

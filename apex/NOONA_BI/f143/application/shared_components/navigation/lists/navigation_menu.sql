@@ -26,7 +26,7 @@ wwv_flow_imp_shared.create_list_item(
 ,p_list_item_current_type=>'TARGET_PAGE'
 );
 wwv_flow_imp_shared.create_list_item(
- p_id=>wwv_flow_imp.id(91820277000000028)
+ p_id=>wwv_flow_imp.id(91820277000000030)
 ,p_list_item_display_sequence=>10
 ,p_list_item_link_text=>'مركز التقارير'
 ,p_list_item_link_target=>'f?p=&APP_ID.:1:&APP_SESSION.::&DEBUG.:1::'
@@ -34,11 +34,19 @@ wwv_flow_imp_shared.create_list_item(
 ,p_list_item_current_type=>'TARGET_PAGE'
 );
 wwv_flow_imp_shared.create_list_item(
- p_id=>wwv_flow_imp.id(91820277000000029)
+ p_id=>wwv_flow_imp.id(91820277000000031)
 ,p_list_item_display_sequence=>20
 ,p_list_item_link_text=>'تقاريري'
 ,p_list_item_link_target=>'f?p=&APP_ID.:4:&APP_SESSION.::&DEBUG.:4::'
 ,p_list_item_icon=>'fa-star'
+,p_list_item_current_type=>'TARGET_PAGE'
+);
+wwv_flow_imp_shared.create_list_item(
+ p_id=>wwv_flow_imp.id(91820277000000032)
+,p_list_item_display_sequence=>30
+,p_list_item_link_text=>'أرقام السنوات السابقة'
+,p_list_item_link_target=>'f?p=&APP_ID.:6:&APP_SESSION.::&DEBUG.:6::'
+,p_list_item_icon=>'fa-history'
 ,p_list_item_current_type=>'TARGET_PAGE'
 );
 wwv_flow_imp.component_end;

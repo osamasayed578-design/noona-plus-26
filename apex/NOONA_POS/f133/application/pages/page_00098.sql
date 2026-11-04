@@ -52,6 +52,7 @@ wwv_flow_imp_page.create_page_process(
 '           when ''VIEW'' then noona_anl_pkg.view_json(apex_application.g_x02, l_br, apex_application.g_x06)',
 '           when ''CHART'' then noona_anl_pkg.chart_json(apex_application.g_x02, apex_application.g_x04,',
 '                                                      to_number(nvl(apex_application.g_x05, ''3'')), l_br, apex_application.g_x06)',
+'           when ''YEARS'' then noona_anl_pkg.years_json(apex_application.g_x02, to_number(nvl(apex_application.g_x05, ''3'')), l_br, apex_application.g_x06)',
 '           when ''ANOM'' then noona_anl_pkg.anomalies_json(12, 2, apex_application.g_x06)',
 '           when ''COMPANIES'' then noona_anl_pkg.companies_json(apex_application.g_x02, trunc(sysdate, ''MM''), trunc(sysdate))',
 '           else ''{"ok":false,"msg":"طلب غير معروف"}'' end;',

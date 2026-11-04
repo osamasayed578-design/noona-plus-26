@@ -102,3 +102,13 @@ RESULT_CODE     CODE NN IN:SUCCESS,FAILED,PARTIAL | النتيجة
 DATA_CUTOFF_TS  TS               | وقت قطع البيانات المعروض للمستخدم
 ERROR_MESSAGE   V2000            | الخطأ
 ''', area='operations')
+
+table('BI_HISTORY_VALUE', 'أرقام السنوات السابقة', 'Prior Years Figures', scope='C', mix='notes', cols='''
+METRIC_CODE     CODE NN          | المؤشر (من كتالوج NOONA_ANL_PKG)
+PERIOD_MONTH    DATE NN          | الشهر (أول يوم فيه)
+BRANCH_ID       ID   >ORG_BRANCH | الفرع (فارغ = الشركة كلها)
+VALUE_AMOUNT    NUM  NN          | القيمة الشهرية (للأرصدة: رصيد نهاية الشهر)
+SOURCE_CODE     CODE NN D='MANUAL' IN:MANUAL,IMPORT,LEGACY | المصدر
+''', uk=[('TENANT_ID', 'COMPANY_ID', 'METRIC_CODE', 'PERIOD_MONTH', 'BRANCH_ID')],
+      purpose='أرقام شهرية من النظام السابق قبل بدء العمل على نونا، تضاف لسلاسل التحليلات للمقارنة بين السنوات في أي موديول',
+      area='analytics')

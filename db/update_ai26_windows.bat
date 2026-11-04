@@ -15,7 +15,7 @@ if "%PDB%"=="" set PDB=FREEPDB1
 set CONN=//localhost:1521/%PDB%
 set /p OWNER_PWD=NOONA_OWNER password: 
 set /p APP_PWD=NOONA_APP password: 
-for %%U in (upgrade_ai26_01) do (
+for %%U in (upgrade_ai26_01 upgrade_ai26_02) do (
   echo ===== %%U
   sqlplus -S -L NOONA_OWNER/"%OWNER_PWD%"@%CONN% @%%U.sql < nul
   if errorlevel 1 goto :fail

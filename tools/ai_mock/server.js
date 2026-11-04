@@ -35,6 +35,7 @@ http.createServer((req, res) => {
     let call = null;
     if (tools.length) {
       if (/تنبؤ|توقع|القادم/.test(q) && tools.includes('get_forecast')) call = ['get_forecast', { metric: pickMetric(q), periods: 3 }];
+      else if (/العام الماضي|السنة الماضية|السنوات|بين السنوات/.test(q) && tools.includes('get_year_comparison')) call = ['get_year_comparison', { metric: pickMetric(q), years: 3 }];
       else if (/غير معتاد|تنبيه|شاذ/.test(q) && tools.includes('get_anomalies')) call = ['get_anomalies', {}];
       else if (/الصفحة|هذه الشاشة/.test(q) && tools.includes('get_page_context')) call = ['get_page_context', {}];
       else if (/مؤشرات|ماذا تعرف/.test(q) && tools.includes('list_metrics')) call = ['list_metrics', {}];

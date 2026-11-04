@@ -1,6 +1,6 @@
 # ERD — الحزمة 22: التقارير وذكاء الأعمال
 
-**Reporting & Business Intelligence** · الحزمة البرمجية `NOONA_BI_PKG` · عدد الجداول: **9**
+**Reporting & Business Intelligence** · الحزمة البرمجية `NOONA_BI_PKG` · عدد الجداول: **10**
 
 طبقة تعريف المقاييس KPIs بإصدارات، وكتالوج التقارير ولوحات المعلومات، وسجل التصدير، وجدولة التقارير، ومتابعة تحديث الملخصات؛ مع تطبيق Tenant و Data Scope على المصدر والتصدير.
 
@@ -71,6 +71,14 @@ erDiagram
   BI_REFRESH_LOG {
     NUMBER ID PK
   }
+  BI_HISTORY_VALUE {
+    NUMBER ID PK
+    NUMBER TENANT_ID FK,UK
+    NUMBER COMPANY_ID FK,UK
+    VARCHAR2 METRIC_CODE UK
+    DATE PERIOD_MONTH UK
+    NUMBER BRANCH_ID FK,UK
+  }
   SEC_ROLE {
     NUMBER ID PK
   }
@@ -100,8 +108,10 @@ erDiagram
   BI_REPORT ||--o{ BI_REPORT_SCHEDULE : "REPORT_ID"
   BI_REPORT ||--o{ BI_REPORT_USER : "REPORT_ID"
   DMS_DOCUMENT |o--o{ BI_EXPORT_LOG : "FILE_DOCUMENT_ID"
+  ORG_BRANCH |o--o{ BI_HISTORY_VALUE : "BRANCH_ID"
   ORG_BRANCH |o--o{ BI_KPI_VALUE : "BRANCH_ID"
   ORG_COMPANY |o--o{ BI_KPI_VALUE : "COMPANY_ID"
+  ORG_COMPANY ||--o{ BI_HISTORY_VALUE : "COMPANY_ID"
   REF_CURRENCY |o--o{ BI_KPI_VALUE : "CURRENCY_CODE"
   SEC_PERMISSION |o--o{ BI_REPORT : "PERMISSION_ID"
   SEC_ROLE |o--o{ BI_KPI : "OWNER_ROLE_ID"
@@ -123,3 +133,4 @@ erDiagram
 | `BI_REPORT_SCHEDULE` | جدولة التقارير | Report Schedules | T |
 | `BI_EXPORT_LOG` | سجل التصدير | Export Log | T |
 | `BI_REFRESH_LOG` | سجل تحديث الملخصات | Summary Refresh Log | G |
+| `BI_HISTORY_VALUE` | أرقام السنوات السابقة | Prior Years Figures | C |

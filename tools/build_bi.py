@@ -123,8 +123,56 @@ p.onload(JS_FAV + JS_FORGET)
 import anl_pages
 anl_pages.add(app, [], TENANT, 5, unified=True, page_no=5, title='لوحة الأداء الموحدة', icon='fa-tachometer')
 
+# =============================================================== 6) أرقام السنوات السابقة للمقارنة (أي مؤشر في أي موديول)
+import shutil, apex_brand
+shutil.copyfile(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'hist.js'), os.path.join(apex_brand.STATIC_DIR, 'hist.js'))
+if ('hist.js', 'application/javascript') not in apex_brand.FILES:
+    apex_brand.FILES.append(('hist.js', 'application/javascript'))
+p = app.page(6, 'Prior Years', 'PRIOR-YEARS', 'أرقام السنوات السابقة', scheme=TENANT, protection='N')
+p.static('أرقام السنوات السابقة', 10, hide_header=True, opts='#DEFAULT#:t-Region--noUI',
+         text='<div id="nnHist" class="nn-hist" data-cmp-url="f?p=&APP_ID.:5:&APP_SESSION.::NO"></div>')
+p.process(1, 'ON_DEMAND', 'HIST', [
+    'declare',
+    '    l clob;',
+    '    l_pos pls_integer := 1;',
+    "    l_br number := to_number(nullif(apex_application.g_x04, ''));",
+    '    l_csv clob;',
+    '    l_first boolean := true;',
+    'begin',
+    "    if apex_application.g_x01 = 'META' then",
+    "        l := '{\"metrics\":' || noona_anl_pkg.metrics_json(null) || ',\"branches\":[';",
+    "        for b in (select id, name_ar from org_branch where company_id = noona_anl_pkg.company and status_code = 'ACTIVE' order by name_ar) loop",
+    "            l := l || case when not l_first then ',' end || '{\"id\":' || b.id || ',\"name\":\"' || apex_escape.json(b.name_ar) || '\"}';",
+    '            l_first := false;',
+    '        end loop;',
+    "        l := l || '],\"summary\":' || noona_anl_pkg.history_summary_json || '}';",
+    "    elsif apex_application.g_x01 = 'GET' then",
+    '        l := noona_anl_pkg.history_json(apex_application.g_x02, to_number(apex_application.g_x03), l_br);',
+    "    elsif apex_application.g_x01 = 'SAVE' then",
+    "        l := '{\"saved\":' || noona_anl_pkg.save_history(apex_application.g_x02, to_number(apex_application.g_x03), l_br,",
+    "                                    apex_application.g_x05, 'MANUAL', apex_application.g_x06) || '}';",
+    "    elsif apex_application.g_x01 = 'IMPORT' then",
+    '        for i in 1 .. apex_application.g_f01.count loop l_csv := l_csv || apex_application.g_f01(i); end loop;',
+    "        l := noona_anl_pkg.import_history_csv(l_csv, 'IMPORT');",
+    '    else',
+    "        l := '{\"ok\":false,\"msg\":\"طلب غير معروف\"}';",
+    '    end if;',
+    "    owa_util.mime_header('application/json', false); owa_util.http_header_close;",
+    '    while l_pos <= dbms_lob.getlength(l) loop',
+    '        htp.prn(dbms_lob.substr(l, 8000, l_pos)); l_pos := l_pos + 8000;',
+    '    end loop;',
+    'exception when others then',
+    '    rollback;',
+    "    apex_json.open_object; apex_json.write('ok', false);",
+    "    apex_json.write('msg', regexp_replace(nvl(trim(regexp_substr(sqlerrm, 'NOONA-[A-Z]+-[0-9]+: [^' || chr(10) || ']+')), sqlerrm),",
+    "                                          '\\s*\\[cid=[^]]+\\]', ''));",
+    '    apex_json.close_object;',
+    'end;'])
+p.onload(["(function () { var s = document.createElement('script'); s.src = apex.env.APP_FILES + 'hist.js'; document.head.appendChild(s); })();"])
+
 app.nav_item('مركز التقارير', 1, 'fa-bar-chart', 10)
 app.nav_item('تقاريري', 4, 'fa-star', 20)
+app.nav_item('أرقام السنوات السابقة', 6, 'fa-history', 30)
 
 app.finalize()
 print('NOONA_BI built:', len(app.pages), 'pages')

@@ -136,6 +136,11 @@ BEGIN
   -- إقفال السنة
   SELECT id, start_date, end_date INTO l_fy, l_ys, l_ye FROM gl_fiscal_year
    WHERE company_id = TO_NUMBER(SYS_CONTEXT('NOONA_CTX', 'COMPANY_ID')) AND l_date BETWEEN start_date AND end_date;
+  -- السنوات السابقة المفتوحة (بيانات سنوات سابقة) تقفل أولاً بالترتيب
+  FOR y IN (SELECT id FROM gl_fiscal_year WHERE company_id = TO_NUMBER(SYS_CONTEXT('NOONA_CTX', 'COMPANY_ID'))
+               AND end_date < l_ys AND status_code = 'OPEN' ORDER BY start_date) LOOP
+    l_cls := NOONA_GL_PKG.close_year(y.id);
+  END LOOP;
   -- مستندات معلقة من اختبارات سابقة تمنع الإقفال (تلغى داخل الاختبار ثم يتراجع)
   UPDATE gl_journal SET status_code = 'DRAFT' WHERE id = (SELECT MIN(id) FROM gl_journal WHERE ledger_id = l_led AND status_code = 'CANCELLED');
   BEGIN l_cls := NOONA_GL_PKG.close_year(l_fy); ok('close blocked by unposted documents', FALSE);

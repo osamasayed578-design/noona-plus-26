@@ -64,7 +64,10 @@ sqlplus -S -L NOONA_APP/"%APP_PWD%"@%CONN% @demo/demo_auto_service.sql %ADMIN_US
 sqlplus -S -L NOONA_APP/"%APP_PWD%"@%CONN% @demo/transport_demo.sql %ADMIN_USER% < nul
 if errorlevel 1 goto fail
 echo.
-echo ===== Demo data loaded. Open Finance (incl. Fixed Assets), Supply Chain, Sales/POS, Manufacturing, Documents, HR and Real Estate and Hospitality, Projects and Tax to review it. Restaurants are in Sales and POS. Hospital data is in Hospital and Clinics.
+sqlplus -S -L NOONA_APP/"%APP_PWD%"@%CONN% @demo/demo_history.sql %ADMIN_USER% < nul
+if errorlevel 1 goto fail
+echo.
+echo ===== Demo data loaded. Open Finance (incl. Fixed Assets), Supply Chain, Sales/POS, Manufacturing, Documents, HR and Real Estate and Hospitality, Projects and Tax to review it. Restaurants are in Sales and POS. Hospital data is in Hospital and Clinics. Years 2024-2025 are loaded for year-over-year comparison (Reports Center - Analytics - Compare years).
 pause
 exit /b 0
 

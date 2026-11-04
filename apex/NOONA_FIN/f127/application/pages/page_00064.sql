@@ -18,11 +18,11 @@ wwv_flow_imp_page.create_page(
 ,p_step_title=>'تشغيل الإهلاك'
 ,p_autocomplete_on_off=>'OFF'
 ,p_page_template_options=>'#DEFAULT#'
-,p_required_role=>wwv_flow_imp.id(91820266000000515)
+,p_required_role=>wwv_flow_imp.id(91820266000000523)
 ,p_protection_level=>'C'
 );
 wwv_flow_imp_page.create_page_plug(
- p_id=>wwv_flow_imp.id(91820266000000629)
+ p_id=>wwv_flow_imp.id(91820266000000637)
 ,p_plug_name=>'التفاصيل'
 ,p_region_template_options=>'#DEFAULT#:t-Region--scrollBody:nn-print-area:t-Region--removeHeader js-removeLandmark:t-Region--noUI'
 ,p_plug_template=>4072358936313175081
@@ -33,7 +33,7 @@ wwv_flow_imp_page.create_page_plug(
 ,p_plug_source_type=>'NATIVE_DYNAMIC_CONTENT'
 );
 wwv_flow_imp_page.create_page_plug(
- p_id=>wwv_flow_imp.id(91820266000000630)
+ p_id=>wwv_flow_imp.id(91820266000000638)
 ,p_plug_name=>'عكس التشغيل'
 ,p_region_template_options=>'#DEFAULT#'
 ,p_plug_template=>4072358936313175081
@@ -49,19 +49,19 @@ wwv_flow_imp_page.create_page_plug(
   'show_line_breaks', 'Y')).to_clob
 );
 wwv_flow_imp_page.create_page_item(
- p_id=>wwv_flow_imp.id(91820266000000631)
+ p_id=>wwv_flow_imp.id(91820266000000639)
 ,p_name=>'P64_ID'
 ,p_item_sequence=>1
-,p_item_plug_id=>wwv_flow_imp.id(91820266000000630)
+,p_item_plug_id=>wwv_flow_imp.id(91820266000000638)
 ,p_display_as=>'NATIVE_HIDDEN'
 ,p_attributes=>wwv_flow_t_plugin_attributes(wwv_flow_t_varchar2(
   'value_protected', 'Y')).to_clob
 );
 wwv_flow_imp_page.create_page_item(
- p_id=>wwv_flow_imp.id(91820266000000632)
+ p_id=>wwv_flow_imp.id(91820266000000640)
 ,p_name=>'P64_REASON'
 ,p_item_sequence=>10
-,p_item_plug_id=>wwv_flow_imp.id(91820266000000630)
+,p_item_plug_id=>wwv_flow_imp.id(91820266000000638)
 ,p_prompt=>'سبب العكس'
 ,p_display_as=>'NATIVE_TEXT_FIELD'
 ,p_cSize=>40
@@ -75,20 +75,20 @@ wwv_flow_imp_page.create_page_item(
   'trim_spaces', 'BOTH')).to_clob
 );
 wwv_flow_imp_page.create_page_validation(
- p_id=>wwv_flow_imp.id(91820266000000634)
+ p_id=>wwv_flow_imp.id(91820266000000642)
 ,p_validation_name=>'P64_REASON required (REVERSE)'
 ,p_validation_sequence=>4
 ,p_validation=>'P64_REASON'
 ,p_validation_type=>'ITEM_NOT_NULL'
 ,p_error_message=>'#LABEL#: قيمة مطلوبة'
-,p_when_button_pressed=>wwv_flow_imp.id(91820266000000633)
-,p_associated_item=>wwv_flow_imp.id(91820266000000632)
+,p_when_button_pressed=>wwv_flow_imp.id(91820266000000641)
+,p_associated_item=>wwv_flow_imp.id(91820266000000640)
 ,p_error_display_location=>'INLINE_WITH_FIELD_AND_NOTIFICATION'
 );
 wwv_flow_imp_page.create_page_button(
- p_id=>wwv_flow_imp.id(91820266000000633)
+ p_id=>wwv_flow_imp.id(91820266000000641)
 ,p_button_sequence=>10
-,p_button_plug_id=>wwv_flow_imp.id(91820266000000630)
+,p_button_plug_id=>wwv_flow_imp.id(91820266000000638)
 ,p_button_name=>'REVERSE'
 ,p_button_action=>'SUBMIT'
 ,p_button_template_options=>'#DEFAULT#'
@@ -97,9 +97,9 @@ wwv_flow_imp_page.create_page_button(
 ,p_button_position=>'NEXT'
 );
 wwv_flow_imp_page.create_page_button(
- p_id=>wwv_flow_imp.id(91820266000000635)
+ p_id=>wwv_flow_imp.id(91820266000000643)
 ,p_button_sequence=>20
-,p_button_plug_id=>wwv_flow_imp.id(91820266000000630)
+,p_button_plug_id=>wwv_flow_imp.id(91820266000000638)
 ,p_button_name=>'BACK'
 ,p_button_action=>'REDIRECT_URL'
 ,p_button_template_options=>'#DEFAULT#'
@@ -109,7 +109,7 @@ wwv_flow_imp_page.create_page_button(
 ,p_button_redirect_url=>'f?p=&APP_ID.:63:&SESSION.::&DEBUG.:::'
 );
 wwv_flow_imp_page.create_page_process(
- p_id=>wwv_flow_imp.id(91820266000000636)
+ p_id=>wwv_flow_imp.id(91820266000000644)
 ,p_process_sequence=>10
 ,p_process_point=>'AFTER_SUBMIT'
 ,p_process_type=>'NATIVE_PLSQL'
@@ -121,12 +121,12 @@ wwv_flow_imp_page.create_page_process(
 'end;'))
 ,p_process_clob_language=>'PLSQL'
 ,p_error_display_location=>'INLINE_IN_NOTIFICATION'
-,p_process_when_button_id=>wwv_flow_imp.id(91820266000000633)
+,p_process_when_button_id=>wwv_flow_imp.id(91820266000000641)
 ,p_process_success_message=>'تم عكس تشغيل الإهلاك'
-,p_internal_uid=>91820266000000636
+,p_internal_uid=>91820266000000644
 );
 wwv_flow_imp_page.create_page_branch(
- p_id=>wwv_flow_imp.id(91820266000000637)
+ p_id=>wwv_flow_imp.id(91820266000000645)
 ,p_branch_action=>'f?p=&APP_ID.:64:&SESSION.::&DEBUG.::P64_ID:&P64_ID.&success_msg=#SUCCESS_MSG#'
 ,p_branch_point=>'AFTER_PROCESSING'
 ,p_branch_type=>'REDIRECT_URL'
