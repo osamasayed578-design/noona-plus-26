@@ -4,3 +4,4 @@ __pycache__/
 # ملفات التطبيق المضغوطة للتسليم
 apex/*/out/
 node_modules/
+tools/ai_mock/requests.log

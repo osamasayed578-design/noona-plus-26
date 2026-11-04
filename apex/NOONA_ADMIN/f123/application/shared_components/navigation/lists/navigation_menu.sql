@@ -298,6 +298,15 @@ wwv_flow_imp_shared.create_list_item(
 ,p_security_scheme=>wwv_flow_imp.id(91820262000000683)
 ,p_list_item_current_type=>'TARGET_PAGE'
 );
+wwv_flow_imp_shared.create_list_item(
+ p_id=>wwv_flow_imp.id(91820262000000819)
+,p_list_item_display_sequence=>75
+,p_list_item_link_text=>'الذكاء الاصطناعي'
+,p_list_item_link_target=>'f?p=&APP_ID.:80:&APP_SESSION.::&DEBUG.:80::'
+,p_list_item_icon=>'fa-magic'
+,p_security_scheme=>wwv_flow_imp.id(17758617306442989)
+,p_list_item_current_type=>'TARGET_PAGE'
+);
 wwv_flow_imp.component_end;
 end;
 /

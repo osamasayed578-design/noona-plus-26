@@ -27,7 +27,7 @@ wwv_flow_imp_shared.create_user_interface(
 ,p_nav_bar_list_id=>wwv_flow_imp.id(17755035362442962)
 ,p_nav_bar_list_template_id=>2847543055748234966
 ,p_nav_bar_template_options=>'#DEFAULT#'
-,p_javascript_file_urls=>'#APP_FILES#noona.js'
+,p_javascript_file_urls=>'#APP_FILES#noona.js'||chr(10)||'#APP_FILES#ai.js'
 ,p_css_file_urls=>'#APP_FILES#noona.css'
 );
 wwv_flow_imp.component_end;

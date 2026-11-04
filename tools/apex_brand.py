@@ -11,6 +11,14 @@ FILES = [('noona.css', 'text/css'), ('noona.js', 'application/javascript'), ('ca
 APP_ICONS = [('icon_32.png', 'icons_app_icon_32_png'), ('icon_144_r.png', 'icons_app_icon_144_rounded_png'),
              ('icon_192.png', 'icons_app_icon_192_png'), ('icon_256_r.png', 'icons_app_icon_256_rounded_png'),
              ('icon_512.png', 'icons_app_icon_512_png')]
+# نسخة 26: «مساعد نونا» (tools/ai_brand.py + ai.js) يضاف لكل التطبيقات عند وجوده
+try:
+    import ai_brand
+except ImportError:
+    ai_brand = None
+if ai_brand:
+    ai_brand.files(STATIC_DIR, FILES)
+
 SLOT_FILES = [(21, 'noona-login-bg.jpg', 'image/jpeg'), (22, 'noona-login-bg-sm.jpg', 'image/jpeg')]
 LOGIN_LABELS = [(",p_button_image_alt=>'Sign In'", ",p_button_image_alt=>'تسجيل الدخول'"),
                 (",p_prompt=>'Username'", ",p_prompt=>'اسم المستخدم'"),
@@ -120,6 +128,20 @@ def brand(app_dir):
     os.makedirs(os.path.dirname(a + rel), exist_ok=True)
     open(a + rel + '.sql', 'w', encoding='utf-8').write(component(rel, 'APPLICATION PROCESS: NOONA_COMPANY_LOGO', app_id, ws, body))
     paths.append(rel)
+    if ai_brand:
+        rel = 'shared_components/logic/application_processes/noona_ai'
+        body = f"""wwv_flow_imp_shared.create_flow_process(
+ p_id=>wwv_flow_imp.id({91820260000990000 + app_id * 100 + 41})
+,p_process_sequence=>20
+,p_process_point=>'ON_DEMAND'
+,p_process_type=>'NATIVE_PLSQL'
+,p_process_name=>'NOONA_AI'
+,p_process_sql_clob=>{join(ai_brand.PROCESS)}
+,p_process_clob_language=>'PLSQL'
+,p_security_scheme=>'MUST_NOT_BE_PUBLIC_USER'
+);"""
+        open(a + rel + '.sql', 'w', encoding='utf-8').write(component(rel, 'APPLICATION PROCESS: NOONA_AI', app_id, ws, body))
+        paths.append(rel)
     missing = ''.join(f'@@application/{p}.sql\n' for p in paths if f'@@application/{p}.sql' not in s)
     assert anchor in s, 'install.sql anchor not found'
     open(inst, 'w', encoding='utf-8').write(s.replace(anchor, anchor + missing, 1))
@@ -138,6 +160,10 @@ def brand(app_dir):
     if 'noona.js' not in ui:
         ui = ui.replace(",p_css_file_urls=>'#APP_FILES#noona.css'", ",p_javascript_file_urls=>'#APP_FILES#noona.js'\n,p_css_file_urls=>'#APP_FILES#noona.css'", 1)
         assert 'noona.js' in ui, 'user_interfaces css anchor not found'
+        open(a + 'user_interfaces.sql', 'w', encoding='utf-8').write(ui)
+    if ai_brand and 'ai.js' not in ui:
+        ui = ui.replace(",p_javascript_file_urls=>'#APP_FILES#noona.js'", ",p_javascript_file_urls=>'#APP_FILES#noona.js'||chr(10)||'#APP_FILES#ai.js'", 1)
+        assert 'ai.js' in ui, 'user_interfaces js anchor not found'
         open(a + 'user_interfaces.sql', 'w', encoding='utf-8').write(ui)
     # الصفحة 0: شارة الشركة الحالية (شعار المشترك واسمها) في ترويسة كل الصفحات
     p = a + 'pages/page_00000.sql'
