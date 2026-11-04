@@ -305,7 +305,7 @@ class App:
  p_id=>wwv_flow_imp.id({self.id()})
 ,p_name=>'{q(k)}'
 ,p_message_language=>'ar'
-,p_message_text=>'{q(v)}'
+,p_message_text=>'{q(v)}'{chr(10) + ",p_is_js_message=>true" if k != 'LINK' else ''}
 );
 """ for k, v in self.RUNTIME_MESSAGES.items())
         rel = 'shared_components/globalization/messages'
