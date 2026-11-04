@@ -18,11 +18,19 @@ wwv_flow_imp_shared.create_list(
 ,p_version_scn=>137120771
 );
 wwv_flow_imp_shared.create_list_item(
- p_id=>wwv_flow_imp.id(91820277000000020)
+ p_id=>wwv_flow_imp.id(91820277000000025)
 ,p_list_item_display_sequence=>10
 ,p_list_item_link_text=>'مركز التقارير'
 ,p_list_item_link_target=>'f?p=&APP_ID.:1:&APP_SESSION.::&DEBUG.:1::'
 ,p_list_item_icon=>'fa-bar-chart'
+,p_list_item_current_type=>'TARGET_PAGE'
+);
+wwv_flow_imp_shared.create_list_item(
+ p_id=>wwv_flow_imp.id(91820277000000026)
+,p_list_item_display_sequence=>20
+,p_list_item_link_text=>'تقاريري'
+,p_list_item_link_target=>'f?p=&APP_ID.:4:&APP_SESSION.::&DEBUG.:4::'
+,p_list_item_icon=>'fa-star'
 ,p_list_item_current_type=>'TARGET_PAGE'
 );
 wwv_flow_imp.component_end;

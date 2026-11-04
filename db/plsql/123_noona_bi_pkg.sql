@@ -4,6 +4,7 @@
 --     الضيافة، الصيانة، التصنيع، المستشفى، المستندات) بالتطبيق والصفحة ورمز التقرير داخل مركز تقارير الوحدة
 --   * يظهر التقرير فقط إذا اشتركت المؤسسة في وحدته وللمستخدم صلاحيته (مسؤول المؤسسة يرى كل المشترك فيه)
 --   * الشاشة الرئيسية: كارت لكل وحدة بعدد تقاريرها، والمفضلة، والأخيرة، والبحث في كل التقارير
+--   * قوائم المستخدم الكاملة (المفضلة، آخر ما فتحه بالوقت وعدد المرات، الأكثر استخداماً) مع الإزالة من السجل ومسحه
 --   * يفتح التقرير في تطبيق وحدته بنفس الجلسة، ويسجل مرات الفتح والمفضلة لكل مستخدم
 -- =============================================================================
 SET DEFINE OFF
@@ -27,6 +28,13 @@ CREATE OR REPLACE PACKAGE NOONA_BI_PKG AUTHID DEFINER AS
   FUNCTION open_url(p_report_id IN NUMBER, p_session IN VARCHAR2) RETURN VARCHAR2;
   -- يبدل المفضلة ويعيد الحالة الجديدة Y/N
   FUNCTION toggle_favorite(p_report_id IN NUMBER) RETURN VARCHAR2;
+  -- قوائم المستخدم الكاملة: FAV المفضلة، RECENT آخر ما فتحه، TOP الأكثر استخداماً
+  FUNCTION list_html(p_mode IN VARCHAR2, p_session IN VARCHAR2, p_apps IN VARCHAR2) RETURN CLOB;
+  -- إزالة تقرير من سجل المفتوحة (المفضلة تبقى)، أو مسح السجل كله؛ تعيد عدد ما أزيل
+  FUNCTION forget_recent(p_report_id IN NUMBER) RETURN NUMBER;
+  FUNCTION clear_recent RETURN NUMBER;
+  -- منذ متى: «منذ 5 دقائق»
+  FUNCTION ago(p_at IN TIMESTAMP) RETURN VARCHAR2;
 END NOONA_BI_PKG;
 /
 
@@ -153,7 +161,8 @@ CREATE OR REPLACE PACKAGE BODY NOONA_BI_PKG AS
 
   -- بطاقة تقرير
   FUNCTION card(p_id NUMBER, p_name VARCHAR2, p_desc VARCHAR2, p_type VARCHAR2, p_icon VARCHAR2, p_module VARCHAR2,
-                p_fav VARCHAR2, p_ok BOOLEAN, p_session VARCHAR2, p_show_module BOOLEAN) RETURN VARCHAR2 IS
+                p_fav VARCHAR2, p_ok BOOLEAN, p_session VARCHAR2, p_show_module BOOLEAN,
+                p_meta VARCHAR2 DEFAULT NULL, p_forget BOOLEAN DEFAULT FALSE) RETURN VARCHAR2 IS
   BEGIN
     RETURN '<div class="nn-rh-rep' || CASE WHEN NOT p_ok THEN ' is-disabled' END || '">'
         || CASE WHEN p_ok THEN '<a class="nn-rh-rep-link" href="' || NOONA_UI_PKG.url(c_app, 'OPEN', p_session, 'P3_ID', p_id) || '">'
@@ -164,15 +173,36 @@ CREATE OR REPLACE PACKAGE BODY NOONA_BI_PKG AS
         || '<span class="nn-rh-rep-tags"><span class="nn-badge is-muted">' || esc(type_label(p_type)) || '</span>'
         || CASE WHEN p_show_module THEN '<span class="nn-badge is-info">' || esc(module_label(p_module)) || '</span>' END
         || CASE WHEN NOT p_ok THEN '<span class="nn-badge is-warning">غير مثبت</span>' END
-        || '</span></span>'
+        || '</span>'
+        || CASE WHEN p_meta IS NOT NULL THEN '<span class="nn-rh-rep-meta"><span class="fa fa-clock-o" aria-hidden="true"></span> ' || p_meta || '</span>' END
+        || '</span>'
         || CASE WHEN p_ok THEN '</a>' ELSE '</div>' END
         || '<button type="button" class="nn-rh-fav' || CASE WHEN p_fav = 'Y' THEN ' is-on' END || '" data-id="' || p_id
         || '" title="' || CASE WHEN p_fav = 'Y' THEN 'إزالة من المفضلة' ELSE 'إضافة للمفضلة' END || '" aria-label="المفضلة">'
         || '<span class="fa ' || CASE WHEN p_fav = 'Y' THEN 'fa-star' ELSE 'fa-star-o' END || '" aria-hidden="true"></span></button>'
+        || CASE WHEN p_forget THEN '<button type="button" class="nn-rh-forget" data-id="' || p_id
+                || '" title="إزالة من سجل المفتوحة" aria-label="إزالة من السجل"><span class="fa fa-times" aria-hidden="true"></span></button>' END
         || '</div>';
   END card;
 
-  -- صف تقارير (المفضلة / الأخيرة / نتائج البحث)
+  FUNCTION ago(p_at IN TIMESTAMP) RETURN VARCHAR2 IS
+    l_m NUMBER;
+  BEGIN
+    IF p_at IS NULL THEN RETURN NULL; END IF;
+    l_m := ROUND((CAST(SYSTIMESTAMP AS DATE) - CAST(p_at AS DATE)) * 1440);
+    RETURN CASE WHEN l_m < 1 THEN 'الآن'
+                WHEN l_m < 60 THEN 'منذ ' || l_m || CASE WHEN l_m BETWEEN 3 AND 10 THEN ' دقائق' ELSE ' دقيقة' END
+                WHEN l_m < 1440 THEN 'منذ ' || ROUND(l_m / 60) || CASE WHEN ROUND(l_m / 60) BETWEEN 3 AND 10 THEN ' ساعات' ELSE ' ساعة' END
+                WHEN l_m < 2880 THEN 'أمس ' || TO_CHAR(p_at, 'HH24:MI')
+                ELSE TO_CHAR(p_at, 'YYYY-MM-DD HH24:MI') END;
+  END ago;
+
+  FUNCTION times(p_n NUMBER) RETURN VARCHAR2 IS
+  BEGIN
+    RETURN CASE WHEN p_n = 1 THEN 'مرة واحدة' WHEN p_n = 2 THEN 'مرتين' WHEN p_n BETWEEN 3 AND 10 THEN p_n || ' مرات' ELSE p_n || ' مرة' END;
+  END times;
+
+  -- صف تقارير (المفضلة / الأخيرة / الأكثر استخداماً / نتائج البحث)
   FUNCTION report_list(p_mode VARCHAR2, p_session VARCHAR2, p_apps VARCHAR2, p_search VARCHAR2, p_limit PLS_INTEGER) RETURN CLOB IS
     l_html CLOB;
     l_n    PLS_INTEGER := 0;
@@ -183,17 +213,46 @@ CREATE OR REPLACE PACKAGE BODY NOONA_BI_PKG AS
                 LEFT JOIN bi_report_user u ON u.report_id = b.id
                      AND u.membership_id = TO_NUMBER(SYS_CONTEXT('NOONA_CTX', 'MEMBERSHIP_ID'))
                WHERE b.status_code = 'PUBLISHED' AND b.app_alias IS NOT NULL
-                 AND (p_mode = 'SEARCH' OR (p_mode = 'FAV' AND u.is_favorite = 'Y') OR (p_mode = 'RECENT' AND u.last_opened_at IS NOT NULL))
+                 AND (p_mode = 'SEARCH' OR (p_mode = 'FAV' AND u.is_favorite = 'Y') OR (p_mode = 'RECENT' AND u.last_opened_at IS NOT NULL)
+                      OR (p_mode = 'TOP' AND u.open_count > 0))
                  AND report_ok(b.module_code, b.permission_code) = 'Y'
-               ORDER BY CASE WHEN p_mode = 'RECENT' THEN u.last_opened_at END DESC NULLS LAST, b.sort_order) LOOP
+               ORDER BY CASE WHEN p_mode = 'RECENT' THEN u.last_opened_at END DESC NULLS LAST,
+                        CASE WHEN p_mode = 'TOP' THEN u.open_count END DESC NULLS LAST,
+                        CASE WHEN p_mode = 'TOP' THEN u.last_opened_at END DESC NULLS LAST, b.sort_order) LOOP
       CONTINUE WHEN p_mode = 'SEARCH' AND NOT matches(p_search, r.name_ar, r.name_en, r.description, r.module_code);
       l_n := l_n + 1;
       EXIT WHEN l_n > p_limit;
       l_html := l_html || (card(r.id, r.name_ar, r.description, r.report_type, r.icon_class, r.module_code, r.fav,
-                               installed(p_apps, r.app_alias), p_session, TRUE));
+                               installed(p_apps, r.app_alias), p_session, TRUE,
+                               CASE WHEN r.last_opened_at IS NOT NULL AND p_mode IN ('RECENT', 'TOP', 'FAV')
+                                    THEN CASE WHEN p_mode = 'TOP' THEN 'فُتح ' || times(r.open_count) || ' &middot; آخرها ' || ago(r.last_opened_at)
+                                              ELSE ago(r.last_opened_at) || ' &middot; فُتح ' || times(r.open_count) END END,
+                               p_mode = 'RECENT'));
     END LOOP;
     RETURN l_html;
   END report_list;
+
+  FUNCTION mine_count(p_mode VARCHAR2) RETURN PLS_INTEGER IS
+    l_n PLS_INTEGER;
+  BEGIN
+    SELECT COUNT(*) INTO l_n FROM bi_report b JOIN bi_report_user u ON u.report_id = b.id
+     WHERE u.membership_id = TO_NUMBER(SYS_CONTEXT('NOONA_CTX', 'MEMBERSHIP_ID'))
+       AND b.status_code = 'PUBLISHED' AND b.app_alias IS NOT NULL
+       AND ((p_mode = 'FAV' AND u.is_favorite = 'Y') OR (p_mode = 'RECENT' AND u.last_opened_at IS NOT NULL) OR (p_mode = 'TOP' AND u.open_count > 0))
+       AND report_ok(b.module_code, b.permission_code) = 'Y';
+    RETURN l_n;
+  END mine_count;
+
+  -- عنوان قسم مع «عرض الكل»
+  FUNCTION section_head(p_icon VARCHAR2, p_title VARCHAR2, p_mode VARCHAR2, p_count PLS_INTEGER, p_shown PLS_INTEGER,
+                        p_session VARCHAR2) RETURN VARCHAR2 IS
+  BEGIN
+    RETURN '<h3 class="nn-rh-h"><span class="fa ' || p_icon || '" aria-hidden="true"></span> ' || p_title
+        || CASE WHEN p_count > 0 THEN ' <span class="nn-rh-h-count">' || p_count || '</span>' END
+        || CASE WHEN p_count > 0 THEN '<a class="nn-rh-h-all" href="' || NOONA_UI_PKG.url(c_app, 'MY-REPORTS', p_session, 'P4_MODE', p_mode) || '">'
+                || CASE WHEN p_count > p_shown THEN 'عرض الكل' ELSE 'إدارة القائمة' END
+                || ' <span class="fa fa-angle-left" aria-hidden="true"></span></a>' END || '</h3>';
+  END section_head;
 
   FUNCTION search_box(p_session VARCHAR2, p_module VARCHAR2, p_search VARCHAR2) RETURN VARCHAR2 IS
   BEGIN
@@ -255,14 +314,14 @@ CREATE OR REPLACE PACKAGE BODY NOONA_BI_PKG AS
           || NVL(l_list, '<div class="nn-empty">لا توجد تقارير مطابقة</div>'));
     END IF;
 
-    l_list := report_list('FAV', p_session, p_apps, NULL, 12);
-    IF l_list IS NOT NULL THEN
-      l_html := l_html || ('<h3 class="nn-rh-h"><span class="fa fa-star" aria-hidden="true"></span> المفضلة</h3><div class="nn-rh-reps">' || l_list || '</div>');
-    END IF;
+    l_list := report_list('FAV', p_session, p_apps, NULL, 6);
+    l_html := l_html || section_head('fa-star', 'المفضلة', 'FAV', mine_count('FAV'), 6, p_session)
+           || CASE WHEN l_list IS NOT NULL THEN '<div class="nn-rh-reps">' || l_list || '</div>' ELSE
+                  '<div class="nn-rh-hint"><span class="fa fa-star-o" aria-hidden="true"></span> اضغط النجمة على أي تقرير لإضافته إلى المفضلة فيظهر هنا دائماً</div>' END;
     l_list := report_list('RECENT', p_session, p_apps, NULL, 6);
-    IF l_list IS NOT NULL THEN
-      l_html := l_html || ('<h3 class="nn-rh-h"><span class="fa fa-history" aria-hidden="true"></span> آخر ما فتحته</h3><div class="nn-rh-reps">' || l_list || '</div>');
-    END IF;
+    l_html := l_html || section_head('fa-history', 'آخر ما فتحته', 'RECENT', mine_count('RECENT'), 6, p_session)
+           || CASE WHEN l_list IS NOT NULL THEN '<div class="nn-rh-reps">' || l_list || '</div>' ELSE
+                  '<div class="nn-rh-hint"><span class="fa fa-history" aria-hidden="true"></span> التقارير التي تفتحها تظهر هنا بالترتيب مع وقت آخر فتح وعدد المرات</div>' END;
     RETURN l_html || ('<h3 class="nn-rh-h"><span class="fa fa-th-large" aria-hidden="true"></span> الوحدات</h3><div class="nn-rh-mods">' || l_cards || '</div>');
   END home_html;
 
@@ -359,6 +418,50 @@ CREATE OR REPLACE PACKAGE BODY NOONA_BI_PKG AS
      WHERE membership_id = TO_NUMBER(SYS_CONTEXT('NOONA_CTX', 'MEMBERSHIP_ID')) AND report_id = p_report_id;
     RETURN l_new;
   END toggle_favorite;
+
+  FUNCTION list_html(p_mode IN VARCHAR2, p_session IN VARCHAR2, p_apps IN VARCHAR2) RETURN CLOB IS
+    l_mode  VARCHAR2(10) := CASE WHEN UPPER(p_mode) IN ('FAV', 'RECENT', 'TOP') THEN UPPER(p_mode) ELSE 'FAV' END;
+    l_list  CLOB;
+    l_chips VARCHAR2(4000);
+  BEGIN
+    reset_cache;
+    FOR t IN (SELECT 'FAV' m, 'المفضلة' t, 'fa-star' i, 1 o FROM dual UNION ALL
+              SELECT 'RECENT', 'آخر ما فتحته', 'fa-history', 2 FROM dual UNION ALL
+              SELECT 'TOP', 'الأكثر استخداماً', 'fa-line-chart', 3 FROM dual ORDER BY 4) LOOP
+      l_chips := l_chips || '<a class="nn-rh-chip' || CASE WHEN t.m = l_mode THEN ' is-on' END || '" href="'
+              || NOONA_UI_PKG.url(c_app, 'MY-REPORTS', p_session, 'P4_MODE', t.m) || '"><span class="fa ' || t.i || '" aria-hidden="true"></span> '
+              || t.t || ' <b>' || mine_count(t.m) || '</b></a>';
+    END LOOP;
+    l_list := report_list(l_mode, p_session, p_apps, NULL, 500);
+    RETURN '<div class="nn-rh-hero"><div class="nn-rh-crumb"><a href="' || NOONA_UI_PKG.url(c_app, 'HOME', p_session) || '">'
+        || '<span class="fa fa-angle-right" aria-hidden="true"></span> مركز التقارير</a>'
+        || '<div class="nn-hello-title"><span class="fa fa-user-circle-o" aria-hidden="true"></span> تقاريري</div></div>'
+        || CASE WHEN l_mode = 'RECENT' AND l_list IS NOT NULL
+                THEN '<button type="button" class="t-Button t-Button--small nn-rh-clear"><span class="fa fa-trash-o" aria-hidden="true"></span> مسح سجل المفتوحة</button>' END
+        || '</div><div class="nn-rh-chips">' || l_chips || '</div>'
+        || CASE WHEN l_list IS NOT NULL THEN '<div class="nn-rh-reps">' || l_list || '</div>'
+                ELSE '<div class="nn-launch-empty"><span class="fa ' || CASE l_mode WHEN 'FAV' THEN 'fa-star-o' ELSE 'fa-history' END
+                  || '" aria-hidden="true"></span><b>' || CASE l_mode WHEN 'FAV' THEN 'لا توجد تقارير مفضلة بعد' ELSE 'لم تفتح أي تقرير بعد' END
+                  || '</b><span>' || CASE l_mode WHEN 'FAV' THEN 'اضغط النجمة على أي تقرير لإضافته هنا' ELSE 'افتح تقريراً من الوحدات ليظهر هنا' END
+                  || '</span><a href="' || NOONA_UI_PKG.url(c_app, 'HOME', p_session) || '">تصفح التقارير</a></div>' END;
+  END list_html;
+
+  FUNCTION forget_recent(p_report_id IN NUMBER) RETURN NUMBER IS
+    l_m NUMBER := TO_NUMBER(SYS_CONTEXT('NOONA_CTX', 'MEMBERSHIP_ID'));
+    l_n NUMBER;
+  BEGIN
+    UPDATE bi_report_user SET last_opened_at = NULL, open_count = 0
+     WHERE membership_id = l_m AND (p_report_id IS NULL OR report_id = p_report_id) AND last_opened_at IS NOT NULL;
+    l_n := SQL%ROWCOUNT;
+    DELETE FROM bi_report_user
+     WHERE membership_id = l_m AND (p_report_id IS NULL OR report_id = p_report_id) AND is_favorite = 'N' AND last_opened_at IS NULL;
+    RETURN l_n;
+  END forget_recent;
+
+  FUNCTION clear_recent RETURN NUMBER IS
+  BEGIN
+    RETURN forget_recent(NULL);
+  END clear_recent;
 END NOONA_BI_PKG;
 /
 SHOW ERRORS PACKAGE BODY NOONA_BI_PKG

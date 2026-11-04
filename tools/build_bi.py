@@ -23,6 +23,29 @@ FAV = ['declare', '    l_fav varchar2(1);', 'begin',
        "    apex_json.open_object; apex_json.write('ok', false);",
        "    apex_json.write('msg', regexp_replace(sqlerrm, '^ORA-[0-9]+: ', '')); apex_json.close_object;",
        'end;']
+# إزالة من سجل المفتوحة (x01 = التقرير، فارغ = مسح السجل كله)
+FORGET = ['declare', '    l_n number;', 'begin',
+          "    l_n := case when apex_application.g_x01 is null then noona_bi_pkg.clear_recent",
+          "                else noona_bi_pkg.forget_recent(to_number(apex_application.g_x01)) end;",
+          "    apex_json.open_object; apex_json.write('ok', true); apex_json.write('n', l_n); apex_json.close_object;",
+          'exception when others then',
+          "    apex_json.open_object; apex_json.write('ok', false);",
+          "    apex_json.write('msg', regexp_replace(sqlerrm, '^ORA-[0-9]+: ', '')); apex_json.close_object;",
+          'end;']
+JS_FORGET = [
+    "document.addEventListener('click', function (e) {",
+    "  var b = e.target.closest('.nn-rh-forget, .nn-rh-clear'); if (!b) return;",
+    "  e.preventDefault();",
+    "  var all = b.classList.contains('nn-rh-clear');",
+    "  var go = function () {",
+    "    apex.server.process('FORGET', { x01: all ? '' : b.dataset.id }, { dataType: 'json' }).then(function (d) {",
+    "      if (!d.ok) { apex.message.clearErrors(); apex.message.showErrors([{ type: 'error', location: 'page', message: d.msg, unsafe: false }]); return; }",
+    "      if (all) { apex.navigation.redirect(location.href); return; }",
+    "      var c = b.closest('.nn-rh-rep'); if (c) c.remove();",
+    "      apex.message.showPageSuccess('أزيل التقرير من سجل المفتوحة');",
+    "    }); };",
+    "  if (all) apex.message.confirm('مسح كل سجل التقارير المفتوحة؟ المفضلة لا تتأثر', function (ok) { if (ok) go(); }); else go();",
+    "});"]
 # المفضلة بنقرة (AJAX)؛ والبحث: في الرئيسية يبحث في كل التقارير عند Enter، وفي الوحدة يصفي البطاقات فوراً
 JS_FAV = [
     "document.addEventListener('click', function (e) {",
@@ -46,7 +69,8 @@ r = p.dynamic('مركز التقارير', 10, ['declare', '    l_apps varchar2(
               hide_header=True, opts='#DEFAULT#:t-Region--noUI')
 p.hidden('P1_SEARCH', r, 10, protected=False)
 p.process(1, 'ON_DEMAND', 'FAV', FAV)
-p.onload(JS_FAV + [
+p.process(2, 'ON_DEMAND', 'FORGET', FORGET)
+p.onload(JS_FAV + JS_FORGET + [
     "var s = document.getElementById('nnRhSearch');",
     "if (s) {",
     "  s.addEventListener('keydown', function (e) {",
@@ -85,7 +109,18 @@ p.hidden('P3_ID', r, 10, protected=False)
 p.process(1, 'BEFORE_HEADER', 'Open Report', ['declare', '    l_url varchar2(4000);', 'begin',
           '    l_url := noona_bi_pkg.open_url(:P3_ID, :APP_SESSION);', '    commit;', '    apex_util.redirect_url(l_url);', 'end;'])
 
+# =============================================================== 4) تقاريري: المفضلة، آخر ما فتحته، الأكثر استخداماً
+p = app.page(4, 'My Reports', 'MY-REPORTS', 'تقاريري', scheme=TENANT, protection='N')
+r = p.dynamic('تقاريري', 10, ['declare', '    l_apps varchar2(4000);', 'begin', APPS,
+                             '    return noona_bi_pkg.list_html(:P4_MODE, :APP_SESSION, l_apps);', 'end;'],
+              hide_header=True, opts='#DEFAULT#:t-Region--noUI')
+p.hidden('P4_MODE', r, 10, protected=False)
+p.process(1, 'ON_DEMAND', 'FAV', FAV)
+p.process(2, 'ON_DEMAND', 'FORGET', FORGET)
+p.onload(JS_FAV + JS_FORGET)
+
 app.nav_item('مركز التقارير', 1, 'fa-bar-chart', 10)
+app.nav_item('تقاريري', 4, 'fa-star', 20)
 
 app.finalize()
 print('NOONA_BI built:', len(app.pages), 'pages')

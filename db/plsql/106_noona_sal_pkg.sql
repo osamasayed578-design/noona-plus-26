@@ -539,6 +539,8 @@ CREATE OR REPLACE PACKAGE BODY NOONA_SAL_PKG AS
        WHERE id = l_id;
       DELETE FROM sal_invoice_line WHERE invoice_id = l_id;
     END IF;
+    -- العروض في سياق المستند: شروط العميل وحدود الاستخدام، وتسجيل العروض المستخدمة (تستبدل عند إعادة حفظ المسودة)
+    NOONA_PRC_PKG.begin_doc('SALES', 'SAL_INVOICE', l_id, l_cust);
     -- حصة كل سطر من خصم الكوبون/عرض قيمة الفاتورة (sh) لا تتجاوز في مجموعها ما يسمح به العرض الساري
     FOR r IN (SELECT * FROM JSON_TABLE(p_doc, '$.lines[*]' COLUMNS (i NUMBER PATH '$.i', q NUMBER PATH '$.q', p NUMBER PATH '$.p',
                 disc NUMBER PATH '$.disc', sh NUMBER PATH '$.sh'))) LOOP
@@ -584,6 +586,7 @@ CREATE OR REPLACE PACKAGE BODY NOONA_SAL_PKG AS
     NOONA_CORE_PKG.assert(l_no > 0, 'NOONA-SAL-016', 'أضف بنداً واحداً على الأقل', 'Add at least one line');
     UPDATE sal_invoice SET subtotal = l_sub, discount_amount = l_dis, tax_amount = l_tax, total_amount = l_sub + l_tax, total_func = l_sub + l_tax
      WHERE id = l_id;
+    NOONA_PRC_PKG.end_doc;
     IF l_act = 'POST' THEN
       post_invoice(l_id);
     END IF;
@@ -742,6 +745,7 @@ CREATE OR REPLACE PACKAGE BODY NOONA_SAL_PKG AS
     guard('SAL_INVOICE.CANCEL');
     UPDATE sal_invoice SET status_code = 'CANCELLED' WHERE id = p_invoice_id AND company_id = company AND status_code = 'DRAFT';
     NOONA_CORE_PKG.assert(SQL%ROWCOUNT = 1, 'NOONA-SAL-022', 'تلغى الفاتورة المسودة فقط؛ المرحلة تعالج بالمرتجع', 'Only drafts can be cancelled');
+    NOONA_PRC_PKG.release_uses('SAL_INVOICE', p_invoice_id);
     NOONA_AUDIT_PKG.log_event('DATA_CHANGE', c_inv, p_invoice_id, 'CANCEL', 'SUCCESS');
   END cancel_invoice;
 

@@ -83,7 +83,7 @@ BEGIN
      AND has(l_c, 'nn-rh-mod-hr') AND has(l_c, 'nn-rh-mod-pay') AND has(l_c, 'nn-rh-mod-mfg') AND has(l_c, 'nn-rh-mod-his')
      AND has(l_c, 'nn-rh-mod-dms') AND has(l_c, 'P2_MODULE:GL'));
   ok('module card lists its first reports', has(l_c, 'ميزان المراجعة · كشف حساب · قائمة الدخل'));
-  ok('no favourites or recent yet', NOT has(l_c, 'آخر ما فتحته'));
+  ok('no favourites or recent yet: hints shown', has(l_c, 'nn-rh-hint') AND has(l_c, 'اضغط النجمة') AND NOT has(l_c, 'MY-REPORTS'));
   l_c := NOONA_BI_PKG.module_html('GL', l_sess, l_apps);
   ok('module page lists its reports', has(l_c, 'ميزان المراجعة') AND has(l_c, 'سجل التدقيق المالي') AND NOT has(l_c, 'سجل المشتريات'));
   ok('module page type chips', has(l_c, 'nn-rh-chip') AND has(l_c, 'تحليلي') AND has(l_c, 'P2_MODULE,P2_TYPE:GL,ANALYTICAL'));
@@ -108,6 +108,26 @@ BEGIN
   l_c := NOONA_BI_PKG.home_html(l_sess, l_apps);
   ok('home shows favourites and recent', has(l_c, 'المفضلة') AND has(l_c, 'آخر ما فتحته') AND has(l_c, 'nn-rh-fav is-on')
      AND DBMS_LOB.INSTR(l_c, 'أرصدة المخزون') < DBMS_LOB.INSTR(l_c, 'الوحدات</h3>'));
+  ok('recent cards show time and open count', has(l_c, 'nn-rh-rep-meta') AND has(l_c, 'فُتح مرتين'));
+  ok('sections link to My Reports', has(l_c, 'P4_MODE:FAV') AND has(l_c, 'P4_MODE:RECENT'));
+  l_c := NOONA_BI_PKG.list_html('RECENT', l_sess, l_apps);
+  ok('My Reports: recent list with remove buttons and clear', has(l_c, 'nn-rh-forget') AND has(l_c, 'nn-rh-clear')
+     AND has(l_c, 'أرصدة المخزون') AND has(l_c, 'ميزان المراجعة'));
+  ok('My Reports: most recent first', DBMS_LOB.INSTR(l_c, 'أرصدة المخزون') < DBMS_LOB.INSTR(l_c, 'ميزان المراجعة'));
+  l_c := NOONA_BI_PKG.list_html('TOP', l_sess, l_apps);
+  ok('My Reports: most used first', DBMS_LOB.INSTR(l_c, 'أرصدة المخزون') < DBMS_LOB.INSTR(l_c, 'ميزان المراجعة')
+     AND has(l_c, 'فُتح مرتين'));
+  l_c := NOONA_BI_PKG.list_html('FAV', l_sess, l_apps);
+  ok('My Reports: favourites only', has(l_c, 'nn-rh-fav is-on') AND NOT has(l_c, 'ميزان المراجعة') AND NOT has(l_c, 'nn-rh-forget'));
+  ok('forget one report from recent', NOONA_BI_PKG.forget_recent(rid('GL_TB')) = 1);
+  l_c := NOONA_BI_PKG.list_html('RECENT', l_sess, l_apps);
+  ok('forgotten report gone from recent', NOT has(l_c, 'ميزان المراجعة') AND has(l_c, 'أرصدة المخزون'));
+  ok('ago text', NOONA_BI_PKG.ago(SYSTIMESTAMP) = 'الآن' AND NOONA_BI_PKG.ago(SYSTIMESTAMP - INTERVAL '5' MINUTE) = 'منذ 5 دقائق');
+  ok('clear recent keeps favourites', NOONA_BI_PKG.clear_recent >= 2);
+  l_c := NOONA_BI_PKG.list_html('RECENT', l_sess, l_apps);
+  ok('recent empty after clear', has(l_c, 'لم تفتح أي تقرير بعد'));
+  l_c := NOONA_BI_PKG.list_html('FAV', l_sess, l_apps);
+  ok('favourite survives clear', has(l_c, 'nn-rh-fav is-on'));
   ok('favourite off', NOONA_BI_PKG.toggle_favorite(rid('HIS_REV')) = 'N');
   l_c := NOONA_BI_PKG.home_html(l_sess, l_apps, 'ميزان');
   ok('search across all reports', has(l_c, 'نتائج البحث') AND has(l_c, 'ميزان المراجعة') AND NOT has(l_c, 'سجل المشتريات'));

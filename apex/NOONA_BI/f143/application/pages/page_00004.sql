@@ -1,0 +1,121 @@
+prompt --application/pages/page_00004
+begin
+--   Manifest
+--     PAGE: 00004
+--   Manifest End
+wwv_flow_imp.component_begin (
+ p_version_yyyy_mm_dd=>'2024.11.30'
+,p_release=>'24.2.0'
+,p_default_workspace_id=>17663301221950901
+,p_default_application_id=>143
+,p_default_id_offset=>0
+,p_default_owner=>'NOONA_APP'
+);
+wwv_flow_imp_page.create_page(
+ p_id=>4
+,p_name=>'My Reports'
+,p_alias=>'MY-REPORTS'
+,p_step_title=>'تقاريري'
+,p_autocomplete_on_off=>'OFF'
+,p_page_template_options=>'#DEFAULT#'
+,p_required_role=>wwv_flow_imp.id(91820277000000002)
+,p_javascript_code_onload=>wwv_flow_string.join(wwv_flow_t_varchar2(
+'document.addEventListener(''click'', function (e) {',
+'  var b = e.target.closest(''.nn-rh-fav''); if (!b) return;',
+'  e.preventDefault(); b.disabled = true;',
+'  apex.server.process(''FAV'', { x01: b.dataset.id }, { dataType: ''json'' }).then(function (d) {',
+'    b.disabled = false;',
+'    if (!d.ok) { apex.message.clearErrors(); apex.message.showErrors([{ type: ''error'', location: ''page'', message: d.msg, unsafe: false }]); return; }',
+'    var on = d.fav === ''Y'';',
+'    document.querySelectorAll(''.nn-rh-fav[data-id="'' + b.dataset.id + ''"]'').forEach(function (x) {',
+'      x.classList.toggle(''is-on'', on); x.title = on ? ''إزالة من المفضلة'' : ''إضافة للمفضلة'';',
+'      x.firstElementChild.className = ''fa '' + (on ? ''fa-star'' : ''fa-star-o''); });',
+'    apex.message.showPageSuccess(on ? ''أضيف التقرير إلى المفضلة'' : ''أزيل التقرير من المفضلة'');',
+'  }, function () { b.disabled = false; });',
+'});',
+'document.addEventListener(''click'', function (e) {',
+'  var b = e.target.closest(''.nn-rh-forget, .nn-rh-clear''); if (!b) return;',
+'  e.preventDefault();',
+'  var all = b.classList.contains(''nn-rh-clear'');',
+'  var go = function () {',
+'    apex.server.process(''FORGET'', { x01: all ? '''' : b.dataset.id }, { dataType: ''json'' }).then(function (d) {',
+'      if (!d.ok) { apex.message.clearErrors(); apex.message.showErrors([{ type: ''error'', location: ''page'', message: d.msg, unsafe: false }]); return; }',
+'      if (all) { apex.navigation.redirect(location.href); return; }',
+'      var c = b.closest(''.nn-rh-rep''); if (c) c.remove();',
+'      apex.message.showPageSuccess(''أزيل التقرير من سجل المفتوحة'');',
+'    }); };',
+'  if (all) apex.message.confirm(''مسح كل سجل التقارير المفتوحة؟ المفضلة لا تتأثر'', function (ok) { if (ok) go(); }); else go();',
+'});'))
+,p_protection_level=>'N'
+);
+wwv_flow_imp_page.create_page_plug(
+ p_id=>wwv_flow_imp.id(91820277000000021)
+,p_plug_name=>'تقاريري'
+,p_region_template_options=>'#DEFAULT#:t-Region--noUI:t-Region--removeHeader js-removeLandmark:t-Region--noUI'
+,p_plug_template=>4072358936313175081
+,p_plug_display_sequence=>10
+,p_function_body_language=>'PLSQL'
+,p_plug_source=>wwv_flow_string.join(wwv_flow_t_varchar2(
+'declare',
+'    l_apps varchar2(4000);',
+'begin',
+'    select listagg(alias, '','') within group (order by alias) into l_apps from apex_applications;',
+'    return noona_bi_pkg.list_html(:P4_MODE, :APP_SESSION, l_apps);',
+'end;'))
+,p_plug_source_type=>'NATIVE_DYNAMIC_CONTENT'
+);
+wwv_flow_imp_page.create_page_item(
+ p_id=>wwv_flow_imp.id(91820277000000022)
+,p_name=>'P4_MODE'
+,p_item_sequence=>10
+,p_item_plug_id=>wwv_flow_imp.id(91820277000000021)
+,p_display_as=>'NATIVE_HIDDEN'
+,p_protection_level=>'N'
+,p_attributes=>wwv_flow_t_plugin_attributes(wwv_flow_t_varchar2(
+  'value_protected', 'N')).to_clob
+);
+wwv_flow_imp_page.create_page_process(
+ p_id=>wwv_flow_imp.id(91820277000000023)
+,p_process_sequence=>1
+,p_process_point=>'ON_DEMAND'
+,p_process_type=>'NATIVE_PLSQL'
+,p_process_name=>'FAV'
+,p_process_sql_clob=>wwv_flow_string.join(wwv_flow_t_varchar2(
+'declare',
+'    l_fav varchar2(1);',
+'begin',
+'    l_fav := noona_bi_pkg.toggle_favorite(to_number(apex_application.g_x01));',
+'    apex_json.open_object; apex_json.write(''ok'', true); apex_json.write(''fav'', l_fav); apex_json.close_object;',
+'exception when others then',
+'    apex_json.open_object; apex_json.write(''ok'', false);',
+'    apex_json.write(''msg'', regexp_replace(sqlerrm, ''^ORA-[0-9]+: '', '''')); apex_json.close_object;',
+'end;'))
+,p_process_clob_language=>'PLSQL'
+,p_error_display_location=>'INLINE_IN_NOTIFICATION'
+,p_internal_uid=>91820277000000023
+);
+wwv_flow_imp_page.create_page_process(
+ p_id=>wwv_flow_imp.id(91820277000000024)
+,p_process_sequence=>2
+,p_process_point=>'ON_DEMAND'
+,p_process_type=>'NATIVE_PLSQL'
+,p_process_name=>'FORGET'
+,p_process_sql_clob=>wwv_flow_string.join(wwv_flow_t_varchar2(
+'declare',
+'    l_n number;',
+'begin',
+'    l_n := case when apex_application.g_x01 is null then noona_bi_pkg.clear_recent',
+'                else noona_bi_pkg.forget_recent(to_number(apex_application.g_x01)) end;',
+'    apex_json.open_object; apex_json.write(''ok'', true); apex_json.write(''n'', l_n); apex_json.close_object;',
+'exception when others then',
+'    apex_json.open_object; apex_json.write(''ok'', false);',
+'    apex_json.write(''msg'', regexp_replace(sqlerrm, ''^ORA-[0-9]+: '', '''')); apex_json.close_object;',
+'end;'))
+,p_process_clob_language=>'PLSQL'
+,p_error_display_location=>'INLINE_IN_NOTIFICATION'
+,p_internal_uid=>91820277000000024
+);
+
+wwv_flow_imp.component_end;
+end;
+/

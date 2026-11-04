@@ -17,6 +17,7 @@ Quotation → Sales Order → Reservation → Delivery → Sales Invoice → Col
 | [`SAL_PRICE_RUN_LINE`](#sal_price_run_line) | أسطر إعادة التسعير | Repricing Run Lines | C | INTERNAL |
 | [`SAL_PRICE_HISTORY`](#sal_price_history) | سجل تغيير الأسعار | Price Change History | C | INTERNAL |
 | [`SAL_PROMOTION`](#sal_promotion) | العروض والتخفيضات | Promotions & Discounts | C | INTERNAL |
+| [`SAL_PROMOTION_USE`](#sal_promotion_use) | استخدامات العروض | Promotion Usage | C | INTERNAL |
 | [`SAL_PROMOTION_TARGET`](#sal_promotion_target) | أصناف وخدمات العرض | Promotion Targets | C | INTERNAL |
 | [`SAL_BUNDLE`](#sal_bundle) | الباقات | Bundles & Packages | C | INTERNAL |
 | [`SAL_BUNDLE_LINE`](#sal_bundle_line) | مكونات الباقة | Bundle Components | C | INTERNAL |
@@ -321,7 +322,7 @@ Quotation → Sales Order → Reservation → Delivery → Sales Invoice → Col
 | الحساسية | INTERNAL |
 | النمط | قابل للتعديل وفق دورة الحياة |
 | مفاتيح فريدة | UK2: (TENANT_ID, COMPANY_ID, CODE) |
-| قيود أعمال | EFFECTIVE_TO IS NULL OR EFFECTIVE_TO >= EFFECTIVE_FROM<br>PROMO_VALUE >= 0<br>PROMO_TYPE NOT IN ('PCT_OFF','SPEND_PCT') OR PROMO_VALUE <= 100<br>PROMO_TYPE <> 'BUY_X_GET_Y' OR (BUY_QTY > 0 AND GET_QTY > 0)<br>HOUR_FROM IS NULL OR HOUR_FROM BETWEEN 0 AND 23<br>HOUR_TO IS NULL OR HOUR_TO BETWEEN 0 AND 24 |
+| قيود أعمال | EFFECTIVE_TO IS NULL OR EFFECTIVE_TO >= EFFECTIVE_FROM<br>PROMO_VALUE >= 0<br>MAX_USES IS NULL OR MAX_USES > 0<br>MAX_USES_PER_CUSTOMER IS NULL OR MAX_USES_PER_CUSTOMER > 0<br>PROMO_TYPE NOT IN ('PCT_OFF','SPEND_PCT') OR PROMO_VALUE <= 100<br>PROMO_TYPE <> 'BUY_X_GET_Y' OR (BUY_QTY > 0 AND GET_QTY > 0)<br>HOUR_FROM IS NULL OR HOUR_FROM BETWEEN 0 AND 23<br>HOUR_TO IS NULL OR HOUR_TO BETWEEN 0 AND 24 |
 
 | # | العمود | النوع المنطقي | Oracle Type | إلزامي | افتراضي | مفاتيح | القيم المقبولة | المصدر | PII | الوصف |
 |---:|---|---|---|:---:|---|---|---|---|:---:|---|
@@ -346,14 +347,51 @@ Quotation → Sales Order → Reservation → Delivery → Sales Invoice → Col
 | 19 | `COUPON_CODE` | نص | `VARCHAR2(50 CHAR)` |  |  |  |  | إدخال المستخدم |  | كود الكوبون (فارغ = تلقائي) |
 | 20 | `PRIORITY_NO` | عدد صحيح | `NUMBER(10)` | ✔ | 100 |  |  | إدخال المستخدم |  | الأولوية |
 | 21 | `STACKABLE` | منطقي Y/N | `CHAR(1 CHAR)` | ✔ | 'N' |  | Y, N | إدخال المستخدم |  | يجمع مع عروض أخرى |
-| 22 | `STATUS_CODE` | رمز | `VARCHAR2(30 CHAR)` | ✔ | 'DRAFT' |  | DRAFT, ACTIVE, PAUSED, EXPIRED, CANCELLED | النظام/الحزمة |  | الحالة ضمن دورة الحياة المعتمدة |
-| 23 | `EFFECTIVE_FROM` | تاريخ | `DATE` | ✔ | TRUNC(SYSDATE) |  |  | إدخال المستخدم |  | تاريخ بداية السريان |
-| 24 | `EFFECTIVE_TO` | تاريخ | `DATE` |  |  |  |  | إدخال المستخدم |  | تاريخ نهاية السريان (فارغ = مفتوح) |
-| 25 | `ROW_VERSION` | عدد صحيح | `NUMBER(10)` | ✔ | 1 |  |  | Trigger |  | رقم الإصدار للتحكم في التزامن المتفائل |
-| 26 | `CREATED_BY` | اسم مستخدم | `VARCHAR2(128 CHAR)` | ✔ |  |  |  | Trigger |  | منشئ السجل |
-| 27 | `CREATED_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` | ✔ | SYSTIMESTAMP |  |  | Trigger |  | وقت الإنشاء |
-| 28 | `UPDATED_BY` | اسم مستخدم | `VARCHAR2(128 CHAR)` |  |  |  |  | Trigger |  | آخر من عدل السجل |
-| 29 | `UPDATED_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` |  |  |  |  | Trigger |  | وقت آخر تعديل |
+| 22 | `DAYS_OF_MONTH` | نص | `VARCHAR2(100 CHAR)` |  |  |  |  | إدخال المستخدم |  | أيام الشهر (1-5,25-31) فارغ = كل الأيام |
+| 23 | `EXCLUDED_DATES` | نص | `VARCHAR2(1000 CHAR)` |  |  |  |  | إدخال المستخدم |  | تواريخ مستثناة (عطلات) YYYY-MM-DD مفصولة بفواصل |
+| 24 | `BRANCH_IDS` | نص | `VARCHAR2(400 CHAR)` |  |  |  |  | إدخال المستخدم |  | الفروع (معرفات مفصولة بفواصل) فارغ = كل الفروع |
+| 25 | `CUSTOMER_SCOPE` | رمز | `VARCHAR2(30 CHAR)` | ✔ | 'ALL' |  | ALL, REGISTERED, NEW, LIST | إدخال المستخدم |  | العملاء: الكل، المسجلون، الجدد (أول شراء)، عملاء محددون |
+| 26 | `CUSTOMER_IDS` | نص | `VARCHAR2(1000 CHAR)` |  |  |  |  | إدخال المستخدم |  | حسابات العملاء المحددين (مفصولة بفواصل) |
+| 27 | `MAX_USES` | عدد صحيح | `NUMBER(10)` |  |  |  |  | إدخال المستخدم |  | أقصى عدد استخدامات للعرض (فواتير) |
+| 28 | `MAX_USES_PER_CUSTOMER` | عدد صحيح | `NUMBER(10)` |  |  |  |  | إدخال المستخدم |  | أقصى استخدام لكل عميل |
+| 29 | `STATUS_CODE` | رمز | `VARCHAR2(30 CHAR)` | ✔ | 'DRAFT' |  | DRAFT, ACTIVE, PAUSED, EXPIRED, CANCELLED | النظام/الحزمة |  | الحالة ضمن دورة الحياة المعتمدة |
+| 30 | `EFFECTIVE_FROM` | تاريخ | `DATE` | ✔ | TRUNC(SYSDATE) |  |  | إدخال المستخدم |  | تاريخ بداية السريان |
+| 31 | `EFFECTIVE_TO` | تاريخ | `DATE` |  |  |  |  | إدخال المستخدم |  | تاريخ نهاية السريان (فارغ = مفتوح) |
+| 32 | `ROW_VERSION` | عدد صحيح | `NUMBER(10)` | ✔ | 1 |  |  | Trigger |  | رقم الإصدار للتحكم في التزامن المتفائل |
+| 33 | `CREATED_BY` | اسم مستخدم | `VARCHAR2(128 CHAR)` | ✔ |  |  |  | Trigger |  | منشئ السجل |
+| 34 | `CREATED_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` | ✔ | SYSTIMESTAMP |  |  | Trigger |  | وقت الإنشاء |
+| 35 | `UPDATED_BY` | اسم مستخدم | `VARCHAR2(128 CHAR)` |  |  |  |  | Trigger |  | آخر من عدل السجل |
+| 36 | `UPDATED_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` |  |  |  |  | Trigger |  | وقت آخر تعديل |
+
+## SAL_PROMOTION_USE
+
+| البند | القيمة |
+|---|---|
+| الاسم العربي | استخدامات العروض |
+| English | Promotion Usage |
+| الحزمة المالكة | 13 — `NOONA_SALES_PKG` |
+| نطاق الملكية | `C` — مملوك للشركة Company-Owned |
+| الحساسية | INTERNAL |
+| النمط | قابل للتعديل وفق دورة الحياة |
+| مفاتيح فريدة | UK1: (TENANT_ID, PROMOTION_ID, DOC_TYPE, DOC_ID) |
+
+| # | العمود | النوع المنطقي | Oracle Type | إلزامي | افتراضي | مفاتيح | القيم المقبولة | المصدر | PII | الوصف |
+|---:|---|---|---|:---:|---|---|---|---|:---:|---|
+| 1 | `ID` | معرف | `NUMBER(19)` | ✔ |  | PK |  | النظام/الحزمة |  | المفتاح الداخلي الثابت (Identity) - لا يعاد استخدامه |
+| 2 | `TENANT_ID` | معرف | `NUMBER(19)` | ✔ |  | FK→PLT_TENANT UK1 |  | Security Context |  | المؤسسة المالكة؛ يملأ من Security Context الموثوق لا من مدخلات المستخدم |
+| 3 | `COMPANY_ID` | معرف | `NUMBER(19)` | ✔ |  | FK→ORG_COMPANY |  | Security Context |  | الشركة (الكيان القانوني) المالكة للسجل |
+| 4 | `PROMOTION_ID` | معرف | `NUMBER(19)` | ✔ |  | FK→SAL_PROMOTION UK1 |  | إدخال المستخدم |  | العرض |
+| 5 | `CHANNEL_CODE` | رمز | `VARCHAR2(30 CHAR)` | ✔ |  |  | POS, SALES, HIS, AUT, RST | إدخال المستخدم |  | القناة |
+| 6 | `DOC_TYPE` | رمز | `VARCHAR2(30 CHAR)` | ✔ |  | UK1 |  | إدخال المستخدم |  | نوع المستند |
+| 7 | `DOC_ID` | معرف | `NUMBER(19)` | ✔ |  | UK1 |  | إدخال المستخدم |  | المستند |
+| 8 | `CUSTOMER_ACCOUNT_ID` | معرف | `NUMBER(19)` |  |  | FK→AR_CUSTOMER_ACCOUNT |  | إدخال المستخدم |  | العميل |
+| 9 | `DISCOUNT_AMOUNT` | مبلغ | `NUMBER(24,6)` | ✔ | 0 |  |  | إدخال المستخدم |  | قيمة الخصم |
+| 10 | `USED_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` | ✔ | SYSTIMESTAMP |  |  | إدخال المستخدم |  | وقت الاستخدام |
+| 11 | `ROW_VERSION` | عدد صحيح | `NUMBER(10)` | ✔ | 1 |  |  | Trigger |  | رقم الإصدار للتحكم في التزامن المتفائل |
+| 12 | `CREATED_BY` | اسم مستخدم | `VARCHAR2(128 CHAR)` | ✔ |  |  |  | Trigger |  | منشئ السجل |
+| 13 | `CREATED_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` | ✔ | SYSTIMESTAMP |  |  | Trigger |  | وقت الإنشاء |
+| 14 | `UPDATED_BY` | اسم مستخدم | `VARCHAR2(128 CHAR)` |  |  |  |  | Trigger |  | آخر من عدل السجل |
+| 15 | `UPDATED_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` |  |  |  |  | Trigger |  | وقت آخر تعديل |
 
 ## SAL_PROMOTION_TARGET
 

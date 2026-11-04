@@ -72,6 +72,21 @@ CREATE OR REPLACE PACKAGE NOONA_PRC_PKG AUTHID DEFINER AS
   FUNCTION quote_cart(p_doc IN CLOB, p_channel IN VARCHAR2) RETURN CLOB;
   -- العروض السارية الآن لقناة: [{id, name, text, coupon}]
   FUNCTION active_promotions_json(p_channel IN VARCHAR2) RETURN CLOB;
+  -- سياق المستند لشروط العميل وحدود الاستخدام: يبدأ قبل حساب العروض وينتهي بتسجيل العروض المستخدمة فعلاً
+  --   (إعادة حفظ المسودة تستبدل استخداماتها؛ إلغاء المستند يحررها)
+  PROCEDURE begin_doc(p_channel IN VARCHAR2, p_doc_type IN VARCHAR2, p_doc_id IN NUMBER, p_customer IN NUMBER);
+  PROCEDURE end_doc;
+  PROCEDURE release_uses(p_doc_type IN VARCHAR2, p_doc_id IN NUMBER);
+  -- عملاء العرض المحدد (نطاق LIST)
+  PROCEDURE add_promotion_customer(p_promo IN NUMBER, p_customer IN NUMBER);
+  PROCEDURE remove_promotion_customer(p_promo IN NUMBER, p_customer IN NUMBER);
+  FUNCTION promotion_customers(p_promo IN NUMBER) RETURN VARCHAR2;
+  -- العميل لحساب العروض دون تسجيل استخدام (المعاينة، إضافة بند)
+  PROCEDURE set_customer(p_customer IN NUMBER);
+  -- عدد استخدامات العرض (كلها أو لعميل)
+  FUNCTION uses_of(p_promo IN NUMBER, p_customer IN NUMBER DEFAULT NULL) RETURN NUMBER;
+  -- هل الرقم داخل قائمة مدى مثل 1-5,25-31
+  FUNCTION in_ranges(p_list IN VARCHAR2, p_n IN NUMBER) RETURN VARCHAR2;
 
   -- ---------------------------------------------------------------- الباقات
   -- {code, name, desc, channels, method, value, incl, from, to, status, lines:[{type, id, qty}]}
@@ -92,6 +107,15 @@ END NOONA_PRC_PKG;
 /
 
 CREATE OR REPLACE PACKAGE BODY NOONA_PRC_PKG AS
+
+  -- سياق المستند الجاري (شروط العميل وحدود الاستخدام)
+  TYPE t_used IS TABLE OF NUMBER INDEX BY PLS_INTEGER;
+  g_cust     NUMBER;
+  g_channel  VARCHAR2(30);
+  g_doc_type VARCHAR2(30);
+  g_doc_id   NUMBER;
+  g_track    BOOLEAN := FALSE;
+  g_used     t_used;
 
   TYPE t_alloc IS TABLE OF NUMBER INDEX BY PLS_INTEGER;
 
@@ -702,6 +726,113 @@ CREATE OR REPLACE PACKAGE BODY NOONA_PRC_PKG AS
   END margin_html;
 
   -- ================================================================ العروض
+  FUNCTION days_text(p_days VARCHAR2) RETURN VARCHAR2 IS
+    l VARCHAR2(200);
+  BEGIN
+    FOR d IN 1 .. 7 LOOP
+      IF INSTR(',' || p_days || ',', ',' || d || ',') > 0 THEN
+        l := l || CASE WHEN l IS NOT NULL THEN ' ' END
+          || CASE d WHEN 1 THEN 'الأحد' WHEN 2 THEN 'الاثنين' WHEN 3 THEN 'الثلاثاء' WHEN 4 THEN 'الأربعاء'
+                    WHEN 5 THEN 'الخميس' WHEN 6 THEN 'الجمعة' ELSE 'السبت' END;
+      END IF;
+    END LOOP;
+    RETURN l;
+  END days_text;
+
+  FUNCTION in_ranges(p_list IN VARCHAR2, p_n IN NUMBER) RETURN VARCHAR2 IS
+    l_part VARCHAR2(30);
+    i      PLS_INTEGER := 1;
+  BEGIN
+    IF p_list IS NULL THEN RETURN 'Y'; END IF;
+    LOOP
+      l_part := REGEXP_SUBSTR(REPLACE(p_list, ' ', ''), '[^,]+', 1, i);
+      EXIT WHEN l_part IS NULL;
+      IF INSTR(l_part, '-') > 0 THEN
+        IF p_n BETWEEN TO_NUMBER(SUBSTR(l_part, 1, INSTR(l_part, '-') - 1)) AND TO_NUMBER(SUBSTR(l_part, INSTR(l_part, '-') + 1)) THEN RETURN 'Y'; END IF;
+      ELSIF TO_NUMBER(l_part) = p_n THEN RETURN 'Y';
+      END IF;
+      i := i + 1;
+    END LOOP;
+    RETURN 'N';
+  END in_ranges;
+
+  FUNCTION in_list(p_list VARCHAR2, p_v VARCHAR2) RETURN BOOLEAN IS
+  BEGIN
+    RETURN INSTR(',' || REPLACE(p_list, ' ', '') || ',', ',' || p_v || ',') > 0;
+  END in_list;
+
+  FUNCTION uses_of(p_promo IN NUMBER, p_customer IN NUMBER DEFAULT NULL) RETURN NUMBER IS
+    l NUMBER;
+  BEGIN
+    SELECT COUNT(DISTINCT doc_type || ':' || doc_id) INTO l FROM sal_promotion_use
+     WHERE promotion_id = p_promo AND company_id = company
+       AND (p_customer IS NULL OR customer_account_id = p_customer)
+       AND NOT (g_doc_type IS NOT NULL AND doc_type = g_doc_type AND doc_id = g_doc_id);
+    RETURN l;
+  END uses_of;
+
+  PROCEDURE set_customer(p_customer IN NUMBER) IS
+  BEGIN
+    g_cust := p_customer;
+  END set_customer;
+
+  PROCEDURE begin_doc(p_channel IN VARCHAR2, p_doc_type IN VARCHAR2, p_doc_id IN NUMBER, p_customer IN NUMBER) IS
+  BEGIN
+    g_channel := UPPER(p_channel); g_doc_type := p_doc_type; g_doc_id := p_doc_id; g_cust := p_customer;
+    g_used.DELETE; g_track := TRUE;
+  END begin_doc;
+
+  PROCEDURE release_uses(p_doc_type IN VARCHAR2, p_doc_id IN NUMBER) IS
+  BEGIN
+    DELETE FROM sal_promotion_use WHERE doc_type = p_doc_type AND doc_id = p_doc_id AND company_id = company;
+  END release_uses;
+
+  PROCEDURE end_doc IS
+    l_k PLS_INTEGER;
+  BEGIN
+    IF g_doc_type IS NOT NULL THEN
+      release_uses(g_doc_type, g_doc_id);
+      l_k := g_used.FIRST;
+      WHILE l_k IS NOT NULL LOOP
+        INSERT INTO sal_promotion_use (company_id, promotion_id, channel_code, doc_type, doc_id, customer_account_id, discount_amount)
+        VALUES (company, l_k, g_channel, g_doc_type, g_doc_id, g_cust, ROUND(g_used(l_k), 2));
+        l_k := g_used.NEXT(l_k);
+      END LOOP;
+    END IF;
+    g_used.DELETE; g_track := FALSE; g_doc_type := NULL; g_doc_id := NULL; g_cust := NULL; g_channel := NULL;
+  END end_doc;
+
+  PROCEDURE track(p_promo NUMBER, p_disc NUMBER) IS
+  BEGIN
+    IF g_track AND p_promo IS NOT NULL AND NVL(p_disc, 0) > 0 THEN
+      g_used(p_promo) := CASE WHEN g_used.EXISTS(p_promo) THEN g_used(p_promo) ELSE 0 END + p_disc;
+    END IF;
+  END track;
+
+  -- شروط العميل وحدود الاستخدام
+  FUNCTION customer_ok(p sal_promotion%ROWTYPE) RETURN BOOLEAN IS
+    l_walk VARCHAR2(1);
+    l_n    NUMBER;
+  BEGIN
+    IF p.customer_scope <> 'ALL' OR p.max_uses_per_customer IS NOT NULL THEN
+      IF g_cust IS NULL THEN RETURN FALSE; END IF;
+      SELECT NVL(MAX(c.is_walk_in), 'N') INTO l_walk FROM ar_customer_account a JOIN ar_customer c ON c.id = a.customer_id WHERE a.id = g_cust;
+      IF l_walk = 'Y' THEN RETURN FALSE; END IF;
+    END IF;
+    IF p.customer_scope = 'LIST' AND NOT in_list(p.customer_ids, TO_CHAR(g_cust)) THEN RETURN FALSE; END IF;
+    IF p.customer_scope = 'NEW' THEN
+      SELECT (SELECT COUNT(*) FROM sal_invoice WHERE customer_account_id = g_cust AND company_id = company
+                 AND status_code NOT IN ('DRAFT', 'CANCELLED') AND NOT (NVL(g_doc_type, '-') = 'SAL_INVOICE' AND id = NVL(g_doc_id, -1)))
+           + (SELECT COUNT(*) FROM pos_sale WHERE customer_account_id = g_cust AND company_id = company
+                 AND status_code IN ('COMPLETED', 'RETURNED', 'PARTIALLY_RETURNED') AND NOT (NVL(g_doc_type, '-') = 'POS_SALE' AND id = NVL(g_doc_id, -1)))
+        INTO l_n FROM dual;
+      IF l_n > 0 THEN RETURN FALSE; END IF;
+    END IF;
+    IF p.max_uses IS NOT NULL AND uses_of(p.id) >= p.max_uses THEN RETURN FALSE; END IF;
+    IF p.max_uses_per_customer IS NOT NULL AND uses_of(p.id, g_cust) >= p.max_uses_per_customer THEN RETURN FALSE; END IF;
+    RETURN TRUE;
+  END customer_ok;
+
   FUNCTION promotion_text(p_id IN NUMBER) RETURN VARCHAR2 IS
     l VARCHAR2(2000);
   BEGIN
@@ -717,7 +848,16 @@ CREATE OR REPLACE PACKAGE BODY NOONA_PRC_PKG AS
         || CASE WHEN p.min_qty IS NOT NULL THEN ' (من ' || num(p.min_qty) || ' وحدات)' END
         || CASE WHEN p.max_discount IS NOT NULL THEN '، أقصى خصم ' || fmt(p.max_discount) END
         || CASE WHEN p.coupon_code IS NOT NULL THEN '، بالكوبون ' || p.coupon_code END
+        || CASE WHEN p.days_of_week IS NOT NULL THEN '، أيام: ' || days_text(p.days_of_week) END
+        || CASE WHEN p.days_of_month IS NOT NULL THEN '، أيام الشهر ' || p.days_of_month END
         || CASE WHEN p.hour_from IS NOT NULL THEN '، من الساعة ' || p.hour_from || ' إلى ' || NVL(p.hour_to, 24) END
+        || CASE p.customer_scope WHEN 'REGISTERED' THEN '، للعملاء المسجلين' WHEN 'NEW' THEN '، لأول شراء للعميل'
+                                 WHEN 'LIST' THEN '، لعملاء محددين' END
+        || CASE WHEN p.max_uses IS NOT NULL THEN '، لأول ' || p.max_uses || ' عملية' END
+        || CASE WHEN p.max_uses_per_customer = 1 THEN '، مرة واحدة لكل عميل' WHEN p.max_uses_per_customer = 2 THEN '، مرتين لكل عميل'
+                WHEN p.max_uses_per_customer BETWEEN 3 AND 10 THEN '، ' || p.max_uses_per_customer || ' مرات لكل عميل'
+                WHEN p.max_uses_per_customer IS NOT NULL THEN '، ' || p.max_uses_per_customer || ' مرة لكل عميل' END
+        || CASE WHEN p.excluded_dates IS NOT NULL THEN '، عدا ' || REPLACE(p.excluded_dates, ',', ' و ') END
         || '، من ' || TO_CHAR(p.effective_from, 'YYYY-MM-DD') || CASE WHEN p.effective_to IS NOT NULL THEN ' إلى ' || TO_CHAR(p.effective_to, 'YYYY-MM-DD') END;
     END LOOP;
     RETURN l;
@@ -752,8 +892,48 @@ CREATE OR REPLACE PACKAGE BODY NOONA_PRC_PKG AS
     l_st   VARCHAR2(30) := NVL(js(l_o, 'status'), 'ACTIVE');
     l_tid  NUMBER;
     l_tc   VARCHAR2(50);
+    l_dom  VARCHAR2(100) := REPLACE(js(l_o, 'daysOfMonth'), ' ', '');
+    l_exd  VARCHAR2(1000) := REPLACE(js(l_o, 'excludedDates'), ' ', '');
+    l_brs  VARCHAR2(400) := REPLACE(js(l_o, 'branches'), ' ', '');
+    l_cs   VARCHAR2(30) := NVL(UPPER(js(l_o, 'customerScope')), 'ALL');
+    l_cids VARCHAR2(1000) := REPLACE(js(l_o, 'customers'), ' ', '');
+    l_mu   NUMBER := jn(l_o, 'maxUses');
+    l_mpc  NUMBER := jn(l_o, 'maxUsesPerCustomer');
+    l_x    NUMBER;
   BEGIN
     guard(CASE WHEN l_id IS NULL THEN 'SAL_PROMOTION.CREATE' ELSE 'SAL_PROMOTION.UPDATE' END);
+    NOONA_CORE_PKG.assert(l_dom IS NULL OR REGEXP_LIKE(l_dom, '^([0-9]{1,2}(-[0-9]{1,2})?)(,[0-9]{1,2}(-[0-9]{1,2})?)*$'), 'NOONA-PRC-047',
+      'أيام الشهر أرقام 1-31 أو مدى مثل 1-5,25-31', 'Days of month like 1-5,25-31');
+    IF l_dom IS NOT NULL THEN
+      FOR r IN (SELECT TO_NUMBER(REGEXP_SUBSTR(l_dom, '[0-9]+', 1, LEVEL)) d FROM dual CONNECT BY REGEXP_SUBSTR(l_dom, '[0-9]+', 1, LEVEL) IS NOT NULL) LOOP
+        NOONA_CORE_PKG.assert(r.d BETWEEN 1 AND 31, 'NOONA-PRC-047', 'أيام الشهر من 1 إلى 31', 'Days of month 1-31');
+      END LOOP;
+    END IF;
+    NOONA_CORE_PKG.assert(l_exd IS NULL OR REGEXP_LIKE(l_exd, '^[0-9]{4}-[0-9]{2}-[0-9]{2}(,[0-9]{4}-[0-9]{2}-[0-9]{2})*$'), 'NOONA-PRC-048',
+      'التواريخ المستثناة بصيغة YYYY-MM-DD مفصولة بفواصل', 'Excluded dates as YYYY-MM-DD');
+    IF l_exd IS NOT NULL THEN
+      FOR r IN (SELECT REGEXP_SUBSTR(l_exd, '[^,]+', 1, LEVEL) d FROM dual CONNECT BY REGEXP_SUBSTR(l_exd, '[^,]+', 1, LEVEL) IS NOT NULL) LOOP
+        BEGIN
+          l_x := TO_NUMBER(TO_CHAR(TO_DATE(r.d, 'FXYYYY-MM-DD'), 'J'));
+        EXCEPTION WHEN OTHERS THEN
+          NOONA_CORE_PKG.raise_error('NOONA-PRC-048', 'تاريخ مستثنى غير صحيح: ' || r.d, 'Invalid excluded date');
+        END;
+      END LOOP;
+    END IF;
+    NOONA_CORE_PKG.assert(l_brs IS NULL OR REGEXP_LIKE(l_brs, '^[0-9]+(,[0-9]+)*$'), 'NOONA-PRC-049', 'اختر الفروع', 'Invalid branches');
+    IF l_brs IS NOT NULL THEN
+      FOR r IN (SELECT TO_NUMBER(REGEXP_SUBSTR(l_brs, '[^,]+', 1, LEVEL)) b FROM dual CONNECT BY REGEXP_SUBSTR(l_brs, '[^,]+', 1, LEVEL) IS NOT NULL) LOOP
+        SELECT COUNT(*) INTO l_x FROM org_branch WHERE id = r.b AND company_id = company;
+        NOONA_CORE_PKG.assert(l_x = 1, 'NOONA-PRC-049', 'الفرع غير موجود في الشركة', 'Branch not in this company');
+      END LOOP;
+    END IF;
+    NOONA_CORE_PKG.assert(l_cs IN ('ALL', 'REGISTERED', 'NEW', 'LIST'), 'NOONA-PRC-050', 'نطاق العملاء: الكل أو المسجلون أو الجدد أو محددون',
+      'Customer scope ALL, REGISTERED, NEW or LIST');
+    NOONA_CORE_PKG.assert(l_cids IS NULL OR REGEXP_LIKE(l_cids, '^[0-9]+(,[0-9]+)*$'), 'NOONA-PRC-051', 'اختر العملاء', 'Invalid customers');
+    NOONA_CORE_PKG.assert(l_cs <> 'LIST' OR l_cids IS NOT NULL OR l_id IS NOT NULL, 'NOONA-PRC-051',
+      'حدد العملاء الذين يشملهم العرض', 'Choose the customers');
+    NOONA_CORE_PKG.assert(NVL(l_mu, 1) >= 1 AND NVL(l_mpc, 1) >= 1 AND NVL(l_mu, 1) = TRUNC(NVL(l_mu, 1)) AND NVL(l_mpc, 1) = TRUNC(NVL(l_mpc, 1)),
+      'NOONA-PRC-052', 'حدود الاستخدام أعداد صحيحة من 1', 'Usage limits must be whole numbers from 1');
     NOONA_CORE_PKG.assert(l_code IS NOT NULL AND js(l_o, 'name') IS NOT NULL, 'NOONA-PRC-030', 'رمز العرض واسمه مطلوبان', 'Code and name are required');
     NOONA_CORE_PKG.assert(l_tp IN ('PCT_OFF', 'AMOUNT_OFF', 'FIXED_PRICE', 'BUY_X_GET_Y', 'SPEND_PCT', 'SPEND_AMOUNT'), 'NOONA-PRC-031',
       'اختر نوع العرض', 'Choose the promotion type');
@@ -774,16 +954,20 @@ CREATE OR REPLACE PACKAGE BODY NOONA_PRC_PKG AS
     IF l_id IS NULL THEN
       INSERT INTO sal_promotion (company_id, code, name_ar, promo_type, promo_value, buy_qty, get_qty, min_qty, min_amount, max_discount,
                                  channels, branch_id, days_of_week, hour_from, hour_to, coupon_code, priority_no, stackable,
-                                 effective_from, effective_to, status_code)
+                                 effective_from, effective_to, status_code, days_of_month, excluded_dates, branch_ids, customer_scope,
+                                 customer_ids, max_uses, max_uses_per_customer)
       VALUES (company, l_code, l_nm, l_tp, l_v, CASE WHEN l_tp = 'BUY_X_GET_Y' THEN l_b END, CASE WHEN l_tp = 'BUY_X_GET_Y' THEN l_g END,
-              l_mq, l_ma, l_mx, l_ch, l_br, l_days, l_hf, l_ht, l_cp, l_pr, l_sk, l_from, l_to, l_st)
+              l_mq, l_ma, l_mx, l_ch, l_br, l_days, l_hf, l_ht, l_cp, l_pr, l_sk, l_from, l_to, l_st, l_dom, l_exd, l_brs, l_cs,
+              CASE WHEN l_cs = 'LIST' THEN l_cids END, l_mu, l_mpc)
       RETURNING id INTO l_id;
     ELSE
       UPDATE sal_promotion SET name_ar = l_nm, promo_type = l_tp, promo_value = l_v,
              buy_qty = CASE WHEN l_tp = 'BUY_X_GET_Y' THEN l_b END, get_qty = CASE WHEN l_tp = 'BUY_X_GET_Y' THEN l_g END,
              min_qty = l_mq, min_amount = l_ma, max_discount = l_mx, channels = l_ch,
              branch_id = l_br, days_of_week = l_days, hour_from = l_hf, hour_to = l_ht, coupon_code = l_cp,
-             priority_no = l_pr, stackable = l_sk, effective_from = l_from, effective_to = l_to
+             priority_no = l_pr, stackable = l_sk, effective_from = l_from, effective_to = l_to,
+             days_of_month = l_dom, excluded_dates = l_exd, branch_ids = l_brs, customer_scope = l_cs,
+             customer_ids = CASE WHEN l_cs = 'LIST' THEN NVL(l_cids, customer_ids) END, max_uses = l_mu, max_uses_per_customer = l_mpc
        WHERE id = l_id AND company_id = company;
       NOONA_CORE_PKG.assert(SQL%ROWCOUNT = 1, 'NOONA-PRC-040', 'العرض غير موجود', 'Promotion not found');
     END IF;
@@ -853,6 +1037,44 @@ CREATE OR REPLACE PACKAGE BODY NOONA_PRC_PKG AS
     INSERT INTO sal_promotion_target (company_id, promotion_id, target_type, target_id, target_code) VALUES (company, p_promo, l_tt, l_id, l_cd);
   END add_promotion_target;
 
+  PROCEDURE add_promotion_customer(p_promo IN NUMBER, p_customer IN NUMBER) IS
+    l_ids VARCHAR2(1000);
+    l_n   NUMBER;
+  BEGIN
+    guard('SAL_PROMOTION.UPDATE');
+    NOONA_CORE_PKG.assert(p_promo IS NOT NULL AND p_customer IS NOT NULL, 'NOONA-PRC-053', 'اختر العرض والعميل', 'Choose the promotion and customer');
+    SELECT COUNT(*) INTO l_n FROM ar_customer_account WHERE id = p_customer AND company_id = company;
+    NOONA_CORE_PKG.assert(l_n = 1, 'NOONA-PRC-053', 'العميل غير موجود في الشركة', 'Customer not found');
+    SELECT customer_ids INTO l_ids FROM sal_promotion WHERE id = p_promo AND company_id = company FOR UPDATE;
+    NOONA_CORE_PKG.assert(NOT in_list(l_ids, TO_CHAR(p_customer)), 'NOONA-PRC-045', 'العميل مضاف للعرض مسبقاً', 'Already in the promotion');
+    NOONA_CORE_PKG.assert(LENGTH(l_ids) + LENGTH(p_customer) < 990 OR l_ids IS NULL, 'NOONA-PRC-054',
+      'وصل العرض لأقصى عدد عملاء؛ استخدم نطاق «المسجلون» أو أنشئ عرضاً آخر', 'Too many customers');
+    UPDATE sal_promotion SET customer_scope = 'LIST', customer_ids = l_ids || CASE WHEN l_ids IS NOT NULL THEN ',' END || p_customer
+     WHERE id = p_promo;
+  EXCEPTION WHEN NO_DATA_FOUND THEN
+    NOONA_CORE_PKG.raise_error('NOONA-PRC-040', 'العرض غير موجود', 'Promotion not found');
+  END add_promotion_customer;
+
+  PROCEDURE remove_promotion_customer(p_promo IN NUMBER, p_customer IN NUMBER) IS
+  BEGIN
+    guard('SAL_PROMOTION.UPDATE');
+    UPDATE sal_promotion SET customer_ids = TRIM(BOTH ',' FROM REPLACE(',' || customer_ids || ',', ',' || p_customer || ',', ','))
+     WHERE id = p_promo AND company_id = company;
+    NOONA_CORE_PKG.assert(SQL%ROWCOUNT = 1, 'NOONA-PRC-040', 'العرض غير موجود', 'Promotion not found');
+  END remove_promotion_customer;
+
+  FUNCTION promotion_customers(p_promo IN NUMBER) RETURN VARCHAR2 IS
+    l VARCHAR2(4000);
+  BEGIN
+    FOR r IN (SELECT a.id FROM sal_promotion p
+                JOIN ar_customer_account a ON a.company_id = p.company_id
+                 AND INSTR(',' || p.customer_ids || ',', ',' || a.id || ',') > 0
+               WHERE p.id = p_promo AND p.company_id = company ORDER BY a.id) LOOP
+      l := SUBSTR(l || CASE WHEN l IS NOT NULL THEN '، ' END || NOONA_SAL_PKG.customer_label(r.id), 1, 3900);
+    END LOOP;
+    RETURN l;
+  END promotion_customers;
+
   PROCEDURE remove_promotion_target(p_target_id IN NUMBER) IS
   BEGIN
     guard('SAL_PROMOTION.UPDATE');
@@ -868,9 +1090,13 @@ CREATE OR REPLACE PACKAGE BODY NOONA_PRC_PKG AS
     RETURN p.status_code = 'ACTIVE' AND TRUNC(p_at) BETWEEN p.effective_from AND NVL(p.effective_to, TRUNC(p_at))
        AND (p.channels IS NULL OR INSTR(',' || p.channels || ',', ',' || p_channel || ',') > 0)
        AND (p.branch_id IS NULL OR p.branch_id = p_branch OR p_branch IS NULL)
+       AND (p.branch_ids IS NULL OR p_branch IS NULL OR in_list(p.branch_ids, TO_CHAR(p_branch)))
        AND (p.days_of_week IS NULL OR INSTR(',' || p.days_of_week || ',', ',' || l_day || ',') > 0)
+       AND in_ranges(p.days_of_month, TO_NUMBER(TO_CHAR(p_at, 'DD'))) = 'Y'
+       AND (p.excluded_dates IS NULL OR NOT in_list(p.excluded_dates, TO_CHAR(p_at, 'YYYY-MM-DD')))
        AND (p.hour_from IS NULL OR (l_hr >= p.hour_from AND l_hr < NVL(p.hour_to, 24)))
-       AND (p.coupon_code IS NULL OR p.coupon_code = UPPER(TRIM(p_coupon)));
+       AND (p.coupon_code IS NULL OR p.coupon_code = UPPER(TRIM(p_coupon)))
+       AND customer_ok(p);
   END promo_live;
 
   FUNCTION promo_matches(p_promo NUMBER, p_type VARCHAR2, p_id NUMBER, p_cat NUMBER, p_stp VARCHAR2) RETURN BOOLEAN IS
@@ -934,6 +1160,7 @@ CREATE OR REPLACE PACKAGE BODY NOONA_PRC_PKG AS
     END LOOP;
     l_sd := LEAST(l_sd, p_qty * p_unit);
     IF l_sd > o_disc THEN o_disc := l_sd; o_promo := l_sp; o_name := l_sn; END IF;
+    track(o_promo, o_disc);
   END best_line;
 
   FUNCTION line_promo(p_type IN VARCHAR2, p_id IN NUMBER, p_qty IN NUMBER, p_unit_price IN NUMBER, p_channel IN VARCHAR2,
@@ -972,6 +1199,7 @@ CREATE OR REPLACE PACKAGE BODY NOONA_PRC_PKG AS
       END IF;
     END LOOP;
     IF l_id IS NULL THEN RETURN '{}'; END IF;
+    track(l_id, l_best);
     RETURN '{"promoId":' || l_id || ',"name":' || jt(l_nm) || ',"text":' || jt(promotion_text(l_id)) || ',"discount":' || num(l_best) || '}';
   END doc_promo;
 
@@ -992,6 +1220,7 @@ CREATE OR REPLACE PACKAGE BODY NOONA_PRC_PKG AS
     l_cp   VARCHAR2(50) := js(l_o, 'coupon');
     l_br   NUMBER := jn(l_o, 'branch');
     l_out  CLOB := '[';
+    l_cu   NUMBER := jn(l_o, 'customer');
     l_p    NUMBER; l_d NUMBER; l_n VARCHAR2(1000);
     l_q    NUMBER; l_u NUMBER;
     l_tot  NUMBER := 0;
@@ -999,6 +1228,7 @@ CREATE OR REPLACE PACKAGE BODY NOONA_PRC_PKG AS
     l_doc  CLOB;
     l_dd   NUMBER := 0;
   BEGIN
+    IF l_cu IS NOT NULL THEN g_cust := l_cu; END IF;
     FOR i IN 0 .. l_ls.get_size - 1 LOOP
       l_l := TREAT(l_ls.get(i) AS JSON_OBJECT_T);
       l_q := NVL(jn(l_l, 'q'), 0); l_u := NVL(jn(l_l, 'p'), 0);

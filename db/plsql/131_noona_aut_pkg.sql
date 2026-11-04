@@ -595,9 +595,15 @@ CREATE OR REPLACE PACKAGE BODY NOONA_AUT_PKG AS
 
   -- تسعير البنود بنفس قواعد فاتورة المبيعات (الضريبة، السعر الشامل، الحد الأدنى) ثم إجماليات الأمر
   PROCEDURE recalc(p_job_id NUMBER) IS
-    l_price NUMBER; l_inc VARCHAR2(1); l_tc NUMBER; l_net NUMBER; l_tax NUMBER; l_item NUMBER;
+    l_price NUMBER; l_inc VARCHAR2(1); l_tc NUMBER; l_net NUMBER; l_tax NUMBER; l_item NUMBER; l_cu NUMBER; l_x NUMBER;
   BEGIN
+    -- العروض في سياق أمر الإصلاح: شروط العميل وحدود الاستخدام، وتسجيل العروض المستخدمة
+    SELECT customer_account_id INTO l_cu FROM aut_job_card WHERE id = p_job_id;
+    NOONA_PRC_PKG.begin_doc('AUT', 'AUT_JOB_CARD', p_job_id, l_cu);
     FOR l IN (SELECT * FROM aut_job_line WHERE job_card_id = p_job_id AND line_status <> 'CANCELLED') LOOP
+      IF l.line_type = 'SERVICE' AND l.payer = 'CUSTOMER' AND NVL(l.discount_amount, 0) > 0 AND NVL(l.notes, '-') NOT LIKE 'باقة: %' THEN
+        l_x := NOONA_PRC_PKG.line_discount('AUT_SERVICE', l.service_id, l.quantity, l.unit_price, 'AUT');
+      END IF;
       l_price := CASE WHEN l.payer = 'WARRANTY' THEN 0 ELSE l.unit_price END;
       l_inc := l.price_includes_tax; l_tc := NULL;
       l_item := CASE WHEN l.line_type = 'PART' THEN l.item_id END;
@@ -608,6 +614,7 @@ CREATE OR REPLACE PACKAGE BODY NOONA_AUT_PKG AS
                                     ELSE NOONA_PRC_PKG.line_discount('ITEM', l_item, l.quantity, l.unit_price, 'AUT') END);
       UPDATE aut_job_line SET net_amount = l_net, tax_amount = l_tax WHERE id = l.id;
     END LOOP;
+    NOONA_PRC_PKG.end_doc;
     UPDATE aut_job_card j SET
       (services_amount, parts_amount, discount_amount, tax_amount, total_amount) =
       (SELECT NVL(SUM(CASE WHEN line_type IN ('SERVICE', 'SUBLET') THEN net_amount END), 0), NVL(SUM(CASE WHEN line_type = 'PART' THEN net_amount END), 0),
@@ -655,6 +662,7 @@ CREATE OR REPLACE PACKAGE BODY NOONA_AUT_PKG AS
     IF default_payer(j, p_payer) = 'INSURANCE' AND j.insurer_id IS NOT NULL THEN
       SELECT ROUND(NVL(MAX(parts_discount_pct), 0) / 100 * p_qty * NVL(l_price, 0), 2) INTO l_disc FROM aut_insurer WHERE id = j.insurer_id;
     ELSIF default_payer(j, p_payer) = 'CUSTOMER' AND p_price IS NULL THEN
+      NOONA_PRC_PKG.set_customer(j.customer_account_id);
       l_disc := NOONA_PRC_PKG.line_discount('ITEM', p_item, p_qty, NVL(l_price, 0), 'AUT');
     END IF;
     g_no := next_line_no(j.id);
@@ -685,6 +693,7 @@ CREATE OR REPLACE PACKAGE BODY NOONA_AUT_PKG AS
     IF default_payer(j, p_payer) = 'INSURANCE' AND j.insurer_id IS NOT NULL THEN
       SELECT ROUND(NVL(MAX(labor_discount_pct), 0) / 100 * s.price, 2) INTO l_disc FROM aut_insurer WHERE id = j.insurer_id;
     ELSIF default_payer(j, p_payer) = 'CUSTOMER' THEN
+      NOONA_PRC_PKG.set_customer(j.customer_account_id);
       l_disc := NOONA_PRC_PKG.line_discount('AUT_SERVICE', s.id, 1, s.price, 'AUT');
     END IF;
     g_no := next_line_no(j.id);
@@ -1043,6 +1052,7 @@ CREATE OR REPLACE PACKAGE BODY NOONA_AUT_PKG AS
       NOONA_CORE_PKG.assert(TRIM(p_reason) IS NOT NULL, 'NOONA-AUT-047', 'سبب الإلغاء مطلوب', 'Reason is required');
       UPDATE aut_job_line SET line_status = 'CANCELLED' WHERE job_card_id = j.id;
       UPDATE aut_job_card SET status_code = 'CANCELLED', cancel_reason = p_reason WHERE id = j.id;
+      NOONA_PRC_PKG.release_uses('AUT_JOB_CARD', j.id);
       UPDATE aut_appointment SET status_code = 'CANCELLED', cancel_reason = p_reason WHERE job_card_id = j.id;
     ELSE
       NOONA_CORE_PKG.raise_error('NOONA-AUT-048', 'حالة غير صحيحة: ' || p_status, 'Invalid status');

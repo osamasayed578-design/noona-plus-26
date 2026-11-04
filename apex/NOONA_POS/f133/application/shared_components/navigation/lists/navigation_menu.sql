@@ -88,7 +88,7 @@ wwv_flow_imp_shared.create_list_item(
 ,p_list_item_current_type=>'TARGET_PAGE'
 );
 wwv_flow_imp_shared.create_list_item(
- p_id=>wwv_flow_imp.id(91820269000000597)
+ p_id=>wwv_flow_imp.id(91820269000000611)
 ,p_list_item_display_sequence=>10
 ,p_list_item_link_text=>'لوحة المبيعات'
 ,p_list_item_link_target=>'f?p=&APP_ID.:1:&APP_SESSION.::&DEBUG.:1::'
@@ -96,7 +96,7 @@ wwv_flow_imp_shared.create_list_item(
 ,p_list_item_current_type=>'TARGET_PAGE'
 );
 wwv_flow_imp_shared.create_list_item(
- p_id=>wwv_flow_imp.id(91820269000000598)
+ p_id=>wwv_flow_imp.id(91820269000000612)
 ,p_list_item_display_sequence=>15
 ,p_list_item_link_text=>'نقطة البيع'
 ,p_list_item_link_target=>'f?p=&APP_ID.:30:&APP_SESSION.::&DEBUG.:30::'
@@ -104,75 +104,75 @@ wwv_flow_imp_shared.create_list_item(
 ,p_list_item_current_type=>'TARGET_PAGE'
 );
 wwv_flow_imp_shared.create_list_item(
- p_id=>wwv_flow_imp.id(91820269000000599)
+ p_id=>wwv_flow_imp.id(91820269000000613)
 ,p_list_item_display_sequence=>20
 ,p_list_item_link_text=>'المبيعات والعملاء'
 ,p_list_item_link_target=>''
 ,p_list_item_icon=>'fa-file-text-o'
 );
 wwv_flow_imp_shared.create_list_item(
- p_id=>wwv_flow_imp.id(91820269000000600)
+ p_id=>wwv_flow_imp.id(91820269000000614)
 ,p_list_item_display_sequence=>21
 ,p_list_item_link_text=>'فاتورة مبيعات جديدة'
 ,p_list_item_link_target=>'f?p=&APP_ID.:21:&APP_SESSION.::&DEBUG.:21::'
 ,p_list_item_icon=>'fa-plus'
-,p_parent_list_item_id=>wwv_flow_imp.id(91820269000000599)
+,p_parent_list_item_id=>wwv_flow_imp.id(91820269000000613)
 ,p_list_item_current_type=>'TARGET_PAGE'
 );
 wwv_flow_imp_shared.create_list_item(
- p_id=>wwv_flow_imp.id(91820269000000601)
+ p_id=>wwv_flow_imp.id(91820269000000615)
 ,p_list_item_display_sequence=>22
 ,p_list_item_link_text=>'فواتير المبيعات والمرتجعات'
 ,p_list_item_link_target=>'f?p=&APP_ID.:20:&APP_SESSION.::&DEBUG.:20::'
 ,p_list_item_icon=>'fa-files-o'
-,p_parent_list_item_id=>wwv_flow_imp.id(91820269000000599)
+,p_parent_list_item_id=>wwv_flow_imp.id(91820269000000613)
 ,p_list_item_current_type=>'TARGET_PAGE'
 );
 wwv_flow_imp_shared.create_list_item(
- p_id=>wwv_flow_imp.id(91820269000000602)
+ p_id=>wwv_flow_imp.id(91820269000000616)
 ,p_list_item_display_sequence=>23
 ,p_list_item_link_text=>'العملاء'
 ,p_list_item_link_target=>'f?p=&APP_ID.:10:&APP_SESSION.::&DEBUG.:10::'
 ,p_list_item_icon=>'fa-users'
-,p_parent_list_item_id=>wwv_flow_imp.id(91820269000000599)
+,p_parent_list_item_id=>wwv_flow_imp.id(91820269000000613)
 ,p_list_item_current_type=>'TARGET_PAGE'
 );
 wwv_flow_imp_shared.create_list_item(
- p_id=>wwv_flow_imp.id(91820269000000603)
+ p_id=>wwv_flow_imp.id(91820269000000617)
 ,p_list_item_display_sequence=>24
 ,p_list_item_link_text=>'التحصيل من العملاء'
 ,p_list_item_link_target=>'f?p=&APP_ID.:23:&APP_SESSION.::&DEBUG.:23::'
 ,p_list_item_icon=>'fa-money'
-,p_parent_list_item_id=>wwv_flow_imp.id(91820269000000599)
+,p_parent_list_item_id=>wwv_flow_imp.id(91820269000000613)
 ,p_list_item_current_type=>'TARGET_PAGE'
 );
 wwv_flow_imp_shared.create_list_item(
- p_id=>wwv_flow_imp.id(91820269000000604)
+ p_id=>wwv_flow_imp.id(91820269000000618)
 ,p_list_item_display_sequence=>30
 ,p_list_item_link_text=>'إدارة نقاط البيع'
 ,p_list_item_link_target=>''
 ,p_list_item_icon=>'fa-desktop'
 );
 wwv_flow_imp_shared.create_list_item(
- p_id=>wwv_flow_imp.id(91820269000000605)
+ p_id=>wwv_flow_imp.id(91820269000000619)
 ,p_list_item_display_sequence=>31
 ,p_list_item_link_text=>'تقرير الوردية وإقفالها'
 ,p_list_item_link_target=>'f?p=&APP_ID.:32:&APP_SESSION.::&DEBUG.:32::'
 ,p_list_item_icon=>'fa-lock'
-,p_parent_list_item_id=>wwv_flow_imp.id(91820269000000604)
+,p_parent_list_item_id=>wwv_flow_imp.id(91820269000000618)
 ,p_list_item_current_type=>'TARGET_PAGE'
 );
 wwv_flow_imp_shared.create_list_item(
- p_id=>wwv_flow_imp.id(91820269000000606)
+ p_id=>wwv_flow_imp.id(91820269000000620)
 ,p_list_item_display_sequence=>32
 ,p_list_item_link_text=>'إعداد نقاط البيع'
 ,p_list_item_link_target=>'f?p=&APP_ID.:40:&APP_SESSION.::&DEBUG.:40::'
 ,p_list_item_icon=>'fa-cogs'
-,p_parent_list_item_id=>wwv_flow_imp.id(91820269000000604)
+,p_parent_list_item_id=>wwv_flow_imp.id(91820269000000618)
 ,p_list_item_current_type=>'TARGET_PAGE'
 );
 wwv_flow_imp_shared.create_list_item(
- p_id=>wwv_flow_imp.id(91820269000000607)
+ p_id=>wwv_flow_imp.id(91820269000000621)
 ,p_list_item_display_sequence=>40
 ,p_list_item_link_text=>'التقارير'
 ,p_list_item_link_target=>'f?p=&APP_ID.:50:&APP_SESSION.::&DEBUG.:50::'
@@ -180,55 +180,55 @@ wwv_flow_imp_shared.create_list_item(
 ,p_list_item_current_type=>'TARGET_PAGE'
 );
 wwv_flow_imp_shared.create_list_item(
- p_id=>wwv_flow_imp.id(91820269000000608)
+ p_id=>wwv_flow_imp.id(91820269000000622)
 ,p_list_item_display_sequence=>35
 ,p_list_item_link_text=>'التسعير والعروض'
 ,p_list_item_link_target=>''
 ,p_list_item_icon=>'fa-tags'
 );
 wwv_flow_imp_shared.create_list_item(
- p_id=>wwv_flow_imp.id(91820269000000609)
+ p_id=>wwv_flow_imp.id(91820269000000623)
 ,p_list_item_display_sequence=>36
 ,p_list_item_link_text=>'العروض والتخفيضات'
 ,p_list_item_link_target=>'f?p=&APP_ID.:83:&APP_SESSION.::&DEBUG.:83::'
 ,p_list_item_icon=>'fa-percent'
-,p_parent_list_item_id=>wwv_flow_imp.id(91820269000000608)
+,p_parent_list_item_id=>wwv_flow_imp.id(91820269000000622)
 ,p_list_item_current_type=>'TARGET_PAGE'
 );
 wwv_flow_imp_shared.create_list_item(
- p_id=>wwv_flow_imp.id(91820269000000610)
+ p_id=>wwv_flow_imp.id(91820269000000624)
 ,p_list_item_display_sequence=>37
 ,p_list_item_link_text=>'الباقات'
 ,p_list_item_link_target=>'f?p=&APP_ID.:84:&APP_SESSION.::&DEBUG.:84::'
 ,p_list_item_icon=>'fa-gift'
-,p_parent_list_item_id=>wwv_flow_imp.id(91820269000000608)
+,p_parent_list_item_id=>wwv_flow_imp.id(91820269000000622)
 ,p_list_item_current_type=>'TARGET_PAGE'
 );
 wwv_flow_imp_shared.create_list_item(
- p_id=>wwv_flow_imp.id(91820269000000611)
+ p_id=>wwv_flow_imp.id(91820269000000625)
 ,p_list_item_display_sequence=>38
 ,p_list_item_link_text=>'سياسات التسعير'
 ,p_list_item_link_target=>'f?p=&APP_ID.:80:&APP_SESSION.::&DEBUG.:80::'
 ,p_list_item_icon=>'fa-calculator'
-,p_parent_list_item_id=>wwv_flow_imp.id(91820269000000608)
+,p_parent_list_item_id=>wwv_flow_imp.id(91820269000000622)
 ,p_list_item_current_type=>'TARGET_PAGE'
 );
 wwv_flow_imp_shared.create_list_item(
- p_id=>wwv_flow_imp.id(91820269000000612)
+ p_id=>wwv_flow_imp.id(91820269000000626)
 ,p_list_item_display_sequence=>39
 ,p_list_item_link_text=>'بطاقات التكلفة'
 ,p_list_item_link_target=>'f?p=&APP_ID.:81:&APP_SESSION.::&DEBUG.:81::'
 ,p_list_item_icon=>'fa-list-alt'
-,p_parent_list_item_id=>wwv_flow_imp.id(91820269000000608)
+,p_parent_list_item_id=>wwv_flow_imp.id(91820269000000622)
 ,p_list_item_current_type=>'TARGET_PAGE'
 );
 wwv_flow_imp_shared.create_list_item(
- p_id=>wwv_flow_imp.id(91820269000000613)
+ p_id=>wwv_flow_imp.id(91820269000000627)
 ,p_list_item_display_sequence=>40
 ,p_list_item_link_text=>'إعادة التسعير والهوامش'
 ,p_list_item_link_target=>'f?p=&APP_ID.:82:&APP_SESSION.::&DEBUG.:82::'
 ,p_list_item_icon=>'fa-refresh'
-,p_parent_list_item_id=>wwv_flow_imp.id(91820269000000608)
+,p_parent_list_item_id=>wwv_flow_imp.id(91820269000000622)
 ,p_list_item_current_type=>'TARGET_PAGE'
 );
 wwv_flow_imp.component_end;

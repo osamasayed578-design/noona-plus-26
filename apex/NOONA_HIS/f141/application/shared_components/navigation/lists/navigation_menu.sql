@@ -318,55 +318,55 @@ wwv_flow_imp_shared.create_list_item(
 ,p_list_item_current_type=>'TARGET_PAGE'
 );
 wwv_flow_imp_shared.create_list_item(
- p_id=>wwv_flow_imp.id(91820275000001351)
+ p_id=>wwv_flow_imp.id(91820275000001365)
 ,p_list_item_display_sequence=>70
 ,p_list_item_link_text=>'التسعير والعروض'
 ,p_list_item_link_target=>''
 ,p_list_item_icon=>'fa-tags'
 );
 wwv_flow_imp_shared.create_list_item(
- p_id=>wwv_flow_imp.id(91820275000001352)
+ p_id=>wwv_flow_imp.id(91820275000001366)
 ,p_list_item_display_sequence=>71
 ,p_list_item_link_text=>'العروض والتخفيضات'
 ,p_list_item_link_target=>'f?p=&APP_ID.:93:&APP_SESSION.::&DEBUG.:93::'
 ,p_list_item_icon=>'fa-percent'
-,p_parent_list_item_id=>wwv_flow_imp.id(91820275000001351)
+,p_parent_list_item_id=>wwv_flow_imp.id(91820275000001365)
 ,p_list_item_current_type=>'TARGET_PAGE'
 );
 wwv_flow_imp_shared.create_list_item(
- p_id=>wwv_flow_imp.id(91820275000001353)
+ p_id=>wwv_flow_imp.id(91820275000001367)
 ,p_list_item_display_sequence=>72
 ,p_list_item_link_text=>'الباقات'
 ,p_list_item_link_target=>'f?p=&APP_ID.:94:&APP_SESSION.::&DEBUG.:94::'
 ,p_list_item_icon=>'fa-gift'
-,p_parent_list_item_id=>wwv_flow_imp.id(91820275000001351)
+,p_parent_list_item_id=>wwv_flow_imp.id(91820275000001365)
 ,p_list_item_current_type=>'TARGET_PAGE'
 );
 wwv_flow_imp_shared.create_list_item(
- p_id=>wwv_flow_imp.id(91820275000001354)
+ p_id=>wwv_flow_imp.id(91820275000001368)
 ,p_list_item_display_sequence=>73
 ,p_list_item_link_text=>'سياسات التسعير'
 ,p_list_item_link_target=>'f?p=&APP_ID.:90:&APP_SESSION.::&DEBUG.:90::'
 ,p_list_item_icon=>'fa-calculator'
-,p_parent_list_item_id=>wwv_flow_imp.id(91820275000001351)
+,p_parent_list_item_id=>wwv_flow_imp.id(91820275000001365)
 ,p_list_item_current_type=>'TARGET_PAGE'
 );
 wwv_flow_imp_shared.create_list_item(
- p_id=>wwv_flow_imp.id(91820275000001355)
+ p_id=>wwv_flow_imp.id(91820275000001369)
 ,p_list_item_display_sequence=>74
 ,p_list_item_link_text=>'بطاقات التكلفة'
 ,p_list_item_link_target=>'f?p=&APP_ID.:91:&APP_SESSION.::&DEBUG.:91::'
 ,p_list_item_icon=>'fa-list-alt'
-,p_parent_list_item_id=>wwv_flow_imp.id(91820275000001351)
+,p_parent_list_item_id=>wwv_flow_imp.id(91820275000001365)
 ,p_list_item_current_type=>'TARGET_PAGE'
 );
 wwv_flow_imp_shared.create_list_item(
- p_id=>wwv_flow_imp.id(91820275000001356)
+ p_id=>wwv_flow_imp.id(91820275000001370)
 ,p_list_item_display_sequence=>75
 ,p_list_item_link_text=>'إعادة التسعير والهوامش'
 ,p_list_item_link_target=>'f?p=&APP_ID.:92:&APP_SESSION.::&DEBUG.:92::'
 ,p_list_item_icon=>'fa-refresh'
-,p_parent_list_item_id=>wwv_flow_imp.id(91820275000001351)
+,p_parent_list_item_id=>wwv_flow_imp.id(91820275000001365)
 ,p_list_item_current_type=>'TARGET_PAGE'
 );
 wwv_flow_imp.component_end;

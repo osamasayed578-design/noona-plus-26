@@ -108,9 +108,27 @@ HOUR_TO         INT              | إلى الساعة
 COUPON_CODE     V50              | كود الكوبون (فارغ = تلقائي)
 PRIORITY_NO     INT  NN D=100    | الأولوية
 STACKABLE       YN   NN D='N'    | يجمع مع عروض أخرى
-''', chk=['PROMO_VALUE >= 0', "PROMO_TYPE NOT IN ('PCT_OFF','SPEND_PCT') OR PROMO_VALUE <= 100",
+DAYS_OF_MONTH   V100             | أيام الشهر (1-5,25-31) فارغ = كل الأيام
+EXCLUDED_DATES  V1000            | تواريخ مستثناة (عطلات) YYYY-MM-DD مفصولة بفواصل
+BRANCH_IDS      V400             | الفروع (معرفات مفصولة بفواصل) فارغ = كل الفروع
+CUSTOMER_SCOPE  CODE NN D='ALL' IN:ALL,REGISTERED,NEW,LIST | العملاء: الكل، المسجلون، الجدد (أول شراء)، عملاء محددون
+CUSTOMER_IDS    V1000            | حسابات العملاء المحددين (مفصولة بفواصل)
+MAX_USES        INT              | أقصى عدد استخدامات للعرض (فواتير)
+MAX_USES_PER_CUSTOMER INT        | أقصى استخدام لكل عميل
+''', chk=['PROMO_VALUE >= 0', 'MAX_USES IS NULL OR MAX_USES > 0', 'MAX_USES_PER_CUSTOMER IS NULL OR MAX_USES_PER_CUSTOMER > 0', "PROMO_TYPE NOT IN ('PCT_OFF','SPEND_PCT') OR PROMO_VALUE <= 100",
             "PROMO_TYPE <> 'BUY_X_GET_Y' OR (BUY_QTY > 0 AND GET_QTY > 0)", 'HOUR_FROM IS NULL OR HOUR_FROM BETWEEN 0 AND 23',
             'HOUR_TO IS NULL OR HOUR_TO BETWEEN 0 AND 24'], area='pricing')
+
+table('SAL_PROMOTION_USE', 'استخدامات العروض', 'Promotion Usage', scope='C', cols='''
+PROMOTION_ID    ID   NN >SAL_PROMOTION | العرض
+CHANNEL_CODE    CODE NN IN:POS,SALES,HIS,AUT,RST | القناة
+DOC_TYPE        CODE NN          | نوع المستند
+DOC_ID          ID   NN          | المستند
+CUSTOMER_ACCOUNT_ID ID >AR_CUSTOMER_ACCOUNT | العميل
+DISCOUNT_AMOUNT AMT  NN D=0      | قيمة الخصم
+USED_AT         TS   NN D=SYSTIMESTAMP | وقت الاستخدام
+''', uk=[('TENANT_ID', 'PROMOTION_ID', 'DOC_TYPE', 'DOC_ID')], ix=[('TENANT_ID', 'COMPANY_ID', 'PROMOTION_ID', 'CUSTOMER_ACCOUNT_ID')],
+      area='pricing')
 
 table('SAL_PROMOTION_TARGET', 'أصناف وخدمات العرض', 'Promotion Targets', scope='C', cols='''
 PROMOTION_ID    ID   NN >SAL_PROMOTION | العرض

@@ -748,6 +748,8 @@ CREATE OR REPLACE PACKAGE BODY NOONA_HIS_PKG AS
   BEGIN
     SELECT * INTO l_v FROM his_visit WHERE id = p_visit_id;
     SELECT * INTO l_p FROM his_patient WHERE id = l_v.patient_id;
+    -- المريض ليس حساب عميل: عروض المستشفى للعموم (نطاق «الكل») فقط
+    NOONA_PRC_PKG.set_customer(NULL);
     -- السعودية: الخدمات الصحية الخاصة للمواطن بنسبة صفرية (تتحملها الدولة)
     l_rate := CASE WHEN l_p.nationality = 'SA' AND company_country = 'SA' THEN 0 ELSE c_vat END;
     IF l_v.bill_to = 'PAYER' AND l_v.payer_plan_id IS NOT NULL THEN

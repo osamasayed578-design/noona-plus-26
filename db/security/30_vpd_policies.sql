@@ -555,6 +555,7 @@ BEGIN
   NOONA_VPD_PKG.add_tenant_policy('SAL_PRICING_POLICY');
   NOONA_VPD_PKG.add_tenant_policy('SAL_PROMOTION');
   NOONA_VPD_PKG.add_tenant_policy('SAL_PROMOTION_TARGET');
+  NOONA_VPD_PKG.add_tenant_policy('SAL_PROMOTION_USE');
   NOONA_VPD_PKG.add_tenant_policy('SAL_QUOTATION');
   NOONA_VPD_PKG.add_tenant_policy('SAL_QUOTATION_LINE');
   NOONA_VPD_PKG.add_tenant_policy('SAL_RETURN_AUTH');

@@ -1376,6 +1376,18 @@ html[dir="rtl"] .nn-rst-kpi b { text-align: right; }
   background: transparent; color: #9aa3ae; cursor: pointer; font-size: 16px; }
 .nn-rh-fav:hover { background: #fff8e1; color: #d4a106; }
 .nn-rh-fav.is-on { color: #d4a106; }
+.nn-rh-forget { position: absolute; bottom: 10px; inset-inline-end: 10px; width: 28px; height: 28px; border: 0; border-radius: 50%;
+  background: transparent; color: var(--nn-muted); cursor: pointer; }
+.nn-rh-forget:hover { background: #fdecea; color: #c42b1c; }
+.nn-rh-rep-meta { font-size: .8rem; color: var(--nn-muted); display: flex; align-items: center; gap: 5px; margin-top: 2px; }
+.nn-rh-h-count { min-width: 24px; padding: 1px 8px; border-radius: 999px; background: var(--nn-primary-50, #eaf3fc); color: var(--nn-primary);
+  font-size: .8rem; font-weight: 700; text-align: center; }
+.nn-rh-h-all { margin-inline-start: auto; font-size: .86rem; font-weight: 600; color: var(--nn-primary); text-decoration: none; }
+.nn-rh-h-all:hover { text-decoration: underline; }
+.nn-rh-hint { display: flex; align-items: center; gap: 10px; padding: 14px 16px; border: 1px dashed var(--nn-border); border-radius: var(--nn-radius);
+  color: var(--nn-muted); font-size: .9rem; background: var(--nn-surface); }
+.nn-rh-hint .fa-star-o { color: #d4a106; }
+.nn-rh-chip .fa { margin-inline-end: 3px; }
 @media (max-width: 640px) {
   .nn-rh-search { flex-basis: 100%; }
   .nn-rh-mods, .nn-rh-reps { grid-template-columns: 1fr; }

@@ -229,10 +229,15 @@ def build(app, url, scheme, base=80, kinds=('ITEMS', 'HIS', 'AUT'), channel='POS
         "select p.id, p.code, p.name_ar, noona_prc_pkg.promotion_text(p.id) as rule_text, p.channels,",
         "       (select listagg(noona_prc_pkg.target_label(t.target_type, t.target_id, t.target_code), '، ') within group (order by t.id)",
         '          from sal_promotion_target t where t.promotion_id = p.id) as targets,',
+        "       noona_prc_pkg.promotion_customers(p.id) as customers,",
+        "       (select count(distinct u.doc_type || u.doc_id) from sal_promotion_use u where u.promotion_id = p.id) as uses,",
+        "       (select sum(u.discount_amount) from sal_promotion_use u where u.promotion_id = p.id) as given,",
         '       p.priority_no, noona_ui_pkg.status_badge(p.status_code) as status_html',
         f'  from sal_promotion p where p.company_id = {CO} order by decode(p.status_code, \'ACTIVE\', 0, 1), p.priority_no, p.id desc'],
         [('ID', '#', {'hidden': True, 'type': 'NUMBER'}), ('CODE', 'الرمز', {}), ('NAME_AR', 'العرض', {}), ('RULE_TEXT', 'الشروط', {}),
-         ('CHANNELS', 'القنوات', {}), ('TARGETS', 'يشمل', {}), ('PRIORITY_NO', 'الأولوية', {'type': 'NUMBER'}),
+         ('CHANNELS', 'القنوات', {}), ('TARGETS', 'يشمل', {}), ('CUSTOMERS', 'العملاء المحددون', {}),
+         ('USES', 'مرات الاستخدام', {'type': 'NUMBER'}), ('GIVEN', 'إجمالي الخصم الممنوح', {'type': 'NUMBER'}),
+         ('PRIORITY_NO', 'الأولوية', {'type': 'NUMBER'}),
          ('STATUS_HTML', 'الحالة', {'html': True})])
     f = p.static('عرض جديد', 20)
     p.text(P(pm, 'CODE'), f, 10, 'الرمز', required=True, maxlen=30, width=12)
@@ -251,6 +256,15 @@ def build(app, url, scheme, base=80, kinds=('ITEMS', 'HIS', 'AUT'), channel='POS
     p.checkboxes(P(pm, 'DAYS'), f, 120, 'الأيام (بلا اختيار = كل الأيام)', DAYS, columns=7)
     p.number(P(pm, 'HF'), f, 130, 'من الساعة (0-23)')
     p.number(P(pm, 'HT'), f, 140, 'إلى الساعة (1-24)')
+    p.text(P(pm, 'DOM'), f, 145, 'أيام الشهر (مثل 1-5,25-31؛ فارغ = كل الأيام)', maxlen=100, width=20)
+    p.text(P(pm, 'EXD'), f, 146, 'تواريخ مستثناة/عطلات (2026-12-25,2027-01-01)', maxlen=1000, width=40)
+    p.checkboxes(P(pm, 'BRS'), f, 147, 'الفروع (بلا اختيار = كل الفروع)',
+                 f"select name_ar d, id r from org_branch where company_id = {CO} order by name_ar", columns=4)
+    p.select(P(pm, 'CSCOPE'), f, 148, 'العملاء', null_text=None, lov_sql=(
+        'STATIC2:كل العملاء;ALL,العملاء المسجلون فقط (ليس النقدي العام);REGISTERED,العملاء الجدد (أول شراء);NEW,'
+        'عملاء محددون (يضافون من «إدارة عرض»);LIST'))
+    p.number(P(pm, 'MAXU'), f, 149, 'أقصى عدد استخدامات للعرض')
+    p.number(P(pm, 'MAXC'), f, 151, 'أقصى استخدام لكل عميل')
     p.text(P(pm, 'COUPON'), f, 150, 'كود الكوبون (اختياري)', maxlen=50, width=15)
     p.number(P(pm, 'PRIO'), f, 160, 'الأولوية')
     p.yesno(P(pm, 'STACK'), f, 170, 'يجمع مع عروض أخرى')
@@ -268,14 +282,26 @@ def build(app, url, scheme, base=80, kinds=('ITEMS', 'HIS', 'AUT'), channel='POS
         f"           'channels' value replace(:{P(pm, 'CH')}, ':', ','), 'days' value replace(:{P(pm, 'DAYS')}, ':', ','),",
         f"           'hourFrom' value to_number(:{P(pm, 'HF')}), 'hourTo' value to_number(:{P(pm, 'HT')}), 'coupon' value :{P(pm, 'COUPON')},",
         f"           'priority' value to_number(:{P(pm, 'PRIO')}), 'stackable' value :{P(pm, 'STACK')}, 'from' value :{P(pm, 'FROM')},",
-        f"           'to' value :{P(pm, 'TO')}, 'targets' value l_t format json absent on null) into l_j from dual;",
+        f"           'to' value :{P(pm, 'TO')}, 'daysOfMonth' value :{P(pm, 'DOM')}, 'excludedDates' value :{P(pm, 'EXD')},",
+        f"           'branches' value replace(:{P(pm, 'BRS')}, ':', ','), 'customerScope' value :{P(pm, 'CSCOPE')},",
+        f"           'maxUses' value to_number(:{P(pm, 'MAXU')}), 'maxUsesPerCustomer' value to_number(:{P(pm, 'MAXC')}),",
+        f"           'targets' value l_t format json absent on null) into l_j from dual;",
         '    l := noona_prc_pkg.save_promotion(l_j);', 'end;'], when_button=b, success='تم حفظ العرض وتفعيله')
     s = p.static('إدارة عرض', 30)
     p.select(P(pm, 'PROMO'), s, 10, 'العرض', lov_sql=f"select code || ' - ' || name_ar d, id r from sal_promotion where company_id = {CO} order by id desc")
     p.select(P(pm, 'ADD'), s, 20, 'إضافة صنف أو خدمة أو فئة', lov_sql=TLOV)
     p.select(P(pm, 'PST'), s, 30, 'الحالة', null_text=None, lov_sql='STATIC2:نشط;ACTIVE,موقوف مؤقتاً;PAUSED,ملغى;CANCELLED')
+    p.select(P(pm, 'CUST'), s, 40, 'عميل يشمله العرض (يصبح العرض لعملاء محددين)', lov_sql=(
+        "select noona_sal_pkg.customer_label(a.id) d, a.id r from ar_customer_account a join ar_customer c on c.id = a.customer_id "
+        f"where a.company_id = {CO} and a.status_code = 'ACTIVE' and nvl(c.is_walk_in, 'N') = 'N' order by 1"))
     b2 = p.button(s, 10, 'ADD_TARGET', 'إضافة للعرض')
     b3 = p.button(s, 20, 'SET_PROMO', 'تغيير الحالة')
+    b4 = p.button(s, 30, 'ADD_CUST', 'إضافة العميل')
+    b5 = p.button(s, 40, 'DEL_CUST', 'إزالة العميل')
+    p.process(40, 'AFTER_SUBMIT', 'Add Customer', f"noona_prc_pkg.add_promotion_customer(:{P(pm, 'PROMO')}, :{P(pm, 'CUST')});",
+              when_button=b4, success='أضيف العميل للعرض')
+    p.process(50, 'AFTER_SUBMIT', 'Remove Customer', f"noona_prc_pkg.remove_promotion_customer(:{P(pm, 'PROMO')}, :{P(pm, 'CUST')});",
+              when_button=b5, success='أزيل العميل من العرض')
     p.process(20, 'AFTER_SUBMIT', 'Add Target', f"noona_prc_pkg.add_promotion_target(:{P(pm, 'PROMO')}, :{P(pm, 'ADD')});", when_button=b2,
               success='تمت الإضافة للعرض')
     p.process(30, 'AFTER_SUBMIT', 'Promotion Status', f"noona_prc_pkg.set_promotion_status(:{P(pm, 'PROMO')}, :{P(pm, 'PST')});",

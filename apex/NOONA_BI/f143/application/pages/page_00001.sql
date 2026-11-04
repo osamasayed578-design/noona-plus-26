@@ -33,6 +33,19 @@ wwv_flow_imp_page.create_page(
 '    apex.message.showPageSuccess(on ? ''أضيف التقرير إلى المفضلة'' : ''أزيل التقرير من المفضلة'');',
 '  }, function () { b.disabled = false; });',
 '});',
+'document.addEventListener(''click'', function (e) {',
+'  var b = e.target.closest(''.nn-rh-forget, .nn-rh-clear''); if (!b) return;',
+'  e.preventDefault();',
+'  var all = b.classList.contains(''nn-rh-clear'');',
+'  var go = function () {',
+'    apex.server.process(''FORGET'', { x01: all ? '''' : b.dataset.id }, { dataType: ''json'' }).then(function (d) {',
+'      if (!d.ok) { apex.message.clearErrors(); apex.message.showErrors([{ type: ''error'', location: ''page'', message: d.msg, unsafe: false }]); return; }',
+'      if (all) { apex.navigation.redirect(location.href); return; }',
+'      var c = b.closest(''.nn-rh-rep''); if (c) c.remove();',
+'      apex.message.showPageSuccess(''أزيل التقرير من سجل المفتوحة'');',
+'    }); };',
+'  if (all) apex.message.confirm(''مسح كل سجل التقارير المفتوحة؟ المفضلة لا تتأثر'', function (ok) { if (ok) go(); }); else go();',
+'});',
 'var s = document.getElementById(''nnRhSearch'');',
 'if (s) {',
 '  s.addEventListener(''keydown'', function (e) {',
@@ -88,8 +101,29 @@ wwv_flow_imp_page.create_page_process(
 ,p_error_display_location=>'INLINE_IN_NOTIFICATION'
 ,p_internal_uid=>91820277000000011
 );
-wwv_flow_imp_page.create_page_branch(
+wwv_flow_imp_page.create_page_process(
  p_id=>wwv_flow_imp.id(91820277000000012)
+,p_process_sequence=>2
+,p_process_point=>'ON_DEMAND'
+,p_process_type=>'NATIVE_PLSQL'
+,p_process_name=>'FORGET'
+,p_process_sql_clob=>wwv_flow_string.join(wwv_flow_t_varchar2(
+'declare',
+'    l_n number;',
+'begin',
+'    l_n := case when apex_application.g_x01 is null then noona_bi_pkg.clear_recent',
+'                else noona_bi_pkg.forget_recent(to_number(apex_application.g_x01)) end;',
+'    apex_json.open_object; apex_json.write(''ok'', true); apex_json.write(''n'', l_n); apex_json.close_object;',
+'exception when others then',
+'    apex_json.open_object; apex_json.write(''ok'', false);',
+'    apex_json.write(''msg'', regexp_replace(sqlerrm, ''^ORA-[0-9]+: '', '''')); apex_json.close_object;',
+'end;'))
+,p_process_clob_language=>'PLSQL'
+,p_error_display_location=>'INLINE_IN_NOTIFICATION'
+,p_internal_uid=>91820277000000012
+);
+wwv_flow_imp_page.create_page_branch(
+ p_id=>wwv_flow_imp.id(91820277000000013)
 ,p_branch_action=>'f?p=&APP_ID.:1:&SESSION.::&DEBUG.:::'
 ,p_branch_point=>'AFTER_PROCESSING'
 ,p_branch_type=>'REDIRECT_URL'

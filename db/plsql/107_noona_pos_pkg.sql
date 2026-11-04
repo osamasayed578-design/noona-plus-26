@@ -243,7 +243,7 @@ CREATE OR REPLACE PACKAGE BODY NOONA_POS_PKG AS
               FROM inv_item i JOIN inv_item_company c ON c.item_id = i.id AND c.company_id = l_co
              WHERE i.status_code = 'ACTIVE' AND i.is_sellable = 'Y' AND c.sale_price IS NOT NULL) x;
     SELECT JSON_OBJECT('terminal' VALUE JSON_OBJECT('id' VALUE l_t.id, 'code' VALUE l_t.code, 'n' VALUE l_t.name_ar),
-             'shift' VALUE current_shift(p_terminal_id), 'walkIn' VALUE l_walk,
+             'shift' VALUE current_shift(p_terminal_id), 'walkIn' VALUE l_walk, 'branch' VALUE l_t.branch_id,
              'walkInName' VALUE NOONA_SAL_PKG.customer_label(l_walk),
              'seller' VALUE NOONA_SAL_PKG.seller_name, 'vat' VALUE NOONA_SAL_PKG.seller_vat,
              'methods' VALUE NOONA_PUR_PKG.payment_methods_json FORMAT JSON,
@@ -331,6 +331,7 @@ CREATE OR REPLACE PACKAGE BODY NOONA_POS_PKG AS
                           sale_at, is_offline, sync_idempotency_key, prescription_no, status_code)
     VALUES (company, l_t.branch_id, NOONA_GL_PKG.ledger_currency, 1, l_shift, l_t.id, l_rno, 'SALE', l_cust, SYSTIMESTAMP, 'N', l_key, l_rx, 'OPEN')
     RETURNING id INTO l_id;
+    NOONA_PRC_PKG.begin_doc('POS', 'POS_SALE', l_id, l_cust);
     -- حصة كل سطر من خصم الكوبون/عرض قيمة الفاتورة (ds) لا تتجاوز في مجموعها ما يسمح به العرض الساري
     FOR r IN (SELECT * FROM JSON_TABLE(p_doc, '$.lines[*]' COLUMNS (i NUMBER PATH '$.i', q NUMBER PATH '$.q', p NUMBER PATH '$.p',
                 disc NUMBER PATH '$.disc', ds NUMBER PATH '$.ds'))) LOOP
@@ -340,7 +341,7 @@ CREATE OR REPLACE PACKAGE BODY NOONA_POS_PKG AS
       l_dsum := l_dsum + NVL(r.ds, 0);
     END LOOP;
     IF l_dsum > 0 THEN
-      l_dok := NOONA_PRC_PKG.doc_promo('POS', l_base, l_cpn);
+      l_dok := NOONA_PRC_PKG.doc_promo('POS', l_base, l_cpn, SYSDATE, l_t.branch_id);
       NOONA_CORE_PKG.assert(l_dok <> '{}' AND l_dsum <= JSON_VALUE(l_dok, '$.discount' RETURNING NUMBER) + 0.05, 'NOONA-POS-030',
         'خصم الفاتورة أكبر من العرض أو الكوبون الساري', 'Document discount exceeds the active promotion');
     END IF;
@@ -427,6 +428,7 @@ CREATE OR REPLACE PACKAGE BODY NOONA_POS_PKG AS
     UPDATE pos_sale SET subtotal = l_sub, discount_amount = l_dis, tax_amount = l_tax, total_amount = l_total, paid_amount = l_paid,
                         change_amount = l_paid - l_total, inv_transaction_id = l_txn, status_code = 'COMPLETED'
      WHERE id = l_id;
+    NOONA_PRC_PKG.end_doc;
     UPDATE pos_shift SET sales_total = NVL(sales_total, 0) + l_total WHERE id = l_shift;
     RETURN result_json(l_id);
   END sale;

@@ -89,7 +89,7 @@
         qTimer = setTimeout(function () {
             var seq = ++qSeq;
             if (!state.cart.length && !state.docDisc) return;
-            var doc = {coupon: state.coupon || null, lines: state.cart.map(function (l, i) {
+            var doc = {coupon: state.coupon || null, customer: state.cust || null, branch: boot.branch || null, lines: state.cart.map(function (l, i) {
                 return {k: i, t: 'ITEM', id: l.i, q: l.q, p: l.p, man: (l.man || l.bun) ? 'Y' : 'N', disc: num(l.disc)}; })};
             call('QUOTE', {p_clob_01: JSON.stringify(doc)}).then(function (r) {
                 if (seq !== qSeq) return;

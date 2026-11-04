@@ -291,6 +291,134 @@ BEGIN
     END IF;
   END;
 
+  -- ---------------------------------------------------------------- شروط العروض: أيام الشهر، الاستثناء، الفروع، العملاء، حدود الاستخدام
+  DECLARE
+    l_pm   NUMBER;
+    l_dd   NUMBER := TO_NUMBER(TO_CHAR(SYSDATE, 'DD'));
+    l_other VARCHAR2(10) := TO_CHAR(CASE WHEN TO_NUMBER(TO_CHAR(SYSDATE, 'DD')) = 1 THEN 2 ELSE 1 END);
+    l_walk NUMBER := NOONA_SAL_PKG.walk_in_customer;
+    l_c1   NUMBER;
+    l_c2   NUMBER;
+    l_br1  NUMBER;
+    l_br2  NUMBER;
+    l_pr0  NUMBER;
+    FUNCTION hit(p_branch NUMBER DEFAULT NULL) RETURN BOOLEAN IS
+      l CLOB := NOONA_PRC_PKG.line_promo('ITEM', l_item, 1, 100, 'SALES', NULL, SYSDATE, p_branch);
+    BEGIN
+      RETURN l <> '{}' AND JSON_VALUE(l, '$.promoId' RETURNING NUMBER) = l_pm;
+    END hit;
+    PROCEDURE upd(p_sql VARCHAR2) IS BEGIN EXECUTE IMMEDIATE p_sql USING l_pm; END upd;
+  BEGIN
+    ok('in_ranges 3 in 1-5,25-31', NOONA_PRC_PKG.in_ranges('1-5,25-31', 3) = 'Y');
+    ok('in_ranges 10 not in 1-5,25-31', NOONA_PRC_PKG.in_ranges('1-5,25-31', 10) = 'N');
+    ok('in_ranges single day 31', NOONA_PRC_PKG.in_ranges('15,31', 31) = 'Y');
+    rejects('bad days of month rejected', 'NOONA-PRC-047',
+      'DECLARE n NUMBER; BEGIN n := NOONA_PRC_PKG.save_promotion(''{"code":"BD' || l_sfx || '","name":"x","type":"PCT_OFF","value":5,'
+      || '"daysOfMonth":"1-40","targets":[{"type":"ALL_ITEMS"}]}''); END;');
+    rejects('bad excluded date rejected', 'NOONA-PRC-048',
+      'DECLARE n NUMBER; BEGIN n := NOONA_PRC_PKG.save_promotion(''{"code":"BX' || l_sfx || '","name":"x","type":"PCT_OFF","value":5,'
+      || '"excludedDates":"2026-02-30","targets":[{"type":"ALL_ITEMS"}]}''); END;');
+    rejects('bad customer scope rejected', 'NOONA-PRC-050',
+      'DECLARE n NUMBER; BEGIN n := NOONA_PRC_PKG.save_promotion(''{"code":"BC' || l_sfx || '","name":"x","type":"PCT_OFF","value":5,'
+      || '"customerScope":"VIP","targets":[{"type":"ALL_ITEMS"}]}''); END;');
+
+    l_pm := NOONA_PRC_PKG.save_promotion('{"code":"RULE' || l_sfx || '","name":"عرض بشروط","type":"PCT_OFF","value":60,"priority":1,'
+          || '"channels":"SALES","daysOfMonth":"' || l_dd || '","targets":[{"type":"ITEM","id":' || l_item || '}]}');
+    NOONA_PRC_PKG.set_customer(NULL);
+    ok('promotion on today''s day of month applies', hit);
+    ok('promotion text shows days of month', INSTR(NOONA_PRC_PKG.promotion_text(l_pm), 'أيام الشهر') > 0);
+    upd('UPDATE sal_promotion SET days_of_month = ''' || l_other || ''' WHERE id = :1');
+    ok('promotion on another day of month does not apply', NOT hit);
+    upd('UPDATE sal_promotion SET days_of_month = NULL, excluded_dates = ''2001-01-01,' || TO_CHAR(SYSDATE, 'YYYY-MM-DD') || ''' WHERE id = :1');
+    ok('excluded date (holiday) blocks the promotion', NOT hit);
+    upd('UPDATE sal_promotion SET excluded_dates = ''2001-01-01'' WHERE id = :1');
+    ok('other excluded date does not block', hit);
+
+    SELECT MIN(id), MAX(id) INTO l_br1, l_br2 FROM org_branch WHERE company_id = NOONA_PRC_PKG.company;
+    upd('UPDATE sal_promotion SET branch_ids = ''' || l_br1 || ''' WHERE id = :1');
+    ok('branch list: listed branch applies', hit(l_br1));
+    IF l_br2 <> l_br1 THEN
+      ok('branch list: other branch does not apply', NOT hit(l_br2));
+    ELSE
+      ok('branch list: other branch (single branch company, skipped)', TRUE);
+    END IF;
+    upd('UPDATE sal_promotion SET branch_ids = NULL WHERE id = :1');
+
+    -- العملاء
+    SELECT MIN(a.id), MAX(a.id) INTO l_c1, l_c2 FROM ar_customer_account a JOIN ar_customer c ON c.id = a.customer_id
+     WHERE a.company_id = NOONA_PRC_PKG.company AND NVL(c.is_walk_in, 'N') = 'N' AND a.status_code = 'ACTIVE';
+    upd('UPDATE sal_promotion SET customer_scope = ''REGISTERED'' WHERE id = :1');
+    NOONA_PRC_PKG.set_customer(NULL);
+    ok('registered-only: unknown customer excluded', NOT hit);
+    NOONA_PRC_PKG.set_customer(l_walk);
+    ok('registered-only: walk-in customer excluded', NOT hit);
+    NOONA_PRC_PKG.set_customer(l_c1);
+    ok('registered-only: registered customer gets it', l_c1 IS NOT NULL AND hit);
+    NOONA_PRC_PKG.add_promotion_customer(l_pm, l_c1);
+    SELECT customer_scope INTO l_s FROM sal_promotion WHERE id = l_pm;
+    ok('adding a customer switches scope to the list', l_s = 'LIST');
+    ok('listed customer gets it', hit);
+    IF l_c2 <> l_c1 THEN
+      NOONA_PRC_PKG.set_customer(l_c2);
+      ok('customer not in list excluded', NOT hit);
+    ELSE
+      ok('customer not in list (one customer, skipped)', TRUE);
+    END IF;
+    ok('customer names listed', NOONA_PRC_PKG.promotion_customers(l_pm) IS NOT NULL);
+    rejects('same customer twice rejected', 'NOONA-PRC-045',
+      'BEGIN NOONA_PRC_PKG.add_promotion_customer(' || l_pm || ', ' || l_c1 || '); END;');
+    NOONA_PRC_PKG.remove_promotion_customer(l_pm, l_c1);
+    NOONA_PRC_PKG.set_customer(l_c1);
+    ok('removed customer excluded', NOT hit);
+
+    -- حدود الاستخدام: مرة واحدة كلياً
+    upd('UPDATE sal_promotion SET customer_scope = ''ALL'', customer_ids = NULL, max_uses = 1 WHERE id = :1');
+    NOONA_PRC_PKG.begin_doc('SALES', 'TEST_DOC', 1, l_c1);
+    l_pr0 := NOONA_PRC_PKG.line_discount('ITEM', l_item, 1, 100, 'SALES');
+    NOONA_PRC_PKG.end_doc;
+    ok('first document uses the promotion (60)', l_pr0 = 60, l_pr0);
+    ok('use recorded', NOONA_PRC_PKG.uses_of(l_pm) = 1);
+    NOONA_PRC_PKG.set_customer(l_c1);
+    ok('limit reached: second document gets nothing', NOT hit);
+    NOONA_PRC_PKG.begin_doc('SALES', 'TEST_DOC', 1, l_c1);
+    ok('re-saving the same document keeps its promotion', hit);
+    NOONA_PRC_PKG.end_doc;
+    ok('re-save does not double count', NOONA_PRC_PKG.uses_of(l_pm) = 1);
+    NOONA_PRC_PKG.release_uses('TEST_DOC', 1);
+    NOONA_PRC_PKG.set_customer(l_c1);
+    ok('cancelled document frees the use', hit);
+
+    -- لكل عميل مرة
+    upd('UPDATE sal_promotion SET max_uses = NULL, max_uses_per_customer = 1 WHERE id = :1');
+    NOONA_PRC_PKG.begin_doc('SALES', 'TEST_DOC', 2, l_c1);
+    l_pr0 := NOONA_PRC_PKG.line_discount('ITEM', l_item, 1, 100, 'SALES');
+    NOONA_PRC_PKG.end_doc;
+    NOONA_PRC_PKG.set_customer(l_c1);
+    ok('per-customer limit: same customer blocked', NOT hit);
+    IF l_c2 <> l_c1 THEN
+      NOONA_PRC_PKG.set_customer(l_c2);
+      ok('per-customer limit: another customer still gets it', hit);
+    ELSE
+      ok('per-customer limit: another customer (skipped)', TRUE);
+    END IF;
+    NOONA_PRC_PKG.set_customer(l_walk);
+    ok('per-customer limit needs a registered customer', NOT hit);
+
+    -- عميل جديد (أول شراء)
+    upd('UPDATE sal_promotion SET max_uses_per_customer = NULL, customer_scope = ''NEW'' WHERE id = :1');
+    SELECT MIN(a.id) INTO l_c2 FROM ar_customer_account a JOIN ar_customer c ON c.id = a.customer_id
+     WHERE a.company_id = NOONA_PRC_PKG.company AND NVL(c.is_walk_in, 'N') = 'N'
+       AND EXISTS (SELECT 1 FROM sal_invoice i WHERE i.customer_account_id = a.id AND i.status_code NOT IN ('DRAFT', 'CANCELLED'));
+    IF l_c2 IS NOT NULL THEN
+      NOONA_PRC_PKG.set_customer(l_c2);
+      ok('first-purchase promotion: customer with invoices excluded', NOT hit);
+    ELSE
+      ok('first-purchase promotion (no invoiced customer, skipped)', TRUE);
+    END IF;
+    NOONA_PRC_PKG.set_customer(NULL);
+    UPDATE sal_promotion SET status_code = 'CANCELLED' WHERE id = l_pm;
+  END;
+
   ROLLBACK;
   DBMS_OUTPUT.PUT_LINE('========== pricing: ' || g_pass || ' passed, ' || g_fail || ' failed');
 EXCEPTION WHEN OTHERS THEN
