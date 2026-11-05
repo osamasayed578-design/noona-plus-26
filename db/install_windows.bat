@@ -85,7 +85,7 @@ sqlplus -S -L NOONA_APP/"%APP_PWD%"@%CONN% @tests/test_auto_service.sql < nul | 
 
 echo.
 echo ===== Finished. Expected: 79 / 26 / 21 / 25 / 10 / 19 / 18 / 19 / 43 / 29 / 26 / 38 / 24 / 52 / 49 / 54 / 77 / 41 / 47 / 54 / 70 / 72 / 75 / 62 / 51 / 62 / 36 / 37 / 70 passed, 0 failed (test_dms prints a WARN line when no NOONA_DMS_T[tenant] server folder exists).
-echo ===== Next: import the APEX apps 115 to 135 (Reuse Application ID), including NOONA_MFG\f135 for manufacturing, NOONA_PRJ\f139, NOONA_HIS\f141 and NOONA_AUTO\f145.
+echo ===== Next: run import_apps_windows.bat to import all 15 APEX apps (115-147) in one go, or import each apex\NOONA_*\fNNN_NOONA_*.zip in App Builder (Reuse Application ID)
 pause
 exit /b 0
 

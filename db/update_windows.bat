@@ -79,7 +79,7 @@ echo.
 echo ===== Database updated. Every test line should end with: 0 failed
 echo ===== test_dms may report the server-folder test only if a storage folder is configured but not reachable from the DB server.
 echo ===== Compile warnings shown inside upgrades 09-14 are expected on old databases; upgrades 15 and 16 recompile everything.
-echo ===== Next: import apex\NOONA_MASTER\f115, NOONA_PORTAL\f119, NOONA_ADMIN\f123, NOONA_PLATFORM\f125, NOONA_FIN\f127, NOONA_DOC\f129, NOONA_SCM\f131, NOONA_POS\f133 (incl. restaurants), NOONA_MFG\f135, NOONA_HR\f137, NOONA_PRJ\f139, NOONA_HIS\f141, NOONA_AUTO\f145 zips (Reuse Application ID)
+echo ===== Next: run import_apps_windows.bat to import all 15 APEX apps (115-147) in one go, or import each apex\NOONA_*\fNNN_NOONA_*.zip in App Builder (Reuse Application ID)
 pause
 exit /b 0
 
