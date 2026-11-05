@@ -379,6 +379,7 @@ CREATE OR REPLACE PACKAGE BODY NOONA_BI_PKG AS
   FUNCTION open_url(p_report_id IN NUMBER, p_session IN VARCHAR2) RETURN VARCHAR2 IS
     r     bi_report%ROWTYPE;
     l_sid VARCHAR2(30) := REGEXP_REPLACE(p_session, '[^0-9]', '');
+    l_ts  TIMESTAMP WITH LOCAL TIME ZONE;
   BEGIN
     reset_cache;
     BEGIN
@@ -388,12 +389,15 @@ CREATE OR REPLACE PACKAGE BODY NOONA_BI_PKG AS
     END;
     NOONA_CORE_PKG.assert(report_ok(r.module_code, r.permission_code) = 'Y', 'NOONA-BI-002',
       'ليس لك صلاحية هذا التقرير أو المؤسسة غير مشتركة في وحدته', 'Report not available for this user');
+    -- وقت الفتح يزيد دائماً عن آخر فتح للمستخدم: ساعة Windows دقتها أقل فتتساوى الأوقات المتقاربة ويختل ترتيب «آخر ما فتحته»
+    SELECT GREATEST(SYSTIMESTAMP, NVL(MAX(last_opened_at) + INTERVAL '0.001' SECOND, SYSTIMESTAMP)) INTO l_ts
+      FROM bi_report_user WHERE membership_id = TO_NUMBER(SYS_CONTEXT('NOONA_CTX', 'MEMBERSHIP_ID'));
     MERGE INTO bi_report_user u
     USING (SELECT TO_NUMBER(SYS_CONTEXT('NOONA_CTX', 'MEMBERSHIP_ID')) m FROM dual) x
        ON (u.membership_id = x.m AND u.report_id = p_report_id)
-     WHEN MATCHED THEN UPDATE SET u.open_count = u.open_count + 1, u.last_opened_at = SYSTIMESTAMP
+     WHEN MATCHED THEN UPDATE SET u.open_count = u.open_count + 1, u.last_opened_at = l_ts
      WHEN NOT MATCHED THEN INSERT (membership_id, report_id, is_favorite, open_count, last_opened_at)
-          VALUES (x.m, p_report_id, 'N', 1, SYSTIMESTAMP);
+          VALUES (x.m, p_report_id, 'N', 1, l_ts);
     -- مسح مرشحات صفحة التقرير السابقة (عند إمكانه) واختيار التقرير داخل مركز تقارير الوحدة
     RETURN 'f?p=' || r.app_alias || ':' || r.page_alias || ':' || l_sid
         || CASE WHEN r.page_no IS NOT NULL OR r.param_item IS NOT NULL
