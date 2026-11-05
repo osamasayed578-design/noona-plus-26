@@ -615,7 +615,7 @@ REPORTS = [
       ('NOT_INVOICED', 'غير المفوتر', {'type': 'NUMBER'})]),
 ]
 for pid, alias, title, sql, cols in REPORTS:
-    p = app.page(pid, alias.title(), alias, title, scheme=TRN)
+    p = app.page(pid, alias.title(), alias, title, scheme=TRN, protection='N')   # يفتح من مركز التقارير برابط يمسح مرشحاته
     p.ir(title, 10, sql, cols)
 
 # التحليلات والتنبؤ
