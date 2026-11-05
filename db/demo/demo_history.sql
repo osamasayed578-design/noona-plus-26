@@ -62,6 +62,23 @@ DECLARE
     l_lines := l_lines || CASE WHEN l_lines IS NOT NULL THEN ',' END || '{"a":"' || p_acc || '","d":' || amt(p) || '}';
     l_exp := l_exp + ROUND(p, 2);
   END dr;
+  -- قاعدة الأرشفة في الشركة قد تشترط مرجعاً ورقياً (أو صورة) قبل اعتماد القيد: يسجل رقم الأصل في النظام السابق،
+  -- وإن اشترطت القاعدة ملفاً يرفق ملف نصي بملخص القيد
+  PROCEDURE paper_ref(p_journal NUMBER, p_y NUMBER, p_m NUMBER) IS
+    l_doc NUMBER;
+    -- صفحة PDF صغيرة (قاعدة الأرشفة تقبل PDF والصور ومستندات Office فقط)
+    c_pdf CONSTANT RAW(2000) := HEXTORAW('255044462D312E340A312030206F626A3C3C2F547970652F436174616C6F672F50616765732032203020523E3E656E646F626A0A322030206F626A3C3C2F547970652F50616765732F4B6964735B33203020525D2F436F756E7420313E3E656E646F626A' || '0A332030206F626A3C3C2F547970652F506167652F506172656E742032203020522F4D65646961426F785B30203020353935203834325D2F436F6E74656E74732034203020522F5265736F75726365733C3C2F466F6E743C3C2F46312035203020523E3E' || '3E3E3E3E656E646F626A0A342030206F626A3C3C2F4C656E6774682036303E3E73747265616D0A4254202F46312031342054662036302037383020546420284E4F4F4E4120504C5553202D206C6567616379206D6F6E74686C792073756D6D6172792920' || '546A2045540A656E6473747265616D20656E646F626A0A352030206F626A3C3C2F547970652F466F6E742F537562747970652F54797065312F42617365466F6E742F48656C7665746963613E3E656E646F626A0A747261696C65723C3C2F526F6F742031' || '203020523E3E0A2525454F460A');
+    l_ref VARCHAR2(30) := 'LEGACY-' || p_y || LPAD(p_m, 2, '0');
+    l_dt  DATE := LAST_DAY(TO_DATE(p_y || '-' || p_m || '-01', 'YYYY-MM-DD'));
+  BEGIN
+    IF NOONA_DMS_PKG.has_reference('GL_JOURNAL', p_journal) = 'Y' THEN RETURN; END IF;
+    l_doc := NOONA_DMS_PKG.archive_document('GL_JOURNAL', p_journal, NULL, 'قيد ملخص ' || l_ref || ' من النظام السابق', l_ref,
+                                            'أرشيف النظام السابق', l_dt);
+    IF NOONA_DMS_PKG.has_reference('GL_JOURNAL', p_journal) = 'N' THEN
+      l_doc := NOONA_DMS_PKG.archive_document('GL_JOURNAL', p_journal, NULL, 'ملخص ' || l_ref, l_ref, 'أرشيف النظام السابق', l_dt,
+                                              'ملف ملخص مرفق بالبيانات التجريبية', l_ref || '.pdf', 'application/pdf', c_pdf);
+    END IF;
+  END paper_ref;
   -- أرقام سنة لمؤشر من دالة شهرية
   PROCEDURE hist(p_metric VARCHAR2, p_y NUMBER, p_v t_vals) IS
     l VARCHAR2(4000) := '[';
@@ -128,6 +145,7 @@ BEGIN
           || '","desc":"نتائج شهر ' || y || '-' || LPAD(m, 2, '0') || ' من النظام السابق (قيد ملخص)","ref":"LEGACY-' || y || LPAD(m, 2, '0')
           || '","action":"SUBMIT","lines":[' || l_lines || ']}');
         l_ids.EXTEND; l_ids(l_ids.COUNT) := l_j;
+        paper_ref(l_j, y, m);
       END LOOP;
   END LOOP;
   IF l_ids.COUNT > 0 THEN
