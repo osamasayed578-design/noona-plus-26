@@ -359,6 +359,15 @@ class App:
             m = re.match(r'page_(\d+)\.sql', f)
             if m and int(m.group(1)) not in self.pages and int(m.group(1)) not in (0, 9999):
                 os.remove(self.A + 'pages/' + f)
+        # ملف الاستيراد المضغوط بجانب المجلد (apex/NOONA_X/fNNN_NOONA_X.zip) يعاد مع كل بناء فلا يبقى قديماً
+        import zipfile
+        parent, folder = os.path.split(os.path.normpath(self.dir))
+        zpath = os.path.join(parent, f'{folder}_{os.path.basename(parent)}.zip')
+        with zipfile.ZipFile(zpath, 'w', zipfile.ZIP_DEFLATED) as z:
+            for root, _, files in os.walk(self.dir):
+                for fn in sorted(files):
+                    full = os.path.join(root, fn)
+                    z.write(full, os.path.relpath(full, parent))
 
 
 class Page:
