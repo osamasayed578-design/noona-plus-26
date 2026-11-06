@@ -31,7 +31,7 @@ DECLARE
   l_cal      NUMBER;
   l_year     NUMBER;
 BEGIN
-  NOONA_CTX_PKG.enable_system_mode;      -- تجاوز VPD لعملية التجهيز فقط
+  NOONA_CORE_PKG.begin_system;          -- تجاوز VPD لعملية التجهيز فقط (بعداد؛ الاستدعاءات الداخلية لا تلغيه)
 
   INSERT INTO plt_tenant (tenant_code, tenant_slug, name_ar, name_en, status_code, isolation_tier,
                           deployment_model, country_code, default_language, default_timezone, base_currency,
@@ -129,6 +129,7 @@ BEGIN
                         mfa_required, status_code)
   VALUES ('PLATFORM', 'platform@noona.local', 'مسؤول المنصة', 'PLATFORM_ADMIN', 'ar', 'Asia/Riyadh', 'Y', 'ACTIVE');
 
+  NOONA_CORE_PKG.end_system;
   NOONA_CTX_PKG.clear_context;
   COMMIT;
   DBMS_OUTPUT.PUT_LINE('Demo tenant created: TENANT_ID=' || l_tenant || ', COMPANY_ID=' || l_company ||
