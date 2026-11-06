@@ -146,7 +146,7 @@ sqlrun() {   # $1 مجلد العمل
 PDB=$(printf 'CONNECT / AS SYSDBA\nSET HEADING OFF FEEDBACK OFF PAGES 0\nSELECT name FROM v$pdbs WHERE name <> %s ORDER BY con_id FETCH FIRST 1 ROWS ONLY;\nEXIT\n' "'PDB\$SEED'" \
   | su - oracle -c ". ~/.noona_env; sqlplus -S -L /nolog" 2>/dev/null | tr -d ' \n')
 [ -n "$PDB" ] || die "لم أجد قاعدة PDB"
-sys_pdb() { printf 'WHENEVER SQLERROR EXIT SQL.SQLCODE\nCONNECT / AS SYSDBA\nALTER SESSION SET CONTAINER=%s;\n' "$PDB"; }
+sys_pdb() { printf 'WHENEVER SQLERROR EXIT SQL.SQLCODE\nCONNECT / AS SYSDBA\nSET FEEDBACK OFF\nALTER SESSION SET CONTAINER=%s;\nSET FEEDBACK ON\n' "$PDB"; }
 echo "$(sys_pdb)
 ALTER PLUGGABLE DATABASE $PDB SAVE STATE;
 SELECT 'PDB_OK' FROM dual;
@@ -158,7 +158,7 @@ step "3/10 APEX"
 APEX_VER=$(echo "$(sys_pdb)
 SET HEADING OFF FEEDBACK OFF
 SELECT version FROM dba_registry WHERE comp_id = 'APEX' AND status = 'VALID';
-EXIT" | su - oracle -c ". ~/.noona_env; sqlplus -S -L /nolog" 2>/dev/null | tr -d ' \n')
+EXIT" | su - oracle -c ". ~/.noona_env; sqlplus -S -L /nolog" 2>/dev/null | grep -oE '^ *[0-9]+\.[0-9]+\.[0-9.]+' | tr -d ' ' | head -1)
 if [[ "$APEX_VER" != 2[6-9].* ]]; then
   Z=$(ls "$DL"/apex_2[6-9]*.zip "$DL"/apex-latest.zip 2>/dev/null | head -1)
   if [ -z "$Z" ]; then
@@ -176,7 +176,8 @@ fi
 APEX_SCHEMA=$(echo "$(sys_pdb)
 SET HEADING OFF FEEDBACK OFF
 SELECT schema FROM dba_registry WHERE comp_id = 'APEX';
-EXIT" | su - oracle -c ". ~/.noona_env; sqlplus -S -L /nolog" 2>/dev/null | tr -d ' \n')
+EXIT" | su - oracle -c ". ~/.noona_env; sqlplus -S -L /nolog" 2>/dev/null | grep -oE 'APEX_[0-9]+' | head -1)
+[ -n "$APEX_SCHEMA" ] || die "لم أجد مخطط APEX في القاعدة"
 # مسؤول APEX (INTERNAL) وحساب البوابة وصلاحية الاتصال الخارجي (مزود الذكاء الاصطناعي)
 echo "$(sys_pdb)
 ALTER USER APEX_PUBLIC_USER IDENTIFIED BY \"$APEX_PUB_PWD\" ACCOUNT UNLOCK;
