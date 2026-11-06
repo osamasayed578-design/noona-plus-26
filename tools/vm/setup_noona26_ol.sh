@@ -260,12 +260,21 @@ CONN_A="CONNECT NOONA_APP/\"$APP_PWD\"@//localhost:$PORT_DB/$PDB"
 if [ "$INSTALLED" != 1 ]; then
   info "install.sql (5-15 دقيقة)"
   printf '%s\n@install.sql\nEXIT\n' "$CONN_O" | sqlrun "$WORK/db" > "$WORK/install_out.log" || die "فشل install.sql - راجع $WORK/install_out.log"
-  printf '%s\n@seed/90_demo_tenant_DEV_ONLY.sql\nEXIT\n' "$CONN_O" | sqlrun "$WORK/db" >/dev/null || die "فشلت بذرة المؤسسة"
-else
-  info "القاعدة مثبتة سابقاً: تشغيل الترقيات (آمنة عند التكرار)"
+elif [ "${RUN_UPGRADES:-0}" = 1 ]; then
+  info "القاعدة مثبتة سابقاً: تشغيل الترقيات (RUN_UPGRADES=1)"
   for u in $(ls "$WORK/db"/upgrade_[0-9]*.sql | sort -V); do
     printf '%s\n@%s\nEXIT\n' "$CONN_O" "$(basename "$u")" | sqlrun "$WORK/db" >/dev/null || die "فشلت $(basename "$u")"
   done
+else
+  info "جداول نونا مثبتة سابقاً (لتحديث قاعدة قديمة شغّل السكربت مع RUN_UPGRADES=1)"
+fi
+# بذرة المؤسسة التجريبية عند غيابها (تتراجع كاملة إن فشلت، فتعاد بأمان)
+TEN=$(echo "$(sys_pdb)
+SET HEADING OFF FEEDBACK OFF
+SELECT 'TEN=' || COUNT(*) FROM noona_owner.plt_tenant;
+EXIT" | su - oracle -c ". ~/.noona_env; sqlplus -S -L /nolog" 2>/dev/null | grep -oE 'TEN=[0-9]+' | cut -d= -f2)
+if [ "${TEN:-0}" = 0 ]; then
+  printf '%s\n@seed/90_demo_tenant_DEV_ONLY.sql\nEXIT\n' "$CONN_O" | sqlrun "$WORK/db" >/dev/null || die "فشلت بذرة المؤسسة"
 fi
 for u in $(ls "$WORK/db"/upgrade_ai26_*.sql | sort -V); do
   printf '%s\n@%s\nEXIT\n' "$CONN_O" "$(basename "$u")" | sqlrun "$WORK/db" >/dev/null || die "فشلت $(basename "$u")"
