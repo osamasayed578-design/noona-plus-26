@@ -17,9 +17,12 @@ DECLARE
   l_id   NUMBER;
 BEGIN
   SELECT schema INTO l_apex FROM dba_registry WHERE comp_id = 'APEX';
-  DBMS_NETWORK_ACL_ADMIN.APPEND_HOST_ACE(host => '&host', lower_port => &port, upper_port => &port,
-    ace => xs$ace_type(privilege_list => xs$name_list('http', 'connect', 'resolve'), principal_name => l_apex,
-                       principal_type => xs_acl.ptype_db));
+  -- صلاحية على المضيف كله (بلا تحديد منفذ: بعض الإصدارات ترفض المنفذ مع http بخطأ ORA-24244)
+  FOR h IN (SELECT '&host' host FROM dual UNION SELECT '127.0.0.1' FROM dual) LOOP
+    DBMS_NETWORK_ACL_ADMIN.APPEND_HOST_ACE(host => h.host,
+      ace => xs$ace_type(privilege_list => xs$name_list('http', 'connect', 'resolve'), principal_name => l_apex,
+                         principal_type => xs_acl.ptype_db));
+  END LOOP;
   EXECUTE IMMEDIATE 'SELECT MAX(provisioning_company_id) FROM ' || l_apex || '.wwv_flow_companies WHERE short_name = ''NOONAPLUS''' INTO l_sg;
   IF l_sg IS NULL THEN
     RAISE_APPLICATION_ERROR(-20001, 'مساحة العمل NOONAPLUS غير موجودة؛ ثبّت نونا أولاً');
