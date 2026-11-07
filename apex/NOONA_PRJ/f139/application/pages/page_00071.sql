@@ -516,7 +516,6 @@ wwv_flow_imp_page.create_page_button(
 ,p_button_action=>'SUBMIT'
 ,p_button_template_options=>'#DEFAULT#'
 ,p_button_template_id=>4072362960822175091
-,p_button_is_hot=>'Y'
 ,p_button_image_alt=>'إسناد'
 ,p_button_position=>'NEXT'
 ,p_button_condition=>'noona_mnt_pkg.request_status(:P71_ID) in (''NEW'', ''TRIAGED'', ''ASSIGNED'', ''ON_HOLD'', ''IN_PROGRESS'')'

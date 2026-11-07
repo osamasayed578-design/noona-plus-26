@@ -819,7 +819,7 @@ p.textarea('P71_NOTES', a, 30, 'ما تم عمله / سبب التعليق أو 
 p.number('P71_HOURS', a, 40, 'ساعات عمل الفني')
 p.number('P71_MATERIAL', a, 50, 'تكلفة المواد وقطع الغيار')
 p.select('P71_RATING', a, 60, 'تقييم المبلغ', lov_sql='STATIC2:★★★★★ ممتاز;5,★★★★ جيد جداً;4,★★★ جيد;3,★★ مقبول;2,★ ضعيف;1')
-b_as = p.button(a, 10, 'ASSIGN', 'إسناد', hot=True, condition=f"{rst} in ('NEW', 'TRIAGED', 'ASSIGNED', 'ON_HOLD', 'IN_PROGRESS')")
+b_as = p.button(a, 10, 'ASSIGN', 'إسناد', condition=f"{rst} in ('NEW', 'TRIAGED', 'ASSIGNED', 'ON_HOLD', 'IN_PROGRESS')")
 b_st = p.button(a, 20, 'START', 'بدء التنفيذ', condition=f"{rst} in ('ASSIGNED', 'ON_HOLD')")
 b_ho = p.button(a, 30, 'HOLD', 'تعليق', condition=f"{rst} in ('ASSIGNED', 'IN_PROGRESS')")
 b_co = p.button(a, 40, 'COMPLETE', 'إنجاز', hot=True, condition=f"{rst} in ('ASSIGNED', 'IN_PROGRESS', 'ON_HOLD')")

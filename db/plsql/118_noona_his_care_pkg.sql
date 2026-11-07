@@ -162,7 +162,7 @@ CREATE OR REPLACE PACKAGE BODY NOONA_HIS_CARE_PKG AS
     l_h CLOB;
     l_j CLOB := lab_params_json(p_order_id);
   BEGIN
-    l_h := '<table class="nn-rst-cred nn-his-lab" dir="ltr"><thead><tr><th>Test</th><th>Result</th><th>Unit</th><th>Reference range</th><th>Flag</th></tr></thead><tbody>';
+    l_h := '<table class="nn-rst-cred nn-his-lab" dir="ltr"><thead><tr><th>الفحص · Test</th><th>النتيجة · Result</th><th>الوحدة · Unit</th><th>المعدل الطبيعي · Reference range</th><th>العلامة · Flag</th></tr></thead><tbody>';
     FOR r IN (SELECT * FROM JSON_TABLE(l_j, '$[*]' COLUMNS (p NUMBER PATH '$.p', code VARCHAR2(30) PATH '$.code', n VARCHAR2(200) PATH '$.n',
                 unit VARCHAR2(30) PATH '$.unit', low NUMBER PATH '$.low', high NUMBER PATH '$.high', ref VARCHAR2(200) PATH '$.ref',
                 v NUMBER PATH '$.v', t VARCHAR2(200) PATH '$.t', f VARCHAR2(5) PATH '$.f'))) LOOP
