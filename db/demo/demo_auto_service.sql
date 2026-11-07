@@ -58,15 +58,26 @@ DECLARE
     END IF;
     it(p_key) := l;
   END part;
+  -- الفئة أو الخدمة الموجودة (من الفئات الافتراضية للتجهيز السريع) تحدث بدل إنشائها مرة أخرى
+  FUNCTION eid(p_table VARCHAR2, p_code VARCHAR2) RETURN VARCHAR2 IS
+    l NUMBER;
+  BEGIN
+    IF p_table = 'CAT' THEN
+      SELECT MAX(id) INTO l FROM aut_service_category WHERE company_id = NOONA_AUT_PKG.company AND code = p_code;
+    ELSE
+      SELECT MAX(id) INTO l FROM aut_service WHERE company_id = NOONA_AUT_PKG.company AND code = p_code;
+    END IF;
+    RETURN CASE WHEN l IS NOT NULL THEN '"id":' || l || ',' END;
+  END eid;
   PROCEDURE category(p_key VARCHAR2, p_name VARCHAR2, p_icon VARCHAR2, p_color VARCHAR2, p_sort NUMBER) IS
   BEGIN
-    cat(p_key) := NOONA_AUT_PKG.save_category('{"code":"' || p_key || '","name":"' || p_name || '","icon":"' || p_icon || '","color":"' || p_color
+    cat(p_key) := NOONA_AUT_PKG.save_category('{' || eid('CAT', p_key) || '"code":"' || p_key || '","name":"' || p_name || '","icon":"' || p_icon || '","color":"' || p_color
                                              || '","sort":' || p_sort || '}');
   END category;
   PROCEDURE service(p_key VARCHAR2, p_cat VARCHAR2, p_name VARCHAR2, p_price NUMBER, p_min NUMBER, p_icon VARCHAR2, p_parts VARCHAR2 DEFAULT NULL,
                     p_days NUMBER DEFAULT NULL, p_km NUMBER DEFAULT NULL, p_warranty NUMBER DEFAULT 30) IS
   BEGIN
-    sv(p_key) := NOONA_AUT_PKG.save_service('{"code":"' || p_key || '","name":"' || p_name || '","cat":' || cat(p_cat) || ',"price":' || p_price
+    sv(p_key) := NOONA_AUT_PKG.save_service('{' || eid('SVC', p_key) || '"code":"' || p_key || '","name":"' || p_name || '","cat":' || cat(p_cat) || ',"price":' || p_price
                  || ',"minutes":' || p_min || ',"icon":"' || p_icon || '","warrantyDays":' || p_warranty
                  || CASE WHEN p_days IS NOT NULL THEN ',"nextDays":' || p_days END || CASE WHEN p_km IS NOT NULL THEN ',"nextKm":' || p_km END
                  || CASE WHEN p_parts IS NOT NULL THEN ',"parts":[' || p_parts || ']' END || '}');
@@ -115,7 +126,8 @@ DECLARE
   END open_job;
 BEGIN
   NOONA_APEX_PKG.post_auth(c_admin, TRUNC(DBMS_RANDOM.VALUE(1e12, 9e12)));
-  SELECT COUNT(*) INTO l_n FROM aut_service_category WHERE company_id = NOONA_AUT_PKG.company AND code = 'OIL';
+  -- علامة البيانات التجريبية: خدمة OIL-SYN (الفئات الافتراضية للتجهيز السريع لا تكفي دليلاً)
+  SELECT COUNT(*) INTO l_n FROM aut_service WHERE company_id = NOONA_AUT_PKG.company AND code = 'OIL-SYN';
   IF l_n > 0 THEN
     say('بيانات مركز الخدمة موجودة مسبقاً - لا شيء للإضافة');
     NOONA_APEX_PKG.cleanup_request;
