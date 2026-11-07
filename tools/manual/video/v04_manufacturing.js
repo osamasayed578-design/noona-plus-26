@@ -18,8 +18,10 @@ const ADMIN = process.env.NOONA_VADMIN, PWD = process.env.NOONA_VPWD;
   // ------------------------------------------------ 1) التجهيز
   await v.setStep('1 · تجهيز التصنيع');
   await v.login(ADMIN, PWD, 'المنتج: <b>طقم الصيانة الدورية</b> = عبوة زيت + فلتر، يجمع ويغلف في الورشة');
-  await v.click(page.getByRole('button', { name: /تجهيز التصنيع/ }).first(),
+  const setup = page.getByRole('button', { name: /تجهيز التصنيع/ }).first();
+  if (await setup.count()) await v.click(setup,
     '<b>تجهيز التصنيع</b>: حسابات الإنتاج تحت التشغيل والعمالة والأعباء المحملة والانحرافات، وترقيم الأوامر');
+  else await v.say('<b>تجهيز التصنيع</b> تم: حسابات الإنتاج تحت التشغيل والعمالة والأعباء المحملة والانحرافات، وترقيم الأوامر', 4000);
 
   // ------------------------------------------------ 2) مركز العمل
   await v.setStep('2 · مركز العمل');
