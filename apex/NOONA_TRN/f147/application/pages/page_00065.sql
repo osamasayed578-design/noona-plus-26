@@ -22,7 +22,7 @@ wwv_flow_imp_page.create_page(
 ,p_protection_level=>'N'
 );
 wwv_flow_imp_page.create_page_plug(
- p_id=>wwv_flow_imp.id(91820290000000536)
+ p_id=>wwv_flow_imp.id(91820290000000537)
 ,p_plug_name=>'الترحيل حسب العملاء والمسارات'
 ,p_region_template_options=>'#DEFAULT#'
 ,p_component_template_options=>'#DEFAULT#'
@@ -41,7 +41,7 @@ wwv_flow_imp_page.create_page_plug(
 ,p_prn_page_header=>'الترحيل حسب العملاء والمسارات'
 );
 wwv_flow_imp_page.create_worksheet(
- p_id=>wwv_flow_imp.id(91820290000000537)
+ p_id=>wwv_flow_imp.id(91820290000000538)
 ,p_max_row_count=>'1000000'
 ,p_no_data_found_message=>'لا توجد بيانات'
 ,p_pagination_type=>'ROWS_X_TO_Y'
@@ -53,10 +53,10 @@ wwv_flow_imp_page.create_worksheet(
 ,p_download_formats=>'CSV:HTML:XLSX:PDF'
 ,p_enable_mail_download=>'N'
 ,p_owner=>'NOONA'
-,p_internal_uid=>91820290000000537
+,p_internal_uid=>91820290000000538
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820290000000539)
+ p_id=>wwv_flow_imp.id(91820290000000540)
 ,p_db_column_name=>'CUSTOMER'
 ,p_display_order=>10
 ,p_column_identifier=>'A'
@@ -66,7 +66,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820290000000540)
+ p_id=>wwv_flow_imp.id(91820290000000541)
 ,p_db_column_name=>'ROUTE'
 ,p_display_order=>20
 ,p_column_identifier=>'B'
@@ -76,7 +76,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820290000000541)
+ p_id=>wwv_flow_imp.id(91820290000000542)
 ,p_db_column_name=>'ORDERS'
 ,p_display_order=>30
 ,p_column_identifier=>'C'
@@ -86,7 +86,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820290000000542)
+ p_id=>wwv_flow_imp.id(91820290000000543)
 ,p_db_column_name=>'TONS'
 ,p_display_order=>40
 ,p_column_identifier=>'D'
@@ -96,7 +96,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820290000000543)
+ p_id=>wwv_flow_imp.id(91820290000000544)
 ,p_db_column_name=>'FREIGHT'
 ,p_display_order=>50
 ,p_column_identifier=>'E'
@@ -106,7 +106,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820290000000544)
+ p_id=>wwv_flow_imp.id(91820290000000545)
 ,p_db_column_name=>'SHORTAGE'
 ,p_display_order=>60
 ,p_column_identifier=>'F'
@@ -116,7 +116,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820290000000545)
+ p_id=>wwv_flow_imp.id(91820290000000546)
 ,p_db_column_name=>'INVOICED'
 ,p_display_order=>70
 ,p_column_identifier=>'G'
@@ -126,7 +126,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820290000000546)
+ p_id=>wwv_flow_imp.id(91820290000000547)
 ,p_db_column_name=>'NOT_INVOICED'
 ,p_display_order=>80
 ,p_column_identifier=>'H'
@@ -136,10 +136,10 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_rpt(
- p_id=>wwv_flow_imp.id(91820290000000538)
+ p_id=>wwv_flow_imp.id(91820290000000539)
 ,p_application_user=>'APXWS_DEFAULT'
 ,p_report_seq=>10
-,p_report_alias=>'538'
+,p_report_alias=>'539'
 ,p_status=>'PUBLIC'
 ,p_is_default=>'Y'
 ,p_report_columns=>'CUSTOMER:ROUTE:ORDERS:TONS:FREIGHT:SHORTAGE:INVOICED:NOT_INVOICED'

@@ -18,7 +18,7 @@ wwv_flow_imp_shared.create_list(
 ,p_version_scn=>137120771
 );
 wwv_flow_imp_shared.create_list_item(
- p_id=>wwv_flow_imp.id(91820290000000549)
+ p_id=>wwv_flow_imp.id(91820290000000550)
 ,p_list_item_display_sequence=>11
 ,p_list_item_link_text=>'التحليلات والتنبؤ'
 ,p_list_item_link_target=>'f?p=&APP_ID.:98:&APP_SESSION.::&DEBUG.:98::'
@@ -26,7 +26,7 @@ wwv_flow_imp_shared.create_list_item(
 ,p_list_item_current_type=>'TARGET_PAGE'
 );
 wwv_flow_imp_shared.create_list_item(
- p_id=>wwv_flow_imp.id(91820290000000550)
+ p_id=>wwv_flow_imp.id(91820290000000551)
 ,p_list_item_display_sequence=>10
 ,p_list_item_link_text=>'لوحة الحركة'
 ,p_list_item_link_target=>'f?p=&APP_ID.:1:&APP_SESSION.::&DEBUG.:1::'
@@ -34,59 +34,59 @@ wwv_flow_imp_shared.create_list_item(
 ,p_list_item_current_type=>'TARGET_PAGE'
 );
 wwv_flow_imp_shared.create_list_item(
- p_id=>wwv_flow_imp.id(91820290000000551)
+ p_id=>wwv_flow_imp.id(91820290000000552)
 ,p_list_item_display_sequence=>20
 ,p_list_item_link_text=>'العمليات'
 ,p_list_item_link_target=>''
 ,p_list_item_icon=>'fa-road'
 );
 wwv_flow_imp_shared.create_list_item(
- p_id=>wwv_flow_imp.id(91820290000000552)
+ p_id=>wwv_flow_imp.id(91820290000000553)
 ,p_list_item_display_sequence=>21
 ,p_list_item_link_text=>'أوامر الشحن'
 ,p_list_item_link_target=>'f?p=&APP_ID.:10:&APP_SESSION.::&DEBUG.:10::'
 ,p_list_item_icon=>'fa-cubes'
-,p_parent_list_item_id=>wwv_flow_imp.id(91820290000000551)
-,p_list_item_current_type=>'TARGET_PAGE'
-);
-wwv_flow_imp_shared.create_list_item(
- p_id=>wwv_flow_imp.id(91820290000000553)
-,p_list_item_display_sequence=>22
-,p_list_item_link_text=>'الرحلات'
-,p_list_item_link_target=>'f?p=&APP_ID.:20:&APP_SESSION.::&DEBUG.:20::'
-,p_list_item_icon=>'fa-road'
-,p_parent_list_item_id=>wwv_flow_imp.id(91820290000000551)
+,p_parent_list_item_id=>wwv_flow_imp.id(91820290000000552)
 ,p_list_item_current_type=>'TARGET_PAGE'
 );
 wwv_flow_imp_shared.create_list_item(
  p_id=>wwv_flow_imp.id(91820290000000554)
-,p_list_item_display_sequence=>23
-,p_list_item_link_text=>'رحلة جديدة'
-,p_list_item_link_target=>'f?p=&APP_ID.:22:&APP_SESSION.::&DEBUG.:22::'
-,p_list_item_icon=>'fa-plus'
-,p_parent_list_item_id=>wwv_flow_imp.id(91820290000000551)
+,p_list_item_display_sequence=>22
+,p_list_item_link_text=>'الرحلات'
+,p_list_item_link_target=>'f?p=&APP_ID.:20:&APP_SESSION.::&DEBUG.:20::'
+,p_list_item_icon=>'fa-road'
+,p_parent_list_item_id=>wwv_flow_imp.id(91820290000000552)
 ,p_list_item_current_type=>'TARGET_PAGE'
 );
 wwv_flow_imp_shared.create_list_item(
  p_id=>wwv_flow_imp.id(91820290000000555)
-,p_list_item_display_sequence=>24
-,p_list_item_link_text=>'الأعطال والبلاغات'
-,p_list_item_link_target=>'f?p=&APP_ID.:30:&APP_SESSION.::&DEBUG.:30::'
-,p_list_item_icon=>'fa-exclamation-triangle'
-,p_parent_list_item_id=>wwv_flow_imp.id(91820290000000551)
+,p_list_item_display_sequence=>23
+,p_list_item_link_text=>'رحلة جديدة'
+,p_list_item_link_target=>'f?p=&APP_ID.:22:&APP_SESSION.::&DEBUG.:22::'
+,p_list_item_icon=>'fa-plus'
+,p_parent_list_item_id=>wwv_flow_imp.id(91820290000000552)
 ,p_list_item_current_type=>'TARGET_PAGE'
 );
 wwv_flow_imp_shared.create_list_item(
  p_id=>wwv_flow_imp.id(91820290000000556)
-,p_list_item_display_sequence=>25
-,p_list_item_link_text=>'فوترة الترحيل'
-,p_list_item_link_target=>'f?p=&APP_ID.:55:&APP_SESSION.::&DEBUG.:55::'
-,p_list_item_icon=>'fa-file-text-o'
-,p_parent_list_item_id=>wwv_flow_imp.id(91820290000000551)
+,p_list_item_display_sequence=>24
+,p_list_item_link_text=>'الأعطال والبلاغات'
+,p_list_item_link_target=>'f?p=&APP_ID.:30:&APP_SESSION.::&DEBUG.:30::'
+,p_list_item_icon=>'fa-exclamation-triangle'
+,p_parent_list_item_id=>wwv_flow_imp.id(91820290000000552)
 ,p_list_item_current_type=>'TARGET_PAGE'
 );
 wwv_flow_imp_shared.create_list_item(
  p_id=>wwv_flow_imp.id(91820290000000557)
+,p_list_item_display_sequence=>25
+,p_list_item_link_text=>'فوترة الترحيل'
+,p_list_item_link_target=>'f?p=&APP_ID.:55:&APP_SESSION.::&DEBUG.:55::'
+,p_list_item_icon=>'fa-file-text-o'
+,p_parent_list_item_id=>wwv_flow_imp.id(91820290000000552)
+,p_list_item_current_type=>'TARGET_PAGE'
+);
+wwv_flow_imp_shared.create_list_item(
+ p_id=>wwv_flow_imp.id(91820290000000558)
 ,p_list_item_display_sequence=>30
 ,p_list_item_link_text=>'الأسطول'
 ,p_list_item_link_target=>''
@@ -94,27 +94,27 @@ wwv_flow_imp_shared.create_list_item(
 ,p_security_scheme=>wwv_flow_imp.id(91820290000000010)
 );
 wwv_flow_imp_shared.create_list_item(
- p_id=>wwv_flow_imp.id(91820290000000558)
+ p_id=>wwv_flow_imp.id(91820290000000559)
 ,p_list_item_display_sequence=>31
 ,p_list_item_link_text=>'العربات والشاحنات'
 ,p_list_item_link_target=>'f?p=&APP_ID.:40:&APP_SESSION.::&DEBUG.:40::'
 ,p_list_item_icon=>'fa-truck'
-,p_parent_list_item_id=>wwv_flow_imp.id(91820290000000557)
-,p_security_scheme=>wwv_flow_imp.id(91820290000000010)
-,p_list_item_current_type=>'TARGET_PAGE'
-);
-wwv_flow_imp_shared.create_list_item(
- p_id=>wwv_flow_imp.id(91820290000000559)
-,p_list_item_display_sequence=>32
-,p_list_item_link_text=>'السائقون'
-,p_list_item_link_target=>'f?p=&APP_ID.:42:&APP_SESSION.::&DEBUG.:42::'
-,p_list_item_icon=>'fa-id-card'
-,p_parent_list_item_id=>wwv_flow_imp.id(91820290000000557)
+,p_parent_list_item_id=>wwv_flow_imp.id(91820290000000558)
 ,p_security_scheme=>wwv_flow_imp.id(91820290000000010)
 ,p_list_item_current_type=>'TARGET_PAGE'
 );
 wwv_flow_imp_shared.create_list_item(
  p_id=>wwv_flow_imp.id(91820290000000560)
+,p_list_item_display_sequence=>32
+,p_list_item_link_text=>'السائقون'
+,p_list_item_link_target=>'f?p=&APP_ID.:42:&APP_SESSION.::&DEBUG.:42::'
+,p_list_item_icon=>'fa-id-card'
+,p_parent_list_item_id=>wwv_flow_imp.id(91820290000000558)
+,p_security_scheme=>wwv_flow_imp.id(91820290000000010)
+,p_list_item_current_type=>'TARGET_PAGE'
+);
+wwv_flow_imp_shared.create_list_item(
+ p_id=>wwv_flow_imp.id(91820290000000561)
 ,p_list_item_display_sequence=>40
 ,p_list_item_link_text=>'الإعداد'
 ,p_list_item_link_target=>''
@@ -122,95 +122,95 @@ wwv_flow_imp_shared.create_list_item(
 ,p_security_scheme=>wwv_flow_imp.id(91820290000000010)
 );
 wwv_flow_imp_shared.create_list_item(
- p_id=>wwv_flow_imp.id(91820290000000561)
+ p_id=>wwv_flow_imp.id(91820290000000562)
 ,p_list_item_display_sequence=>41
 ,p_list_item_link_text=>'المدن والمواقع'
 ,p_list_item_link_target=>'f?p=&APP_ID.:50:&APP_SESSION.::&DEBUG.:50::'
 ,p_list_item_icon=>'fa-map-marker'
-,p_parent_list_item_id=>wwv_flow_imp.id(91820290000000560)
-,p_security_scheme=>wwv_flow_imp.id(91820290000000010)
-,p_list_item_current_type=>'TARGET_PAGE'
-);
-wwv_flow_imp_shared.create_list_item(
- p_id=>wwv_flow_imp.id(91820290000000562)
-,p_list_item_display_sequence=>42
-,p_list_item_link_text=>'المسارات والمسافات'
-,p_list_item_link_target=>'f?p=&APP_ID.:52:&APP_SESSION.::&DEBUG.:52::'
-,p_list_item_icon=>'fa-map'
-,p_parent_list_item_id=>wwv_flow_imp.id(91820290000000560)
+,p_parent_list_item_id=>wwv_flow_imp.id(91820290000000561)
 ,p_security_scheme=>wwv_flow_imp.id(91820290000000010)
 ,p_list_item_current_type=>'TARGET_PAGE'
 );
 wwv_flow_imp_shared.create_list_item(
  p_id=>wwv_flow_imp.id(91820290000000563)
-,p_list_item_display_sequence=>43
-,p_list_item_link_text=>'أنواع الشحنات'
-,p_list_item_link_target=>'f?p=&APP_ID.:53:&APP_SESSION.::&DEBUG.:53::'
-,p_list_item_icon=>'fa-archive'
-,p_parent_list_item_id=>wwv_flow_imp.id(91820290000000560)
+,p_list_item_display_sequence=>42
+,p_list_item_link_text=>'المسارات والمسافات'
+,p_list_item_link_target=>'f?p=&APP_ID.:52:&APP_SESSION.::&DEBUG.:52::'
+,p_list_item_icon=>'fa-map'
+,p_parent_list_item_id=>wwv_flow_imp.id(91820290000000561)
 ,p_security_scheme=>wwv_flow_imp.id(91820290000000010)
 ,p_list_item_current_type=>'TARGET_PAGE'
 );
 wwv_flow_imp_shared.create_list_item(
  p_id=>wwv_flow_imp.id(91820290000000564)
-,p_list_item_display_sequence=>44
-,p_list_item_link_text=>'تعرفة الترحيل'
-,p_list_item_link_target=>'f?p=&APP_ID.:54:&APP_SESSION.::&DEBUG.:54::'
-,p_list_item_icon=>'fa-money'
-,p_parent_list_item_id=>wwv_flow_imp.id(91820290000000560)
+,p_list_item_display_sequence=>43
+,p_list_item_link_text=>'أنواع الشحنات'
+,p_list_item_link_target=>'f?p=&APP_ID.:53:&APP_SESSION.::&DEBUG.:53::'
+,p_list_item_icon=>'fa-archive'
+,p_parent_list_item_id=>wwv_flow_imp.id(91820290000000561)
 ,p_security_scheme=>wwv_flow_imp.id(91820290000000010)
 ,p_list_item_current_type=>'TARGET_PAGE'
 );
 wwv_flow_imp_shared.create_list_item(
  p_id=>wwv_flow_imp.id(91820290000000565)
+,p_list_item_display_sequence=>44
+,p_list_item_link_text=>'تعرفة الترحيل'
+,p_list_item_link_target=>'f?p=&APP_ID.:54:&APP_SESSION.::&DEBUG.:54::'
+,p_list_item_icon=>'fa-money'
+,p_parent_list_item_id=>wwv_flow_imp.id(91820290000000561)
+,p_security_scheme=>wwv_flow_imp.id(91820290000000010)
+,p_list_item_current_type=>'TARGET_PAGE'
+);
+wwv_flow_imp_shared.create_list_item(
+ p_id=>wwv_flow_imp.id(91820290000000566)
 ,p_list_item_display_sequence=>50
 ,p_list_item_link_text=>'التقارير'
 ,p_list_item_link_target=>''
 ,p_list_item_icon=>'fa-bar-chart'
 );
 wwv_flow_imp_shared.create_list_item(
- p_id=>wwv_flow_imp.id(91820290000000566)
+ p_id=>wwv_flow_imp.id(91820290000000567)
 ,p_list_item_display_sequence=>51
 ,p_list_item_link_text=>'تقرير الرحلات والالتزام بالمواعيد'
 ,p_list_item_link_target=>'f?p=&APP_ID.:61:&APP_SESSION.::&DEBUG.:61::'
 ,p_list_item_icon=>'fa-file-text-o'
-,p_parent_list_item_id=>wwv_flow_imp.id(91820290000000565)
-,p_list_item_current_type=>'TARGET_PAGE'
-);
-wwv_flow_imp_shared.create_list_item(
- p_id=>wwv_flow_imp.id(91820290000000567)
-,p_list_item_display_sequence=>52
-,p_list_item_link_text=>'استغلال الأسطول وربحية العربات'
-,p_list_item_link_target=>'f?p=&APP_ID.:62:&APP_SESSION.::&DEBUG.:62::'
-,p_list_item_icon=>'fa-file-text-o'
-,p_parent_list_item_id=>wwv_flow_imp.id(91820290000000565)
+,p_parent_list_item_id=>wwv_flow_imp.id(91820290000000566)
 ,p_list_item_current_type=>'TARGET_PAGE'
 );
 wwv_flow_imp_shared.create_list_item(
  p_id=>wwv_flow_imp.id(91820290000000568)
-,p_list_item_display_sequence=>53
-,p_list_item_link_text=>'أداء السائقين'
-,p_list_item_link_target=>'f?p=&APP_ID.:63:&APP_SESSION.::&DEBUG.:63::'
+,p_list_item_display_sequence=>52
+,p_list_item_link_text=>'استغلال الأسطول وربحية العربات'
+,p_list_item_link_target=>'f?p=&APP_ID.:62:&APP_SESSION.::&DEBUG.:62::'
 ,p_list_item_icon=>'fa-file-text-o'
-,p_parent_list_item_id=>wwv_flow_imp.id(91820290000000565)
+,p_parent_list_item_id=>wwv_flow_imp.id(91820290000000566)
 ,p_list_item_current_type=>'TARGET_PAGE'
 );
 wwv_flow_imp_shared.create_list_item(
  p_id=>wwv_flow_imp.id(91820290000000569)
-,p_list_item_display_sequence=>54
-,p_list_item_link_text=>'الأعطال والبلاغات وزمن الاستجابة'
-,p_list_item_link_target=>'f?p=&APP_ID.:64:&APP_SESSION.::&DEBUG.:64::'
+,p_list_item_display_sequence=>53
+,p_list_item_link_text=>'أداء السائقين'
+,p_list_item_link_target=>'f?p=&APP_ID.:63:&APP_SESSION.::&DEBUG.:63::'
 ,p_list_item_icon=>'fa-file-text-o'
-,p_parent_list_item_id=>wwv_flow_imp.id(91820290000000565)
+,p_parent_list_item_id=>wwv_flow_imp.id(91820290000000566)
 ,p_list_item_current_type=>'TARGET_PAGE'
 );
 wwv_flow_imp_shared.create_list_item(
  p_id=>wwv_flow_imp.id(91820290000000570)
+,p_list_item_display_sequence=>54
+,p_list_item_link_text=>'الأعطال والبلاغات وزمن الاستجابة'
+,p_list_item_link_target=>'f?p=&APP_ID.:64:&APP_SESSION.::&DEBUG.:64::'
+,p_list_item_icon=>'fa-file-text-o'
+,p_parent_list_item_id=>wwv_flow_imp.id(91820290000000566)
+,p_list_item_current_type=>'TARGET_PAGE'
+);
+wwv_flow_imp_shared.create_list_item(
+ p_id=>wwv_flow_imp.id(91820290000000571)
 ,p_list_item_display_sequence=>55
 ,p_list_item_link_text=>'الترحيل حسب العملاء والمسارات'
 ,p_list_item_link_target=>'f?p=&APP_ID.:65:&APP_SESSION.::&DEBUG.:65::'
 ,p_list_item_icon=>'fa-file-text-o'
-,p_parent_list_item_id=>wwv_flow_imp.id(91820290000000565)
+,p_parent_list_item_id=>wwv_flow_imp.id(91820290000000566)
 ,p_list_item_current_type=>'TARGET_PAGE'
 );
 wwv_flow_imp.component_end;
