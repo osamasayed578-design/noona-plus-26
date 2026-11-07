@@ -48,8 +48,8 @@ const ADMIN = process.env.NOONA_VADMIN || 'ADMIN', PWD = process.env.NOONA_VPWD;
   await v.setStep('3 · رحلة جديدة');
   await v.nav('رحلة جديدة');
   await v.say('يتحقق النظام من توفر العربة والسائق وسريان الرخص والتأمين، ومن الحمولة لكل شحنة', 4500);
-  await pickOpt('#P22_VEH', () => true, '<b>العربة</b> المتاحة');
-  const d1 = await pickOpt('#P22_DRV', () => true, '<b>السائق</b>');
+  await pickOpt('#P22_VEH', (o) => /متاح/.test(o.t) && !/رحلة/.test(o.t), '<b>العربة</b> المتاحة (الحمولة والنوع والحالة)');
+  await pickOpt('#P22_DRV', (o) => /متاح/.test(o.t) && !/رحلة/.test(o.t), '<b>السائق</b> المتاح');
   await pickOpt('#P22_ROUTE', () => true, '<b>المسار</b>: يحدد الزمن القياسي وموعد الوصول المتوقع');
   // الأمر الذي أنشأناه: أعلى رقم شحنة بين المؤكدة
   const no = await page.locator('#P22_ORDERS label').evaluateAll((ls) => ls.map((l) => (l.textContent.match(/SHP-\d+/) || [''])[0])
@@ -63,7 +63,7 @@ const ADMIN = process.env.NOONA_VADMIN || 'ADMIN', PWD = process.env.NOONA_VPWD;
 
   // ------------------------------------------------ 3) الحركة والتسليم
   await v.setStep('4 · الحركة والتسليم');
-  await v.say('عند التحرك تسجل <b>قراءة العداد</b> اختيارياً (لا تقل عن آخر قراءة للعربة)', 3500);
+  await v.say('<b>قراءة العداد</b> مقترحة من آخر قراءة للعربة', 3500);
   await v.click('تحرك الرحلة', '<b>تحرك الرحلة</b>: العربة والسائق مشغولان والشحنات في الطريق');
   await msg('depart');
   await v.click('وصلت الرحلة', '<b>وصلت الرحلة</b>: يحسب التأخير عن الموعد المتوقع');
@@ -75,6 +75,8 @@ const ADMIN = process.env.NOONA_VADMIN || 'ADMIN', PWD = process.env.NOONA_VPWD;
     await v.click('تسجيل التسليم', '<b>تسجيل التسليم</b>');
     await msg('deliver');
   }
+  const odo0 = Number(String(await page.locator('#P21_ODO').inputValue().catch(() => '')).replace(/[^\d.]/g, '')) || 0;
+  if (odo0) await v.type('#P21_ODO', String(odo0 + 410), '<b>قراءة العداد عند العودة</b>: مقترحة من قراءة التحرك، نعدلها (410 كم)');
   await v.type('#P21_FUEL', '160', 'إجمالي الوقود (لتر)');
   await v.click('إقفال الرحلة', '<b>إقفال الرحلة</b>: العربة والسائق متاحان، وتحسب المسافة والاستهلاك');
   await msg('complete');
