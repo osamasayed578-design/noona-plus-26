@@ -264,6 +264,11 @@ p.process(33, 'AFTER_SUBMIT', 'Stop Delete', 'noona_trn_pkg.remove_stop(:P21_STO
 # حركة الرحلة
 a = p.static('حركة الرحلة', 30, condition=ST("'PLANNED','IN_TRANSIT','ARRIVED'"))
 p.number('P21_ODO', a, 10, 'قراءة العداد (كم)')
+# العداد يقترح من آخر قراءة للعربة (قبل التحرك) أو قراءة التحرك (عند الإقفال)؛ يعدله المستخدم فقط
+p.process(2, 'BEFORE_HEADER', 'Odometer', ['begin', '  if :P21_ODO is null then',
+          '    select case when t.status_code = \'PLANNED\' then v.odometer_km else nvl(t.odometer_start, v.odometer_km) end into :P21_ODO',
+          '      from trn_trip t join trn_vehicle v on v.id = t.vehicle_id where t.id = :P21_ID and t.company_id = noona_trn_pkg.company;',
+          '  end if;', 'exception when no_data_found then null;', 'end;'])
 p.number('P21_FUEL', a, 20, 'إجمالي الوقود (لتر) عند الإقفال')
 p.text('P21_REASON', a, 30, 'سبب الإلغاء', maxlen=500, width=40)
 b_dep = p.button(a, 10, 'DEPART', 'تحرك الرحلة', hot=True, condition=ST("'PLANNED'"))
