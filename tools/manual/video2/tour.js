@@ -30,7 +30,7 @@ const norm = (s) => strip(s).replace(/\s+/g, ' ').replace(/[*:]$/, '').trim();
   async function loginAs(u, a) {
     if (user) await v.logout();
     if (a !== app) { app = a; }
-    await page.goto(`http://localhost:8090/ords/r/noonaplus/${a}/home`).catch(() => {});
+    await page.goto(`http://localhost:${process.env.NOONA_PORT || 8090}/ords/r/noonaplus/${a}/home`).catch(() => {});
     await v.login(u, PWD[u], user ? 'دخول بمستخدم ' + (u === 'PLATFORM' ? '<b>مشغل المنصة</b>' : '<b>مسؤول المؤسسة</b>') : null);
     user = u;
   }
@@ -144,7 +144,7 @@ const norm = (s) => strip(s).replace(/\s+/g, ' ').replace(/[*:]$/, '').trim();
   }
 
   // ---------------------------------------------------------------- التسجيل
-  await page.goto(`http://localhost:8090/ords/r/noonaplus/${first.app}/home`).catch(() => {}); await v.settle();
+  await page.goto(`http://localhost:${process.env.NOONA_PORT || 8090}/ords/r/noonaplus/${first.app}/home`).catch(() => {}); await v.settle();
   await v.card(MOD.title, [MOD.subtitle, `جولة شاملة على كل الشاشات (${screens.length} شاشة) بشرح كل حقل وزر`],
     5500, `الفيديو المطول ${num || ''} · شرح تفصيلي بالعربية · نونا بلس`);
   for (const t of MOD.intro || []) { /* المقدمة تعرض بعد الدخول */ }

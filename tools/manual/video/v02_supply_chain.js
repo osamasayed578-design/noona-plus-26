@@ -10,7 +10,7 @@ const ADMIN = process.env.NOONA_VADMIN, PWD = process.env.NOONA_VPWD;
   const v = await video('noona_scm', out, 'v02_supply_chain');
   const { page } = v;
 
-  await page.goto('http://localhost:8090/ords/r/noonaplus/noona_master/home'); await v.settle();
+  await page.goto('http://localhost:' + (process.env.NOONA_PORT || 8090) + '/ords/r/noonaplus/noona_master/home'); await v.settle();
   await v.card('سلسلة الإمداد في نونا بلس', ['الأصناف والموردون', 'فاتورة مشتريات تستلم المخزون · سداد المورد · أرصدة المخزون'], 4500, 'الفيديو القصير 3 · إدخال حقيقي سريع · مجموعة النور');
 
   // ------------------------------------------------ 1) التجهيز

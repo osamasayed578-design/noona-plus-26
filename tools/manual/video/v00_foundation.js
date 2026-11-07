@@ -10,7 +10,7 @@ console.log('USERS ' + T.admin + ' ' + T.user);
 (async () => {
   const v = await video('noona_platform', out, 'v00_foundation');
   const { page } = v;
-  await page.goto('http://localhost:8090/ords/r/noonaplus/noona_master/home'); await v.settle();
+  await page.goto('http://localhost:' + (process.env.NOONA_PORT || 8090) + '/ords/r/noonaplus/noona_master/home'); await v.settle();
   await v.card('التأسيس في نونا بلس', ['تسجيل المؤسسة والشركة الأم', 'ثم الفروع والشركة الثانية والمستخدمين'], 4500, 'الفيديو القصير 1 · إدخال حقيقي سريع');
 
   // ------------------------------------------------ 1) مسؤول المنصة
@@ -49,7 +49,7 @@ console.log('USERS ' + T.admin + ' ' + T.user);
 
   // ------------------------------------------------ 2) مسؤول المؤسسة
   await v.logout();
-  await page.goto('http://localhost:8090/ords/r/noonaplus/noona_master/home'); await v.settle();
+  await page.goto('http://localhost:' + (process.env.NOONA_PORT || 8090) + '/ords/r/noonaplus/noona_master/home'); await v.settle();
   await v.setStep('4 · دخول مسؤول المؤسسة');
   await v.type('#P9999_USERNAME', T.admin, 'مسؤول المؤسسة يدخل بكلمة المرور الأولى (ويغيرها من قائمة المستخدم)');
   await v.type('#P9999_PASSWORD', T.pwd);
@@ -57,8 +57,8 @@ console.log('USERS ' + T.admin + ' ' + T.user);
   await v.say('شاشة الأنظمة: بطاقة لكل نظام مشترك فيه. نفتح <b>إدارة المؤسسة</b>', 4500);
   const sess = new URL(page.url()).searchParams.get('session');
   await v.click(page.locator('a').filter({ hasText: 'إدارة المؤسسة' }).first());
-  if (!page.url().includes('noona_admin')) { await page.goto('http://localhost:8090/ords/r/noonaplus/noona_admin/home?session=' + sess); await v.settle(); }
-  const adm = (alias, clear) => page.goto('http://localhost:8090/ords/r/noonaplus/noona_admin/' + alias + '?session=' + sess + (clear ? '&clear=' + clear : '')).then(() => v.settle());
+  if (!page.url().includes('noona_admin')) { await page.goto('http://localhost:' + (process.env.NOONA_PORT || 8090) + '/ords/r/noonaplus/noona_admin/home?session=' + sess); await v.settle(); }
+  const adm = (alias, clear) => page.goto('http://localhost:' + (process.env.NOONA_PORT || 8090) + '/ords/r/noonaplus/noona_admin/' + alias + '?session=' + sess + (clear ? '&clear=' + clear : '')).then(() => v.settle());
 
   await v.setStep('5 · الشركة الأم');
   await adm('companies');

@@ -14,7 +14,7 @@ const END = ymd(new Date(Date.UTC(now.getUTCFullYear() + 1, now.getUTCMonth(), 0
   const v = await video('noona_prj', out, 'v07_real_estate');
   const { page } = v;
 
-  await page.goto('http://localhost:8090/ords/r/noonaplus/noona_master/home'); await v.settle();
+  await page.goto('http://localhost:' + (process.env.NOONA_PORT || 8090) + '/ords/r/noonaplus/noona_master/home'); await v.settle();
   await v.card('العقارات والإيجارات', ['العقار ومبانيه ووحداته', 'عقد الإيجار · الاستحقاقات · الفوترة · التأمين · التحصيل'], 4500, 'الفيديو القصير 8 · إدخال حقيقي سريع · مجموعة النور');
 
   // ------------------------------------------------ 1) التجهيز

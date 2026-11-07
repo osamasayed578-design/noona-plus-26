@@ -28,7 +28,7 @@ module.exports = async function video(app, outDir, name, opts = {}) {
   const ctx = await browser.newContext({ viewport: { width: W, height: H }, recordVideo: { dir: outDir, size: { width: W, height: H } } });
   const page = await ctx.newPage();
   page.on('dialog', (d) => d.accept());
-  const port = opts.port || 8090;
+  const port = opts.port || process.env.NOONA_PORT || 8090;
   let base = `http://localhost:${port}/ords/r/noonaplus/${app}`;
   let sess = null;
   let step = '';

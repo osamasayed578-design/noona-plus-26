@@ -20,7 +20,7 @@ const K = LONG ? '2' : '';      // رموز مختلفة للفيديو المط
     return o;
   }
 
-  await page.goto('http://localhost:8090/ords/r/noonaplus/noona_master/home'); await v.settle();
+  await page.goto('http://localhost:' + (process.env.NOONA_PORT || 8090) + '/ords/r/noonaplus/noona_master/home'); await v.settle();
   await v.card('التسعير والعروض والباقات', ['سعر البيع من التكلفة بنسبة أو هامش أو مبلغ · إعادة التسعير',
     'العروض والتخفيضات والكوبونات · الباقات · البيع بها في نقطة البيع والفاتورة'], 5000,
     LONG ? 'الفيديو المطول · شرح تفصيلي بالعربية · نونا بلس' : 'الفيديو القصير · إدخال حقيقي سريع · مجموعة النور');

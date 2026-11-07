@@ -22,7 +22,7 @@ const ADMIN = process.env.NOONA_VADMIN, ACC = process.env.NOONA_VACC, PWD = proc
     await v.click(page.locator('.a-IRR-table tr').filter({ hasText: text }).locator('td a').first(), note);
   }
 
-  await page.goto('http://localhost:8090/ords/r/noonaplus/noona_master/home'); await v.settle();
+  await page.goto('http://localhost:' + (process.env.NOONA_PORT || 8090) + '/ords/r/noonaplus/noona_master/home'); await v.settle();
   await v.card('المالية في نونا بلس', ['تجهيز الأستاذ العام والنقدية', 'سند قبض · سند مصروفات · قيد يومية · الاعتماد · التقارير'], 4500, 'الفيديو القصير 2 · إدخال حقيقي سريع · مجموعة النور');
 
   // ------------------------------------------------ 1) المدير: التجهيز

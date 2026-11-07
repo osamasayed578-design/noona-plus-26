@@ -11,7 +11,7 @@ const MONTH = new Date().toISOString().slice(0, 7);
   const v = await video('noona_hr', out, 'v05_hr_payroll');
   const { page } = v;
 
-  await page.goto('http://localhost:8090/ords/r/noonaplus/noona_master/home'); await v.settle();
+  await page.goto('http://localhost:' + (process.env.NOONA_PORT || 8090) + '/ords/r/noonaplus/noona_master/home'); await v.settle();
   await v.card('الموارد البشرية والرواتب', ['ملف الموظف والعقد والراتب', 'الإضافي · مسير الرواتب · التأمينات · القيد والصرف'], 4500, 'الفيديو القصير 6 · إدخال حقيقي سريع · مجموعة النور');
 
   // ------------------------------------------------ 1) التجهيز

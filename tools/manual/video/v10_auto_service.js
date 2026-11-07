@@ -10,7 +10,7 @@ const ADMIN = process.env.NOONA_VADMIN, PWD = process.env.NOONA_VPWD;
   const v = await video('noona_auto', out, 'v10_auto_service');
   const { page } = v;
 
-  await page.goto('http://localhost:8090/ords/r/noonaplus/noona_master/home'); await v.settle();
+  await page.goto('http://localhost:' + (process.env.NOONA_PORT || 8090) + '/ords/r/noonaplus/noona_master/home'); await v.settle();
   await v.card('مراكز خدمة السيارات', ['استلام السيارة وأمر الإصلاح', 'القطع والفنيون · الفاتورة · التسليم · التقارير'], 4500, 'الفيديو القصير 11 · إدخال حقيقي سريع · مجموعة النور');
 
   // ------------------------------------------------ 1) التجهيز

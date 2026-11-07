@@ -11,7 +11,7 @@ const day = (n) => new Date(Date.now() + n * 864e5).toISOString().slice(0, 10);
   const v = await video('noona_prj', out, 'v08_hospitality');
   const { page } = v;
 
-  await page.goto('http://localhost:8090/ords/r/noonaplus/noona_master/home'); await v.settle();
+  await page.goto('http://localhost:' + (process.env.NOONA_PORT || 8090) + '/ords/r/noonaplus/noona_master/home'); await v.settle();
   await v.card('الضيافة والفنادق', ['الفندق والغرف وخطط الأسعار', 'الحجز · تسجيل الدخول · حساب النزيل · المغادرة'], 4500, 'الفيديو القصير 9 · إدخال حقيقي سريع · مجموعة النور');
 
   // ------------------------------------------------ 1) الفندق

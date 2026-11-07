@@ -11,7 +11,7 @@ const ADMIN = process.env.NOONA_VADMIN, PWD = process.env.NOONA_VPWD;
   const v = await video('noona_bi', out, 'v11_reports_integrations');
   const { page } = v;
 
-  await page.goto('http://localhost:8090/ords/r/noonaplus/noona_master/home'); await v.settle();
+  await page.goto('http://localhost:' + (process.env.NOONA_PORT || 8090) + '/ords/r/noonaplus/noona_master/home'); await v.settle();
   await v.card('مركز التقارير والتكاملات', ['كل تقارير الأنظمة في مكان واحد', 'واجهة API · الاستيراد · الربط مع الأنظمة الأخرى'], 4500, 'الفيديو القصير 12 · إدخال حقيقي سريع · مجموعة النور');
 
   // ------------------------------------------------ 1) مركز التقارير

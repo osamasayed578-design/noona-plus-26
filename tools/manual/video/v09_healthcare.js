@@ -12,7 +12,7 @@ const DAY = ['الأحد', 'الاثنين', 'الثلاثاء', 'الأربعا
   const v = await video('noona_his', out, 'v09_healthcare');
   const { page } = v;
 
-  await page.goto('http://localhost:8090/ords/r/noonaplus/noona_master/home'); await v.settle();
+  await page.goto('http://localhost:' + (process.env.NOONA_PORT || 8090) + '/ords/r/noonaplus/noona_master/home'); await v.settle();
   await v.card('المستشفيات والمراكز الطبية', ['الطبيب · المريض · الموعد', 'الكشف والطلبات · الفاتورة · المعمل والنتيجة'], 4500, 'الفيديو القصير 10 · إدخال حقيقي سريع · مجموعة النور');
 
   // ------------------------------------------------ 1) التجهيز والطبيب

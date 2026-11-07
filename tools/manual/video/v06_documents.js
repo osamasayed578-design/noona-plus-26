@@ -12,7 +12,7 @@ const day = (n) => new Date(Date.now() + n * 864e5).toISOString().slice(0, 10);
   const v = await video('noona_doc', out, 'v06_documents');
   const { page } = v;
 
-  await page.goto('http://localhost:8090/ords/r/noonaplus/noona_master/home'); await v.settle();
+  await page.goto('http://localhost:' + (process.env.NOONA_PORT || 8090) + '/ords/r/noonaplus/noona_master/home'); await v.settle();
   await v.card('المستندات والمراسلات', ['الأرشيف الإلكتروني وصلاحية المستندات', 'المراسلات الداخلية بالتعليمات والمهل'], 4500, 'الفيديو القصير 7 · إدخال حقيقي سريع · مجموعة النور');
 
   // ------------------------------------------------ 1) الأرشيف

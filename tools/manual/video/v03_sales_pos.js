@@ -10,7 +10,7 @@ const ADMIN = process.env.NOONA_VADMIN, PWD = process.env.NOONA_VPWD;
   const v = await video('noona_pos', out, 'v03_sales_pos');
   const { page } = v;
 
-  await page.goto('http://localhost:8090/ords/r/noonaplus/noona_master/home'); await v.settle();
+  await page.goto('http://localhost:' + (process.env.NOONA_PORT || 8090) + '/ords/r/noonaplus/noona_master/home'); await v.settle();
   await v.card('المبيعات ونقاط البيع', ['عميل آجل · فاتورة مبيعات · التحصيل', 'البيع السريع · إقفال الوردية · مجمل الربح'], 4500, 'الفيديو القصير 4 · إدخال حقيقي سريع · مجموعة النور');
 
   // ------------------------------------------------ 1) التجهيز

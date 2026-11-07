@@ -1597,7 +1597,7 @@ pre.nn-einv-xml { direction: ltr; text-align: left; max-height: 480px; overflow:
 .nn-anl-seg { display: inline-flex; border: 1px solid var(--nn-border); border-radius: 8px; overflow: hidden; }
 .nn-anl-seg button { all: unset; cursor: pointer; padding: 6px 12px; font-size: .86rem; color: var(--nn-text); }
 .nn-anl-seg button + button { border-inline-start: 1px solid var(--nn-border); }
-.nn-anl-seg button[aria-pressed="true"] { background: var(--anl-s1); color: #fff; }
+.nn-anl-seg button[aria-pressed="true"] { background: #1d5fae; color: #fff; }   /* تباين 4.5:1 على الأقل للنص الأبيض */
 .nn-anl-seg button:focus-visible { outline: 2px solid var(--anl-s1); outline-offset: -2px; }
 .nn-anl-plot { position: relative; min-height: 300px; }
 .nn-anl-svg { display: block; overflow: visible; }
@@ -2171,3 +2171,8 @@ html[data-theme="dark"] .nn-rpt tr.nn-bad td { background: var(--nn-surface-2) !
 html[data-theme="dark"] .nn-anl-err { border-color: var(--nn-border) !important; background: var(--nn-surface-2) !important; }
 html[data-theme="dark"] .nn-anl-an { background: color-mix(in srgb, #fff8e6 14%, var(--nn-surface)) !important; border-color: var(--nn-border) !important; }
 /* ==== /DARK AUTO ==== */
+
+/* أهداف اللمس على الجوال: أزرار الملخص التنفيذي والتحليلات لا تقل عن 24 بكسل */
+@media (max-width: 640px) {
+  .nn-ai-sum .t-Button--small, .nn-anl .t-Button--small { min-height: 32px; min-width: 32px; }
+}

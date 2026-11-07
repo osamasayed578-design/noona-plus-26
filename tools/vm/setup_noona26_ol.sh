@@ -198,6 +198,21 @@ END;
 /
 EXIT" | sqlrun /tmp >/dev/null || die "تعذر ضبط مسؤول APEX"
 ok "APEX ${APEX_VER:-installed} (المخطط $APEX_SCHEMA)"
+# حزمة اللغة العربية لرسائل APEX (قوائم التقارير التفاعلية والبحث والتواريخ): بدونها تظهر «Actions» و«Search» بالإنجليزية
+if [ ! -f "$WORK/.apex_ar_$APEX_SCHEMA" ]; then
+  if [ ! -f "$APEX_DIR/builder/ar/load_ar.sql" ]; then
+    Z=$(ls "$DL"/apex_2[6-9]*.zip "$DL"/apex-latest.zip 2>/dev/null | head -1)
+    [ -n "$Z" ] && mkdir -p /opt/oracle && unzip -q -o "$Z" 'apex/builder/ar/*' -d /opt/oracle && chown -R oracle:oinstall "$APEX_DIR"
+  fi
+  if [ -f "$APEX_DIR/builder/ar/load_ar.sql" ]; then
+    info "تثبيت اللغة العربية لـ APEX (دقيقتان تقريباً)"
+    echo "$(sys_pdb)
+@load_ar.sql
+EXIT" | sqlrun "$APEX_DIR/builder/ar" >/dev/null && touch "$WORK/.apex_ar_$APEX_SCHEMA" && ok "اللغة العربية لـ APEX"
+  else
+    info "تنبيه: لم أجد حزمة اللغة العربية (ضع apex_26.x.zip في $DL)؛ ستظهر بعض قوائم APEX بالإنجليزية"
+  fi
+fi
 
 # ----------------------------------------------------------------------------- 4) ORDS
 step "4/10 ORDS"
