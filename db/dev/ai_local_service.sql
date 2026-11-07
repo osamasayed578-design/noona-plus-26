@@ -31,11 +31,11 @@ BEGIN
   EXECUTE IMMEDIATE 'SELECT ' || l_apex || '.wwv_seq.nextval FROM dual' INTO l_id;
   EXECUTE IMMEDIATE 'INSERT INTO ' || l_apex || '.wwv_remote_servers (id, security_group_id, name, static_id, base_url, server_type, prompt_on_install,'
     || ' ai_provider_type, ai_provider_api, ai_is_builder_service, ai_model_name) VALUES'
-    || ' (:1, :2, ''NOONA AI Local (Ollama)'', ''NOONA_AI_LOCAL'', ''http://&host:&port/v1'', ''GENERATIVE_AI'', ''N'','
+    || ' (:1, :2, ''NOONA AI Local (Ollama)'', ''NOONA_AI_LOCAL'', ''http://&host:&port/v1/chat/completions'', ''GENERATIVE_AI'', ''N'','
     || ' ''GENERIC_OPENAI'', ''CHAT_COMPLETIONS'', ''N'', :3)'
     USING l_id, l_sg, '&model';
   COMMIT;
-  DBMS_OUTPUT.PUT_LINE('SERVICE_OK NOONA_AI_LOCAL -> http://&host:&port/v1 (' || l_apex || ')');
+  DBMS_OUTPUT.PUT_LINE('SERVICE_OK NOONA_AI_LOCAL -> http://&host:&port/v1/chat/completions (' || l_apex || ')');
 END;
 /
 EXIT

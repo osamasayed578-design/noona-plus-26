@@ -86,7 +86,7 @@ step "5/6 خدمة APEX (NOONA_AI_LOCAL) وصلاحية الاتصال"
 OUT=$(printf 'CONNECT / AS SYSDBA\nALTER SESSION SET CONTAINER=%s;\n@dev/ai_local_service.sql %s %s %s\n' "$PDB" "$OHOST" "$OPORT" "$MODEL" \
   | su - oracle -c ". ~/.noona_env; cd $WORK/ai && sqlplus -S -L /nolog" 2>&1); echo "$OUT" >> "$LOG"
 echo "$OUT" | grep -q SERVICE_OK || die "تعذر إنشاء خدمة APEX: $(echo "$OUT" | grep -m2 'ORA-')"
-ok "الخدمة NOONA_AI_LOCAL"
+ok "الخدمة NOONA_AI_LOCAL (http://$OHOST:$OPORT/v1/chat/completions)"
 
 step "6/6 تفعيل المساعد للمؤسسة واختبار سؤال حقيقي"
 OUT=$(printf 'CONNECT NOONA_APP/"%s"@//localhost:1521/%s\n@dev/ai_local_tenant.sql %s %s\n' "$APP_PWD" "$PDB" "$NUSER" "$MODEL" \
