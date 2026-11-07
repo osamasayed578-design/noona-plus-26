@@ -1527,8 +1527,8 @@ CREATE OR REPLACE PACKAGE BODY NOONA_HIS_PKG AS
          || CASE r.flag WHEN 'H' THEN 'H' WHEN 'L' THEN 'L' WHEN 'HH' THEN 'HH (critical)' WHEN 'LL' THEN 'LL (critical)' END || '</td><td>' || esc(r.unit) || '</td><td>'
          || esc(r.rng) || '</td></tr>');
     END LOOP;
-    RETURN CASE WHEN l IS NOT NULL THEN '<table class="nn-rst-cred nn-his-lab"><thead><tr><th>Test</th><th class="n">Result</th><th>Unit</th>'
-                || '<th>Reference range</th></tr></thead><tbody>' || l || '</tbody></table>' END;
+    RETURN CASE WHEN l IS NOT NULL THEN '<table class="nn-rst-cred nn-his-lab"><thead><tr><th>الفحص · Test</th><th class="n">النتيجة · Result</th><th>الوحدة · Unit</th>'
+                || '<th>المعدل الطبيعي · Reference range</th></tr></thead><tbody>' || l || '</tbody></table>' END;
   END lab_table;
 
   FUNCTION result_html(p_order_id IN NUMBER) RETURN CLOB IS

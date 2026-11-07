@@ -425,7 +425,7 @@ CREATE OR REPLACE PACKAGE BODY NOONA_FIN_RPT_PKG AS
      WHERE j.ledger_id = l_led AND j.status_code IN ('POSTED', 'REVERSED') AND j.doc_date <= p_to
        AND a.coa_id = l_coa AND a.account_type IN ('REVENUE', 'EXPENSE');
     l_html := NOONA_BRAND_PKG.report_header('قائمة التغيرات في حقوق الملكية' || period_text(p_from, p_to))
-           || '<div class="nn-rpt-scroll"><table class="nn-rpt nn-rpt-matrix"><thead><tr><th>البيان</th>';
+           || '<div class="nn-rpt-scroll" tabindex="0" role="region" aria-label="جدول التقرير"><table class="nn-rpt nn-rpt-matrix"><thead><tr><th>البيان</th>';
     FOR i IN 1 .. l_n LOOP l_html := l_html || (('<th>' || esc(l_names(i)) || '</th>')); END LOOP;
     l_html := l_html || (('<th>نتيجة الأعمال غير المقفلة</th><th>الإجمالي</th></tr></thead><tbody>'
            || row_html('الرصيد في ' || TO_CHAR(p_from, 'YYYY-MM-DD'), o, r_open, 'nn-rpt-head2')));

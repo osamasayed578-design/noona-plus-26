@@ -1661,7 +1661,7 @@ CREATE OR REPLACE PACKAGE BODY NOONA_GL_PKG AS
     l_html := NOONA_BRAND_PKG.report_header('تحليل ' || CASE p_type WHEN 'REVENUE' THEN 'الإيرادات' ELSE 'المصروفات' END
                 || CASE p_by WHEN 'MONTH' THEN ' حسب الشهر' ELSE ' حسب مراكز التكلفة' END
                 || ' من ' || TO_CHAR(p_from, 'YYYY-MM-DD') || ' إلى ' || TO_CHAR(p_to, 'YYYY-MM-DD'))
-           || '<div class="nn-rpt-scroll"><table class="nn-rpt nn-rpt-matrix"><thead><tr><th>الحساب</th><th>البيان</th>';
+           || '<div class="nn-rpt-scroll" tabindex="0" role="region" aria-label="جدول التقرير"><table class="nn-rpt nn-rpt-matrix"><thead><tr><th>الحساب</th><th>البيان</th>';
     FOR i IN 1 .. l_n LOOP l_html := l_html || (('<th>' || esc(l_cols(i)) || '</th>')); END LOOP;
     l_html := l_html || ('<th>الإجمالي</th><th>النسبة</th></tr></thead><tbody>');
     -- الإجمالي العام أولاً لحساب النسب

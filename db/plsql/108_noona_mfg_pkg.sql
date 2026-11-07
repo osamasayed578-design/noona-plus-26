@@ -2289,7 +2289,7 @@ CREATE OR REPLACE PACKAGE BODY NOONA_MFG_PKG AS
   BEGIN
     guard('MFG_PRODUCTION_ORDER.VIEW');
     l_html := head('أحمال مراكز العمل' || period(l_from, l_from + l_days - 1))
-           || '<div class="nn-rpt-scroll"><table class="nn-rpt nn-rpt-grid"><thead><tr><th>مركز العمل</th>';
+           || '<div class="nn-rpt-scroll" tabindex="0" role="region" aria-label="جدول التقرير"><table class="nn-rpt nn-rpt-grid"><thead><tr><th>مركز العمل</th>';
     FOR i IN 0 .. l_days - 1 LOOP
       l_html := l_html || (('<th>' || TO_CHAR(l_from + i, 'MM-DD') || '<br>' || TO_CHAR(l_from + i, 'DY', 'NLS_DATE_LANGUAGE=ARABIC') || '</th>'));
     END LOOP;
