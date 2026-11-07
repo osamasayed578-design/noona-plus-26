@@ -5,3 +5,4 @@ __pycache__/
 apex/*/out/
 node_modules/
 tools/ai_mock/requests.log
+tools/ux_audit/node_modules
