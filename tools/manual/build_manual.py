@@ -66,7 +66,7 @@ def capture(mod):
                 if k in s:
                     p[k] = s[k]
             pages.append(p)
-        spec = {'app': app, 'user': user, 'pwd': pwd, 'pages': pages}
+        spec = {'app': app, 'user': user, 'pwd': pwd, 'pages': pages, 'port': int(os.environ.get('NOONA_PORT', 8090))}
         if any(s.get('login') for s in lst):
             spec['loginShot'] = next(s['login'] for s in lst if s.get('login'))
         jf = os.path.join(WORK, f"{mod['file']}_{app}.json")
@@ -259,6 +259,10 @@ def pdf(html_file, pdf_file):
 def index(mods):
     h = [f'<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><title>كتالوجات NOONA PLUS</title><style>{CSS}</style></head><body><main>'
          '<div class="cover"><h1>NOONA PLUS ERP</h1><p>كتالوجات الاستخدام: صور الشاشات وطريقة الإدخال وتسلسله لكل موديول</p></div><div class="mods">']
+    if os.path.exists(os.path.join(OUT, 'guide.html')):
+        h.append('<a href="guide.html" style="border-color:#0b63ce"><b>ابدأ هنا: دليل التركيب والاستخدام</b>التركيب، ثم الإعداد الأولي بترتيب أولويته '
+                 '(المؤسسة والشركة القابضة والشركات والفروع والهيكل والمستخدمون والأرشيف والمراسلات والمالية)، حتى التقارير والقوائم الموحدة'
+                 '<br><span class="muted">PDF: guide.pdf</span></a>')
     for m in mods:
         h.append(f'<a href="{m["file"]}.html"><b>{esc(m["title"])}</b>{esc(m.get("subtitle", ""))}<br><span class="muted">'
                  f'{sum(1 for _ in screens(m))} شاشة · <span>PDF: {m["file"]}.pdf</span></span></a>')
