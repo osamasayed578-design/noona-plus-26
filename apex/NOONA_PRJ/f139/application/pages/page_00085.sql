@@ -24,7 +24,7 @@ wwv_flow_imp_page.create_page(
 ,p_protection_level=>'N'
 );
 wwv_flow_imp_page.create_page_plug(
- p_id=>wwv_flow_imp.id(91820273000000642)
+ p_id=>wwv_flow_imp.id(91820273000000647)
 ,p_plug_name=>'الموازنة مقابل الفعلي'
 ,p_region_template_options=>'#DEFAULT#:t-Region--scrollBody'
 ,p_plug_template=>4072358936313175081
@@ -35,7 +35,7 @@ wwv_flow_imp_page.create_page_plug(
 ,p_plug_source_type=>'NATIVE_DYNAMIC_CONTENT'
 );
 wwv_flow_imp_page.create_page_plug(
- p_id=>wwv_flow_imp.id(91820273000000643)
+ p_id=>wwv_flow_imp.id(91820273000000648)
 ,p_plug_name=>'الموازنة حسب بند العمل ونوع التكلفة'
 ,p_region_template_options=>'#DEFAULT#:t-Region--scrollBody'
 ,p_plug_template=>4072358936313175081
@@ -53,17 +53,17 @@ wwv_flow_imp_page.create_page_plug(
 ,p_plug_source_type=>'NATIVE_DYNAMIC_CONTENT'
 );
 wwv_flow_imp_page.create_page_item(
- p_id=>wwv_flow_imp.id(91820273000000644)
+ p_id=>wwv_flow_imp.id(91820273000000649)
 ,p_name=>'P85_PROJECT'
 ,p_item_sequence=>1
-,p_item_plug_id=>wwv_flow_imp.id(91820273000000643)
+,p_item_plug_id=>wwv_flow_imp.id(91820273000000648)
 ,p_display_as=>'NATIVE_HIDDEN'
 ,p_protection_level=>'N'
 ,p_attributes=>wwv_flow_t_plugin_attributes(wwv_flow_t_varchar2(
   'value_protected', 'N')).to_clob
 );
 wwv_flow_imp_page.create_page_process(
- p_id=>wwv_flow_imp.id(91820273000000645)
+ p_id=>wwv_flow_imp.id(91820273000000650)
 ,p_process_sequence=>1
 ,p_process_point=>'ON_DEMAND'
 ,p_process_type=>'NATIVE_PLSQL'
@@ -93,7 +93,7 @@ wwv_flow_imp_page.create_page_process(
 'end;'))
 ,p_process_clob_language=>'PLSQL'
 ,p_error_display_location=>'INLINE_IN_NOTIFICATION'
-,p_internal_uid=>91820273000000645
+,p_internal_uid=>91820273000000650
 );
 
 wwv_flow_imp.component_end;

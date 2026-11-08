@@ -1,5 +1,6 @@
 """صفحات المشروعات والمقاولات في تطبيق العقارات والضيافة والمشروعات (139): لوحة المشروعات، المشروع (مساحة العمل)، بيانات المشروع،
-بنود العمل ونسب الإنجاز، الموازنة، التكاليف الفعلية، العقد وجدول الكميات وأوامر التغيير، المستخلص وطباعته، التقارير.
+بنود العمل ونسب الإنجاز، الموازنة، التكاليف الفعلية، العقد وجدول الكميات وأوامر التغيير، المستخلص وطباعته، التقارير،
+الاعتراف بالإيراد حسب نسبة الإنجاز، خطابات الضمان، المعدات وتشغيلها، الحساب الختامي للعقد.
 المنطق في NOONA_PRJ_PKG؛ المحررات التفاعلية في tools/prj.js.
 """
 import os, shutil
@@ -56,6 +57,18 @@ ITEM_LOV = ("select i.name_ar || ' (' || i.item_no || ')' d, i.id r from inv_ite
 COST_LOV = ('STATIC2:مواد;MATERIAL,عمالة;LABOR,معدات;EQUIPMENT,مقاولو باطن;SUBCONTRACT,مصروفات غير مباشرة;OVERHEAD,أخرى;OTHER')
 CTYPE_LOV = 'STATIC2:العقد الرئيسي مع العميل (المالك);MAIN_CONTRACT,عقد مقاول باطن;SUBCONTRACT'
 PRICING_LOV = 'STATIC2:إعادة قياس (بالكميات المنفذة);REMEASURED,مبلغ مقطوع;LUMP_SUM,سعر الوحدة;UNIT_RATE,التكلفة زائد ربح;COST_PLUS'
+METHOD_LOV = ('STATIC2:بالفوترة (عند اعتماد المستخلص);BILLING,نسبة الإنجاز بالتكلفة (IFRS 15);COST_TO_COST,'
+              'نسبة الإنجاز الفعلي لبنود العمل;PERCENT_COMPLETE,بالمعالم;MILESTONE,عند اكتمال العقد;COMPLETED_CONTRACT')
+POC_LOV = (f"select code || ' - ' || name_ar d, id r from prj_project where company_id = {CO} "
+           "and revenue_method in ('COST_TO_COST', 'PERCENT_COMPLETE') and status_code not in ('CANCELLED') order by code")
+BANK_LOV = "select name_ar d, id r from ref_bank order by name_ar"
+PARTY_LOV = ("select p.display_name_ar d, p.id r from pty_party p where exists (select 1 from ar_customer c join ar_customer_account a on a.customer_id = c.id "
+             f"where c.party_id = p.id and a.company_id = {CO}) or exists (select 1 from ap_supplier s join ap_supplier_account a on a.supplier_id = s.id "
+             f"where s.party_id = p.id and a.company_id = {CO}) order by 1")
+CONTRACT_LOV = (f"select c.contract_no || ' - ' || p.name_ar d, c.id r from prj_contract c join prj_project p on p.id = c.project_id "
+                f"where c.company_id = {CO} order by c.contract_no")
+GTYPE_LOV = ('STATIC2:ابتدائي (عطاء);BID,نهائي (حسن تنفيذ);PERFORMANCE,دفعة مقدمة;ADVANCE_PAYMENT,بدل محتجز;RETENTION,صيانة;MAINTENANCE,جمركي;CUSTOMS')
+EQ_LOV = f"select code || ' - ' || name_ar d, id r from prj_equipment where company_id = {CO} and status_code = 'ACTIVE' order by code"
 
 
 def wbs_lov(item):
@@ -108,6 +121,8 @@ def build(app, url, link, scheme):
     p.date('P82_START', f, 70, 'البداية المخططة')
     p.date('P82_END', f, 80, 'النهاية المخططة')
     p.number('P82_CONTRACT', f, 90, 'قيمة العقد (تتحدث من العقد الرئيسي)')
+    p.select('P82_METHOD', f, 100, 'طريقة الاعتراف بالإيراد', lov_sql=METHOD_LOV, null_text=None)
+    p.number('P82_EAC', f, 110, 'التكلفة المتوقعة عند الإنجاز (لنسبة الإنجاز)')
     b = p.button(f, 10, 'SAVE', 'حفظ', hot=True)
     p.button(f, 20, 'CANCEL', 'رجوع', redirect=url(80))
     p.process(5, 'BEFORE_HEADER', 'Load', [
@@ -115,12 +130,12 @@ def build(app, url, link, scheme):
         '    if :P82_ID is not null then',
         '        select code, name_ar, name_en, project_type, customer_account_id, manager_employee_id, parent_project_id,',
         "               to_char(planned_start, 'YYYY-MM-DD'), to_char(planned_end, 'YYYY-MM-DD'), contract_value,",
-        '               (select min(id) from re_property where project_id = p.id)',
+        '               (select min(id) from re_property where project_id = p.id), revenue_method, estimated_total_cost',
         '          into :P82_CODE, :P82_NAME, :P82_NAME_EN, :P82_TYPE, :P82_CUSTOMER, :P82_MANAGER, :P82_PARENT, :P82_START, :P82_END,',
-        '               :P82_CONTRACT, :P82_PROPERTY',
+        '               :P82_CONTRACT, :P82_PROPERTY, :P82_METHOD, :P82_EAC',
         f'          from prj_project p where id = :P82_ID and company_id = {CO};',
         '    else',
-        "        :P82_TYPE := nvl(:P82_TYPE, 'CLIENT_CONTRACT');",
+        "        :P82_TYPE := nvl(:P82_TYPE, 'CLIENT_CONTRACT'); :P82_METHOD := nvl(:P82_METHOD, 'BILLING');",
         '    end if;',
         'end;'])
     p.process(10, 'AFTER_SUBMIT', 'Save', [
@@ -128,7 +143,8 @@ def build(app, url, link, scheme):
         "    select json_object('id' value to_number(:P82_ID), 'code' value :P82_CODE, 'name' value :P82_NAME, 'nameEn' value :P82_NAME_EN,",
         "                       'type' value :P82_TYPE, 'customer' value to_number(:P82_CUSTOMER), 'manager' value to_number(:P82_MANAGER),",
         "                       'property' value to_number(:P82_PROPERTY), 'parent' value to_number(:P82_PARENT), 'start' value :P82_START,",
-        "                       'end' value :P82_END, 'contract' value to_number(:P82_CONTRACT) returning clob) into l_doc from dual;",
+        "                       'end' value :P82_END, 'contract' value to_number(:P82_CONTRACT), 'method' value :P82_METHOD,",
+        "                       'eac' value to_number(:P82_EAC) returning clob) into l_doc from dual;",
         '    :P82_ID := noona_prj_pkg.save_project(l_doc);', 'end;'], when_button=b, success='تم حفظ المشروع')
     p.branch(10, url(81, 'P81_ID', '&P82_ID.', '81') + '&success_msg=#SUCCESS_MSG#')
 
@@ -144,7 +160,11 @@ def build(app, url, link, scheme):
     p.button(a, 40, 'BUDGET', 'الموازنة', redirect=url(85, 'P85_PROJECT', '&P81_ID.', '85'))
     p.button(a, 50, 'COSTS', 'التكاليف الفعلية', redirect=url(86, 'P86_PROJECT', '&P81_ID.', '86'))
     p.button(a, 60, 'NEW_CONTRACT', 'عقد جديد', hot=True, redirect=url(87, 'P87_PROJECT', '&P81_ID.', '87'))
+    p.button(a, 70, 'REVENUE', 'الاعتراف بالإيراد', redirect=url(91, 'P91_PROJECT', '&P81_ID.', '91'),
+             condition="noona_prj_ctr_pkg.is_poc(:P81_ID) = 'Y'")
+    p.button(a, 80, 'EQUIPMENT', 'تشغيل المعدات', redirect=url(93, 'P93_PROJECT', '&P81_ID.', '93'))
     p.process(10, 'AFTER_SUBMIT', 'Status', 'noona_prj_pkg.set_status(:P81_ID, :P81_STATUS);', when_button=bs, success='تم تغيير حالة المشروع')
+    p.dynamic('ربحية العقد المتوقعة', 7, 'return noona_prj_ctr_pkg.forecast_html(:P81_ID);')
     p.dynamic('بنود العمل ونسب الإنجاز', 10, 'return noona_prj_pkg.wbs_html(:P81_ID);')
     p.dynamic('الموازنة مقابل الفعلي', 20, 'return noona_prj_pkg.budget_html(:P81_ID);')
     p.dynamic('العقود (العميل ومقاولو الباطن)', 30,
@@ -284,6 +304,8 @@ def build(app, url, link, scheme):
     p.date('P87_START', f, 110, 'البداية')
     p.date('P87_END', f, 120, 'النهاية')
     p.number('P87_DLP', f, 130, 'فترة الضمان (شهر)')
+    p.number('P87_PENALTY', f, 140, 'غرامة التأخير اليومية')
+    p.number('P87_PENCAP', f, 150, 'سقف الغرامات % من قيمة العقد')
     bsv = p.button(f, 10, 'SAVE', 'حفظ العقد', hot=True)
     bq = p.dynamic('جدول الكميات (BOQ)', 20, lists_region(p, ':P87_PROJECT')[:-2] + [
         "    return '<script type=\"application/json\" id=\"nnPrjLists\">' || replace('{\"wbs\":' || nvl(l_w, '[]') || ',\"uoms\":' || nvl(l_u, '[]') || '}', '</', '<\\/') || '</script>'",
@@ -295,8 +317,12 @@ def build(app, url, link, scheme):
     act = "noona_prj_pkg.contract_status(:P87_ID) = 'ACTIVE'"
     bn = p.button(ac, 20, 'NEW_CLAIM', 'مستخلص جديد', hot=True, condition=act)
     bv = p.button(ac, 30, 'NEW_ADVANCE', 'دفعة مقدمة', condition="noona_prj_pkg.can_advance(:P87_ID) = 'Y'")
-    br = p.button(ac, 40, 'NEW_RELEASE', 'إفراج عن المحتجز', condition=act + ' and noona_prj_pkg.retention_held(:P87_ID) > 0')
+    br = p.button(ac, 40, 'NEW_RELEASE', 'إفراج عن المحتجز', condition="noona_prj_pkg.contract_status(:P87_ID) in ('ACTIVE', 'COMPLETED')"
+                  " and noona_prj_pkg.retention_held(:P87_ID) > 0")
     bc = p.button(ac, 50, 'CLOSE', 'إنهاء العقد', condition=act)
+    p.button(ac, 55, 'FINAL', 'الحساب الختامي', redirect=url(94, 'P94_CONTRACT', '&P87_ID.', '94'),
+             condition="noona_prj_pkg.contract_status(:P87_ID) in ('ACTIVE', 'COMPLETED')")
+    p.button(ac, 58, 'GUARANTEE', 'خطاب ضمان', redirect=url(92, 'P92_CONTRACT', '&P87_ID.', '92'))
     p.button(ac, 60, 'BACK', 'رجوع للمشروع', redirect=url(81, 'P81_ID', '&P87_PROJECT.'))
     p.dynamic('أمر تغيير جديد', 40, "return '<div id=\"nnPrjVo\" data-contract=\"' || :P87_ID || '\"></div>';", condition=act)
     p.dynamic('أوامر التغيير المسودة', 45, [
@@ -316,9 +342,10 @@ def build(app, url, link, scheme):
     p.process(5, 'BEFORE_HEADER', 'Load', [
         'begin', '    if :P87_ID is not null then',
         '        select project_id, contract_type, contract_no, customer_account_id, supplier_account_id, pricing_type, original_value, retention_pct,',
-        "               retention_cap_pct, advance_pct, advance_recovery_pct, to_char(start_date, 'YYYY-MM-DD'), to_char(end_date, 'YYYY-MM-DD'), defects_liability_months",
+        "               retention_cap_pct, advance_pct, advance_recovery_pct, to_char(start_date, 'YYYY-MM-DD'), to_char(end_date, 'YYYY-MM-DD'), defects_liability_months,",
+        '               delay_penalty_per_day, penalty_cap_pct',
         '          into :P87_PROJECT, :P87_TYPE, :P87_NO, :P87_CUSTOMER, :P87_SUPPLIER, :P87_PRICING, :P87_VALUE, :P87_RET, :P87_RETCAP, :P87_ADV,',
-        '               :P87_ADVREC, :P87_START, :P87_END, :P87_DLP',
+        '               :P87_ADVREC, :P87_START, :P87_END, :P87_DLP, :P87_PENALTY, :P87_PENCAP',
         f'          from prj_contract where id = :P87_ID and company_id = {CO};',
         '    else',
         "        :P87_TYPE := nvl(:P87_TYPE, 'MAIN_CONTRACT'); :P87_PRICING := nvl(:P87_PRICING, 'REMEASURED');",
@@ -330,7 +357,8 @@ def build(app, url, link, scheme):
         "                       'customer' value to_number(:P87_CUSTOMER), 'supplier' value to_number(:P87_SUPPLIER), 'pricing' value :P87_PRICING,",
         "                       'value' value to_number(:P87_VALUE), 'ret' value to_number(:P87_RET), 'retCap' value to_number(:P87_RETCAP),",
         "                       'adv' value to_number(:P87_ADV), 'advRec' value to_number(:P87_ADVREC), 'start' value :P87_START, 'end' value :P87_END,",
-        "                       'dlp' value to_number(:P87_DLP) returning clob) into l_doc from dual;",
+        "                       'dlp' value to_number(:P87_DLP), 'penalty' value to_number(:P87_PENALTY), 'penCap' value to_number(:P87_PENCAP)",
+        '                       returning clob) into l_doc from dual;',
         '    :P87_ID := noona_prj_pkg.save_contract(l_doc);', 'end;'], when_button=bsv, success='تم حفظ العقد؛ أدخل جدول الكميات ثم اعتمده')
     p.process(20, 'AFTER_SUBMIT', 'Activate', 'noona_prj_pkg.activate_contract(:P87_ID);', when_button=ba, success='تم اعتماد العقد')
     p.process(30, 'AFTER_SUBMIT', 'Close', 'noona_prj_pkg.close_contract(:P87_ID);', when_button=bc, success='تم إنهاء العقد')
@@ -379,7 +407,8 @@ def build(app, url, link, scheme):
 
     # =========================================================== 90) تقارير المشروعات
     REPORTS = [('PORTFOLIO', 'محفظة المشروعات والربحية'), ('CLAIMS', 'سجل المستخلصات'), ('RETENTION', 'المحتجزات والدفعات المقدمة'),
-               ('COSTS', 'تكاليف المشروعات حسب النوع'), ('UNITS', 'توزيع تكلفة التطوير على الوحدات')]
+               ('COSTS', 'تكاليف المشروعات حسب النوع'), ('UNITS', 'توزيع تكلفة التطوير على الوحدات'),
+               ('WIP', 'الأعمال تحت التنفيذ (نسبة الإنجاز)'), ('GUAR', 'خطابات الضمان'), ('EQUIP', 'تشغيل المعدات')]
     p = app.page(90, 'Project Reports', 'PROJECT-REPORTS', 'تقارير المشروعات', scheme=scheme, protection='N')
     f = p.static('التقرير والمرشحات', 5, opts='#DEFAULT#:nn-rpt-filters')
     p.select('P90_REPORT', f, 5, 'التقرير', null_text=None, submit=True, lov_sql='STATIC2:' + ','.join(f'{n};{c}' for c, n in REPORTS))
@@ -399,12 +428,16 @@ def build(app, url, link, scheme):
         '    return case :P90_REPORT',
         "        when 'CLAIMS' then noona_prj_pkg.claims_register_html(l_f, l_t, :P90_DIR)",
         "        when 'RETENTION' then noona_prj_pkg.retention_html",
+        "        when 'WIP' then noona_prj_ctr_pkg.wip_html(l_t)",
+        "        when 'GUAR' then noona_prj_ctr_pkg.guarantees_html(60)",
+        "        when 'EQUIP' then noona_prj_ctr_pkg.equipment_html(l_f, l_t)",
         "        when 'COSTS' then noona_prj_pkg.cost_report_html(l_f, l_t, :P90_PROJECT)",
         "        when 'UNITS' then case when :P90_PROJECT is null then '<div class=\"nn-empty\">اختر مشروع التطوير العقاري</div>'",
         '                             else noona_prj_pkg.unit_costs_html(:P90_PROJECT, :P90_BASIS) end',
         "        else noona_prj_pkg.portfolio_html(:P90_STATUS, 'f?p=' || :APP_ID || ':81:' || :APP_SESSION || '::NO:RP,81:P81_ID:#ID#') end;",
         'end;'], hide_header=True, opts='#DEFAULT#:t-Region--scrollBody:nn-print-area')
-    FILTERS = {'PORTFOLIO': ['STATUS'], 'CLAIMS': ['FROM', 'TO', 'DIR'], 'RETENTION': [], 'COSTS': ['FROM', 'TO', 'PROJECT'], 'UNITS': ['PROJECT', 'BASIS']}
+    FILTERS = {'PORTFOLIO': ['STATUS'], 'CLAIMS': ['FROM', 'TO', 'DIR'], 'RETENTION': [], 'COSTS': ['FROM', 'TO', 'PROJECT'], 'UNITS': ['PROJECT', 'BASIS'],
+               'WIP': ['TO'], 'GUAR': [], 'EQUIP': ['FROM', 'TO']}
     import json
     p.onload([
         '(function () {',
@@ -413,8 +446,172 @@ def build(app, url, link, scheme):
         "    all.forEach(function (k) { var c = document.getElementById('P90_' + k + '_CONTAINER'); if (c) c.style.display = on.indexOf(k) >= 0 ? '' : 'none'; });",
         '})();'])
 
+    # =========================================================== 91) الاعتراف بالإيراد حسب نسبة الإنجاز
+    p = app.page(91, 'Contract Revenue', 'CONTRACT-REVENUE', 'الاعتراف بإيراد العقود حسب نسبة الإنجاز', scheme=scheme, protection='N')
+    f = p.static('الاعتراف بالإيراد', 10, text=(
+        '<p class="nn-hint">للمشروعات بطريقة «نسبة الإنجاز»: الإيراد المستحق = نسبة الإنجاز × (قيمة العقد − الغرامات)، ويقارن بالمفوتر بالمستخلصات. '
+        'الزيادة تسجل <b>أصول عقود</b> (إيراد غير مفوتر) والنقص <b>التزامات عقود</b>، ويرحل الفرق عن آخر اعتراف بقيد تسوية. '
+        'إن زادت التكلفة المتوقعة على قيمة العقد يثبت <b>مخصص</b> لخسارته المتبقية فوراً.</p>'))
+    p.select('P91_PROJECT', f, 10, 'المشروع', lov_sql=POC_LOV, required=True, submit=True)
+    p.date('P91_END', f, 20, 'نهاية الفترة')
+    p.number('P91_EAC', f, 30, 'التكلفة المتوقعة عند الإنجاز (آخر تقدير)')
+    bpv = p.button(f, 10, 'PREVIEW', 'معاينة')
+    brn = p.button(f, 20, 'RUN', 'اعتراف بالإيراد وترحيل', hot=True)
+    p.dynamic('المعاينة', 20, [
+        "declare l clob; l_t varchar2(4000);", 'begin',
+        "    if :P91_PROJECT is null then return '<div class=\"nn-empty\">اختر المشروع</div>'; end if;",
+        "    l := noona_prj_ctr_pkg.preview_json(:P91_PROJECT, to_date(:P91_END, 'YYYY-MM-DD'), to_number(:P91_EAC));",
+        "    return '<div class=\"nn-prj-fc\">' ||",
+        "      '<div><small>قيمة العقد</small><b>' || to_char(json_value(l, '$.contractValue' returning number), 'FM999,999,999,990.00') || '</b></div>' ||",
+        "      '<div><small>غرامات التأخير</small><b>' || to_char(json_value(l, '$.penalties' returning number), 'FM999,999,999,990.00') || '</b></div>' ||",
+        "      '<div><small>التكلفة المتوقعة</small><b>' || to_char(json_value(l, '$.eac' returning number), 'FM999,999,999,990.00') || '</b></div>' ||",
+        "      '<div><small>التكلفة حتى تاريخه</small><b>' || to_char(json_value(l, '$.costToDate' returning number), 'FM999,999,999,990.00') || '</b></div>' ||",
+        "      '<div><small>نسبة الإنجاز</small><b>' || to_char(json_value(l, '$.poc' returning number), 'FM990.00') || '%</b></div>' ||",
+        "      '<div><small>الإيراد المستحق</small><b>' || to_char(json_value(l, '$.revenueToDate' returning number), 'FM999,999,999,990.00') || '</b></div>' ||",
+        "      '<div><small>المفوتر بالمستخلصات</small><b>' || to_char(json_value(l, '$.billedToDate' returning number), 'FM999,999,999,990.00') || '</b></div>' ||",
+        "      '<div><small>أصول العقود</small><b>' || to_char(json_value(l, '$.contractAsset' returning number), 'FM999,999,999,990.00') || '</b></div>' ||",
+        "      '<div><small>التزامات العقود</small><b>' || to_char(json_value(l, '$.contractLiability' returning number), 'FM999,999,999,990.00') || '</b></div>' ||",
+        "      '<div><small>الربح المتوقع</small><b>' || to_char(json_value(l, '$.expectedProfit' returning number), 'FM999,999,999,990.00') || '</b></div>' ||",
+        "      '<div><small>مخصص الخسارة</small><b>' || to_char(json_value(l, '$.lossProvision' returning number), 'FM999,999,999,990.00') || '</b></div></div>';",
+        'end;'], condition=':P91_PROJECT is not null')
+    r = p.ir('تشغيلات الاعتراف بالإيراد', 30, [
+        "select r.id, p.code || ' - ' || p.name_ar project, r.period_end, r.poc_pct, r.contract_value, r.estimated_total_cost, r.cost_to_date,",
+        "       r.revenue_to_date, r.billed_to_date, r.contract_asset, r.contract_liability, r.loss_provision,",
+        "       case r.status_code when 'POSTED' then 'مرحل' else 'معكوس' end status",
+        f'  from prj_revenue_run r join prj_project p on p.id = r.project_id where r.company_id = {CO}'],
+        [('ID', 'ID', {'hidden': True, 'type': 'NUMBER'}), ('PROJECT', 'المشروع', {}), ('PERIOD_END', 'نهاية الفترة', {'type': 'DATE'}),
+         ('POC_PCT', 'الإنجاز %', {'type': 'NUMBER'}), ('CONTRACT_VALUE', 'قيمة العقد', {'type': 'NUMBER'}),
+         ('ESTIMATED_TOTAL_COST', 'التكلفة المتوقعة', {'type': 'NUMBER'}), ('COST_TO_DATE', 'التكلفة حتى تاريخه', {'type': 'NUMBER'}),
+         ('REVENUE_TO_DATE', 'الإيراد المستحق', {'type': 'NUMBER'}), ('BILLED_TO_DATE', 'المفوتر', {'type': 'NUMBER'}),
+         ('CONTRACT_ASSET', 'أصول العقود', {'type': 'NUMBER'}), ('CONTRACT_LIABILITY', 'التزامات العقود', {'type': 'NUMBER'}),
+         ('LOSS_PROVISION', 'مخصص الخسارة', {'type': 'NUMBER'}), ('STATUS', 'الحالة', {})], titled=True)
+    rv = p.static('عكس آخر اعتراف (لتصحيح التقدير)', 40)
+    p.select('P91_RUN', rv, 10, 'التشغيل', lov_sql=(
+        "select p.code || ' - ' || to_char(r.period_end, 'YYYY-MM-DD') d, r.id r from prj_revenue_run r join prj_project p on p.id = r.project_id "
+        f"where r.company_id = {CO} and r.status_code = 'POSTED' and not exists (select 1 from prj_revenue_run x where x.project_id = r.project_id "
+        "and x.status_code = 'POSTED' and x.period_end > r.period_end) order by 1"))
+    p.text('P91_REASON', rv, 20, 'السبب', maxlen=500)
+    brv = p.button(rv, 10, 'REVERSE', 'عكس الاعتراف')
+    p.process(5, 'BEFORE_HEADER', 'Defaults', [
+        ":P91_END := nvl(:P91_END, to_char(last_day(add_months(sysdate, -1)), 'YYYY-MM-DD'));",
+        "if :P91_PROJECT is not null and :P91_EAC is null then",
+        "    select estimated_total_cost into :P91_EAC from prj_project where id = :P91_PROJECT;",
+        "end if;"])
+    p.process(10, 'AFTER_SUBMIT', 'Run', [
+        'declare l number;', 'begin',
+        "    l := noona_prj_ctr_pkg.run_revenue(:P91_PROJECT, to_date(:P91_END, 'YYYY-MM-DD'), to_number(:P91_EAC));", 'end;'],
+        when_button=brn, success='تم الاعتراف بالإيراد وترحيل قيد التسوية')
+    p.process(20, 'AFTER_SUBMIT', 'Reverse', 'noona_prj_ctr_pkg.reverse_run(:P91_RUN, :P91_REASON); :P91_REASON := null;',
+              when_button=brv, success='تم عكس الاعتراف؛ عدل التقدير ثم أعد التشغيل')
+    p.branch(10, url(91, 'P91_PROJECT,P91_END,P91_EAC', '&P91_PROJECT.,&P91_END.,&P91_EAC.', '91') + '&success_msg=#SUCCESS_MSG#')
+
+    # =========================================================== 92) خطابات الضمان
+    p = app.page(92, 'Letters of Guarantee', 'GUARANTEES', 'خطابات الضمان', scheme=scheme, protection='N')
+    p.dynamic('خطابات الضمان', 5, 'return noona_prj_ctr_pkg.guarantees_html(60);')
+    f = p.static('خطاب ضمان جديد', 10)
+    p.text('P92_NO', f, 10, 'رقم الخطاب', required=True, maxlen=100, width=20)
+    p.select('P92_TYPE', f, 20, 'النوع', lov_sql=GTYPE_LOV, null_text=None)
+    p.select('P92_DIR', f, 30, 'الاتجاه', lov_sql='STATIC2:صادر منا (لصالح المالك);ISSUED_BY_US,وارد لنا (من مقاول باطن أو مورد);RECEIVED_FROM_PARTY', null_text=None)
+    p.select('P92_CONTRACT', f, 40, 'العقد', lov_sql=CONTRACT_LOV)
+    p.select('P92_PROJECT', f, 45, 'المشروع (إن لم يرتبط بعقد)', lov_sql=PROJECT_LOV)
+    p.select('P92_BANK', f, 50, 'البنك المصدر', lov_sql=BANK_LOV, required=True)
+    p.select('P92_BEN', f, 60, 'المستفيد / مقدم الخطاب', lov_sql=PARTY_LOV)
+    p.number('P92_AMOUNT', f, 70, 'المبلغ', required=True)
+    p.number('P92_MARGIN', f, 80, 'الغطاء النقدي')
+    p.date('P92_ISSUE', f, 90, 'تاريخ الإصدار', required=True)
+    p.date('P92_EXPIRY', f, 100, 'تاريخ الانتهاء', required=True)
+    p.text('P92_NOTES', f, 110, 'ملاحظات', maxlen=500)
+    bsg = p.button(f, 10, 'SAVE', 'حفظ الخطاب', hot=True)
+    g = p.static('إجراء على خطاب', 20)
+    p.select('P92_G', g, 10, 'الخطاب', lov_sql=(
+        "select guarantee_no || ' - ' || noona_prj_ctr_pkg.guarantee_type_label(guarantee_type) || ' (' || noona_prj_ctr_pkg.guarantee_status_label(status_code) || ')' d, id r "
+        f"from prj_guarantee where company_id = {CO} and status_code not in ('RELEASED', 'LIQUIDATED', 'EXPIRED') order by expiry_date"), required=True)
+    p.select('P92_ACTION', g, 20, 'الإجراء', null_text=None, lov_sql=(
+        'STATIC2:إصدار (وتجنيب الغطاء);ISSUE,تمديد;EXTEND,تخفيض المبلغ;REDUCE,إفراج (يعود الغطاء);RELEASE,تسييل;LIQUIDATE,انتهاء;EXPIRE'))
+    p.date('P92_ADATE', g, 30, 'التاريخ')
+    p.date('P92_NEWEXP', g, 40, 'تاريخ الانتهاء الجديد (للتمديد)')
+    p.number('P92_NEWAMT', g, 50, 'المبلغ الجديد (للتخفيض)')
+    p.select('P92_PLACE', g, 60, 'البنك أو الصندوق (للغطاء والتسييل)', lov_sql=PLACE_LOV)
+    p.text('P92_REASON', g, 70, 'السبب', maxlen=500)
+    bga = p.button(g, 10, 'APPLY', 'تنفيذ الإجراء', hot=True)
+    p.hidden('P92_CONTRACT_IN', g, 1, protected=False)
+    p.process(5, 'BEFORE_HEADER', 'Defaults', [
+        ":P92_TYPE := nvl(:P92_TYPE, 'PERFORMANCE'); :P92_DIR := nvl(:P92_DIR, 'ISSUED_BY_US');",
+        ":P92_ISSUE := nvl(:P92_ISSUE, to_char(sysdate, 'YYYY-MM-DD')); :P92_ADATE := nvl(:P92_ADATE, to_char(sysdate, 'YYYY-MM-DD'));"])
+    p.process(10, 'AFTER_SUBMIT', 'Save', [
+        'declare l_doc clob; l number;', 'begin',
+        "    select json_object('no' value :P92_NO, 'type' value :P92_TYPE, 'direction' value :P92_DIR, 'contract' value to_number(:P92_CONTRACT),",
+        "                       'project' value to_number(:P92_PROJECT), 'bank' value to_number(:P92_BANK), 'beneficiary' value to_number(:P92_BEN),",
+        "                       'amount' value to_number(:P92_AMOUNT), 'margin' value to_number(:P92_MARGIN), 'issue' value :P92_ISSUE,",
+        "                       'expiry' value :P92_EXPIRY, 'notes' value :P92_NOTES returning clob) into l_doc from dual;",
+        '    l := noona_prj_ctr_pkg.save_guarantee(l_doc); :P92_G := l; :P92_ACTION := \'ISSUE\';',
+        '    :P92_NO := null; :P92_AMOUNT := null; :P92_MARGIN := null; :P92_NOTES := null;', 'end;'],
+        when_button=bsg, success='تم حفظ الخطاب؛ أصدره من «إجراء على خطاب»')
+    p.process(20, 'AFTER_SUBMIT', 'Action', [
+        "noona_prj_ctr_pkg.guarantee_action(:P92_G, :P92_ACTION, to_date(:P92_ADATE, 'YYYY-MM-DD'), to_number(:P92_NEWAMT),",
+        "                                   to_date(:P92_NEWEXP, 'YYYY-MM-DD'), :P92_PLACE, :P92_REASON);",
+        ':P92_NEWAMT := null; :P92_NEWEXP := null; :P92_REASON := null;'], when_button=bga, success='تم تنفيذ الإجراء على الخطاب')
+    p.branch(10, url(92) + '&success_msg=#SUCCESS_MSG#')
+
+    # =========================================================== 93) المعدات وتشغيلها
+    p = app.page(93, 'Equipment', 'EQUIPMENT', 'المعدات وتشغيلها على المشروعات', scheme=scheme, protection='N')
+    p.dynamic('تشغيل المعدات هذا الشهر', 5, "return noona_prj_ctr_pkg.equipment_html(trunc(sysdate, 'MM'), trunc(sysdate));")
+    f = p.static('معدة جديدة', 10)
+    p.text('P93_CODE', f, 10, 'الرمز', required=True, maxlen=50, width=15)
+    p.text('P93_NAME', f, 20, 'الاسم', required=True)
+    p.text('P93_ETYPE', f, 30, 'النوع (حفار، رافعة، خلاطة...)', maxlen=100)
+    p.select('P93_OWN', f, 40, 'الملكية', lov_sql='STATIC2:مملوكة;OWNED,مستأجرة;RENTED', null_text=None)
+    p.number('P93_RATE', f, 50, 'تكلفة الساعة', required=True)
+    beq = p.button(f, 10, 'SAVE_EQ', 'حفظ المعدة', hot=True)
+    u = p.static('تسجيل تشغيل', 20)
+    p.select('P93_EQ', u, 10, 'المعدة', lov_sql=EQ_LOV, required=True)
+    p.select('P93_PROJECT', u, 20, 'المشروع', lov_sql=OPEN_PROJECT_LOV, required=True, submit=True)
+    p.select('P93_WBS', u, 30, 'بند العمل', lov_sql=wbs_lov('P93_PROJECT'))
+    p.date('P93_DATE', u, 40, 'التاريخ')
+    p.number('P93_HOURS', u, 50, 'الساعات', required=True)
+    p.number('P93_URATE', u, 60, 'تكلفة الساعة (فارغ = من بطاقة المعدة)')
+    bus = p.button(u, 10, 'LOG', 'تسجيل التشغيل')
+    bpo = p.button(u, 20, 'POST', 'تحميل التشغيل على المشروع', hot=True)
+    p.dynamic('بانتظار التحميل', 30, [
+        "declare l clob := '<table class=\"nn-prj-t\"><thead><tr><th>التاريخ</th><th>المعدة</th><th>المشروع</th><th class=\"n\">الساعات</th><th class=\"n\">التكلفة</th></tr></thead><tbody>';",
+        '    n pls_integer := 0;', 'begin',
+        "    for r in (select u.usage_date, e.code || ' - ' || e.name_ar eq, p.code prj, u.hours, u.amount from prj_equipment_usage u",
+        f"               join prj_equipment e on e.id = u.equipment_id join prj_project p on p.id = u.project_id where u.company_id = {CO} and u.status_code = 'DRAFT' order by u.usage_date) loop",
+        "        n := n + 1; l := l || '<tr><td>' || to_char(r.usage_date, 'YYYY-MM-DD') || '</td><td>' || apex_escape.html(r.eq) || '</td><td>'",
+        "            || apex_escape.html(r.prj) || '</td><td class=\"n\">' || r.hours || '</td><td class=\"n\">' || to_char(r.amount, 'FM999,999,990.00') || '</td></tr>';",
+        '    end loop;',
+        "    return case when n = 0 then '<div class=\"nn-empty\">لا يوجد تشغيل بانتظار التحميل</div>' else l || '</tbody></table>' end;", 'end;'])
+    p.process(5, 'BEFORE_HEADER', 'Defaults', [":P93_OWN := nvl(:P93_OWN, 'OWNED'); :P93_DATE := nvl(:P93_DATE, to_char(sysdate, 'YYYY-MM-DD'));"])
+    p.process(10, 'AFTER_SUBMIT', 'Save Equipment', [
+        'declare l_doc clob; l number;', 'begin',
+        "    select json_object('code' value :P93_CODE, 'name' value :P93_NAME, 'type' value :P93_ETYPE, 'ownership' value :P93_OWN,",
+        "                       'rate' value to_number(:P93_RATE) returning clob) into l_doc from dual;",
+        '    l := noona_prj_ctr_pkg.save_equipment(l_doc); :P93_EQ := l; :P93_CODE := null; :P93_NAME := null; :P93_ETYPE := null; :P93_RATE := null;',
+        'end;'], when_button=beq, success='تم حفظ المعدة')
+    p.process(20, 'AFTER_SUBMIT', 'Log', [
+        'declare l_doc clob; l number;', 'begin',
+        "    select json_object('equipment' value to_number(:P93_EQ), 'project' value to_number(:P93_PROJECT), 'wbs' value to_number(:P93_WBS),",
+        "                       'date' value :P93_DATE, 'hours' value to_number(:P93_HOURS), 'rate' value to_number(:P93_URATE) returning clob) into l_doc from dual;",
+        '    l := noona_prj_ctr_pkg.log_usage(l_doc); :P93_HOURS := null;', 'end;'], when_button=bus, success='تم تسجيل التشغيل')
+    p.process(30, 'AFTER_SUBMIT', 'Post', [
+        'declare l number;', 'begin', '    l := noona_prj_ctr_pkg.post_usage(:P93_PROJECT);',
+        "    apex_application.g_print_success_message := 'تم تحميل ' || l || ' تشغيل على المشروع';", 'end;'], when_button=bpo)
+    p.branch(10, url(93, 'P93_PROJECT,P93_EQ', '&P93_PROJECT.,&P93_EQ.') + '&success_msg=#SUCCESS_MSG#')
+
+    # =========================================================== 94) الحساب الختامي للعقد
+    p = app.page(94, 'Final Account', 'FINAL-ACCOUNT', 'الحساب الختامي للعقد', scheme=scheme, protection='N')
+    r = p.dynamic('الحساب الختامي', 10, 'return noona_prj_ctr_pkg.final_account_html(:P94_CONTRACT);', hide_header=True,
+                  opts='#DEFAULT#:t-Region--noUI:nn-print-area')
+    p.hidden('P94_CONTRACT', r, 1, protected=False)
+    b = p.static('طباعة', 20, hide_header=True)
+    p.button(b, 10, 'PRINT', 'طباعة', hot=True, redirect='javascript:window.print();')
+    p.button(b, 20, 'BACK', 'رجوع للعقد', redirect=url(87, 'P87_ID', '&P94_CONTRACT.'))
+
     # =========================================================== القائمة
     pj = app.nav_item('المشروعات والمقاولات', None, 'fa-briefcase', 35, scheme=scheme)
     app.nav_item('لوحة المشروعات', 80, 'fa-th-large', 1, parent=pj, scheme=scheme)
     app.nav_item('مشروع جديد', url(82, clear='RP,82'), 'fa-plus', 2, parent=pj, scheme=scheme)
-    app.nav_item('تقارير المشروعات', 90, 'fa-bar-chart', 3, parent=pj, scheme=scheme)
+    app.nav_item('الاعتراف بالإيراد (نسبة الإنجاز)', 91, 'fa-line-chart', 3, parent=pj, scheme=scheme)
+    app.nav_item('خطابات الضمان', 92, 'fa-shield', 4, parent=pj, scheme=scheme)
+    app.nav_item('المعدات وتشغيلها', 93, 'fa-truck', 5, parent=pj, scheme=scheme)
+    app.nav_item('تقارير المشروعات', 90, 'fa-bar-chart', 6, parent=pj, scheme=scheme)

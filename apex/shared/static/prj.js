@@ -149,11 +149,14 @@
     var c = data('nnPrjClaimData'); if (!c) return;
     var edit = c.status === 'DRAFT';
     function summary(c) {
-      var rows = [['قيمة الفترة', c.cur], ['المحتجز', -c.ret], ['استرداد الدفعة المقدمة', -c.rec], ['خصومات وغرامات', -c.other], ['الضريبة', c.tax]];
+      var mos = (c.mos || 0) - (c.mosPrev || 0);
+      var rows = [['قيمة الفترة', c.cur], [mos >= 0 ? 'مواد مشونة بالموقع' : 'استرداد مواد مشونة ركبت', mos], ['المحتجز', -c.ret],
+                  ['استرداد الدفعة المقدمة', -c.rec], ['خصومات أخرى', -c.other],
+                  ['غرامة تأخير' + (c.penaltyDays ? ' (' + c.penaltyDays + ' يوم)' : ''), -(c.penalty || 0)], ['الضريبة', c.tax]];
       return '<table class="nn-prj-cert-sum">' + (c.kind === 'PROGRESS' ? '<tr><th>التراكمي حتى تاريخه</th><td>' + fmt(c.gross) + '</td></tr><tr><th>المعتمد سابقاً</th><td>('
         + fmt(c.prev) + ')</td></tr>' : '') + rows.filter(function (r) { return r[1]; }).map(function (r) {
           return '<tr><th>' + r[0] + '</th><td>' + (r[1] < 0 ? '(' + fmt(-r[1]) + ')' : fmt(r[1])) + '</td></tr>'; }).join('')
-        + '<tr class="is-total"><th>الصافي</th><td>' + fmt(c.net) + '</td></tr></table>';
+        + '<tr class="is-total"><th>' + (c.final === 'Y' ? 'صافي المستخلص الختامي' : 'الصافي') + '</th><td>' + fmt(c.net) + '</td></tr></table>';
     }
     function render(c) {
       var h = '';
@@ -166,8 +169,13 @@
           }).join('') + '</tbody></table>';
       }
       h += '<div class="nn-prj-form">' + (edit ? '<label>من <input type="date" class="c-from" value="' + c.from + '"></label><label>إلى <input type="date" class="c-to" value="'
-        + c.to + '"></label>' + (c.kind === 'PROGRESS' ? '<label>خصومات وغرامات <input class="c-other n" size="9" value="' + (c.other || 0) + '"></label>'
-        : '<label>المبلغ قبل الضريبة <input class="c-amount n" size="11" value="' + c.cur + '"></label>')
+        + c.to + '"></label>' + (c.kind === 'PROGRESS'
+          ? '<label>خصومات أخرى <input class="c-other n" size="9" value="' + (c.other || 0) + '"></label>'
+            + '<label>أيام التأخير' + (c.dailyPenalty ? ' (' + fmt(c.dailyPenalty) + ' يومياً)' : '') + ' <input class="c-pdays n" size="5" value="' + (c.penaltyDays || '') + '"></label>'
+            + '<label>أو مبلغ الغرامة <input class="c-pen n" size="9" value=""></label>'
+            + '<label>المواد المشونة بالموقع حتى تاريخه <input class="c-mos n" size="10" value="' + (c.mos || 0) + '"></label>'
+            + '<label class="nn-chk"><input type="checkbox" class="c-final"' + (c.final === 'Y' ? ' checked' : '') + '> المستخلص الختامي</label>'
+          : '<label>المبلغ قبل الضريبة <input class="c-amount n" size="11" value="' + c.cur + '"></label>')
         + '<button type="button" class="t-Button nn-c-save">حساب وحفظ</button>' : '') + '</div>' + summary(c);
       box.innerHTML = h;
     }
@@ -182,6 +190,10 @@
       var doc = { id: c.id, from: $('.c-from', box).value, to: $('.c-to', box).value,
                   lines: $$('.nn-prj-edit tbody tr', box).map(function (tr) { return { b: num(tr.dataset.b), q: num($('.c-q', tr).value) }; }) };
       if ($('.c-other', box)) doc.other = num($('.c-other', box).value) || 0;
+      if ($('.c-pdays', box)) doc.penaltyDays = num($('.c-pdays', box).value) || 0;
+      if ($('.c-pen', box) && $('.c-pen', box).value !== '') doc.penalty = num($('.c-pen', box).value) || 0;
+      if ($('.c-mos', box)) doc.mos = num($('.c-mos', box).value) || 0;
+      if ($('.c-final', box)) doc.final = $('.c-final', box).checked ? 'Y' : 'N';
       if ($('.c-amount', box)) doc.amount = num($('.c-amount', box).value);
       call('CLAIM', {}, doc).then(function (d) { c = d; render(c); apex.message.showPageSuccess('تم حساب المستخلص وحفظه'); });
     });

@@ -235,19 +235,49 @@ wwv_flow_imp_page.create_page_item(
   'number_alignment', 'left',
   'virtual_keyboard', 'decimal')).to_clob
 );
-wwv_flow_imp_page.create_page_validation(
+wwv_flow_imp_page.create_page_item(
+ p_id=>wwv_flow_imp.id(91820273000000594)
+,p_name=>'P82_METHOD'
+,p_item_sequence=>100
+,p_item_plug_id=>wwv_flow_imp.id(91820273000000581)
+,p_prompt=>'طريقة الاعتراف بالإيراد'
+,p_display_as=>'NATIVE_SELECT_LIST'
+,p_lov=>'STATIC2:بالفوترة (عند اعتماد المستخلص);BILLING,نسبة الإنجاز بالتكلفة (IFRS 15);COST_TO_COST,نسبة الإنجاز الفعلي لبنود العمل;PERCENT_COMPLETE,بالمعالم;MILESTONE,عند اكتمال العقد;COMPLETED_CONTRACT'
+,p_cHeight=>1
+,p_lov_display_extra=>'NO'
+,p_begin_on_new_line=>'N'
+,p_field_template=>1609121967514267634
+,p_item_template_options=>'#DEFAULT#'
+,p_attributes=>wwv_flow_t_plugin_attributes(wwv_flow_t_varchar2(
+  'page_action_on_selection', 'NONE')).to_clob
+);
+wwv_flow_imp_page.create_page_item(
  p_id=>wwv_flow_imp.id(91820273000000595)
+,p_name=>'P82_EAC'
+,p_item_sequence=>110
+,p_item_plug_id=>wwv_flow_imp.id(91820273000000581)
+,p_prompt=>'التكلفة المتوقعة عند الإنجاز (لنسبة الإنجاز)'
+,p_display_as=>'NATIVE_NUMBER_FIELD'
+,p_cSize=>20
+,p_field_template=>1609121967514267634
+,p_item_template_options=>'#DEFAULT#'
+,p_attributes=>wwv_flow_t_plugin_attributes(wwv_flow_t_varchar2(
+  'number_alignment', 'left',
+  'virtual_keyboard', 'decimal')).to_clob
+);
+wwv_flow_imp_page.create_page_validation(
+ p_id=>wwv_flow_imp.id(91820273000000597)
 ,p_validation_name=>'P82_NAME required (SAVE)'
-,p_validation_sequence=>13
+,p_validation_sequence=>15
 ,p_validation=>'P82_NAME'
 ,p_validation_type=>'ITEM_NOT_NULL'
 ,p_error_message=>'#LABEL#: قيمة مطلوبة'
-,p_when_button_pressed=>wwv_flow_imp.id(91820273000000594)
+,p_when_button_pressed=>wwv_flow_imp.id(91820273000000596)
 ,p_associated_item=>wwv_flow_imp.id(91820273000000584)
 ,p_error_display_location=>'INLINE_WITH_FIELD_AND_NOTIFICATION'
 );
 wwv_flow_imp_page.create_page_button(
- p_id=>wwv_flow_imp.id(91820273000000594)
+ p_id=>wwv_flow_imp.id(91820273000000596)
 ,p_button_sequence=>10
 ,p_button_plug_id=>wwv_flow_imp.id(91820273000000581)
 ,p_button_name=>'SAVE'
@@ -259,7 +289,7 @@ wwv_flow_imp_page.create_page_button(
 ,p_button_position=>'NEXT'
 );
 wwv_flow_imp_page.create_page_button(
- p_id=>wwv_flow_imp.id(91820273000000596)
+ p_id=>wwv_flow_imp.id(91820273000000598)
 ,p_button_sequence=>20
 ,p_button_plug_id=>wwv_flow_imp.id(91820273000000581)
 ,p_button_name=>'CANCEL'
@@ -271,7 +301,7 @@ wwv_flow_imp_page.create_page_button(
 ,p_button_redirect_url=>'f?p=&APP_ID.:80:&SESSION.::&DEBUG.:::'
 );
 wwv_flow_imp_page.create_page_process(
- p_id=>wwv_flow_imp.id(91820273000000597)
+ p_id=>wwv_flow_imp.id(91820273000000599)
 ,p_process_sequence=>5
 ,p_process_point=>'BEFORE_HEADER'
 ,p_process_type=>'NATIVE_PLSQL'
@@ -281,20 +311,20 @@ wwv_flow_imp_page.create_page_process(
 '    if :P82_ID is not null then',
 '        select code, name_ar, name_en, project_type, customer_account_id, manager_employee_id, parent_project_id,',
 '               to_char(planned_start, ''YYYY-MM-DD''), to_char(planned_end, ''YYYY-MM-DD''), contract_value,',
-'               (select min(id) from re_property where project_id = p.id)',
+'               (select min(id) from re_property where project_id = p.id), revenue_method, estimated_total_cost',
 '          into :P82_CODE, :P82_NAME, :P82_NAME_EN, :P82_TYPE, :P82_CUSTOMER, :P82_MANAGER, :P82_PARENT, :P82_START, :P82_END,',
-'               :P82_CONTRACT, :P82_PROPERTY',
+'               :P82_CONTRACT, :P82_PROPERTY, :P82_METHOD, :P82_EAC',
 '          from prj_project p where id = :P82_ID and company_id = noona_prj_pkg.company;',
 '    else',
-'        :P82_TYPE := nvl(:P82_TYPE, ''CLIENT_CONTRACT'');',
+'        :P82_TYPE := nvl(:P82_TYPE, ''CLIENT_CONTRACT''); :P82_METHOD := nvl(:P82_METHOD, ''BILLING'');',
 '    end if;',
 'end;'))
 ,p_process_clob_language=>'PLSQL'
 ,p_error_display_location=>'INLINE_IN_NOTIFICATION'
-,p_internal_uid=>91820273000000597
+,p_internal_uid=>91820273000000599
 );
 wwv_flow_imp_page.create_page_process(
- p_id=>wwv_flow_imp.id(91820273000000598)
+ p_id=>wwv_flow_imp.id(91820273000000600)
 ,p_process_sequence=>10
 ,p_process_point=>'AFTER_SUBMIT'
 ,p_process_type=>'NATIVE_PLSQL'
@@ -305,17 +335,18 @@ wwv_flow_imp_page.create_page_process(
 '    select json_object(''id'' value to_number(:P82_ID), ''code'' value :P82_CODE, ''name'' value :P82_NAME, ''nameEn'' value :P82_NAME_EN,',
 '                       ''type'' value :P82_TYPE, ''customer'' value to_number(:P82_CUSTOMER), ''manager'' value to_number(:P82_MANAGER),',
 '                       ''property'' value to_number(:P82_PROPERTY), ''parent'' value to_number(:P82_PARENT), ''start'' value :P82_START,',
-'                       ''end'' value :P82_END, ''contract'' value to_number(:P82_CONTRACT) returning clob) into l_doc from dual;',
+'                       ''end'' value :P82_END, ''contract'' value to_number(:P82_CONTRACT), ''method'' value :P82_METHOD,',
+'                       ''eac'' value to_number(:P82_EAC) returning clob) into l_doc from dual;',
 '    :P82_ID := noona_prj_pkg.save_project(l_doc);',
 'end;'))
 ,p_process_clob_language=>'PLSQL'
 ,p_error_display_location=>'INLINE_IN_NOTIFICATION'
-,p_process_when_button_id=>wwv_flow_imp.id(91820273000000594)
+,p_process_when_button_id=>wwv_flow_imp.id(91820273000000596)
 ,p_process_success_message=>'تم حفظ المشروع'
-,p_internal_uid=>91820273000000598
+,p_internal_uid=>91820273000000600
 );
 wwv_flow_imp_page.create_page_branch(
- p_id=>wwv_flow_imp.id(91820273000000599)
+ p_id=>wwv_flow_imp.id(91820273000000601)
 ,p_branch_action=>'f?p=&APP_ID.:81:&SESSION.::&DEBUG.:81:P81_ID:&P82_ID.&success_msg=#SUCCESS_MSG#'
 ,p_branch_point=>'AFTER_PROCESSING'
 ,p_branch_type=>'REDIRECT_URL'

@@ -197,7 +197,7 @@ wwv_flow_imp_shared.create_list_item(
 ,p_list_item_current_type=>'TARGET_PAGE'
 );
 wwv_flow_imp_shared.create_list_item(
- p_id=>wwv_flow_imp.id(91820273000000749)
+ p_id=>wwv_flow_imp.id(91820273000000863)
 ,p_list_item_display_sequence=>35
 ,p_list_item_link_text=>'المشروعات والمقاولات'
 ,p_list_item_link_target=>''
@@ -205,160 +205,190 @@ wwv_flow_imp_shared.create_list_item(
 ,p_security_scheme=>wwv_flow_imp.id(91820273000000563)
 );
 wwv_flow_imp_shared.create_list_item(
- p_id=>wwv_flow_imp.id(91820273000000750)
+ p_id=>wwv_flow_imp.id(91820273000000864)
 ,p_list_item_display_sequence=>1
 ,p_list_item_link_text=>'لوحة المشروعات'
 ,p_list_item_link_target=>'f?p=&APP_ID.:80:&APP_SESSION.::&DEBUG.:80::'
 ,p_list_item_icon=>'fa-th-large'
-,p_parent_list_item_id=>wwv_flow_imp.id(91820273000000749)
+,p_parent_list_item_id=>wwv_flow_imp.id(91820273000000863)
 ,p_security_scheme=>wwv_flow_imp.id(91820273000000563)
 ,p_list_item_current_type=>'TARGET_PAGE'
 );
 wwv_flow_imp_shared.create_list_item(
- p_id=>wwv_flow_imp.id(91820273000000751)
+ p_id=>wwv_flow_imp.id(91820273000000865)
 ,p_list_item_display_sequence=>2
 ,p_list_item_link_text=>'مشروع جديد'
 ,p_list_item_link_target=>'f?p=&APP_ID.:82:&SESSION.::&DEBUG.:RP,82::'
 ,p_list_item_icon=>'fa-plus'
-,p_parent_list_item_id=>wwv_flow_imp.id(91820273000000749)
+,p_parent_list_item_id=>wwv_flow_imp.id(91820273000000863)
 ,p_security_scheme=>wwv_flow_imp.id(91820273000000563)
 );
 wwv_flow_imp_shared.create_list_item(
- p_id=>wwv_flow_imp.id(91820273000000752)
+ p_id=>wwv_flow_imp.id(91820273000000866)
 ,p_list_item_display_sequence=>3
-,p_list_item_link_text=>'تقارير المشروعات'
-,p_list_item_link_target=>'f?p=&APP_ID.:90:&APP_SESSION.::&DEBUG.:90::'
-,p_list_item_icon=>'fa-bar-chart'
-,p_parent_list_item_id=>wwv_flow_imp.id(91820273000000749)
+,p_list_item_link_text=>'الاعتراف بالإيراد (نسبة الإنجاز)'
+,p_list_item_link_target=>'f?p=&APP_ID.:91:&APP_SESSION.::&DEBUG.:91::'
+,p_list_item_icon=>'fa-line-chart'
+,p_parent_list_item_id=>wwv_flow_imp.id(91820273000000863)
 ,p_security_scheme=>wwv_flow_imp.id(91820273000000563)
 ,p_list_item_current_type=>'TARGET_PAGE'
 );
 wwv_flow_imp_shared.create_list_item(
- p_id=>wwv_flow_imp.id(91820273000001054)
+ p_id=>wwv_flow_imp.id(91820273000000867)
+,p_list_item_display_sequence=>4
+,p_list_item_link_text=>'خطابات الضمان'
+,p_list_item_link_target=>'f?p=&APP_ID.:92:&APP_SESSION.::&DEBUG.:92::'
+,p_list_item_icon=>'fa-shield'
+,p_parent_list_item_id=>wwv_flow_imp.id(91820273000000863)
+,p_security_scheme=>wwv_flow_imp.id(91820273000000563)
+,p_list_item_current_type=>'TARGET_PAGE'
+);
+wwv_flow_imp_shared.create_list_item(
+ p_id=>wwv_flow_imp.id(91820273000000868)
+,p_list_item_display_sequence=>5
+,p_list_item_link_text=>'المعدات وتشغيلها'
+,p_list_item_link_target=>'f?p=&APP_ID.:93:&APP_SESSION.::&DEBUG.:93::'
+,p_list_item_icon=>'fa-truck'
+,p_parent_list_item_id=>wwv_flow_imp.id(91820273000000863)
+,p_security_scheme=>wwv_flow_imp.id(91820273000000563)
+,p_list_item_current_type=>'TARGET_PAGE'
+);
+wwv_flow_imp_shared.create_list_item(
+ p_id=>wwv_flow_imp.id(91820273000000869)
+,p_list_item_display_sequence=>6
+,p_list_item_link_text=>'تقارير المشروعات'
+,p_list_item_link_target=>'f?p=&APP_ID.:90:&APP_SESSION.::&DEBUG.:90::'
+,p_list_item_icon=>'fa-bar-chart'
+,p_parent_list_item_id=>wwv_flow_imp.id(91820273000000863)
+,p_security_scheme=>wwv_flow_imp.id(91820273000000563)
+,p_list_item_current_type=>'TARGET_PAGE'
+);
+wwv_flow_imp_shared.create_list_item(
+ p_id=>wwv_flow_imp.id(91820273000001171)
 ,p_list_item_display_sequence=>25
 ,p_list_item_link_text=>'بيع الوحدات'
 ,p_list_item_link_target=>''
 ,p_list_item_icon=>'fa-key'
-,p_security_scheme=>wwv_flow_imp.id(91820273000000753)
+,p_security_scheme=>wwv_flow_imp.id(91820273000000870)
 );
 wwv_flow_imp_shared.create_list_item(
- p_id=>wwv_flow_imp.id(91820273000001055)
+ p_id=>wwv_flow_imp.id(91820273000001172)
 ,p_list_item_display_sequence=>1
 ,p_list_item_link_text=>'لوحة المبيعات'
 ,p_list_item_link_target=>'f?p=&APP_ID.:30:&APP_SESSION.::&DEBUG.:30::'
 ,p_list_item_icon=>'fa-th-large'
-,p_parent_list_item_id=>wwv_flow_imp.id(91820273000001054)
-,p_security_scheme=>wwv_flow_imp.id(91820273000000753)
+,p_parent_list_item_id=>wwv_flow_imp.id(91820273000001171)
+,p_security_scheme=>wwv_flow_imp.id(91820273000000870)
 ,p_list_item_current_type=>'TARGET_PAGE'
 );
 wwv_flow_imp_shared.create_list_item(
- p_id=>wwv_flow_imp.id(91820273000001056)
+ p_id=>wwv_flow_imp.id(91820273000001173)
 ,p_list_item_display_sequence=>2
 ,p_list_item_link_text=>'حجز / عقد جديد'
 ,p_list_item_link_target=>'f?p=&APP_ID.:31:&SESSION.::&DEBUG.:RP,31::'
 ,p_list_item_icon=>'fa-plus'
-,p_parent_list_item_id=>wwv_flow_imp.id(91820273000001054)
-,p_security_scheme=>wwv_flow_imp.id(91820273000000753)
+,p_parent_list_item_id=>wwv_flow_imp.id(91820273000001171)
+,p_security_scheme=>wwv_flow_imp.id(91820273000000870)
 );
 wwv_flow_imp_shared.create_list_item(
- p_id=>wwv_flow_imp.id(91820273000001057)
+ p_id=>wwv_flow_imp.id(91820273000001174)
 ,p_list_item_display_sequence=>3
 ,p_list_item_link_text=>'الحجوزات والعقود'
 ,p_list_item_link_target=>'f?p=&APP_ID.:32:&APP_SESSION.::&DEBUG.:32::'
 ,p_list_item_icon=>'fa-file-text-o'
-,p_parent_list_item_id=>wwv_flow_imp.id(91820273000001054)
-,p_security_scheme=>wwv_flow_imp.id(91820273000000753)
+,p_parent_list_item_id=>wwv_flow_imp.id(91820273000001171)
+,p_security_scheme=>wwv_flow_imp.id(91820273000000870)
 ,p_list_item_current_type=>'TARGET_PAGE'
 );
 wwv_flow_imp_shared.create_list_item(
- p_id=>wwv_flow_imp.id(91820273000001058)
+ p_id=>wwv_flow_imp.id(91820273000001175)
 ,p_list_item_display_sequence=>4
 ,p_list_item_link_text=>'التحصيل والعمولات'
 ,p_list_item_link_target=>'f?p=&APP_ID.:34:&APP_SESSION.::&DEBUG.:34::'
 ,p_list_item_icon=>'fa-money'
-,p_parent_list_item_id=>wwv_flow_imp.id(91820273000001054)
-,p_security_scheme=>wwv_flow_imp.id(91820273000000753)
+,p_parent_list_item_id=>wwv_flow_imp.id(91820273000001171)
+,p_security_scheme=>wwv_flow_imp.id(91820273000000870)
 ,p_list_item_current_type=>'TARGET_PAGE'
 );
 wwv_flow_imp_shared.create_list_item(
- p_id=>wwv_flow_imp.id(91820273000001059)
+ p_id=>wwv_flow_imp.id(91820273000001176)
 ,p_list_item_display_sequence=>5
 ,p_list_item_link_text=>'الأسعار وخطط السداد'
 ,p_list_item_link_target=>'f?p=&APP_ID.:35:&APP_SESSION.::&DEBUG.:35::'
 ,p_list_item_icon=>'fa-tags'
-,p_parent_list_item_id=>wwv_flow_imp.id(91820273000001054)
-,p_security_scheme=>wwv_flow_imp.id(91820273000000753)
+,p_parent_list_item_id=>wwv_flow_imp.id(91820273000001171)
+,p_security_scheme=>wwv_flow_imp.id(91820273000000870)
 ,p_list_item_current_type=>'TARGET_PAGE'
 );
 wwv_flow_imp_shared.create_list_item(
- p_id=>wwv_flow_imp.id(91820273000001060)
+ p_id=>wwv_flow_imp.id(91820273000001177)
 ,p_list_item_display_sequence=>6
 ,p_list_item_link_text=>'التقارير والتسليم'
 ,p_list_item_link_target=>'f?p=&APP_ID.:36:&APP_SESSION.::&DEBUG.:36::'
 ,p_list_item_icon=>'fa-bar-chart'
-,p_parent_list_item_id=>wwv_flow_imp.id(91820273000001054)
-,p_security_scheme=>wwv_flow_imp.id(91820273000000753)
+,p_parent_list_item_id=>wwv_flow_imp.id(91820273000001171)
+,p_security_scheme=>wwv_flow_imp.id(91820273000000870)
 ,p_list_item_current_type=>'TARGET_PAGE'
 );
 wwv_flow_imp_shared.create_list_item(
- p_id=>wwv_flow_imp.id(91820273000001061)
+ p_id=>wwv_flow_imp.id(91820273000001178)
 ,p_list_item_display_sequence=>27
 ,p_list_item_link_text=>'الإيجارات وإدارة الأملاك'
 ,p_list_item_link_target=>''
 ,p_list_item_icon=>'fa-building-o'
-,p_security_scheme=>wwv_flow_imp.id(91820273000000754)
+,p_security_scheme=>wwv_flow_imp.id(91820273000000871)
 );
 wwv_flow_imp_shared.create_list_item(
- p_id=>wwv_flow_imp.id(91820273000001062)
+ p_id=>wwv_flow_imp.id(91820273000001179)
 ,p_list_item_display_sequence=>1
 ,p_list_item_link_text=>'لوحة الإيجارات'
 ,p_list_item_link_target=>'f?p=&APP_ID.:40:&APP_SESSION.::&DEBUG.:40::'
 ,p_list_item_icon=>'fa-th-large'
-,p_parent_list_item_id=>wwv_flow_imp.id(91820273000001061)
-,p_security_scheme=>wwv_flow_imp.id(91820273000000754)
+,p_parent_list_item_id=>wwv_flow_imp.id(91820273000001178)
+,p_security_scheme=>wwv_flow_imp.id(91820273000000871)
 ,p_list_item_current_type=>'TARGET_PAGE'
 );
 wwv_flow_imp_shared.create_list_item(
- p_id=>wwv_flow_imp.id(91820273000001063)
+ p_id=>wwv_flow_imp.id(91820273000001180)
 ,p_list_item_display_sequence=>2
 ,p_list_item_link_text=>'عقد إيجار جديد'
 ,p_list_item_link_target=>'f?p=&APP_ID.:41:&SESSION.::&DEBUG.:RP,41::'
 ,p_list_item_icon=>'fa-plus'
-,p_parent_list_item_id=>wwv_flow_imp.id(91820273000001061)
-,p_security_scheme=>wwv_flow_imp.id(91820273000000754)
+,p_parent_list_item_id=>wwv_flow_imp.id(91820273000001178)
+,p_security_scheme=>wwv_flow_imp.id(91820273000000871)
 );
 wwv_flow_imp_shared.create_list_item(
- p_id=>wwv_flow_imp.id(91820273000001064)
+ p_id=>wwv_flow_imp.id(91820273000001181)
 ,p_list_item_display_sequence=>3
 ,p_list_item_link_text=>'العقود وقائمة الإيجارات'
 ,p_list_item_link_target=>'f?p=&APP_ID.:43:&APP_SESSION.::&DEBUG.:43::'
 ,p_list_item_icon=>'fa-list'
-,p_parent_list_item_id=>wwv_flow_imp.id(91820273000001061)
-,p_security_scheme=>wwv_flow_imp.id(91820273000000754)
+,p_parent_list_item_id=>wwv_flow_imp.id(91820273000001178)
+,p_security_scheme=>wwv_flow_imp.id(91820273000000871)
 ,p_list_item_current_type=>'TARGET_PAGE'
 );
 wwv_flow_imp_shared.create_list_item(
- p_id=>wwv_flow_imp.id(91820273000001065)
+ p_id=>wwv_flow_imp.id(91820273000001182)
 ,p_list_item_display_sequence=>4
 ,p_list_item_link_text=>'إدارة أملاك الغير'
 ,p_list_item_link_target=>'f?p=&APP_ID.:44:&APP_SESSION.::&DEBUG.:44::'
 ,p_list_item_icon=>'fa-handshake-o'
-,p_parent_list_item_id=>wwv_flow_imp.id(91820273000001061)
-,p_security_scheme=>wwv_flow_imp.id(91820273000000754)
+,p_parent_list_item_id=>wwv_flow_imp.id(91820273000001178)
+,p_security_scheme=>wwv_flow_imp.id(91820273000000871)
 ,p_list_item_current_type=>'TARGET_PAGE'
 );
 wwv_flow_imp_shared.create_list_item(
- p_id=>wwv_flow_imp.id(91820273000001066)
+ p_id=>wwv_flow_imp.id(91820273000001183)
 ,p_list_item_display_sequence=>5
 ,p_list_item_link_text=>'العدادات'
 ,p_list_item_link_target=>'f?p=&APP_ID.:46:&APP_SESSION.::&DEBUG.:46::'
 ,p_list_item_icon=>'fa-tachometer'
-,p_parent_list_item_id=>wwv_flow_imp.id(91820273000001061)
-,p_security_scheme=>wwv_flow_imp.id(91820273000000754)
+,p_parent_list_item_id=>wwv_flow_imp.id(91820273000001178)
+,p_security_scheme=>wwv_flow_imp.id(91820273000000871)
 ,p_list_item_current_type=>'TARGET_PAGE'
 );
 wwv_flow_imp_shared.create_list_item(
- p_id=>wwv_flow_imp.id(91820273000001069)
+ p_id=>wwv_flow_imp.id(91820273000001186)
 ,p_list_item_display_sequence=>11
 ,p_list_item_link_text=>'التحليلات والتنبؤ'
 ,p_list_item_link_target=>'f?p=&APP_ID.:98:&APP_SESSION.::&DEBUG.:98::'

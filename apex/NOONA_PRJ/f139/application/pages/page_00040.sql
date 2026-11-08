@@ -18,11 +18,11 @@ wwv_flow_imp_page.create_page(
 ,p_step_title=>'الإيجارات وإدارة الأملاك'
 ,p_autocomplete_on_off=>'OFF'
 ,p_page_template_options=>'#DEFAULT#'
-,p_required_role=>wwv_flow_imp.id(91820273000000754)
+,p_required_role=>wwv_flow_imp.id(91820273000000871)
 ,p_protection_level=>'C'
 );
 wwv_flow_imp_page.create_page_plug(
- p_id=>wwv_flow_imp.id(91820273000000913)
+ p_id=>wwv_flow_imp.id(91820273000001030)
 ,p_plug_name=>'مؤشرات الإيجار'
 ,p_region_template_options=>'#DEFAULT#:t-Region--scrollBody:t-Region--removeHeader js-removeLandmark:t-Region--noUI'
 ,p_plug_template=>4072358936313175081
@@ -33,7 +33,7 @@ wwv_flow_imp_page.create_page_plug(
 ,p_plug_source_type=>'NATIVE_DYNAMIC_CONTENT'
 );
 wwv_flow_imp_page.create_page_plug(
- p_id=>wwv_flow_imp.id(91820273000000914)
+ p_id=>wwv_flow_imp.id(91820273000001031)
 ,p_plug_name=>'إجراءات'
 ,p_region_template_options=>'#DEFAULT#:t-Region--removeHeader js-removeLandmark'
 ,p_plug_template=>4072358936313175081
@@ -44,9 +44,9 @@ wwv_flow_imp_page.create_page_plug(
   'show_line_breaks', 'Y')).to_clob
 );
 wwv_flow_imp_page.create_page_button(
- p_id=>wwv_flow_imp.id(91820273000000915)
+ p_id=>wwv_flow_imp.id(91820273000001032)
 ,p_button_sequence=>10
-,p_button_plug_id=>wwv_flow_imp.id(91820273000000914)
+,p_button_plug_id=>wwv_flow_imp.id(91820273000001031)
 ,p_button_name=>'NEW'
 ,p_button_action=>'REDIRECT_URL'
 ,p_button_template_options=>'#DEFAULT#'
@@ -57,9 +57,9 @@ wwv_flow_imp_page.create_page_button(
 ,p_button_redirect_url=>'f?p=&APP_ID.:41:&SESSION.::&DEBUG.:RP,41::'
 );
 wwv_flow_imp_page.create_page_button(
- p_id=>wwv_flow_imp.id(91820273000000916)
+ p_id=>wwv_flow_imp.id(91820273000001033)
 ,p_button_sequence=>20
-,p_button_plug_id=>wwv_flow_imp.id(91820273000000914)
+,p_button_plug_id=>wwv_flow_imp.id(91820273000001031)
 ,p_button_name=>'LEASES'
 ,p_button_action=>'REDIRECT_URL'
 ,p_button_template_options=>'#DEFAULT#'
@@ -69,9 +69,9 @@ wwv_flow_imp_page.create_page_button(
 ,p_button_redirect_url=>'f?p=&APP_ID.:43:&SESSION.::&DEBUG.:::'
 );
 wwv_flow_imp_page.create_page_button(
- p_id=>wwv_flow_imp.id(91820273000000917)
+ p_id=>wwv_flow_imp.id(91820273000001034)
 ,p_button_sequence=>30
-,p_button_plug_id=>wwv_flow_imp.id(91820273000000914)
+,p_button_plug_id=>wwv_flow_imp.id(91820273000001031)
 ,p_button_name=>'OWNERS'
 ,p_button_action=>'REDIRECT_URL'
 ,p_button_template_options=>'#DEFAULT#'
@@ -81,9 +81,9 @@ wwv_flow_imp_page.create_page_button(
 ,p_button_redirect_url=>'f?p=&APP_ID.:44:&SESSION.::&DEBUG.:::'
 );
 wwv_flow_imp_page.create_page_button(
- p_id=>wwv_flow_imp.id(91820273000000918)
+ p_id=>wwv_flow_imp.id(91820273000001035)
 ,p_button_sequence=>40
-,p_button_plug_id=>wwv_flow_imp.id(91820273000000914)
+,p_button_plug_id=>wwv_flow_imp.id(91820273000001031)
 ,p_button_name=>'METERS'
 ,p_button_action=>'REDIRECT_URL'
 ,p_button_template_options=>'#DEFAULT#'
@@ -93,9 +93,9 @@ wwv_flow_imp_page.create_page_button(
 ,p_button_redirect_url=>'f?p=&APP_ID.:46:&SESSION.::&DEBUG.:::'
 );
 wwv_flow_imp_page.create_page_button(
- p_id=>wwv_flow_imp.id(91820273000000919)
+ p_id=>wwv_flow_imp.id(91820273000001036)
 ,p_button_sequence=>50
-,p_button_plug_id=>wwv_flow_imp.id(91820273000000914)
+,p_button_plug_id=>wwv_flow_imp.id(91820273000001031)
 ,p_button_name=>'BILL'
 ,p_button_action=>'SUBMIT'
 ,p_button_template_options=>'#DEFAULT#'
@@ -104,9 +104,9 @@ wwv_flow_imp_page.create_page_button(
 ,p_button_position=>'NEXT'
 );
 wwv_flow_imp_page.create_page_button(
- p_id=>wwv_flow_imp.id(91820273000000920)
+ p_id=>wwv_flow_imp.id(91820273000001037)
 ,p_button_sequence=>60
-,p_button_plug_id=>wwv_flow_imp.id(91820273000000914)
+,p_button_plug_id=>wwv_flow_imp.id(91820273000001031)
 ,p_button_name=>'EXPIRE'
 ,p_button_action=>'SUBMIT'
 ,p_button_template_options=>'#DEFAULT#'
@@ -115,7 +115,7 @@ wwv_flow_imp_page.create_page_button(
 ,p_button_position=>'NEXT'
 );
 wwv_flow_imp_page.create_page_process(
- p_id=>wwv_flow_imp.id(91820273000000921)
+ p_id=>wwv_flow_imp.id(91820273000001038)
 ,p_process_sequence=>10
 ,p_process_point=>'AFTER_SUBMIT'
 ,p_process_type=>'NATIVE_PLSQL'
@@ -128,11 +128,11 @@ wwv_flow_imp_page.create_page_process(
 'end;'))
 ,p_process_clob_language=>'PLSQL'
 ,p_error_display_location=>'INLINE_IN_NOTIFICATION'
-,p_process_when_button_id=>wwv_flow_imp.id(91820273000000919)
-,p_internal_uid=>91820273000000921
+,p_process_when_button_id=>wwv_flow_imp.id(91820273000001036)
+,p_internal_uid=>91820273000001038
 );
 wwv_flow_imp_page.create_page_process(
- p_id=>wwv_flow_imp.id(91820273000000922)
+ p_id=>wwv_flow_imp.id(91820273000001039)
 ,p_process_sequence=>20
 ,p_process_point=>'AFTER_SUBMIT'
 ,p_process_type=>'NATIVE_PLSQL'
@@ -145,11 +145,11 @@ wwv_flow_imp_page.create_page_process(
 'end;'))
 ,p_process_clob_language=>'PLSQL'
 ,p_error_display_location=>'INLINE_IN_NOTIFICATION'
-,p_process_when_button_id=>wwv_flow_imp.id(91820273000000920)
-,p_internal_uid=>91820273000000922
+,p_process_when_button_id=>wwv_flow_imp.id(91820273000001037)
+,p_internal_uid=>91820273000001039
 );
 wwv_flow_imp_page.create_page_plug(
- p_id=>wwv_flow_imp.id(91820273000000923)
+ p_id=>wwv_flow_imp.id(91820273000001040)
 ,p_plug_name=>'عقود تنتهي خلال 60 يوماً'
 ,p_region_template_options=>'#DEFAULT#:t-Region--scrollBody'
 ,p_plug_template=>4072358936313175081
@@ -160,7 +160,7 @@ wwv_flow_imp_page.create_page_plug(
 ,p_plug_source_type=>'NATIVE_DYNAMIC_CONTENT'
 );
 wwv_flow_imp_page.create_page_plug(
- p_id=>wwv_flow_imp.id(91820273000000924)
+ p_id=>wwv_flow_imp.id(91820273000001041)
 ,p_plug_name=>'الإيجارات المتأخرة'
 ,p_region_template_options=>'#DEFAULT#:t-Region--scrollBody'
 ,p_plug_template=>4072358936313175081
@@ -171,7 +171,7 @@ wwv_flow_imp_page.create_page_plug(
 ,p_plug_source_type=>'NATIVE_DYNAMIC_CONTENT'
 );
 wwv_flow_imp_page.create_page_plug(
- p_id=>wwv_flow_imp.id(91820273000000925)
+ p_id=>wwv_flow_imp.id(91820273000001042)
 ,p_plug_name=>'الإشغال حسب العقار'
 ,p_region_template_options=>'#DEFAULT#:t-Region--scrollBody'
 ,p_plug_template=>4072358936313175081
@@ -182,7 +182,7 @@ wwv_flow_imp_page.create_page_plug(
 ,p_plug_source_type=>'NATIVE_DYNAMIC_CONTENT'
 );
 wwv_flow_imp_page.create_page_branch(
- p_id=>wwv_flow_imp.id(91820273000000926)
+ p_id=>wwv_flow_imp.id(91820273000001043)
 ,p_branch_action=>'f?p=&APP_ID.:40:&SESSION.::&DEBUG.:::&success_msg=#SUCCESS_MSG#'
 ,p_branch_point=>'AFTER_PROCESSING'
 ,p_branch_type=>'REDIRECT_URL'
