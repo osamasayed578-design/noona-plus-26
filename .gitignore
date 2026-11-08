@@ -6,3 +6,6 @@ apex/*/out/
 node_modules/
 tools/ai_mock/requests.log
 tools/ux_audit/node_modules
+
+# generated manuals, catalogs and videos (delivered as files, not versioned)
+apex/_manual/
