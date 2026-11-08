@@ -7,8 +7,9 @@
 #   sudo bash tools/vm/setup_noona26_ol.sh
 #
 # الملفات: يبحث في /opt/noona/downloads ثم مجلد هذا السكربت عن:
-#   - حزمة القاعدة  oracle-*database-free-26ai-*.elN.rpm أو oracle-*database-ee-26ai-*.elN.rpm (N = إصدار النظام 8 أو 9)
-#   - Java (اختياري) jdk-21*.rpm من Oracle، وإلا يثبت OpenJDK 21
+#   - حزمة القاعدة  oracle-*database-free-26ai-*.elN.<arch>.rpm أو ...-ee-26ai-* (N = إصدار النظام 8 أو 9)
+#                   <arch> = x86_64 لأجهزة Intel/AMD، أو aarch64 لأجهزة ARM مثل Ampere A1 في OCI
+#   - Java (اختياري) jdk-21*_linux-x64_bin.rpm أو jdk-21*_linux-aarch64_bin.rpm من Oracle، وإلا يثبت OpenJDK 21
 #   - APEX          apex_26*.zip أو apex-latest.zip                    (وإلا ينزل apex-latest.zip تلقائياً)
 #   - ORDS          ords-*.zip أو ords-latest.zip                      (وإلا ينزل ords-latest.zip تلقائياً)
 # كلمات المرور تطلب أثناء التشغيل ولا تكتب في أي ملف. يعاد تشغيله بأمان: الخطوات المكتملة تتخطى.
@@ -24,6 +25,8 @@ LOG=/var/log/noona26_setup.log
 PDB=""          # يكتشف بعد التهيئة: FREEPDB1 للنسخة المجانية، ORCLPDB1 للنسخة المؤسسية
 PORT_DB=1521
 PORT_WEB=8080
+ARCH=$(uname -m)                                   # x86_64 أو aarch64 (ARM: Ampere)
+case "$ARCH" in aarch64) JDK_ARCH=aarch64 ;; *) JDK_ARCH=x64 ;; esac
 APEX_DIR=/opt/oracle/apex
 ORDS_DIR=/opt/oracle/ords
 ORDS_CFG=/opt/oracle/ords-config
@@ -81,12 +84,12 @@ APEX_PUB_PWD="Apex#$(head -c 12 /dev/urandom | od -An -tx1 | tr -d ' \n')"
 # ----------------------------------------------------------------------------- 1) الحزم وJava
 step "1/10 الحزم الأساسية وJava 21"
 dnf -y install unzip zip curl tar >>"$LOG" 2>&1 || die "تعذر تثبيت الحزم الأساسية (dnf)"
-JDK=$(ls "$DL"/jdk-21*_linux-x64_bin.rpm 2>/dev/null | sort -V | tail -1)
+JDK=$(ls "$DL"/jdk-21*_linux-"$JDK_ARCH"_bin.rpm 2>/dev/null | sort -V | tail -1)
 if [ -n "$JDK" ]; then
   dnf -y localinstall "$JDK" >>"$LOG" 2>&1 || die "تعذر تثبيت $(basename "$JDK")"
   JAVA_HOME=$(ls -d /usr/lib/jvm/jdk-21* 2>/dev/null | sort -V | tail -1)
 else
-  dnf -y install java-21-openjdk-headless >>"$LOG" 2>&1 || die "تعذر تثبيت Java 21؛ ضع jdk-21*_linux-x64_bin.rpm في $DL"
+  dnf -y install java-21-openjdk-headless >>"$LOG" 2>&1 || die "تعذر تثبيت Java 21؛ ضع jdk-21*_linux-${JDK_ARCH}_bin.rpm في $DL"
   JAVA_HOME=$(dirname "$(dirname "$(readlink -f "$(command -v java)")")")
 fi
 [ -x "$JAVA_HOME/bin/java" ] || die "لم أجد Java 21"
@@ -101,16 +104,21 @@ if [ -z "$PRE" ]; then
   [ -n "$f" ] && dnf -y localinstall "$f" >>"$LOG" 2>&1 && PRE=$(basename "$f")
 fi
 [ -n "$PRE" ] || die "تعذر تثبيت حزمة التهيئة preinstall. فعّل المستودع: dnf config-manager --enable ol${OLV}_appstream ol${OLV}_baseos_latest ثم أعد التشغيل"
+if [ "$ARCH" = aarch64 ]; then
+  # ARM: إنشاء القاعدة يفشل بـ ORA-00600 دون مكتبة Fortran (لا تثبتها حزمة التهيئة تلقائياً)
+  dnf -y install gcc-gfortran libgfortran >>"$LOG" 2>&1 || die "تعذر تثبيت gcc-gfortran اللازمة لـ ARM"
+  info "معالج ARM ($ARCH): ثبتت مكتبة Fortran المطلوبة"
+fi
 ok "Java 21 وحزمة التهيئة ($PRE)"
 
 # ----------------------------------------------------------------------------- 2) قاعدة البيانات
 step "2/10 Oracle AI Database 26ai Free"
 find_init() { ls /etc/init.d/ 2>/dev/null | grep -E '^oracle.*(free|ee|26ai|23ai)' | grep -v preinstall | head -1; }
 if [ -z "$(find_init)" ]; then
-  RPM=$(ls "$DL"/oracle-*database-free*.el"$OLV"*.rpm "$DL"/oracle-*database-ee*.el"$OLV"*.rpm 2>/dev/null | grep -v preinstall | head -1)
+  RPM=$(ls "$DL"/oracle-*database-free*.el"$OLV"*.rpm "$DL"/oracle-*database-ee*.el"$OLV"*.rpm 2>/dev/null | grep -v preinstall | grep "$ARCH" | head -1)
   if [ -z "$RPM" ]; then
     WRONG=$(ls "$DL"/oracle-*database-*.rpm 2>/dev/null | grep -v preinstall | head -1)
-    [ -n "$WRONG" ] && die "الحزمة $(basename "$WRONG") ليست لنظامك (Oracle Linux $OLV يحتاج حزمة .el${OLV}.)"
+    [ -n "$WRONG" ] && die "الحزمة $(basename "$WRONG") ليست لنظامك (Oracle Linux $OLV على $ARCH يحتاج حزمة .el${OLV}.${ARCH}.rpm)"
     die "ضع حزمة القاعدة 26ai (Free أو EE) لنظام el${OLV} في $DL ثم أعد التشغيل"
   fi
   info "تثبيت $(basename "$RPM") (5-15 دقيقة)"
