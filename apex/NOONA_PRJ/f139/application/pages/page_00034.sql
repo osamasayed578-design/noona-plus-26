@@ -18,11 +18,11 @@ wwv_flow_imp_page.create_page(
 ,p_step_title=>'التحصيل والعمولات'
 ,p_autocomplete_on_off=>'OFF'
 ,p_page_template_options=>'#DEFAULT#'
-,p_required_role=>wwv_flow_imp.id(91820273000000870)
+,p_required_role=>wwv_flow_imp.id(91820273000000858)
 ,p_protection_level=>'N'
 );
 wwv_flow_imp_page.create_page_plug(
- p_id=>wwv_flow_imp.id(91820273000000972)
+ p_id=>wwv_flow_imp.id(91820273000000960)
 ,p_plug_name=>'الفترة'
 ,p_region_template_options=>'#DEFAULT#:t-Region--removeHeader js-removeLandmark'
 ,p_plug_template=>4072358936313175081
@@ -33,10 +33,10 @@ wwv_flow_imp_page.create_page_plug(
   'show_line_breaks', 'Y')).to_clob
 );
 wwv_flow_imp_page.create_page_item(
- p_id=>wwv_flow_imp.id(91820273000000973)
+ p_id=>wwv_flow_imp.id(91820273000000961)
 ,p_name=>'P34_FROM'
 ,p_item_sequence=>10
-,p_item_plug_id=>wwv_flow_imp.id(91820273000000972)
+,p_item_plug_id=>wwv_flow_imp.id(91820273000000960)
 ,p_prompt=>'الاستحقاق من'
 ,p_display_as=>'NATIVE_DATE_PICKER_APEX'
 ,p_cSize=>20
@@ -52,10 +52,10 @@ wwv_flow_imp_page.create_page_item(
   'use_defaults', 'Y')).to_clob
 );
 wwv_flow_imp_page.create_page_item(
- p_id=>wwv_flow_imp.id(91820273000000974)
+ p_id=>wwv_flow_imp.id(91820273000000962)
 ,p_name=>'P34_TO'
 ,p_item_sequence=>20
-,p_item_plug_id=>wwv_flow_imp.id(91820273000000972)
+,p_item_plug_id=>wwv_flow_imp.id(91820273000000960)
 ,p_prompt=>'إلى'
 ,p_display_as=>'NATIVE_DATE_PICKER_APEX'
 ,p_cSize=>20
@@ -72,9 +72,9 @@ wwv_flow_imp_page.create_page_item(
   'use_defaults', 'Y')).to_clob
 );
 wwv_flow_imp_page.create_page_button(
- p_id=>wwv_flow_imp.id(91820273000000975)
+ p_id=>wwv_flow_imp.id(91820273000000963)
 ,p_button_sequence=>10
-,p_button_plug_id=>wwv_flow_imp.id(91820273000000972)
+,p_button_plug_id=>wwv_flow_imp.id(91820273000000960)
 ,p_button_name=>'GO'
 ,p_button_action=>'SUBMIT'
 ,p_button_template_options=>'#DEFAULT#'
@@ -84,7 +84,7 @@ wwv_flow_imp_page.create_page_button(
 ,p_button_position=>'NEXT'
 );
 wwv_flow_imp_page.create_page_process(
- p_id=>wwv_flow_imp.id(91820273000000976)
+ p_id=>wwv_flow_imp.id(91820273000000964)
 ,p_process_sequence=>5
 ,p_process_point=>'BEFORE_HEADER'
 ,p_process_type=>'NATIVE_PLSQL'
@@ -96,10 +96,10 @@ wwv_flow_imp_page.create_page_process(
 'end;'))
 ,p_process_clob_language=>'PLSQL'
 ,p_error_display_location=>'INLINE_IN_NOTIFICATION'
-,p_internal_uid=>91820273000000976
+,p_internal_uid=>91820273000000964
 );
 wwv_flow_imp_page.create_page_plug(
- p_id=>wwv_flow_imp.id(91820273000000977)
+ p_id=>wwv_flow_imp.id(91820273000000965)
 ,p_plug_name=>'الأقساط المستحقة والمتأخرة'
 ,p_region_template_options=>'#DEFAULT#:t-Region--scrollBody:nn-print-area'
 ,p_plug_template=>4072358936313175081
@@ -110,7 +110,7 @@ wwv_flow_imp_page.create_page_plug(
 ,p_plug_source_type=>'NATIVE_DYNAMIC_CONTENT'
 );
 wwv_flow_imp_page.create_page_plug(
- p_id=>wwv_flow_imp.id(91820273000000978)
+ p_id=>wwv_flow_imp.id(91820273000000966)
 ,p_plug_name=>'عمولات الوسطاء'
 ,p_region_template_options=>'#DEFAULT#:t-Region--scrollBody'
 ,p_plug_template=>4072358936313175081
@@ -121,7 +121,7 @@ wwv_flow_imp_page.create_page_plug(
 ,p_plug_source_type=>'NATIVE_DYNAMIC_CONTENT'
 );
 wwv_flow_imp_page.create_page_plug(
- p_id=>wwv_flow_imp.id(91820273000000979)
+ p_id=>wwv_flow_imp.id(91820273000000967)
 ,p_plug_name=>'اعتماد وسداد عمولة'
 ,p_region_template_options=>'#DEFAULT#'
 ,p_plug_template=>4072358936313175081
@@ -134,10 +134,10 @@ wwv_flow_imp_page.create_page_plug(
   'show_line_breaks', 'Y')).to_clob
 );
 wwv_flow_imp_page.create_page_item(
- p_id=>wwv_flow_imp.id(91820273000000980)
+ p_id=>wwv_flow_imp.id(91820273000000968)
 ,p_name=>'P34_COM'
 ,p_item_sequence=>10
-,p_item_plug_id=>wwv_flow_imp.id(91820273000000979)
+,p_item_plug_id=>wwv_flow_imp.id(91820273000000967)
 ,p_prompt=>'العمولة'
 ,p_display_as=>'NATIVE_SELECT_LIST'
 ,p_lov=>'select p.display_name_ar || '' - '' || c.doc_no || '' - '' || b.commission_amount || '' ('' || noona_res_pkg.status_label(b.status_code) || '')'' d, b.id r from re_broker_commission b join pty_party p on p.id = b.broker_party_id join re_sale_contract c on c.id = b.contract_id where b.company_id = noona_res_pkg.company and b.status_code in (''ELIGIBLE'', ''APPROVED'', ''ACCRUED'') order by b.id desc'
@@ -151,10 +151,10 @@ wwv_flow_imp_page.create_page_item(
   'page_action_on_selection', 'NONE')).to_clob
 );
 wwv_flow_imp_page.create_page_item(
- p_id=>wwv_flow_imp.id(91820273000000981)
+ p_id=>wwv_flow_imp.id(91820273000000969)
 ,p_name=>'P34_PLACE'
 ,p_item_sequence=>20
-,p_item_plug_id=>wwv_flow_imp.id(91820273000000979)
+,p_item_plug_id=>wwv_flow_imp.id(91820273000000967)
 ,p_prompt=>'السداد من'
 ,p_display_as=>'NATIVE_SELECT_LIST'
 ,p_lov=>'select ''صندوق: '' || name_ar d, ''BOX:'' || id r from csh_cash_box where company_id = noona_res_pkg.company and status_code = ''ACTIVE'' union all select ''بنك: '' || name_ar, ''BANK:'' || id from csh_bank_account where company_id = noona_res_pkg.company and status_code = ''ACTIVE'''
@@ -169,9 +169,9 @@ wwv_flow_imp_page.create_page_item(
   'page_action_on_selection', 'NONE')).to_clob
 );
 wwv_flow_imp_page.create_page_button(
- p_id=>wwv_flow_imp.id(91820273000000982)
+ p_id=>wwv_flow_imp.id(91820273000000970)
 ,p_button_sequence=>10
-,p_button_plug_id=>wwv_flow_imp.id(91820273000000979)
+,p_button_plug_id=>wwv_flow_imp.id(91820273000000967)
 ,p_button_name=>'APPROVE_COM'
 ,p_button_action=>'SUBMIT'
 ,p_button_template_options=>'#DEFAULT#'
@@ -180,9 +180,9 @@ wwv_flow_imp_page.create_page_button(
 ,p_button_position=>'NEXT'
 );
 wwv_flow_imp_page.create_page_button(
- p_id=>wwv_flow_imp.id(91820273000000983)
+ p_id=>wwv_flow_imp.id(91820273000000971)
 ,p_button_sequence=>20
-,p_button_plug_id=>wwv_flow_imp.id(91820273000000979)
+,p_button_plug_id=>wwv_flow_imp.id(91820273000000967)
 ,p_button_name=>'PAY_COM'
 ,p_button_action=>'SUBMIT'
 ,p_button_template_options=>'#DEFAULT#'
@@ -192,7 +192,7 @@ wwv_flow_imp_page.create_page_button(
 ,p_button_position=>'NEXT'
 );
 wwv_flow_imp_page.create_page_process(
- p_id=>wwv_flow_imp.id(91820273000000984)
+ p_id=>wwv_flow_imp.id(91820273000000972)
 ,p_process_sequence=>10
 ,p_process_point=>'AFTER_SUBMIT'
 ,p_process_type=>'NATIVE_PLSQL'
@@ -201,12 +201,12 @@ wwv_flow_imp_page.create_page_process(
 'noona_res_pkg.approve_commission(:P34_COM);'))
 ,p_process_clob_language=>'PLSQL'
 ,p_error_display_location=>'INLINE_IN_NOTIFICATION'
-,p_process_when_button_id=>wwv_flow_imp.id(91820273000000982)
+,p_process_when_button_id=>wwv_flow_imp.id(91820273000000970)
 ,p_process_success_message=>'تم اعتماد العمولة'
-,p_internal_uid=>91820273000000984
+,p_internal_uid=>91820273000000972
 );
 wwv_flow_imp_page.create_page_process(
- p_id=>wwv_flow_imp.id(91820273000000985)
+ p_id=>wwv_flow_imp.id(91820273000000973)
 ,p_process_sequence=>20
 ,p_process_point=>'AFTER_SUBMIT'
 ,p_process_type=>'NATIVE_PLSQL'
@@ -215,12 +215,12 @@ wwv_flow_imp_page.create_page_process(
 'noona_res_pkg.pay_commission(:P34_COM, :P34_PLACE);'))
 ,p_process_clob_language=>'PLSQL'
 ,p_error_display_location=>'INLINE_IN_NOTIFICATION'
-,p_process_when_button_id=>wwv_flow_imp.id(91820273000000983)
+,p_process_when_button_id=>wwv_flow_imp.id(91820273000000971)
 ,p_process_success_message=>'تم سداد العمولة'
-,p_internal_uid=>91820273000000985
+,p_internal_uid=>91820273000000973
 );
 wwv_flow_imp_page.create_page_branch(
- p_id=>wwv_flow_imp.id(91820273000000986)
+ p_id=>wwv_flow_imp.id(91820273000000974)
 ,p_branch_action=>'f?p=&APP_ID.:34:&SESSION.::&DEBUG.:::&success_msg=#SUCCESS_MSG#'
 ,p_branch_point=>'AFTER_PROCESSING'
 ,p_branch_type=>'REDIRECT_URL'

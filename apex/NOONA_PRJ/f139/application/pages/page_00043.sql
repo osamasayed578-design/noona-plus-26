@@ -18,11 +18,11 @@ wwv_flow_imp_page.create_page(
 ,p_step_title=>'عقود الإيجار وقائمة الإيجارات'
 ,p_autocomplete_on_off=>'OFF'
 ,p_page_template_options=>'#DEFAULT#'
-,p_required_role=>wwv_flow_imp.id(91820273000000871)
+,p_required_role=>wwv_flow_imp.id(91820273000000859)
 ,p_protection_level=>'N'
 );
 wwv_flow_imp_page.create_page_plug(
- p_id=>wwv_flow_imp.id(91820273000001105)
+ p_id=>wwv_flow_imp.id(91820273000001093)
 ,p_plug_name=>'التصفية'
 ,p_region_template_options=>'#DEFAULT#:t-Region--removeHeader js-removeLandmark'
 ,p_plug_template=>4072358936313175081
@@ -33,10 +33,10 @@ wwv_flow_imp_page.create_page_plug(
   'show_line_breaks', 'Y')).to_clob
 );
 wwv_flow_imp_page.create_page_item(
- p_id=>wwv_flow_imp.id(91820273000001106)
+ p_id=>wwv_flow_imp.id(91820273000001094)
 ,p_name=>'P43_STATUS'
 ,p_item_sequence=>10
-,p_item_plug_id=>wwv_flow_imp.id(91820273000001105)
+,p_item_plug_id=>wwv_flow_imp.id(91820273000001093)
 ,p_prompt=>'حالة العقود'
 ,p_display_as=>'NATIVE_SELECT_LIST'
 ,p_lov=>'STATIC2:المفتوحة;OPEN,سارية;ACTIVE,مسودة;DRAFT,بانتظار التجديد;RENEWAL_PENDING,مجددة;RENEWED,منتهية;EXPIRED,منهية;TERMINATED'
@@ -50,10 +50,10 @@ wwv_flow_imp_page.create_page_item(
   'page_action_on_selection', 'SUBMIT')).to_clob
 );
 wwv_flow_imp_page.create_page_item(
- p_id=>wwv_flow_imp.id(91820273000001107)
+ p_id=>wwv_flow_imp.id(91820273000001095)
 ,p_name=>'P43_PROPERTY'
 ,p_item_sequence=>20
-,p_item_plug_id=>wwv_flow_imp.id(91820273000001105)
+,p_item_plug_id=>wwv_flow_imp.id(91820273000001093)
 ,p_prompt=>'العقار (قائمة الإيجارات)'
 ,p_display_as=>'NATIVE_SELECT_LIST'
 ,p_lov=>'select p.name_ar d, p.id r from re_property p where p.company_id = noona_res_pkg.company and p.status_code <> ''INACTIVE'' and exists (select 1 from re_unit u where u.property_id = p.id and u.usage_type in (''LEASE'', ''MIXED'')) order by p.code'
@@ -68,7 +68,7 @@ wwv_flow_imp_page.create_page_item(
   'page_action_on_selection', 'SUBMIT')).to_clob
 );
 wwv_flow_imp_page.create_page_plug(
- p_id=>wwv_flow_imp.id(91820273000001108)
+ p_id=>wwv_flow_imp.id(91820273000001096)
 ,p_plug_name=>'العقود'
 ,p_region_template_options=>'#DEFAULT#:t-Region--scrollBody'
 ,p_plug_template=>4072358936313175081
@@ -79,7 +79,7 @@ wwv_flow_imp_page.create_page_plug(
 ,p_plug_source_type=>'NATIVE_DYNAMIC_CONTENT'
 );
 wwv_flow_imp_page.create_page_plug(
- p_id=>wwv_flow_imp.id(91820273000001109)
+ p_id=>wwv_flow_imp.id(91820273000001097)
 ,p_plug_name=>'قائمة الإيجارات (Rent Roll)'
 ,p_region_template_options=>'#DEFAULT#:t-Region--scrollBody:nn-print-area'
 ,p_plug_template=>4072358936313175081
