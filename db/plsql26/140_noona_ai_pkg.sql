@@ -62,6 +62,11 @@ CREATE OR REPLACE PACKAGE BODY NOONA_AI_PKG AS
   BEGIN
     RETURN CEIL(NVL(DBMS_LOB.GETLENGTH(p), 0) / 3.5);
   END est_tokens;
+  -- نموذج محلي (Ollama على المعالج) أو سياق صغير: طلبات مختصرة حتى لا تتجاوز المهلة
+  FUNCTION lean(c t_cfg) RETURN BOOLEAN IS
+  BEGIN
+    RETURN c.service = 'NOONA_AI_LOCAL' OR NVL(c.max_ctx, 1e9) <= 8192;
+  END lean;
   FUNCTION msg_text(p VARCHAR2) RETURN VARCHAR2 IS
   BEGIN
     IF INSTR(p, 'maximum number of available tokens') > 0 THEN
@@ -360,6 +365,7 @@ CREATE OR REPLACE PACKAGE BODY NOONA_AI_PKG AS
     l_out    NUMBER;
     l_amsg   NUMBER;
     l_owner  NUMBER;
+    l_hist   PLS_INTEGER := CASE WHEN lean(c) THEN 4 ELSE 10 END;
   BEGIN
     guard(c);
     NOONA_CORE_PKG.assert(l_q IS NOT NULL AND DBMS_LOB.GETLENGTH(l_q) BETWEEN 1 AND 4000, 'NOONA-AI-013',
@@ -367,7 +373,7 @@ CREATE OR REPLACE PACKAGE BODY NOONA_AI_PKG AS
     -- سياق الصفحة: ما يراه المستخدم أصلاً (يقتطع)
     g_page := '{"app":' || jt(js(l_o, 'app')) || ',"page":' || jt(js(l_o, 'page')) || ',"title":' || jt(l_title)
            || ',"module":' || jt(l_mod) || ',"company":' || jt(NOONA_APEX_PKG.company_name)
-           || ',"visibleText":' || jtc(SUBSTR(js(l_o, 'pageText'), 1, 3000)) || '}';
+           || ',"visibleText":' || jtc(SUBSTR(js(l_o, 'pageText'), 1, CASE WHEN lean(c) THEN 1200 ELSE 3000 END)) || '}';
     IF l_conv IS NULL THEN
       INSERT INTO ai_conversation (membership_id, company_id, title, context_snapshot, purge_after, status_code)
       VALUES (NOONA_CTX_PKG.membership_id, NOONA_CTX_PKG.company_id, SUBSTR(DBMS_LOB.SUBSTR(l_q, 120, 1), 1, 120), g_page,
@@ -380,7 +386,7 @@ CREATE OR REPLACE PACKAGE BODY NOONA_AI_PKG AS
       FOR m IN (SELECT message_role, content_redacted FROM (
                   SELECT message_role, content_redacted, created_at FROM ai_message
                    WHERE conversation_id = l_conv AND message_role IN ('USER', 'ASSISTANT') ORDER BY created_at DESC, id DESC
-                   FETCH FIRST 10 ROWS ONLY) ORDER BY created_at, ROWNUM) LOOP
+                   FETCH FIRST l_hist ROWS ONLY) ORDER BY created_at, ROWNUM) LOOP
         l_n := l_n + 1;
         l_msgs(l_n).chat_role := CASE m.message_role WHEN 'USER' THEN apex_ai.c_role_user ELSE apex_ai.c_role_assistant END;
         l_msgs(l_n).message := m.content_redacted;
@@ -393,7 +399,7 @@ CREATE OR REPLACE PACKAGE BODY NOONA_AI_PKG AS
     VALUES (l_conv, 'USER', l_q, c.model_id, l_in) RETURNING id INTO g_msg;
     BEGIN
       l_ans := apex_ai.chat(p_prompt => l_q, p_system_prompt => l_sys, p_service_static_id => c.service, p_temperature => 0.2,
-                            p_messages => l_msgs, p_tools => tools, p_max_tool_roundtrips => 5, p_model => c.model);
+                            p_messages => l_msgs, p_tools => tools, p_max_tool_roundtrips => CASE WHEN lean(c) THEN 2 ELSE 5 END, p_model => c.model);
     EXCEPTION WHEN OTHERS THEN
       l_err := SUBSTR(call_err(SQLERRM), 1, 300);
       NOONA_AUDIT_PKG.log_event('CONFIG', 'AI_CONVERSATION', l_conv, 'CHAT', 'FAILED');
@@ -472,9 +478,16 @@ CREATE OR REPLACE PACKAGE BODY NOONA_AI_PKG AS
     guard(c);
     l_v := NOONA_ANL_PKG.view_json(p_modules, p_branch);
     l_an := NOONA_ANL_PKG.anomalies_json(12, 2);
+    IF lean(c) THEN
+      -- النموذج المحلي: المؤشرات بلا سلسلة الأشهر، وأبرز القيم غير المعتادة فقط
+      l_v := REGEXP_REPLACE(l_v, ',"spark":\[[^]]*\]', '');
+      IF DBMS_LOB.GETLENGTH(l_an) > 1200 THEN
+        l_an := DBMS_LOB.SUBSTR(l_an, INSTR(DBMS_LOB.SUBSTR(l_an, 1200, 1), '},{', -1), 1) || ']';
+      END IF;
+    END IF;
     l_p := 'اكتب ملخصاً تنفيذياً بالعربية (6 نقاط كحد أقصى) لمؤشرات الأداء التالية لشركة ' || NOONA_APEX_PKG.company_name
         || ': أبرز التغيرات، المخاطر، والتوصيات العملية. استخدم الأرقام كما هي دون اختراع.' || CHR(10)
-        || 'المؤشرات (الشهر الحالي حتى اليوم مقارنة بالفترة المماثلة السابقة، وسلسلة 12 شهراً): ' || l_v || CHR(10)
+        || 'المؤشرات (الشهر الحالي حتى اليوم مقارنة بالفترة المماثلة السابقة' || CASE WHEN NOT lean(c) THEN '، وسلسلة 12 شهراً' END || '): ' || l_v || CHR(10)
         || 'القيم غير المعتادة في آخر شهر مكتمل: ' || l_an;
     l_in := est_tokens(l_p);
     BEGIN
