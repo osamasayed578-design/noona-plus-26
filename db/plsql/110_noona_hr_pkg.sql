@@ -97,8 +97,12 @@ CREATE OR REPLACE PACKAGE BODY NOONA_HR_PKG AS
 
   PROCEDURE ensure_sequence(p_type IN VARCHAR2, p_prefix IN VARCHAR2) IS
   BEGIN
+    -- أرقام مستندات الموارد البشرية فريدة على مستوى المؤسسة: الشركة الثانية فما بعدها تأخذ بادئة برمز الشركة (HA-RYD-TRD-000001)
     INSERT INTO ref_doc_sequence (company_id, doc_type_code, fiscal_year, prefix, next_number, padding, is_gapless, reset_policy, is_active)
-    SELECT company, p_type, NULL, p_prefix, 1, 6, 'N', 'NEVER', 'Y' FROM dual
+    SELECT company, p_type, NULL,
+           CASE WHEN EXISTS (SELECT 1 FROM ref_doc_sequence o WHERE o.doc_type_code = p_type AND o.company_id <> company)
+                THEN p_prefix || (SELECT code FROM org_company WHERE id = company) || '-' ELSE p_prefix END,
+           1, 6, 'N', 'NEVER', 'Y' FROM dual
      WHERE NOT EXISTS (SELECT 1 FROM ref_doc_sequence WHERE company_id = company AND doc_type_code = p_type);
   END ensure_sequence;
 

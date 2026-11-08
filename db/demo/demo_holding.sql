@@ -11,6 +11,8 @@
 --   * مجموعة تجميع CONS-RYD تستبعد 4190/5290 وحسابات «بين الشركات» والاستثمار، واعتماد التجميع للفترة
 --   * الهيكل التنظيمي للقابضة ووظائفه ومناصبه، وخمسة موظفين معينين على المناصب (الرئيس التنفيذي، المدير المالي،
 --     رئيس المحاسبة، مدير الشؤون الإدارية، أخصائية الأرشيف)، والأرشيف (السجل التجاري)، ومذكرة داخلية للمحاسب
+--   * هيكل لكل شركة تابعة وموظفوها: التجارة 6 (الرياض والدمام)، والمقاولات 4؛ المجموع 15 موظفاً
+--   * تفعيل الشركات الثلاث: السجل التجاري والرقم الضريبي لكل شركة، ثم فحوص التفعيل والتفعيل (الحالة «نشطة»)
 -- إعادة التشغيل لا تكرر البيانات: تعيد تعيين كلمتي المرور، وتضيف ما ينقص من نسخة سابقة من هذا السكربت
 -- =============================================================================
 SET DEFINE ON
@@ -57,6 +59,7 @@ DECLARE
   PROCEDURE additions IS
     l_h NUMBER := co('RYD-HQ'); l_a NUMBER := co('RYD-TRD'); l_b NUMBER := co('RYD-CON');
     l_s NUMBER; l_v NUMBER; l_u NUMBER; l_job NUMBER; l_p NUMBER; l_g NUMBER; l_bg NUMBER; l_m NUMBER; l_q NUMBER;
+    c_co NUMBER := l_h; c_st VARCHAR2(30) := 'ORG-HQ';   -- الشركة والهيكل الحاليان للدوال المساعدة
     FUNCTION job(p_code VARCHAR2, p_name VARCHAR2) RETURN NUMBER IS l NUMBER;
     BEGIN
       SELECT MAX(id) INTO l FROM org_job WHERE code = p_code;
@@ -67,28 +70,61 @@ DECLARE
     BEGIN
       SELECT MAX(u.id) INTO l FROM org_unit u JOIN org_structure_version sv ON sv.id = u.structure_version_id
         JOIN org_structure st ON st.id = sv.structure_id
-       WHERE st.company_id = l_h AND st.code = 'ORG-HQ' AND sv.status_code = 'ACTIVE' AND u.code = p_code;
+       WHERE st.company_id = c_co AND st.code = c_st AND sv.status_code = 'ACTIVE' AND u.code = p_code;
       RETURN l;
     END unit;
     -- منصب في وحدة (ينشأ إن لم يوجد)
     FUNCTION pos(p_unit VARCHAR2, p_code VARCHAR2, p_name VARCHAR2, p_job NUMBER, p_head VARCHAR2, p_to NUMBER) RETURN NUMBER IS l NUMBER;
     BEGIN
-      SELECT MAX(id) INTO l FROM org_position WHERE company_id = l_h AND code = p_code;
+      SELECT MAX(id) INTO l FROM org_position WHERE company_id = c_co AND code = p_code;
       IF l IS NULL THEN l := NOONA_ORG_PKG.create_position(unit(p_unit), p_job, p_code, p_name, p_head, p_to); END IF;
       RETURN l;
     END pos;
     -- موظف بعقده وراتبه ثم تعيينه على المنصب
+    FUNCTION branch(p_code VARCHAR2) RETURN NUMBER IS l NUMBER;
+    BEGIN SELECT MAX(id) INTO l FROM org_branch WHERE company_id = c_co AND code = p_code; RETURN l; END branch;
     PROCEDURE hire(p_name VARCHAR2, p_en VARCHAR2, p_nid VARCHAR2, p_gender VARCHAR2, p_months NUMBER, p_title VARCHAR2,
-                   p_unit VARCHAR2, p_pos NUMBER, p_basic NUMBER, p_mobile VARCHAR2) IS
+                   p_unit VARCHAR2, p_pos NUMBER, p_basic NUMBER, p_mobile VARCHAR2, p_nat VARCHAR2 DEFAULT 'SA', p_branch VARCHAR2 DEFAULT NULL) IS
       l_e NUMBER;
     BEGIN
       l_e := NOONA_HR_PKG.save_employee('{"name_ar":"' || p_name || '","name_en":"' || p_en || '","national_id":"' || p_nid
-        || '","nationality":"SA","gender":"' || p_gender || '","hire_date":"' || TO_CHAR(ADD_MONTHS(l_d, -p_months), 'YYYY-MM-DD')
-        || '","job_title":"' || p_title || '","unit":' || unit(p_unit) || ',"mobile":"' || p_mobile || '","gosi_no":"' || SUBSTR(p_nid, 2, 9)
+        || '","nationality":"' || p_nat || '","gender":"' || p_gender
+        || '","hire_date":"' || TO_CHAR(ADD_MONTHS(l_d, -p_months), 'YYYY-MM-DD')
+        || '","job_title":"' || p_title || '","unit":' || unit(p_unit)
+        || CASE WHEN p_branch IS NOT NULL THEN ',"branch":' || branch(p_branch) END || ',"mobile":"' || p_mobile || '","gosi_no":"' || SUBSTR(p_nid, 2, 9)
         || '","salary":{"BASIC":' || p_basic || ',"HOUSING":' || ROUND(p_basic / 4) || ',"TRANSPORT":' || ROUND(p_basic / 10) || '}}');
       -- التعيين على المنصب من تاريخ سريانه (الهيكل أنشئ اليوم)
       l_e := NOONA_ORG_PKG.assign_position(l_e, p_pos, 'PRIMARY', l_d, NULL, 100, 'تعيين على الهيكل المعتمد');
     END hire;
+    -- تفعيل شركة: التسجيلات القانونية وتسلسل المستندات ثم الفحوص والتفعيل
+    PROCEDURE activate(p_co NUMBER, p_cr VARCHAR2, p_vat VARCHAR2) IS
+      l_st VARCHAR2(30); l_t NUMBER; l_n NUMBER; l_f NUMBER;
+    BEGIN
+      SELECT status_code INTO l_st FROM org_company WHERE id = p_co;
+      IF l_st = 'ACTIVE' THEN RETURN; END IF;
+      NOONA_SECURITY_PKG.switch_company(p_co);
+      FOR r IN (SELECT 'SA_CR' c, p_cr n, 'وزارة التجارة' a FROM dual UNION ALL
+                SELECT 'SA_VAT', p_vat, 'هيئة الزكاة والضريبة والجمارك' FROM dual) LOOP
+        SELECT MIN(t.id) INTO l_t FROM loc_registration_type t WHERE t.country_pack_id = NOONA_LOC_PKG.company_pack AND t.code = r.c;
+        SELECT COUNT(*) INTO l_n FROM org_legal_registration WHERE company_id = p_co AND reg_type_id = l_t AND status_code = 'ACTIVE';
+        IF l_t IS NOT NULL AND l_n = 0 THEN
+          l_n := NOONA_LOC_PKG.save_registration('{"type":' || l_t || ',"number":"' || r.n || '","authority":"' || r.a
+              || '","issue":"' || TO_CHAR(ADD_MONTHS(l_d, -24), 'YYYY-MM-DD') || '"'
+              || CASE WHEN r.c = 'SA_CR' THEN ',"expiry":"' || TO_CHAR(ADD_MONTHS(l_d, 36), 'YYYY-MM-DD') || '"' END || '}');
+        END IF;
+      END LOOP;
+      NOONA_INV_PKG.ensure_sequence('SAL_INVOICE', 'SI-');
+      IF l_st = 'UNDER_CONFIGURATION' THEN
+        NOONA_PLATFORM_PKG.change_company_status(p_co, 'READY_FOR_REVIEW', 'اكتمل إعداد الشركة');
+      END IF;
+      l_f := NOONA_PLATFORM_PKG.run_activation_checks(p_co);
+      IF l_f > 0 THEN
+        FOR k IN (SELECT check_code, result_info FROM org_company_check WHERE company_id = p_co AND status_code = 'FAILED') LOOP
+          DBMS_OUTPUT.PUT_LINE('CHECK ' || k.check_code || ': ' || k.result_info);
+        END LOOP;
+      END IF;
+      NOONA_PLATFORM_PKG.activate_company(p_co);
+    END activate;
   BEGIN
     login('RYD_ADMIN');
     NOONA_SECURITY_PKG.switch_company(l_h);
@@ -148,6 +184,70 @@ DECLARE
       END;
       COMMIT;
     END IF;
+    -- الشركتان التابعتان: هيكل كل منهما وموظفوها
+    SELECT COUNT(*) INTO l_q FROM hr_employee WHERE national_id = '1090000101';
+    IF l_q = 0 THEN
+      -- الريادة للتجارة: الإدارة العامة، المبيعات (الرياض والدمام)، المالية، المستودعات
+      c_co := l_a; c_st := 'ORG-TRD';
+      NOONA_SECURITY_PKG.switch_company(l_a);
+      SELECT COUNT(*) INTO l_q FROM org_structure WHERE company_id = l_a AND code = 'ORG-TRD';
+      IF l_q = 0 THEN
+        l_s := NOONA_ORG_PKG.create_structure(l_a, 'ORG-TRD', 'الهيكل الإداري لشركة الريادة للتجارة', 'Trading structure');
+        l_v := NOONA_ORG_PKG.new_version(l_s, 'الإصدار الأول');
+        l_u := NOONA_ORG_PKG.add_unit(l_v, 'GM', 'الإدارة العامة', 'EXECUTIVE');
+        l_u := NOONA_ORG_PKG.add_unit(l_v, 'SALES', 'إدارة المبيعات', 'DEPARTMENT', 'GM');
+        l_u := NOONA_ORG_PKG.add_unit(l_v, 'SALES-RYD', 'مبيعات الرياض', 'SECTION', 'SALES', NULL, branch('TRD-HQ'));
+        l_u := NOONA_ORG_PKG.add_unit(l_v, 'SALES-DMM', 'مبيعات الدمام', 'SECTION', 'SALES', NULL, branch('TRD-DMM'));
+        l_u := NOONA_ORG_PKG.add_unit(l_v, 'FIN', 'المالية', 'DEPARTMENT', 'GM');
+        l_u := NOONA_ORG_PKG.add_unit(l_v, 'WH', 'المستودعات', 'SECTION', 'GM', NULL, branch('TRD-DMM'));
+        NOONA_ORG_PKG.activate_version(l_v);
+      END IF;
+      l_q := NOONA_PAY_PKG.quick_setup;
+      DECLARE p_gm NUMBER; p_sm NUMBER; p_r1 NUMBER; p_r2 NUMBER; p_ac NUMBER; p_wh NUMBER;
+      BEGIN
+        p_gm := pos('GM', 'POS-GM', 'المدير العام', job('GM', 'مدير عام'), 'Y', NULL);
+        p_sm := pos('SALES', 'POS-SALES-MGR', 'مدير المبيعات', job('SALESMGR', 'مدير مبيعات'), 'Y', p_gm);
+        p_r1 := pos('SALES-RYD', 'POS-REP-RYD', 'مندوب مبيعات الرياض', job('SALESREP', 'مندوب مبيعات'), 'N', p_sm);
+        p_r2 := pos('SALES-DMM', 'POS-REP-DMM', 'مندوب مبيعات الدمام', job('SALESREP', 'مندوب مبيعات'), 'N', p_sm);
+        p_ac := pos('FIN', 'POS-ACC', 'محاسب', job('ACCT', 'محاسب'), 'Y', p_gm);
+        p_wh := pos('WH', 'POS-WH', 'أمين المستودع', job('STOREKEEPER', 'أمين مستودع'), 'Y', p_gm);
+        hire('فهد بن محمد السبيعي', 'Fahad Alsubaie', '1090000101', 'M', 48, 'المدير العام', 'GM', p_gm, 30000, '0500000201', 'SA', 'TRD-HQ');
+        hire('تركي بن عبدالله المطيري', 'Turki Almutairi', '1090000102', 'M', 30, 'مدير المبيعات', 'SALES', p_sm, 20000, '0500000202', 'SA', 'TRD-HQ');
+        hire('ياسر بن خالد الزهراني', 'Yasser Alzahrani', '1090000103', 'M', 14, 'مندوب مبيعات', 'SALES-RYD', p_r1, 8000, '0500000203', 'SA', 'TRD-HQ');
+        hire('أحمد محمود عبدالرحمن', 'Ahmed Abdelrahman', '2090000104', 'M', 20, 'مندوب مبيعات', 'SALES-DMM', p_r2, 7000, '0500000204', 'EG', 'TRD-DMM');
+        hire('هند بنت فيصل الغامدي', 'Hind Alghamdi', '1090000105', 'F', 22, 'محاسبة', 'FIN', p_ac, 11000, '0500000205', 'SA', 'TRD-HQ');
+        hire('محمد رفيق خان', 'Mohammed Rafiq Khan', '2090000106', 'M', 36, 'أمين مستودع', 'WH', p_wh, 5500, '0500000206', 'IN', 'TRD-DMM');
+      END;
+      COMMIT;
+      -- الريادة للمقاولات: الإدارة العامة، المشاريع (الموقع)، المالية
+      c_co := l_b; c_st := 'ORG-CON';
+      NOONA_SECURITY_PKG.switch_company(l_b);
+      SELECT COUNT(*) INTO l_q FROM org_structure WHERE company_id = l_b AND code = 'ORG-CON';
+      IF l_q = 0 THEN
+        l_s := NOONA_ORG_PKG.create_structure(l_b, 'ORG-CON', 'الهيكل الإداري لشركة الريادة للمقاولات', 'Contracting structure');
+        l_v := NOONA_ORG_PKG.new_version(l_s, 'الإصدار الأول');
+        l_u := NOONA_ORG_PKG.add_unit(l_v, 'GM', 'الإدارة العامة', 'EXECUTIVE');
+        l_u := NOONA_ORG_PKG.add_unit(l_v, 'PROJ', 'إدارة المشاريع', 'DEPARTMENT', 'GM');
+        l_u := NOONA_ORG_PKG.add_unit(l_v, 'SITE', 'موقع المشروع', 'SECTION', 'PROJ');
+        l_u := NOONA_ORG_PKG.add_unit(l_v, 'FIN', 'المالية', 'DEPARTMENT', 'GM');
+        NOONA_ORG_PKG.activate_version(l_v);
+      END IF;
+      l_q := NOONA_PAY_PKG.quick_setup;
+      DECLARE p_pm NUMBER; p_en NUMBER; p_sv NUMBER; p_ac NUMBER;
+      BEGIN
+        p_pm := pos('PROJ', 'POS-PM', 'مدير المشاريع', job('PM', 'مدير مشاريع'), 'Y', NULL);
+        p_en := pos('SITE', 'POS-SITE-ENG', 'مهندس الموقع', job('SITEENG', 'مهندس موقع'), 'Y', p_pm);
+        p_sv := pos('SITE', 'POS-SUPERVISOR', 'مشرف الموقع', job('SUPERVISOR', 'مشرف موقع'), 'N', p_en);
+        p_ac := pos('FIN', 'POS-ACC', 'محاسب', job('ACCT', 'محاسب'), 'Y', p_pm);
+        hire('سلطان بن ماجد الشمري', 'Sultan Alshammari', '1090000201', 'M', 40, 'مدير المشاريع', 'PROJ', p_pm, 28000, '0500000301', 'SA', 'CON-HQ');
+        hire('عمر حسن الأردني', 'Omar Hassan', '2090000202', 'M', 26, 'مهندس موقع', 'SITE', p_en, 14000, '0500000302', 'JO', 'CON-HQ');
+        hire('راجيش كومار', 'Rajesh Kumar', '2090000203', 'M', 18, 'مشرف موقع', 'SITE', p_sv, 6500, '0500000303', 'IN', 'CON-HQ');
+        hire('لمى بنت سعود العنزي', 'Lama Alanazi', '1090000204', 'F', 16, 'محاسبة', 'FIN', p_ac, 10500, '0500000304', 'SA', 'CON-HQ');
+      END;
+      COMMIT;
+      c_co := l_h; c_st := 'ORG-HQ';
+      NOONA_SECURITY_PKG.switch_company(l_h);
+    END IF;
     -- الأرشيف: التجهيز وأرشفة السجل التجاري (أصل ورقي)
     SELECT COUNT(*) INTO l_q FROM dms_document WHERE company_id = l_h AND external_ref = 'CR-1010778899';
     IF l_q = 0 THEN
@@ -165,6 +265,12 @@ DECLARE
           || '"body":"نأمل مراجعة قيود الشركات الثلاث واعتمادها، ثم إصدار القوائم الموحدة واعتماد التجميع للفترة.","priority":"HIGH"}');
       COMMIT;
     END IF;
+    -- تفعيل الشركات الثلاث
+    activate(l_h, '1010778899', '310077889900003');
+    activate(l_a, '1010778901', '310077890100003');
+    activate(l_b, '1010778902', '310077890200003');
+    COMMIT;
+    NOONA_SECURITY_PKG.switch_company(l_h);
   END additions;
 BEGIN
   SELECT MAX(id) INTO l_t FROM plt_tenant WHERE tenant_code = 'RYD';
