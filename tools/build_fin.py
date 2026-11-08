@@ -86,7 +86,7 @@ p.ir('دليل الحسابات', 10, [
     "       case a.normal_balance when 'DEBIT' then 'مدين' else 'دائن' end as normal_balance,",
     "       case a.is_postable when 'Y' then 'حركة' else 'تجميعي' end as kind,",
     "       decode(a.subledger_code, 'AR', 'العملاء', 'AP', 'الموردون', 'INV', 'المخزون', 'FA', 'الأصول الثابتة',",
-    "              'CASH', 'النقدية', 'TAX', 'الضرائب', 'PAYROLL', 'الرواتب', a.subledger_code) as subledger,",
+    "              'CASH', 'النقدية', 'TAX', 'الضرائب', 'PAYROLL', 'الرواتب', 'INTERCOMPANY', 'بين الشركات', a.subledger_code) as subledger,",
     '       noona_ui_pkg.code_label(a.allow_manual_posting) as manual, noona_ui_pkg.status_badge(a.status_code) as status_html',
     '  from gl_account a join gl_ledger g on g.coa_id = a.coa_id where g.id = noona_gl_pkg.primary_ledger',
     ' order by a.account_code'],
@@ -100,12 +100,14 @@ p.select('P10_PARENT', f, 10, 'تحت الحساب الرئيسي', required=Tru
 p.text('P10_CODE', f, 20, 'رمز الحساب', required=True, maxlen=20, width=15)
 p.text('P10_NAME', f, 30, 'اسم الحساب', required=True)
 p.select('P10_POSTABLE', f, 40, 'نوع الحساب', null_text=None, lov_sql='STATIC2:حساب حركة;Y,حساب تجميعي;N')
+p.select('P10_SUB', f, 50, 'تصنيف خاص', null_text='- بدون -',
+         lov_sql='STATIC2:جاري بين شركات المجموعة (يستبعد في القوائم الموحدة);INTERCOMPANY')
 b = p.button(f, 10, 'ADD_ACCOUNT', 'إضافة الحساب', hot=True)
 p.process(10, 'AFTER_SUBMIT', 'Add Account', [
     'declare l_id number;',
     'begin',
     '    l_id := noona_gl_pkg.add_account(p_coa_id => noona_gl_pkg.primary_coa, p_code => :P10_CODE, p_name_ar => :P10_NAME,',
-    '                p_parent_code => :P10_PARENT, p_postable => :P10_POSTABLE);',
+    '                p_parent_code => :P10_PARENT, p_postable => :P10_POSTABLE, p_subledger => :P10_SUB);',
     'end;'], when_button=b, success='تمت إضافة الحساب')
 imf = p.static('استيراد حسابات من ملف (CSV أو Excel محفوظ CSV)', 25, text=(
     '<p class="nn-hint">السطر الأول عناوين الأعمدة بالعربي أو الإنجليزي: <b>رمز الحساب</b> (code)، <b>اسم الحساب</b> (name)، '

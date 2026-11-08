@@ -36,7 +36,7 @@ wwv_flow_imp_page.create_page_plug(
 '       case a.normal_balance when ''DEBIT'' then ''مدين'' else ''دائن'' end as normal_balance,',
 '       case a.is_postable when ''Y'' then ''حركة'' else ''تجميعي'' end as kind,',
 '       decode(a.subledger_code, ''AR'', ''العملاء'', ''AP'', ''الموردون'', ''INV'', ''المخزون'', ''FA'', ''الأصول الثابتة'',',
-'              ''CASH'', ''النقدية'', ''TAX'', ''الضرائب'', ''PAYROLL'', ''الرواتب'', a.subledger_code) as subledger,',
+'              ''CASH'', ''النقدية'', ''TAX'', ''الضرائب'', ''PAYROLL'', ''الرواتب'', ''INTERCOMPANY'', ''بين الشركات'', a.subledger_code) as subledger,',
 '       noona_ui_pkg.code_label(a.allow_manual_posting) as manual, noona_ui_pkg.status_badge(a.status_code) as status_html',
 '  from gl_account a join gl_ledger g on g.coa_id = a.coa_id where g.id = noona_gl_pkg.primary_ledger',
 ' order by a.account_code'))
@@ -238,41 +238,58 @@ wwv_flow_imp_page.create_page_item(
 ,p_attributes=>wwv_flow_t_plugin_attributes(wwv_flow_t_varchar2(
   'page_action_on_selection', 'NONE')).to_clob
 );
+wwv_flow_imp_page.create_page_item(
+ p_id=>wwv_flow_imp.id(91820266000000053)
+,p_name=>'P10_SUB'
+,p_item_sequence=>50
+,p_item_plug_id=>wwv_flow_imp.id(91820266000000048)
+,p_prompt=>'تصنيف خاص'
+,p_display_as=>'NATIVE_SELECT_LIST'
+,p_lov=>'STATIC2:جاري بين شركات المجموعة (يستبعد في القوائم الموحدة);INTERCOMPANY'
+,p_lov_display_null=>'YES'
+,p_lov_null_text=>'- بدون -'
+,p_cHeight=>1
+,p_lov_display_extra=>'NO'
+,p_field_template=>1609121967514267634
+,p_item_template_options=>'#DEFAULT#'
+,p_attributes=>wwv_flow_t_plugin_attributes(wwv_flow_t_varchar2(
+  'page_action_on_selection', 'NONE')).to_clob
+);
 wwv_flow_imp_page.create_page_validation(
- p_id=>wwv_flow_imp.id(91820266000000054)
+ p_id=>wwv_flow_imp.id(91820266000000055)
 ,p_validation_name=>'P10_PARENT required (ADD_ACCOUNT)'
-,p_validation_sequence=>16
+,p_validation_sequence=>17
 ,p_validation=>'P10_PARENT'
 ,p_validation_type=>'ITEM_NOT_NULL'
 ,p_error_message=>'#LABEL#: قيمة مطلوبة'
-,p_when_button_pressed=>wwv_flow_imp.id(91820266000000053)
+,p_when_button_pressed=>wwv_flow_imp.id(91820266000000054)
 ,p_associated_item=>wwv_flow_imp.id(91820266000000049)
 ,p_error_display_location=>'INLINE_WITH_FIELD_AND_NOTIFICATION'
 );
 wwv_flow_imp_page.create_page_validation(
- p_id=>wwv_flow_imp.id(91820266000000055)
+ p_id=>wwv_flow_imp.id(91820266000000056)
 ,p_validation_name=>'P10_CODE required (ADD_ACCOUNT)'
-,p_validation_sequence=>17
+,p_validation_sequence=>18
 ,p_validation=>'P10_CODE'
 ,p_validation_type=>'ITEM_NOT_NULL'
 ,p_error_message=>'#LABEL#: قيمة مطلوبة'
-,p_when_button_pressed=>wwv_flow_imp.id(91820266000000053)
+,p_when_button_pressed=>wwv_flow_imp.id(91820266000000054)
 ,p_associated_item=>wwv_flow_imp.id(91820266000000050)
 ,p_error_display_location=>'INLINE_WITH_FIELD_AND_NOTIFICATION'
 );
 wwv_flow_imp_page.create_page_validation(
- p_id=>wwv_flow_imp.id(91820266000000056)
+ p_id=>wwv_flow_imp.id(91820266000000057)
 ,p_validation_name=>'P10_NAME required (ADD_ACCOUNT)'
-,p_validation_sequence=>18
+,p_validation_sequence=>19
 ,p_validation=>'P10_NAME'
 ,p_validation_type=>'ITEM_NOT_NULL'
 ,p_error_message=>'#LABEL#: قيمة مطلوبة'
-,p_when_button_pressed=>wwv_flow_imp.id(91820266000000053)
+,p_when_button_pressed=>wwv_flow_imp.id(91820266000000054)
 ,p_associated_item=>wwv_flow_imp.id(91820266000000051)
 ,p_error_display_location=>'INLINE_WITH_FIELD_AND_NOTIFICATION'
 );
 wwv_flow_imp_page.create_page_button(
- p_id=>wwv_flow_imp.id(91820266000000053)
+ p_id=>wwv_flow_imp.id(91820266000000054)
 ,p_button_sequence=>10
 ,p_button_plug_id=>wwv_flow_imp.id(91820266000000048)
 ,p_button_name=>'ADD_ACCOUNT'
@@ -284,7 +301,7 @@ wwv_flow_imp_page.create_page_button(
 ,p_button_position=>'NEXT'
 );
 wwv_flow_imp_page.create_page_process(
- p_id=>wwv_flow_imp.id(91820266000000057)
+ p_id=>wwv_flow_imp.id(91820266000000058)
 ,p_process_sequence=>10
 ,p_process_point=>'AFTER_SUBMIT'
 ,p_process_type=>'NATIVE_PLSQL'
@@ -293,16 +310,16 @@ wwv_flow_imp_page.create_page_process(
 'declare l_id number;',
 'begin',
 '    l_id := noona_gl_pkg.add_account(p_coa_id => noona_gl_pkg.primary_coa, p_code => :P10_CODE, p_name_ar => :P10_NAME,',
-'                p_parent_code => :P10_PARENT, p_postable => :P10_POSTABLE);',
+'                p_parent_code => :P10_PARENT, p_postable => :P10_POSTABLE, p_subledger => :P10_SUB);',
 'end;'))
 ,p_process_clob_language=>'PLSQL'
 ,p_error_display_location=>'INLINE_IN_NOTIFICATION'
-,p_process_when_button_id=>wwv_flow_imp.id(91820266000000053)
+,p_process_when_button_id=>wwv_flow_imp.id(91820266000000054)
 ,p_process_success_message=>'تمت إضافة الحساب'
-,p_internal_uid=>91820266000000057
+,p_internal_uid=>91820266000000058
 );
 wwv_flow_imp_page.create_page_plug(
- p_id=>wwv_flow_imp.id(91820266000000058)
+ p_id=>wwv_flow_imp.id(91820266000000059)
 ,p_plug_name=>'استيراد حسابات من ملف (CSV أو Excel محفوظ CSV)'
 ,p_region_template_options=>'#DEFAULT#'
 ,p_plug_template=>4072358936313175081
@@ -318,10 +335,10 @@ wwv_flow_imp_page.create_page_plug(
   'show_line_breaks', 'Y')).to_clob
 );
 wwv_flow_imp_page.create_page_item(
- p_id=>wwv_flow_imp.id(91820266000000059)
+ p_id=>wwv_flow_imp.id(91820266000000060)
 ,p_name=>'P10_FILE'
 ,p_item_sequence=>10
-,p_item_plug_id=>wwv_flow_imp.id(91820266000000058)
+,p_item_plug_id=>wwv_flow_imp.id(91820266000000059)
 ,p_prompt=>'ملف الحسابات'
 ,p_display_as=>'NATIVE_FILE'
 ,p_field_template=>1609121967514267634
@@ -337,18 +354,18 @@ wwv_flow_imp_page.create_page_item(
   'max_file_size', '5120')).to_clob
 );
 wwv_flow_imp_page.create_page_item(
- p_id=>wwv_flow_imp.id(91820266000000060)
+ p_id=>wwv_flow_imp.id(91820266000000061)
 ,p_name=>'P10_JOB'
 ,p_item_sequence=>90
-,p_item_plug_id=>wwv_flow_imp.id(91820266000000058)
+,p_item_plug_id=>wwv_flow_imp.id(91820266000000059)
 ,p_display_as=>'NATIVE_HIDDEN'
 ,p_attributes=>wwv_flow_t_plugin_attributes(wwv_flow_t_varchar2(
   'value_protected', 'Y')).to_clob
 );
 wwv_flow_imp_page.create_page_button(
- p_id=>wwv_flow_imp.id(91820266000000061)
+ p_id=>wwv_flow_imp.id(91820266000000062)
 ,p_button_sequence=>10
-,p_button_plug_id=>wwv_flow_imp.id(91820266000000058)
+,p_button_plug_id=>wwv_flow_imp.id(91820266000000059)
 ,p_button_name=>'IMPORT_ACCOUNTS'
 ,p_button_action=>'SUBMIT'
 ,p_button_template_options=>'#DEFAULT#'
@@ -357,7 +374,7 @@ wwv_flow_imp_page.create_page_button(
 ,p_button_position=>'NEXT'
 );
 wwv_flow_imp_page.create_page_process(
- p_id=>wwv_flow_imp.id(91820266000000062)
+ p_id=>wwv_flow_imp.id(91820266000000063)
 ,p_process_sequence=>15
 ,p_process_point=>'AFTER_SUBMIT'
 ,p_process_type=>'NATIVE_PLSQL'
@@ -375,11 +392,11 @@ wwv_flow_imp_page.create_page_process(
 'end;'))
 ,p_process_clob_language=>'PLSQL'
 ,p_error_display_location=>'INLINE_IN_NOTIFICATION'
-,p_process_when_button_id=>wwv_flow_imp.id(91820266000000061)
-,p_internal_uid=>91820266000000062
+,p_process_when_button_id=>wwv_flow_imp.id(91820266000000062)
+,p_internal_uid=>91820266000000063
 );
 wwv_flow_imp_page.create_page_plug(
- p_id=>wwv_flow_imp.id(91820266000000063)
+ p_id=>wwv_flow_imp.id(91820266000000064)
 ,p_plug_name=>'نتيجة استيراد الحسابات'
 ,p_region_template_options=>'#DEFAULT#:t-Region--scrollBody'
 ,p_plug_template=>4072358936313175081
@@ -393,7 +410,7 @@ wwv_flow_imp_page.create_page_plug(
 ,p_plug_source_type=>'NATIVE_DYNAMIC_CONTENT'
 );
 wwv_flow_imp_page.create_page_plug(
- p_id=>wwv_flow_imp.id(91820266000000064)
+ p_id=>wwv_flow_imp.id(91820266000000065)
 ,p_plug_name=>'إيقاف أو تفعيل حساب'
 ,p_region_template_options=>'#DEFAULT#'
 ,p_plug_template=>4072358936313175081
@@ -404,10 +421,10 @@ wwv_flow_imp_page.create_page_plug(
   'show_line_breaks', 'Y')).to_clob
 );
 wwv_flow_imp_page.create_page_item(
- p_id=>wwv_flow_imp.id(91820266000000065)
+ p_id=>wwv_flow_imp.id(91820266000000066)
 ,p_name=>'P10_ACCOUNT'
 ,p_item_sequence=>10
-,p_item_plug_id=>wwv_flow_imp.id(91820266000000064)
+,p_item_plug_id=>wwv_flow_imp.id(91820266000000065)
 ,p_prompt=>'الحساب'
 ,p_display_as=>'NATIVE_SELECT_LIST'
 ,p_lov=>'select a.account_code || '' - '' || a.name_ar d, a.id r from gl_account a join gl_ledger g on g.coa_id = a.coa_id where g.id = noona_gl_pkg.primary_ledger and a.is_postable = ''Y'' order by a.account_code'
@@ -421,10 +438,10 @@ wwv_flow_imp_page.create_page_item(
   'page_action_on_selection', 'NONE')).to_clob
 );
 wwv_flow_imp_page.create_page_item(
- p_id=>wwv_flow_imp.id(91820266000000066)
+ p_id=>wwv_flow_imp.id(91820266000000067)
 ,p_name=>'P10_STATUS'
 ,p_item_sequence=>20
-,p_item_plug_id=>wwv_flow_imp.id(91820266000000064)
+,p_item_plug_id=>wwv_flow_imp.id(91820266000000065)
 ,p_prompt=>'الحالة'
 ,p_display_as=>'NATIVE_SELECT_LIST'
 ,p_lov=>'STATIC2:موقوف;BLOCKED,نشط;ACTIVE'
@@ -437,9 +454,9 @@ wwv_flow_imp_page.create_page_item(
   'page_action_on_selection', 'NONE')).to_clob
 );
 wwv_flow_imp_page.create_page_button(
- p_id=>wwv_flow_imp.id(91820266000000067)
+ p_id=>wwv_flow_imp.id(91820266000000068)
 ,p_button_sequence=>10
-,p_button_plug_id=>wwv_flow_imp.id(91820266000000064)
+,p_button_plug_id=>wwv_flow_imp.id(91820266000000065)
 ,p_button_name=>'SET_STATUS'
 ,p_button_action=>'SUBMIT'
 ,p_button_template_options=>'#DEFAULT#'
@@ -448,7 +465,7 @@ wwv_flow_imp_page.create_page_button(
 ,p_button_position=>'NEXT'
 );
 wwv_flow_imp_page.create_page_process(
- p_id=>wwv_flow_imp.id(91820266000000068)
+ p_id=>wwv_flow_imp.id(91820266000000069)
 ,p_process_sequence=>20
 ,p_process_point=>'AFTER_SUBMIT'
 ,p_process_type=>'NATIVE_PLSQL'
@@ -457,12 +474,12 @@ wwv_flow_imp_page.create_page_process(
 'noona_gl_pkg.set_account_status(:P10_ACCOUNT, :P10_STATUS);'))
 ,p_process_clob_language=>'PLSQL'
 ,p_error_display_location=>'INLINE_IN_NOTIFICATION'
-,p_process_when_button_id=>wwv_flow_imp.id(91820266000000067)
+,p_process_when_button_id=>wwv_flow_imp.id(91820266000000068)
 ,p_process_success_message=>'تم تغيير حالة الحساب'
-,p_internal_uid=>91820266000000068
+,p_internal_uid=>91820266000000069
 );
 wwv_flow_imp_page.create_page_branch(
- p_id=>wwv_flow_imp.id(91820266000000069)
+ p_id=>wwv_flow_imp.id(91820266000000070)
 ,p_branch_action=>'f?p=&APP_ID.:10:&SESSION.::&DEBUG.:10:P10_JOB:&P10_JOB.&success_msg=#SUCCESS_MSG#'
 ,p_branch_point=>'AFTER_PROCESSING'
 ,p_branch_type=>'REDIRECT_URL'
