@@ -9,7 +9,8 @@
 --   * قيود معتمدة: رأس المال، قرض ورسوم إدارة بين الشركات، مبيعات ومصروفات
 --   * استثمار القابضة في التابعتين (1250): الريادة للتجارة مملوكة 80% والمقاولات 100% (الشهرة وحقوق الأقلية)
 --   * مجموعة تجميع CONS-RYD تستبعد 4190/5290 وحسابات «بين الشركات» والاستثمار، واعتماد التجميع للفترة
---   * الهيكل التنظيمي للقابضة ووظيفة المحاسب ومناصبها، والأرشيف (السجل التجاري)، ومذكرة داخلية للمحاسب
+--   * الهيكل التنظيمي للقابضة ووظائفه ومناصبه، وخمسة موظفين معينين على المناصب (الرئيس التنفيذي، المدير المالي،
+--     رئيس المحاسبة، مدير الشؤون الإدارية، أخصائية الأرشيف)، والأرشيف (السجل التجاري)، ومذكرة داخلية للمحاسب
 -- إعادة التشغيل لا تكرر البيانات: تعيد تعيين كلمتي المرور، وتضيف ما ينقص من نسخة سابقة من هذا السكربت
 -- =============================================================================
 SET DEFINE ON
@@ -56,6 +57,38 @@ DECLARE
   PROCEDURE additions IS
     l_h NUMBER := co('RYD-HQ'); l_a NUMBER := co('RYD-TRD'); l_b NUMBER := co('RYD-CON');
     l_s NUMBER; l_v NUMBER; l_u NUMBER; l_job NUMBER; l_p NUMBER; l_g NUMBER; l_bg NUMBER; l_m NUMBER; l_q NUMBER;
+    FUNCTION job(p_code VARCHAR2, p_name VARCHAR2) RETURN NUMBER IS l NUMBER;
+    BEGIN
+      SELECT MAX(id) INTO l FROM org_job WHERE code = p_code;
+      IF l IS NULL THEN INSERT INTO org_job (code, name_ar, status_code) VALUES (p_code, p_name, 'ACTIVE') RETURNING id INTO l; END IF;
+      RETURN l;
+    END job;
+    FUNCTION unit(p_code VARCHAR2) RETURN NUMBER IS l NUMBER;
+    BEGIN
+      SELECT MAX(u.id) INTO l FROM org_unit u JOIN org_structure_version sv ON sv.id = u.structure_version_id
+        JOIN org_structure st ON st.id = sv.structure_id
+       WHERE st.company_id = l_h AND st.code = 'ORG-HQ' AND sv.status_code = 'ACTIVE' AND u.code = p_code;
+      RETURN l;
+    END unit;
+    -- منصب في وحدة (ينشأ إن لم يوجد)
+    FUNCTION pos(p_unit VARCHAR2, p_code VARCHAR2, p_name VARCHAR2, p_job NUMBER, p_head VARCHAR2, p_to NUMBER) RETURN NUMBER IS l NUMBER;
+    BEGIN
+      SELECT MAX(id) INTO l FROM org_position WHERE company_id = l_h AND code = p_code;
+      IF l IS NULL THEN l := NOONA_ORG_PKG.create_position(unit(p_unit), p_job, p_code, p_name, p_head, p_to); END IF;
+      RETURN l;
+    END pos;
+    -- موظف بعقده وراتبه ثم تعيينه على المنصب
+    PROCEDURE hire(p_name VARCHAR2, p_en VARCHAR2, p_nid VARCHAR2, p_gender VARCHAR2, p_months NUMBER, p_title VARCHAR2,
+                   p_unit VARCHAR2, p_pos NUMBER, p_basic NUMBER, p_mobile VARCHAR2) IS
+      l_e NUMBER;
+    BEGIN
+      l_e := NOONA_HR_PKG.save_employee('{"name_ar":"' || p_name || '","name_en":"' || p_en || '","national_id":"' || p_nid
+        || '","nationality":"SA","gender":"' || p_gender || '","hire_date":"' || TO_CHAR(ADD_MONTHS(l_d, -p_months), 'YYYY-MM-DD')
+        || '","job_title":"' || p_title || '","unit":' || unit(p_unit) || ',"mobile":"' || p_mobile || '","gosi_no":"' || SUBSTR(p_nid, 2, 9)
+        || '","salary":{"BASIC":' || p_basic || ',"HOUSING":' || ROUND(p_basic / 4) || ',"TRANSPORT":' || ROUND(p_basic / 10) || '}}');
+      -- التعيين على المنصب من تاريخ سريانه (الهيكل أنشئ اليوم)
+      l_e := NOONA_ORG_PKG.assign_position(l_e, p_pos, 'PRIMARY', l_d, NULL, 100, 'تعيين على الهيكل المعتمد');
+    END hire;
   BEGIN
     login('RYD_ADMIN');
     NOONA_SECURITY_PKG.switch_company(l_h);
@@ -92,6 +125,27 @@ DECLARE
       l_p := NOONA_ORG_PKG.create_position(l_u, l_job, 'POS-FIN-MGR', 'المدير المالي', 'Y');
       SELECT MAX(id) INTO l_u FROM org_unit WHERE structure_version_id = l_v AND code = 'ACC';
       l_p := NOONA_ORG_PKG.create_position(l_u, l_job, 'POS-ACC-HEAD', 'رئيس قسم المحاسبة', 'Y', l_p);
+      COMMIT;
+    END IF;
+    -- الموظفون وتعيينهم على مناصب الهيكل
+    SELECT COUNT(*) INTO l_q FROM hr_employee WHERE national_id = '1090000001';
+    IF l_q = 0 AND unit('CEO') IS NOT NULL THEN
+      l_q := NOONA_PAY_PKG.quick_setup;
+      DECLARE
+        p_ceo NUMBER; p_fin NUMBER; p_acc NUMBER; p_adm NUMBER; p_arc NUMBER;
+      BEGIN
+        p_ceo := pos('CEO', 'POS-CEO', 'الرئيس التنفيذي', job('CEO', 'رئيس تنفيذي'), 'Y', NULL);
+        p_fin := pos('FIN', 'POS-FIN-MGR', 'المدير المالي', job('FINMGR', 'مدير مالي'), 'Y', p_ceo);
+        UPDATE org_position SET reports_to_position_id = p_ceo WHERE id = p_fin AND reports_to_position_id IS NULL;
+        p_acc := pos('ACC', 'POS-ACC-HEAD', 'رئيس قسم المحاسبة', job('ACCT', 'محاسب'), 'Y', p_fin);
+        p_adm := pos('ADM', 'POS-ADM-MGR', 'مدير الشؤون الإدارية', job('ADMMGR', 'مدير إداري'), 'Y', p_ceo);
+        p_arc := pos('ARC', 'POS-ARC', 'أخصائي أرشيف ومراسلات', job('ARCH', 'أخصائي أرشيف'), 'Y', p_adm);
+        hire('عبدالله بن فهد الريادي', 'Abdullah Alriyadi', '1090000001', 'M', 60, 'الرئيس التنفيذي', 'CEO', p_ceo, 40000, '0500000101');
+        hire('خالد بن سعد العتيبي', 'Khalid Alotaibi', '1090000002', 'M', 36, 'المدير المالي', 'FIN', p_fin, 25000, '0500000102');
+        hire('سامي بن ناصر الحربي', 'Sami Alharbi', '1090000003', 'M', 24, 'رئيس قسم المحاسبة', 'ACC', p_acc, 15000, '0500000103');
+        hire('منى بنت عبدالعزيز الشهري', 'Mona Alshehri', '1090000004', 'F', 30, 'مدير الشؤون الإدارية', 'ADM', p_adm, 18000, '0500000104');
+        hire('ريم بنت خالد القحطاني', 'Reem Alqahtani', '1090000005', 'F', 12, 'أخصائية أرشيف ومراسلات', 'ARC', p_arc, 9000, '0500000105');
+      END;
       COMMIT;
     END IF;
     -- الأرشيف: التجهيز وأرشفة السجل التجاري (أصل ورقي)
