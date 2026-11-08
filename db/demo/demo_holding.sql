@@ -7,8 +7,10 @@
 --     الريادة للتجارة RYD-TRD (فرعان) والريادة للمقاولات RYD-CON على دليل المجموعة الموحد
 --   * دور «المدير المالي» ومستخدم RYD_FIN (سامي المحاسب) في الشركات الثلاث
 --   * قيود معتمدة: رأس المال، قرض ورسوم إدارة بين الشركات، مبيعات ومصروفات
---   * مجموعة تجميع CONS-RYD تستبعد 4190/5290 وحسابات «بين الشركات»، واعتماد التجميع للفترة
--- إعادة التشغيل لا تكرر البيانات: تعيد فقط تعيين كلمتي المرور
+--   * استثمار القابضة في التابعتين (1250): الريادة للتجارة مملوكة 80% والمقاولات 100% (الشهرة وحقوق الأقلية)
+--   * مجموعة تجميع CONS-RYD تستبعد 4190/5290 وحسابات «بين الشركات» والاستثمار، واعتماد التجميع للفترة
+--   * الهيكل التنظيمي للقابضة ووظيفة المحاسب ومناصبها، والأرشيف (السجل التجاري)، ومذكرة داخلية للمحاسب
+-- إعادة التشغيل لا تكرر البيانات: تعيد تعيين كلمتي المرور، وتضيف ما ينقص من نسخة سابقة من هذا السكربت
 -- =============================================================================
 SET DEFINE ON
 SET VERIFY OFF
@@ -38,6 +40,78 @@ DECLARE
   END jv;
   FUNCTION co(p_code VARCHAR2) RETURN NUMBER IS l_id NUMBER;
   BEGIN SELECT id INTO l_id FROM org_company WHERE code = p_code; RETURN l_id; END;
+  PROCEDURE approve_all IS
+  BEGIN
+    COMMIT;
+    login('RYD_FIN');
+    FOR i IN 1 .. g_j.COUNT LOOP
+      NOONA_SECURITY_PKG.switch_company(g_jc(i));
+      NOONA_GL_PKG.approve_journal(g_j(i), 'مطابق للمستندات');
+    END LOOP;
+    g_j.DELETE; g_jc.DELETE;
+    COMMIT;
+    login('RYD_ADMIN');
+  END approve_all;
+  -- الإضافات: الاستثمار ونسب الملكية، الهيكل التنظيمي، الأرشيف، المراسلات (تتخطى ما هو موجود)
+  PROCEDURE additions IS
+    l_h NUMBER := co('RYD-HQ'); l_a NUMBER := co('RYD-TRD'); l_b NUMBER := co('RYD-CON');
+    l_s NUMBER; l_v NUMBER; l_u NUMBER; l_job NUMBER; l_p NUMBER; l_g NUMBER; l_bg NUMBER; l_m NUMBER; l_q NUMBER;
+  BEGIN
+    login('RYD_ADMIN');
+    NOONA_SECURITY_PKG.switch_company(l_h);
+    -- الاستثمار في التابعات
+    SELECT COUNT(*) INTO l_q FROM gl_account WHERE coa_id = NOONA_GL_PKG.primary_coa AND account_code = '1250';
+    IF l_q = 0 THEN
+      l_q := NOONA_GL_PKG.add_account(NOONA_GL_PKG.primary_coa, '1250', 'استثمارات في شركات تابعة', '12', 'ASSET', 'Y', NULL);
+      jv('استثمار في الريادة للتجارة (80%)', '[{"a":"1250","d":450000},{"a":"1102","c":450000}]');
+      jv('استثمار في الريادة للمقاولات (100%)', '[{"a":"1250","d":400000},{"a":"1102","c":400000}]');
+      approve_all;
+      NOONA_SECURITY_PKG.switch_company(l_h);
+      SELECT id, business_group_id INTO l_g, l_bg FROM gl_consolidation_group WHERE code = 'CONS-RYD';
+      l_g := NOONA_CONSOL_PKG.save_group(l_g, 'CONS-RYD', 'القوائم الموحدة لمجموعة الريادة', l_bg, 'SAR', '4190, 5290', '1250', 'RYD-TRD:80');
+      l_q := NOONA_CONSOL_PKG.approve(l_g, TRUNC(l_d, 'YYYY'), l_d);
+      COMMIT;
+    END IF;
+    -- الهيكل التنظيمي للقابضة
+    SELECT COUNT(*) INTO l_q FROM org_structure WHERE company_id = l_h AND code = 'ORG-HQ';
+    IF l_q = 0 THEN
+      l_s := NOONA_ORG_PKG.create_structure(l_h, 'ORG-HQ', 'الهيكل الإداري للشركة القابضة', 'Holding structure');
+      l_v := NOONA_ORG_PKG.new_version(l_s, 'الإصدار الأول');
+      l_u := NOONA_ORG_PKG.add_unit(l_v, 'BOARD', 'مجلس الإدارة', 'EXECUTIVE');
+      l_u := NOONA_ORG_PKG.add_unit(l_v, 'CEO', 'الرئيس التنفيذي', 'EXECUTIVE', 'BOARD');
+      l_u := NOONA_ORG_PKG.add_unit(l_v, 'FIN', 'الإدارة المالية', 'DEPARTMENT', 'CEO');
+      l_u := NOONA_ORG_PKG.add_unit(l_v, 'ACC', 'قسم المحاسبة', 'SECTION', 'FIN');
+      l_u := NOONA_ORG_PKG.add_unit(l_v, 'ADM', 'الشؤون الإدارية', 'DEPARTMENT', 'CEO');
+      l_u := NOONA_ORG_PKG.add_unit(l_v, 'ARC', 'الأرشيف والاتصالات الإدارية', 'SECTION', 'ADM');
+      NOONA_ORG_PKG.activate_version(l_v);
+      SELECT MAX(id) INTO l_job FROM org_job WHERE code = 'ACCT';
+      IF l_job IS NULL THEN
+        INSERT INTO org_job (code, name_ar, status_code) VALUES ('ACCT', 'محاسب', 'ACTIVE') RETURNING id INTO l_job;
+      END IF;
+      SELECT MAX(id) INTO l_u FROM org_unit WHERE structure_version_id = l_v AND code = 'FIN';
+      l_p := NOONA_ORG_PKG.create_position(l_u, l_job, 'POS-FIN-MGR', 'المدير المالي', 'Y');
+      SELECT MAX(id) INTO l_u FROM org_unit WHERE structure_version_id = l_v AND code = 'ACC';
+      l_p := NOONA_ORG_PKG.create_position(l_u, l_job, 'POS-ACC-HEAD', 'رئيس قسم المحاسبة', 'Y', l_p);
+      COMMIT;
+    END IF;
+    -- الأرشيف: التجهيز وأرشفة السجل التجاري (أصل ورقي)
+    SELECT COUNT(*) INTO l_q FROM dms_document WHERE company_id = l_h AND external_ref = 'CR-1010778899';
+    IF l_q = 0 THEN
+      l_q := NOONA_DMS_PKG.quick_setup;
+      l_q := NOONA_DMS_PKG.archive_document(NULL, NULL, 'COMMERCIAL_REGISTER', 'السجل التجاري - شركة الريادة القابضة',
+               'CR-1010778899', 'خزنة الإدارة - ملف 1', ADD_MONTHS(l_d, -6), 'الأصل الورقي للسجل التجاري',
+               p_valid_from => ADD_MONTHS(l_d, -6), p_valid_to => ADD_MONTHS(l_d, 18));
+      COMMIT;
+    END IF;
+    -- المراسلات: مذكرة داخلية من المسؤول إلى المحاسب
+    SELECT MAX(m.id) INTO l_m FROM sec_user_membership m JOIN sec_user u ON u.id = m.user_id WHERE u.username = 'RYD_FIN';
+    SELECT COUNT(*) INTO l_q FROM cor_correspondence WHERE subject = 'إقفال حسابات الشهر في شركات المجموعة';
+    IF l_q = 0 AND l_m IS NOT NULL THEN
+      l_q := NOONA_COR_PKG.send('{"kind":"INTERNAL","to":[{"k":"U","id":' || l_m || '}],"subject":"إقفال حسابات الشهر في شركات المجموعة",'
+          || '"body":"نأمل مراجعة قيود الشركات الثلاث واعتمادها، ثم إصدار القوائم الموحدة واعتماد التجميع للفترة.","priority":"HIGH"}');
+      COMMIT;
+    END IF;
+  END additions;
 BEGIN
   SELECT MAX(id) INTO l_t FROM plt_tenant WHERE tenant_code = 'RYD';
   login('PLATFORM');
@@ -48,8 +122,9 @@ BEGIN
     SELECT MAX(m.id) INTO l_mem FROM sec_user_membership m JOIN sec_user u ON u.id = m.user_id WHERE u.username = 'RYD_FIN';
     IF l_mem IS NOT NULL THEN NOONA_SEC_ADMIN_PKG.set_password(l_mem, c_pwd); END IF;
     COMMIT;
+    additions;
     NOONA_APEX_PKG.cleanup_request;
-    DBMS_OUTPUT.PUT_LINE('EXISTS: مجموعة الريادة موجودة؛ أعيد تعيين كلمة المرور لـ RYD_ADMIN و RYD_FIN');
+    DBMS_OUTPUT.PUT_LINE('EXISTS: مجموعة الريادة موجودة؛ أعيد تعيين كلمة المرور لـ RYD_ADMIN و RYD_FIN وأضيف ما ينقص');
     RETURN;
   END IF;
 
@@ -117,13 +192,7 @@ BEGIN
   jv('رأس مال الريادة للمقاولات', '[{"a":"1102","d":400000},{"a":"3101","c":400000}]');
   jv('إيراد مستخلص مشروع', '[{"a":"1102","d":120000},{"a":"4101","c":120000}]');
   jv('مصروفات تشغيل', '[{"a":"5202","d":55000},{"a":"1102","c":55000}]');
-  COMMIT;
-  login('RYD_FIN');
-  FOR i IN 1 .. g_j.COUNT LOOP
-    NOONA_SECURITY_PKG.switch_company(g_jc(i));
-    NOONA_GL_PKG.approve_journal(g_j(i), 'مطابق للمستندات');
-  END LOOP;
-  COMMIT;
+  approve_all;
 
   -- 6) التجميع: مجموعة CONS-RYD ثم اعتماد الفترة
   login('RYD_ADMIN');
@@ -131,6 +200,7 @@ BEGIN
   l_grp := NOONA_CONSOL_PKG.save_group(NULL, 'CONS-RYD', 'القوائم الموحدة لمجموعة الريادة', l_bg, 'SAR', '4190, 5290');
   l_x := NOONA_CONSOL_PKG.approve(l_grp, TRUNC(l_d, 'YYYY'), l_d);
   COMMIT;
+  additions;
   NOONA_APEX_PKG.cleanup_request;
   DBMS_OUTPUT.PUT_LINE('DONE: مجموعة الريادة جاهزة - RYD_ADMIN (مسؤول المؤسسة) و RYD_FIN (المحاسب)');
 EXCEPTION WHEN OTHERS THEN

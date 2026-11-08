@@ -11,7 +11,7 @@ DECLARE
   g_fail PLS_INTEGER := 0;
   l_sfx  VARCHAR2(10) := TO_CHAR(MOD(ABS(DBMS_RANDOM.RANDOM), 90000) + 10000);
   l_bg NUMBER; l_h NUMBER; l_a NUMBER; l_b NUMBER; l_grp NUMBER; l_n NUMBER; l_x NUMBER;
-  l_lh NUMBER; l_la NUMBER; l_lb NUMBER;
+  l_lh NUMBER; l_la NUMBER; l_lb NUMBER; l_cc NUMBER; l_lc NUMBER; l_rt NUMBER;
   l_c  CLOB;
   l_s  VARCHAR2(4000);
   l_d  DATE := TRUNC(SYSDATE);
@@ -131,6 +131,51 @@ BEGIN
   l_x := NOONA_CONSOL_PKG.approve(l_grp, TRUNC(l_d, 'YYYY'), l_d);
   SELECT status_code INTO l_s FROM gl_consolidation_run WHERE id = l_x;
   ok('balanced consolidation approved and saved', l_s = 'APPROVED', l_s);
+
+  -- الاستثمار في التابعات وحقوق الأقلية وترجمة العملة:
+  --   القابضة تستثمر 60,000 في التابعة ب (ملكية 80%) و37,500 في تابعة بالدولار (ملكية 100%)
+  l_cc := NOONA_PLATFORM_PKG.create_company('SC' || l_sfx, 'التابعة ج بالدولار', 'Sub C USD', 'US', 'USD', l_bg);
+  NOONA_SECURITY_PKG.switch_company(l_cc);
+  l_lc := NOONA_GL_PKG.quick_setup(l_cc, 'OWN');
+  jv('رأس مال التابعة ج', '[{"a":"1102","d":10000},{"a":"3101","c":10000}]');
+  jv('مبيعات التابعة ج', '[{"a":"1102","d":2000},{"a":"4101","c":2000}]');
+  NOONA_SECURITY_PKG.switch_company(l_h);
+  l_x := NOONA_GL_PKG.add_account(NOONA_GL_PKG.primary_coa, '1250', 'استثمارات في شركات تابعة', '12', 'ASSET', 'Y', NULL);
+  jv('استثمار في التابعة ب', '[{"a":"1250","d":60000},{"a":"1102","c":60000}]');
+  jv('استثمار في التابعة ج', '[{"a":"1250","d":37500},{"a":"1102","c":37500}]');
+  approve_all(l_h);
+  -- سعر الدولار في القابضة: 3.70 من أول السنة و3.75 اليوم (الإقفال)
+  SELECT MIN(id) INTO l_rt FROM ref_rate_type WHERE code = 'ACCOUNTING';
+  DELETE FROM ref_exchange_rate WHERE company_id = l_h AND rate_type_id = l_rt
+     AND ((from_currency = 'USD' AND to_currency = 'SAR') OR (from_currency = 'SAR' AND to_currency = 'USD'));
+  INSERT INTO ref_exchange_rate (company_id, rate_type_id, from_currency, to_currency, rate_date, effective_at, rate, inverse_rate, source_code, status_code, approved_by)
+  VALUES (l_h, l_rt, 'USD', 'SAR', TRUNC(l_d, 'YYYY'), CAST(TRUNC(l_d, 'YYYY') AS TIMESTAMP), 3.70, ROUND(1 / 3.70, 10), 'MANUAL', 'APPROVED', 'ADMIN');
+  INSERT INTO ref_exchange_rate (company_id, rate_type_id, from_currency, to_currency, rate_date, effective_at, rate, inverse_rate, source_code, status_code, approved_by)
+  VALUES (l_h, l_rt, 'USD', 'SAR', l_d, CAST(l_d AS TIMESTAMP), 3.75, ROUND(1 / 3.75, 10), 'MANUAL', 'APPROVED', 'ADMIN');
+  BEGIN l_x := NOONA_CONSOL_PKG.save_group(l_grp, 'CG' || l_sfx, 'تجميع مجموعة الاختبار', l_bg, 'SAR', '4190, 5290', NULL, 'SB' || l_sfx || ':80');
+    ok('minority interest needs an investment account', FALSE);
+  EXCEPTION WHEN OTHERS THEN expect('minority interest needs an investment account', 'NOONA-CNS-016', SQLERRM); END;
+  BEGIN l_x := NOONA_CONSOL_PKG.save_group(l_grp, 'CG' || l_sfx, 'تجميع مجموعة الاختبار', l_bg, 'SAR', '4190, 5290', '1250', 'SB' || l_sfx || ':120');
+    ok('ownership above 100% rejected', FALSE);
+  EXCEPTION WHEN OTHERS THEN expect('ownership above 100% rejected', 'NOONA-CNS-015', SQLERRM); END;
+  l_x := NOONA_CONSOL_PKG.save_group(l_grp, 'CG' || l_sfx, 'تجميع مجموعة الاختبار', l_bg, 'SAR', '4190, 5290', '1250', 'sb' || l_sfx || ': 80');
+  ok('investment account and ownership saved', NOONA_CONSOL_PKG.invest_accounts(l_grp) = '1250'
+     AND NOONA_CONSOL_PKG.ownership_text(l_grp) = 'SB' || l_sfx || ':80', NOONA_CONSOL_PKG.invest_accounts(l_grp) || ' ' || NOONA_CONSOL_PKG.ownership_text(l_grp));
+  l_c := NOONA_CONSOL_PKG.report(l_grp, 'BS', NULL, l_d);
+  ok('goodwill 20,000 = investment 97,500 - 80% x 50,000 - 100% x 37,500', has(l_c, 'الشهرة') AND has(l_c, '>20,000.00</td>'));
+  ok('minority interest 8,000 = 20% x (50,000 - 10,000)', has(l_c, 'حقوق الأقلية (غير المسيطرة)') AND has(l_c, '>8,000.00</td>'));
+  ok('USD subsidiary translated: cash 12,000 x 3.75 and translation difference 90.91',
+     has(l_c, '>45,000.00</td>') AND has(l_c, 'فروق ترجمة العملات الأجنبية') AND has(l_c, '>90.91</td>'));
+  ok('consolidated cash 1,067,500 and balanced with investment eliminated',
+     has(l_c, '>1,067,500.00</td>') AND has(l_c, 'is-ok') AND NOT has(l_c, 'is-bad'), DBMS_LOB.SUBSTR(l_c, 400, DBMS_LOB.GETLENGTH(l_c) - 1200));
+  l_c := NOONA_CONSOL_PKG.report(l_grp, 'IS', TRUNC(l_d, 'YYYY'), l_d);
+  ok('income: USD sales at average rate, minority share of loss, profit to holding 79,409.09',
+     has(l_c, '>7,409.09</td>') AND has(l_c, 'حصة حقوق الأقلية') AND has(l_c, '>2,000.00</td>') AND has(l_c, '>79,409.09</td>'),
+     DBMS_LOB.SUBSTR(l_c, 500, DBMS_LOB.GETLENGTH(l_c) - 1300));
+  l_c := NOONA_CONSOL_PKG.report(l_grp, 'TB', TRUNC(l_d, 'YYYY'), l_d, 'N');
+  ok('trial balance with translation difference still balanced', has(l_c, 'الميزان الموحد متوازن') AND has(l_c, 'فروق ترجمة العملات الأجنبية'));
+  l_x := NOONA_CONSOL_PKG.approve(l_grp, TRUNC(l_d, 'YYYY'), l_d);
+  ok('consolidation with investment and minority approved', l_x IS NOT NULL);
 
   -- فرق متعمد: رصيد بين الشركات من طرف واحد
   jv('تحويل للتابعة أ لم يسجل عندها', '[{"a":"1190","d":5000},{"a":"1102","c":5000}]');
