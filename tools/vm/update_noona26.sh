@@ -8,6 +8,7 @@
 #            ← استيراد التطبيقات الخمسة عشر ← حزمة APEX العربية إن لم تثبت ← فحص المساعد المحلي وتشغيله (Ollama) إن كان مثبتاً
 #   السجل: /var/log/noona26_update.log
 # =============================================================================
+export PATH="$PATH:/usr/local/bin:/usr/bin"
 set -o pipefail
 umask 077
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
@@ -86,7 +87,7 @@ fi
 
 # ----------------------------------------------------------------------------- 5) الذكاء الاصطناعي
 step "5/6 الذكاء الاصطناعي"
-if command -v ollama >/dev/null 2>&1; then
+if command -v ollama >/dev/null 2>&1 || systemctl list-unit-files ollama.service >/dev/null 2>&1; then
   systemctl enable -q ollama 2>/dev/null; systemctl is-active -q ollama || systemctl start ollama
   bash "$ROOT/tools/vm/fix_ai.sh" 2>&1 | tee -a "$LOG"
 else
