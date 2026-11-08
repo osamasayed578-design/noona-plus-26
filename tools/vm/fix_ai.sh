@@ -23,6 +23,22 @@ Q() { printf 'CONNECT / AS SYSDBA\nALTER SESSION SET CONTAINER=%s;\nSET HEADING 
   | su - oracle -c ". ~/.noona_env; export NLS_LANG=AMERICAN_AMERICA.AL32UTF8; sqlplus -S -L /nolog" 2>&1 | grep -v '^$\|^Session altered\|^Connected'; }
 APX=$(Q "SELECT schema FROM dba_registry WHERE comp_id = 'APEX';" | tr -d ' ')
 
+# ----------------------------------------------------------------------------- 0) لماذا يختفي «اسأل نونا» والملخص
+# يظهران فقط إذا: برنامج المساعد صالح، وموديول AI مفعل في اشتراك المؤسسة وساري اليوم، وإعداد المؤسسة مفعل بنموذج وخدمة
+h "0) شروط ظهور «اسأل نونا» والملخص التنفيذي"
+Q "SELECT '  برنامج المساعد '||object_type||': '||DECODE(status,'VALID','صالح','غير صالح') FROM dba_objects
+    WHERE owner = 'NOONA_OWNER' AND object_name = 'NOONA_AI_PKG' ORDER BY object_type;"
+Q "SELECT '  خطأ في '||name||' سطر '||line||': '||SUBSTR(text,1,160) FROM dba_errors WHERE owner = 'NOONA_OWNER' AND name LIKE 'NOONA_AI%' AND ROWNUM <= 8;"
+Q "SELECT '  مؤسسة '||t.id||' ('||t.name_ar||'): موديول AI '||
+          NVL((SELECT MAX(CASE WHEN e.is_enabled = 'Y' AND TRUNC(SYSDATE) BETWEEN e.effective_from AND NVL(e.effective_to, DATE '9999-12-31')
+                               THEN 'مفعل' ELSE 'غير مفعل أو منتهي ('||TO_CHAR(e.effective_to,'YYYY-MM-DD')||')' END)
+                 FROM noona_owner.plt_entitlement e JOIN noona_owner.plt_module m ON m.id = e.module_id
+                WHERE e.tenant_id = t.id AND m.module_code = 'AI' AND e.feature_id IS NULL), 'مفعل (لا قيود في الاشتراك)')
+          ||' · المساعد '||NVL((SELECT DECODE(s.is_enabled,'Y','مفعل','معطل')||' · النموذج '||NVL(m.model_identifier,'-')||' · الخدمة '||NVL(p.endpoint_ref,'-')
+                 FROM noona_owner.ai_tenant_setting s LEFT JOIN noona_owner.ai_model m ON m.id = s.chat_model_id
+                 LEFT JOIN noona_owner.ai_provider p ON p.id = m.provider_id WHERE s.tenant_id = t.id AND ROWNUM = 1), 'غير معد')
+     FROM noona_owner.plt_tenant t ORDER BY t.id;"
+
 # ----------------------------------------------------------------------------- 1) الخدمة في APEX
 h "1) خدمة الذكاء الاصطناعي في APEX"
 ROW=$(Q "SELECT NVL(TO_CHAR(server_timeout),'-')||' '||NVL(ai_model_name,'-')||' '||base_url FROM $APX.wwv_remote_servers WHERE static_id = 'NOONA_AI_LOCAL';")
@@ -78,6 +94,13 @@ OUT=$(Q "ALTER SESSION SET CURRENT_SCHEMA = NOONA_OWNER;
 @$T
 SELECT 'STATUS '||status FROM dba_objects WHERE owner = 'NOONA_OWNER' AND object_name = 'NOONA_AI_PKG' AND object_type = 'PACKAGE BODY';"); rm -f "$T"
 echo "$OUT" | grep -q "STATUS VALID" && ok "تم تحديث برنامج المساعد" || { bad "تعذر التحديث:"; echo "$OUT" | grep -i "ORA-\|PLS-\|STATUS" | head -5; }
+# إعادة ترجمة ما أبطله التحديث، ثم عرض أي كائن غير صالح بسبب خطئه
+Q "EXEC DBMS_UTILITY.COMPILE_SCHEMA('NOONA_OWNER', FALSE)" >/dev/null
+INVL=$(Q "SELECT '  '||o.object_name||' '||o.object_type||': '||NVL((SELECT SUBSTR(MIN(e.text),1,140) FROM dba_errors e
+              WHERE e.owner = o.owner AND e.name = o.object_name AND e.type = o.object_type), '')
+            FROM dba_objects o WHERE o.owner IN ('NOONA_OWNER','NOONA_APP') AND o.status <> 'VALID';")
+if [ -z "$INVL" ]; then ok "كل كائنات نونا صالحة"
+else bad "كائنات غير صالحة (قاعدة أقدم من الملفات؟ شغّل: RUN_UPGRADES=1 bash tools/vm/setup_noona26_ol.sh):"; echo "$INVL" | head -15; fi
 
 h "التالي"
 echo "  جرّب «اسأل نونا» الآن. إن ظهر خطأ فستذكر الرسالة سببه بالتحديد؛ أرسلها لي مع ناتج هذا السكربت."
