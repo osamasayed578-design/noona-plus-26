@@ -22,7 +22,7 @@ wwv_flow_imp_page.create_page(
 ,p_protection_level=>'C'
 );
 wwv_flow_imp_page.create_page_plug(
- p_id=>wwv_flow_imp.id(91820266000000408)
+ p_id=>wwv_flow_imp.id(91820266000000411)
 ,p_plug_name=>'معايير التقرير'
 ,p_region_template_options=>'#DEFAULT#'
 ,p_plug_template=>4072358936313175081
@@ -33,10 +33,10 @@ wwv_flow_imp_page.create_page_plug(
   'show_line_breaks', 'Y')).to_clob
 );
 wwv_flow_imp_page.create_page_item(
- p_id=>wwv_flow_imp.id(91820266000000409)
+ p_id=>wwv_flow_imp.id(91820266000000412)
 ,p_name=>'P51_YEARS'
 ,p_item_sequence=>10
-,p_item_plug_id=>wwv_flow_imp.id(91820266000000408)
+,p_item_plug_id=>wwv_flow_imp.id(91820266000000411)
 ,p_prompt=>'عدد السنوات'
 ,p_display_as=>'NATIVE_SELECT_LIST'
 ,p_lov=>'STATIC2:سنتان;2,3 سنوات;3,4 سنوات;4,5 سنوات;5,6 سنوات;6'
@@ -48,10 +48,10 @@ wwv_flow_imp_page.create_page_item(
   'page_action_on_selection', 'NONE')).to_clob
 );
 wwv_flow_imp_page.create_page_item(
- p_id=>wwv_flow_imp.id(91820266000000410)
+ p_id=>wwv_flow_imp.id(91820266000000413)
 ,p_name=>'P51_SAME'
 ,p_item_sequence=>20
-,p_item_plug_id=>wwv_flow_imp.id(91820266000000408)
+,p_item_plug_id=>wwv_flow_imp.id(91820266000000411)
 ,p_prompt=>'المقارنة'
 ,p_display_as=>'NATIVE_SELECT_LIST'
 ,p_lov=>'STATIC2:السنة كاملة (والحالية حتى تاريخه);N,الفترة نفسها من كل سنة (من يناير حتى اليوم);Y'
@@ -64,9 +64,9 @@ wwv_flow_imp_page.create_page_item(
   'page_action_on_selection', 'NONE')).to_clob
 );
 wwv_flow_imp_page.create_page_button(
- p_id=>wwv_flow_imp.id(91820266000000411)
+ p_id=>wwv_flow_imp.id(91820266000000414)
 ,p_button_sequence=>10
-,p_button_plug_id=>wwv_flow_imp.id(91820266000000408)
+,p_button_plug_id=>wwv_flow_imp.id(91820266000000411)
 ,p_button_name=>'RUN'
 ,p_button_action=>'SUBMIT'
 ,p_button_template_options=>'#DEFAULT#'
@@ -76,9 +76,9 @@ wwv_flow_imp_page.create_page_button(
 ,p_button_position=>'NEXT'
 );
 wwv_flow_imp_page.create_page_button(
- p_id=>wwv_flow_imp.id(91820266000000412)
+ p_id=>wwv_flow_imp.id(91820266000000415)
 ,p_button_sequence=>20
-,p_button_plug_id=>wwv_flow_imp.id(91820266000000408)
+,p_button_plug_id=>wwv_flow_imp.id(91820266000000411)
 ,p_button_name=>'PRINT'
 ,p_button_action=>'REDIRECT_URL'
 ,p_button_template_options=>'#DEFAULT#'
@@ -88,7 +88,7 @@ wwv_flow_imp_page.create_page_button(
 ,p_button_redirect_url=>'javascript:window.print();'
 );
 wwv_flow_imp_page.create_page_process(
- p_id=>wwv_flow_imp.id(91820266000000413)
+ p_id=>wwv_flow_imp.id(91820266000000416)
 ,p_process_sequence=>10
 ,p_process_point=>'BEFORE_HEADER'
 ,p_process_type=>'NATIVE_PLSQL'
@@ -98,10 +98,10 @@ wwv_flow_imp_page.create_page_process(
 ':P51_SAME := nvl(:P51_SAME, ''N'');'))
 ,p_process_clob_language=>'PLSQL'
 ,p_error_display_location=>'INLINE_IN_NOTIFICATION'
-,p_internal_uid=>91820266000000413
+,p_internal_uid=>91820266000000416
 );
 wwv_flow_imp_page.create_page_plug(
- p_id=>wwv_flow_imp.id(91820266000000414)
+ p_id=>wwv_flow_imp.id(91820266000000417)
 ,p_plug_name=>'قائمة الدخل لعدة سنوات'
 ,p_region_template_options=>'#DEFAULT#:t-Region--scrollBody:nn-print-area:t-Region--removeHeader js-removeLandmark:t-Region--noUI'
 ,p_plug_template=>4072358936313175081

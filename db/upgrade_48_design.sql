@@ -3,6 +3,7 @@
 --   * NOONA_BRAND_PKG: ترويسة بالشعار والفرع والعنوان والهاتف والجوال والبريد والسجل التجاري والرقم الضريبي،
 --     وتذييل المستندات بخانات التوقيع وختم الشركة وسطر الاتصال؛ حفظ عنوان الشركة والفرع ووسائل اتصالهما
 --   * فاتورة المبيعات والمشتريات بالترويسة الجديدة (بيانات الفرع) والتذييل
+--   * الشركة القابضة: دليل حسابات خاص بكل شركة أو دليل المجموعة الموحد، والقوائم المالية الموحدة (NOONA_CONSOL_PKG)
 --   * التصميم الجديد (الترويسة بتدرج، القائمة الداكنة، الأرقام الرقمية، اختيار المظهر) في ملفات التطبيقات: أعد استيرادها
 --   sqlplus NOONA_OWNER@//host:1521/PDB @upgrade_48_design.sql
 -- =============================================================================
@@ -22,6 +23,9 @@ END;
 /
 WHENEVER SQLERROR CONTINUE
 @@plsql/89_noona_brand_pkg.sql
+@@plsql/100_noona_gl_pkg.sql
+@@plsql/136_noona_consol_pkg.sql
+GRANT EXECUTE ON NOONA_CONSOL_PKG TO NOONA_APP;
 @@plsql/105_noona_pur_pkg.sql
 @@plsql/106_noona_sal_pkg.sql
 EXEC DBMS_UTILITY.COMPILE_SCHEMA(USER, FALSE)

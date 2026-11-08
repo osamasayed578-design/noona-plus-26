@@ -12,7 +12,10 @@ CREATE OR REPLACE PACKAGE NOONA_GL_PKG AUTHID DEFINER AS
 
   -- ---------------------------------------------------------- التجهيز
   -- دليل حسابات قياسي ودفتر رئيسي بعملة الشركة وفترات السنة المفتوحة مفتوحة؛ يعيد رقم الدفتر (Idempotent)
-  FUNCTION quick_setup(p_company_id IN NUMBER DEFAULT NULL) RETURN NUMBER;
+  -- p_coa_mode: OWN دليل حسابات خاص بالشركة | GROUP دليل المجموعة الموحد (تشترك فيه كل شركات مجموعة الأعمال؛ ينشأ مع أول شركة)
+  FUNCTION quick_setup(p_company_id IN NUMBER DEFAULT NULL, p_coa_mode IN VARCHAR2 DEFAULT 'OWN') RETURN NUMBER;
+  -- نوع دليل الشركة: OWN أو GROUP (ومعه اسم الدليل)
+  FUNCTION coa_mode(p_company_id IN NUMBER DEFAULT NULL) RETURN VARCHAR2;
   FUNCTION add_account(p_coa_id IN NUMBER, p_code IN VARCHAR2, p_name_ar IN VARCHAR2, p_parent_code IN VARCHAR2,
                        p_type IN VARCHAR2 DEFAULT NULL, p_postable IN VARCHAR2 DEFAULT 'Y',
                        p_subledger IN VARCHAR2 DEFAULT NULL, p_normal IN VARCHAR2 DEFAULT NULL) RETURN NUMBER;
@@ -367,7 +370,15 @@ CREATE OR REPLACE PACKAGE BODY NOONA_GL_PKG AS
     NOONA_AUDIT_PKG.log_event('CONFIG', 'GL_ACCOUNT', p_account_id, 'STATUS_' || p_status, 'SUCCESS');
   END set_account_status;
 
-  FUNCTION quick_setup(p_company_id IN NUMBER DEFAULT NULL) RETURN NUMBER IS
+  FUNCTION coa_mode(p_company_id IN NUMBER DEFAULT NULL) RETURN VARCHAR2 IS
+    l VARCHAR2(20);
+  BEGIN
+    SELECT MAX(CASE WHEN c.owner_level = 'BUSINESS_GROUP' THEN 'GROUP' ELSE 'OWN' END) INTO l
+      FROM gl_ledger g JOIN gl_chart_of_accounts c ON c.id = g.coa_id WHERE g.id = primary_ledger(p_company_id);
+    RETURN l;
+  END coa_mode;
+
+  FUNCTION quick_setup(p_company_id IN NUMBER DEFAULT NULL, p_coa_mode IN VARCHAR2 DEFAULT 'OWN') RETURN NUMBER IS
     l_co     org_company%ROWTYPE;
     l_coa    NUMBER;
     l_ledger NUMBER := primary_ledger(p_company_id);
@@ -386,12 +397,32 @@ CREATE OR REPLACE PACKAGE BODY NOONA_GL_PKG AS
     guard('GL_LEDGER.CREATE');
     SELECT * INTO l_co FROM org_company WHERE id = NVL(p_company_id, company);
     IF l_ledger IS NULL THEN
-      SELECT MIN(id) INTO l_coa FROM gl_chart_of_accounts WHERE company_id = l_co.id AND status_code IN ('DRAFT', 'ACTIVE');
+      NOONA_CORE_PKG.assert(NVL(p_coa_mode, 'OWN') IN ('OWN', 'GROUP'), 'NOONA-GL-060', 'نوع الدليل غير صالح', 'Invalid chart mode');
+      IF NVL(p_coa_mode, 'OWN') = 'GROUP' THEN
+        -- دليل المجموعة الموحد: الشركة يجب أن تتبع مجموعة أعمال (الشركة القابضة)
+        NOONA_CORE_PKG.assert(l_co.business_group_id IS NOT NULL, 'NOONA-GL-061',
+          'الشركة لا تتبع مجموعة أعمال؛ اربطها بالشركة القابضة من إدارة المؤسسة أو اختر دليلاً خاصاً بها',
+          'The company has no business group');
+        SELECT MIN(id) INTO l_coa FROM gl_chart_of_accounts
+         WHERE owner_level = 'BUSINESS_GROUP' AND business_group_id = l_co.business_group_id AND status_code IN ('DRAFT', 'ACTIVE');
+      ELSE
+        SELECT MIN(id) INTO l_coa FROM gl_chart_of_accounts WHERE company_id = l_co.id AND status_code IN ('DRAFT', 'ACTIVE');
+      END IF;
       IF l_coa IS NULL THEN
-        INSERT INTO gl_chart_of_accounts (code, name_ar, name_en, owner_level, company_id, is_template, segment_separator, status_code)
-        VALUES ('COA-' || l_co.code, 'دليل حسابات ' || NVL(l_co.trade_name_ar, l_co.legal_name_ar), 'Chart of accounts',
-                'COMPANY', l_co.id, 'N', '.', 'ACTIVE')
-        RETURNING id INTO l_coa;
+        IF NVL(p_coa_mode, 'OWN') = 'GROUP' THEN
+          DECLARE l_bg org_business_group%ROWTYPE; BEGIN
+            SELECT * INTO l_bg FROM org_business_group WHERE id = l_co.business_group_id;
+            INSERT INTO gl_chart_of_accounts (code, name_ar, name_en, owner_level, business_group_id, is_template, segment_separator, status_code)
+            VALUES ('COA-GRP-' || l_bg.code, 'دليل حسابات المجموعة - ' || l_bg.name_ar, 'Group chart of accounts', 'BUSINESS_GROUP',
+                    l_bg.id, 'N', '.', 'ACTIVE')
+            RETURNING id INTO l_coa;
+          END;
+        ELSE
+          INSERT INTO gl_chart_of_accounts (code, name_ar, name_en, owner_level, company_id, is_template, segment_separator, status_code)
+          VALUES ('COA-' || l_co.code, 'دليل حسابات ' || NVL(l_co.trade_name_ar, l_co.legal_name_ar), 'Chart of accounts',
+                  'COMPANY', l_co.id, 'N', '.', 'ACTIVE')
+          RETURNING id INTO l_coa;
+        END IF;
         FOR i IN 1 .. l_chart.COUNT LOOP
           l_id := add_account(l_coa, l_chart(i).code, l_chart(i).name, l_chart(i).parent, l_chart(i).typ,
                               l_chart(i).postable, l_chart(i).sub, l_chart(i).normal);

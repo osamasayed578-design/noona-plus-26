@@ -12,7 +12,7 @@ wwv_flow_imp.component_begin (
 ,p_default_owner=>'NOONA_APP'
 );
 wwv_flow_imp_shared.create_security_scheme(
- p_id=>wwv_flow_imp.id(91820266000000523)
+ p_id=>wwv_flow_imp.id(91820266000000529)
 ,p_name=>'NOONA - Fixed Assets'
 ,p_scheme_type=>'NATIVE_FUNCTION_BODY'
 ,p_attribute_01=>'return noona_security_pkg.has_permission(''FA_ASSET.VIEW'', noona_fa_pkg.company) = ''Y'';'

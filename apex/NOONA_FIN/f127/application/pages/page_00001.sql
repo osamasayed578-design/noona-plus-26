@@ -46,8 +46,54 @@ wwv_flow_imp_page.create_page_plug(
   'output_as', 'HTML',
   'show_line_breaks', 'Y')).to_clob
 );
-wwv_flow_imp_page.create_page_button(
+wwv_flow_imp_page.create_page_item(
  p_id=>wwv_flow_imp.id(91820266000000011)
+,p_name=>'P1_COA_MODE'
+,p_item_sequence=>10
+,p_item_plug_id=>wwv_flow_imp.id(91820266000000010)
+,p_prompt=>'دليل الحسابات'
+,p_display_as=>'NATIVE_SELECT_LIST'
+,p_lov=>'STATIC2:دليل حسابات خاص بالشركة (حساباتها على حدة);OWN,دليل المجموعة الموحد (كل شركات المجموعة على دليل واحد);GROUP'
+,p_cHeight=>1
+,p_lov_display_extra=>'NO'
+,p_field_template=>1609121967514267634
+,p_item_template_options=>'#DEFAULT#'
+,p_attributes=>wwv_flow_t_plugin_attributes(wwv_flow_t_varchar2(
+  'page_action_on_selection', 'NONE')).to_clob
+);
+wwv_flow_imp_page.create_page_item(
+ p_id=>wwv_flow_imp.id(91820266000000012)
+,p_name=>'P1_COA_HINT'
+,p_item_sequence=>20
+,p_item_plug_id=>wwv_flow_imp.id(91820266000000010)
+,p_prompt=>'ملاحظة'
+,p_display_as=>'NATIVE_DISPLAY_ONLY'
+,p_begin_on_new_line=>'N'
+,p_field_template=>1609121967514267634
+,p_item_template_options=>'#DEFAULT#'
+,p_attributes=>wwv_flow_t_plugin_attributes(wwv_flow_t_varchar2(
+  'based_on', 'VALUE',
+  'format', 'PLAIN',
+  'send_on_page_submit', 'Y',
+  'show_line_breaks', 'Y')).to_clob
+);
+wwv_flow_imp_page.create_page_process(
+ p_id=>wwv_flow_imp.id(91820266000000013)
+,p_process_sequence=>5
+,p_process_point=>'BEFORE_HEADER'
+,p_process_type=>'NATIVE_PLSQL'
+,p_process_name=>'Setup Hint'
+,p_process_sql_clob=>wwv_flow_string.join(wwv_flow_t_varchar2(
+'select case when max(business_group_id) is null',
+'            then ''الشركة لا تتبع مجموعة أعمال، فدليلها خاص بها. لاختيار دليل المجموعة الموحد اربطها بالشركة القابضة من إدارة المؤسسة.''',
+'            else ''الشركة تتبع مجموعة أعمال: اختر دليلاً خاصاً بها، أو دليل المجموعة الموحد لتتطابق حسابات كل الشركات في القوائم الموحدة.'' end',
+'  into :P1_COA_HINT from org_company where id = noona_gl_pkg.company;'))
+,p_process_clob_language=>'PLSQL'
+,p_error_display_location=>'INLINE_IN_NOTIFICATION'
+,p_internal_uid=>91820266000000013
+);
+wwv_flow_imp_page.create_page_button(
+ p_id=>wwv_flow_imp.id(91820266000000014)
 ,p_button_sequence=>10
 ,p_button_plug_id=>wwv_flow_imp.id(91820266000000010)
 ,p_button_name=>'SETUP'
@@ -59,7 +105,7 @@ wwv_flow_imp_page.create_page_button(
 ,p_button_position=>'NEXT'
 );
 wwv_flow_imp_page.create_page_process(
- p_id=>wwv_flow_imp.id(91820266000000012)
+ p_id=>wwv_flow_imp.id(91820266000000015)
 ,p_process_sequence=>10
 ,p_process_point=>'AFTER_SUBMIT'
 ,p_process_type=>'NATIVE_PLSQL'
@@ -67,16 +113,16 @@ wwv_flow_imp_page.create_page_process(
 ,p_process_sql_clob=>wwv_flow_string.join(wwv_flow_t_varchar2(
 'declare l_id number;',
 'begin',
-'    l_id := noona_gl_pkg.quick_setup;',
+'    l_id := noona_gl_pkg.quick_setup(null, nvl(:P1_COA_MODE, ''OWN''));',
 'end;'))
 ,p_process_clob_language=>'PLSQL'
 ,p_error_display_location=>'INLINE_IN_NOTIFICATION'
-,p_process_when_button_id=>wwv_flow_imp.id(91820266000000011)
+,p_process_when_button_id=>wwv_flow_imp.id(91820266000000014)
 ,p_process_success_message=>'تم تجهيز الأستاذ العام: دليل الحسابات والدفتر الرئيسي وفترات السنة المفتوحة'
-,p_internal_uid=>91820266000000012
+,p_internal_uid=>91820266000000015
 );
 wwv_flow_imp_page.create_page_plug(
- p_id=>wwv_flow_imp.id(91820266000000013)
+ p_id=>wwv_flow_imp.id(91820266000000016)
 ,p_plug_name=>'النقدية والبنوك'
 ,p_region_template_options=>'#DEFAULT#:t-Region--scrollBody:t-Region--removeHeader js-removeLandmark:t-Region--noUI'
 ,p_plug_template=>4072358936313175081
@@ -90,7 +136,7 @@ wwv_flow_imp_page.create_page_plug(
 ,p_plug_source_type=>'NATIVE_DYNAMIC_CONTENT'
 );
 wwv_flow_imp_page.create_page_plug(
- p_id=>wwv_flow_imp.id(91820266000000014)
+ p_id=>wwv_flow_imp.id(91820266000000017)
 ,p_plug_name=>'تجهيز النقدية'
 ,p_region_template_options=>'#DEFAULT#'
 ,p_plug_template=>4072358936313175081
@@ -104,9 +150,9 @@ wwv_flow_imp_page.create_page_plug(
   'show_line_breaks', 'Y')).to_clob
 );
 wwv_flow_imp_page.create_page_button(
- p_id=>wwv_flow_imp.id(91820266000000015)
+ p_id=>wwv_flow_imp.id(91820266000000018)
 ,p_button_sequence=>10
-,p_button_plug_id=>wwv_flow_imp.id(91820266000000014)
+,p_button_plug_id=>wwv_flow_imp.id(91820266000000017)
 ,p_button_name=>'CASH_SETUP'
 ,p_button_action=>'SUBMIT'
 ,p_button_template_options=>'#DEFAULT#'
@@ -116,7 +162,7 @@ wwv_flow_imp_page.create_page_button(
 ,p_button_position=>'NEXT'
 );
 wwv_flow_imp_page.create_page_process(
- p_id=>wwv_flow_imp.id(91820266000000016)
+ p_id=>wwv_flow_imp.id(91820266000000019)
 ,p_process_sequence=>20
 ,p_process_point=>'AFTER_SUBMIT'
 ,p_process_type=>'NATIVE_PLSQL'
@@ -128,12 +174,12 @@ wwv_flow_imp_page.create_page_process(
 'end;'))
 ,p_process_clob_language=>'PLSQL'
 ,p_error_display_location=>'INLINE_IN_NOTIFICATION'
-,p_process_when_button_id=>wwv_flow_imp.id(91820266000000015)
+,p_process_when_button_id=>wwv_flow_imp.id(91820266000000018)
 ,p_process_success_message=>'تم تجهيز النقدية: الصندوق الرئيسي وتسلسلات سندات القبض والصرف والمصروفات'
-,p_internal_uid=>91820266000000016
+,p_internal_uid=>91820266000000019
 );
 wwv_flow_imp_page.create_page_plug(
- p_id=>wwv_flow_imp.id(91820266000000017)
+ p_id=>wwv_flow_imp.id(91820266000000020)
 ,p_plug_name=>'آخر القيود'
 ,p_region_template_options=>'#DEFAULT#:t-Region--scrollBody'
 ,p_component_template_options=>'#DEFAULT#'
@@ -150,7 +196,7 @@ wwv_flow_imp_page.create_page_plug(
 ,p_prn_page_header=>'آخر القيود'
 );
 wwv_flow_imp_page.create_worksheet(
- p_id=>wwv_flow_imp.id(91820266000000018)
+ p_id=>wwv_flow_imp.id(91820266000000021)
 ,p_max_row_count=>'1000000'
 ,p_no_data_found_message=>'لا توجد بيانات'
 ,p_pagination_type=>'ROWS_X_TO_Y'
@@ -164,10 +210,10 @@ wwv_flow_imp_page.create_worksheet(
 ,p_detail_link=>'f?p=&APP_ID.:21:&SESSION.::&DEBUG.:RP,21:P21_ID:#ID#'
 ,p_detail_link_text=>'<span role="img" aria-label="تعديل" class="fa fa-edit" title="فتح"></span>'
 ,p_owner=>'NOONA'
-,p_internal_uid=>91820266000000018
+,p_internal_uid=>91820266000000021
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820266000000020)
+ p_id=>wwv_flow_imp.id(91820266000000023)
 ,p_db_column_name=>'ID'
 ,p_display_order=>10
 ,p_column_identifier=>'A'
@@ -178,7 +224,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820266000000021)
+ p_id=>wwv_flow_imp.id(91820266000000024)
 ,p_db_column_name=>'DOC_NO'
 ,p_display_order=>20
 ,p_column_identifier=>'B'
@@ -188,7 +234,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820266000000022)
+ p_id=>wwv_flow_imp.id(91820266000000025)
 ,p_db_column_name=>'DOC_DATE'
 ,p_display_order=>30
 ,p_column_identifier=>'C'
@@ -198,7 +244,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820266000000023)
+ p_id=>wwv_flow_imp.id(91820266000000026)
 ,p_db_column_name=>'JOURNAL_TYPE'
 ,p_display_order=>40
 ,p_column_identifier=>'D'
@@ -208,7 +254,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820266000000024)
+ p_id=>wwv_flow_imp.id(91820266000000027)
 ,p_db_column_name=>'DESCRIPTION'
 ,p_display_order=>50
 ,p_column_identifier=>'E'
@@ -218,7 +264,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820266000000025)
+ p_id=>wwv_flow_imp.id(91820266000000028)
 ,p_db_column_name=>'REFERENCE_NO'
 ,p_display_order=>60
 ,p_column_identifier=>'F'
@@ -228,7 +274,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820266000000026)
+ p_id=>wwv_flow_imp.id(91820266000000029)
 ,p_db_column_name=>'AMOUNT'
 ,p_display_order=>70
 ,p_column_identifier=>'G'
@@ -238,7 +284,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820266000000027)
+ p_id=>wwv_flow_imp.id(91820266000000030)
 ,p_db_column_name=>'CURRENCY_CODE'
 ,p_display_order=>80
 ,p_column_identifier=>'H'
@@ -248,7 +294,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820266000000028)
+ p_id=>wwv_flow_imp.id(91820266000000031)
 ,p_db_column_name=>'CREATED_BY'
 ,p_display_order=>90
 ,p_column_identifier=>'I'
@@ -258,7 +304,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820266000000029)
+ p_id=>wwv_flow_imp.id(91820266000000032)
 ,p_db_column_name=>'APPROVED_BY'
 ,p_display_order=>100
 ,p_column_identifier=>'J'
@@ -268,7 +314,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820266000000030)
+ p_id=>wwv_flow_imp.id(91820266000000033)
 ,p_db_column_name=>'STATUS_HTML'
 ,p_display_order=>110
 ,p_column_identifier=>'K'
@@ -279,18 +325,18 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_rpt(
- p_id=>wwv_flow_imp.id(91820266000000019)
+ p_id=>wwv_flow_imp.id(91820266000000022)
 ,p_application_user=>'APXWS_DEFAULT'
 ,p_report_seq=>10
-,p_report_alias=>'19'
+,p_report_alias=>'22'
 ,p_status=>'PUBLIC'
 ,p_is_default=>'Y'
 ,p_report_columns=>'DOC_NO:DOC_DATE:JOURNAL_TYPE:DESCRIPTION:REFERENCE_NO:AMOUNT:CURRENCY_CODE:CREATED_BY:APPROVED_BY:STATUS_HTML'
 );
 wwv_flow_imp_page.create_page_button(
- p_id=>wwv_flow_imp.id(91820266000000031)
+ p_id=>wwv_flow_imp.id(91820266000000034)
 ,p_button_sequence=>10
-,p_button_plug_id=>wwv_flow_imp.id(91820266000000017)
+,p_button_plug_id=>wwv_flow_imp.id(91820266000000020)
 ,p_button_name=>'NEW_JOURNAL'
 ,p_button_action=>'REDIRECT_URL'
 ,p_button_template_options=>'#DEFAULT#'
@@ -301,7 +347,7 @@ wwv_flow_imp_page.create_page_button(
 ,p_button_redirect_url=>'f?p=&APP_ID.:21:&SESSION.::&DEBUG.:RP,21::'
 );
 wwv_flow_imp_page.create_page_branch(
- p_id=>wwv_flow_imp.id(91820266000000032)
+ p_id=>wwv_flow_imp.id(91820266000000035)
 ,p_branch_action=>'f?p=&APP_ID.:1:&SESSION.::&DEBUG.:::&success_msg=#SUCCESS_MSG#'
 ,p_branch_point=>'AFTER_PROCESSING'
 ,p_branch_type=>'REDIRECT_URL'

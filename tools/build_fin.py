@@ -48,11 +48,19 @@ JTYPE_LOV = ("select name_ar d, code r from (select t.*, row_number() over (part
 p = app.page(1, 'Home', 'HOME', 'المالية', scheme=TENANT)
 hd = p.dynamic('الأستاذ العام', 10, 'return noona_gl_pkg.gl_summary(p_session => :APP_SESSION);', hide_header=True)
 st = p.static('تجهيز الأستاذ العام', 15, condition='noona_gl_pkg.primary_ledger is null')
+p.select('P1_COA_MODE', st, 10, 'دليل الحسابات', null_text=None,
+         lov_sql='STATIC2:دليل حسابات خاص بالشركة (حساباتها على حدة);OWN,دليل المجموعة الموحد (كل شركات المجموعة على دليل واحد);GROUP')
+p.display('P1_COA_HINT', st, 20, 'ملاحظة')
+p.process(5, 'BEFORE_HEADER', 'Setup Hint', [
+    "select case when max(business_group_id) is null",
+    "            then 'الشركة لا تتبع مجموعة أعمال، فدليلها خاص بها. لاختيار دليل المجموعة الموحد اربطها بالشركة القابضة من إدارة المؤسسة.'",
+    "            else 'الشركة تتبع مجموعة أعمال: اختر دليلاً خاصاً بها، أو دليل المجموعة الموحد لتتطابق حسابات كل الشركات في القوائم الموحدة.' end",
+    "  into :P1_COA_HINT from org_company where id = noona_gl_pkg.company;"])
 b_setup = p.button(st, 10, 'SETUP', 'تجهيز الأستاذ العام (دليل حسابات قياسي ودفتر رئيسي)', hot=True)
 p.process(10, 'AFTER_SUBMIT', 'Quick Setup', [
     'declare l_id number;',
     'begin',
-    '    l_id := noona_gl_pkg.quick_setup;',
+    "    l_id := noona_gl_pkg.quick_setup(null, nvl(:P1_COA_MODE, 'OWN'));",
     'end;'], when_button=b_setup, success='تم تجهيز الأستاذ العام: دليل الحسابات والدفتر الرئيسي وفترات السنة المفتوحة')
 p.dynamic('النقدية والبنوك', 12, 'return noona_csh_pkg.summary(p_session => :APP_SESSION);', hide_header=True,
           condition='noona_gl_pkg.primary_ledger is not null')
@@ -796,6 +804,9 @@ app.nav_item('قائمة المركز المالي', 33, 'fa-columns', 41, paren
 app.nav_item('قائمة الربح أو الخسارة', 32, 'fa-line-chart', 42, parent=fs)
 app.nav_item('التدفقات النقدية', 37, 'fa-exchange', 43, parent=fs)
 app.nav_item('التغيرات في حقوق الملكية', 38, 'fa-users', 44, parent=fs)
+hd2 = app.nav_item('الشركة القابضة (التجميع)', None, 'fa-object-group', 45)
+app.nav_item('القوائم المالية الموحدة', 54, 'fa-files-o', 46, parent=hd2)
+app.nav_item('مجموعات التجميع', 52, 'fa-cubes', 47, parent=hd2)
 lr = app.nav_item('تقارير الأستاذ', None, 'fa-book', 50)
 app.nav_item('ميزان المراجعة', 30, 'fa-balance-scale', 51, parent=lr)
 app.nav_item('دفتر الأستاذ', 35, 'fa-bookmark', 52, parent=lr)
@@ -817,6 +828,75 @@ from loc_pages import build as loc_pages
 loc_pages(app, url)
 from api_pages import build_fin as bank_pages
 bank_pages(app, url)
+# =============================================================== 52-54) الشركة القابضة: مجموعات التجميع والقوائم الموحدة
+CG_LOV = "select name_ar || ' (' || code || ')' d, id r from gl_consolidation_group where is_active = 'Y' order by 1"
+p = app.page(52, 'Consolidation Groups', 'CONSOLIDATION-GROUPS', 'مجموعات التجميع', scheme=TENANT)
+p.static('التجميع', 5, text=(
+    '<div class="nn-hint">مجموعة التجميع تحدد الشركات التي تجمع قوائمها (مجموعة أعمال وما تحتها، أو كل شركات المؤسسة) وعملة التجميع. '
+    'الحسابات المصنفة «بين الشركات» في دليل الحسابات، وأي حسابات تضيفها هنا، تستبعد بالكامل من الموحد.</div>'))
+r = p.ir('مجموعات التجميع', 10, [
+    'select g.id, g.code, g.name_ar, g.consolidation_currency, nvl((select name_ar from org_business_group b where b.id = g.business_group_id), \'كل شركات المؤسسة\') bg_name,',
+    '       noona_consol_pkg.elim_accounts(g.id) elim, (select max(period_code) from gl_consolidation_run r where r.group_id = g.id and r.status_code = \'APPROVED\') last_run',
+    '  from gl_consolidation_group g'],
+    [('ID', '#', {'hidden': True, 'type': 'NUMBER'}), ('CODE', 'الرمز', {}), ('NAME_AR', 'الاسم', {}),
+     ('CONSOLIDATION_CURRENCY', 'العملة', {}), ('BG_NAME', 'مجموعة الأعمال', {}), ('ELIM', 'حسابات استبعاد إضافية', {}),
+     ('LAST_RUN', 'آخر فترة معتمدة', {})],
+    link='f?p=&APP_ID.:53:&SESSION.::&DEBUG.:RP,53:P53_ID:#ID#')
+p.button(r, 10, 'CREATE', 'مجموعة تجميع جديدة', hot=True, redirect=url(53, clear='RP,53'), position='RIGHT_OF_IR_SEARCH_BAR')
+
+p = app.page(53, 'Consolidation Group', 'CONSOLIDATION-GROUP', 'مجموعة التجميع', scheme=TENANT)
+f = p.static('بيانات مجموعة التجميع', 10)
+p.hidden('P53_ID', f, 1)
+p.text('P53_CODE', f, 10, 'الرمز', required=True, maxlen=50, width=20)
+p.text('P53_NAME_AR', f, 20, 'الاسم', required=True)
+p.select('P53_BG', f, 30, 'مجموعة الأعمال (الشركة القابضة)', null_text='- كل شركات المؤسسة -',
+         lov_sql="select name_ar || ' (' || code || ')' d, id r from org_business_group where status_code = 'ACTIVE' order by 1")
+p.select('P53_CURRENCY', f, 40, 'عملة التجميع', lov_sql=CUR_LOV, required=True)
+p.text('P53_ELIM', f, 50, 'حسابات استبعاد إضافية (أرقام مفصولة بفواصل)', maxlen=1000)
+b = p.button(f, 10, 'SAVE', 'حفظ', hot=True)
+p.button(f, 20, 'BACK', 'رجوع', redirect=url(52))
+p.process(10, 'BEFORE_HEADER', 'Load', [
+    'if :P53_ID is not null then',
+    '    select code, name_ar, business_group_id, consolidation_currency into :P53_CODE, :P53_NAME_AR, :P53_BG, :P53_CURRENCY',
+    '      from gl_consolidation_group where id = :P53_ID;',
+    '    :P53_ELIM := noona_consol_pkg.elim_accounts(:P53_ID);',
+    'elsif :P53_CURRENCY is null then',
+    '    :P53_CURRENCY := noona_gl_pkg.ledger_currency;',
+    'end if;'])
+p.process(10, 'AFTER_SUBMIT', 'Save', [
+    ':P53_ID := noona_consol_pkg.save_group(:P53_ID, :P53_CODE, :P53_NAME_AR, :P53_BG, :P53_CURRENCY, :P53_ELIM);'],
+    when_button=b, success='تم حفظ مجموعة التجميع')
+p.dynamic('الشركات المشمولة', 20, "return '<div class=\"nn-hint\">' || apex_escape.html(noona_consol_pkg.members_text(:P53_ID)) || '</div>';",
+          condition=':P53_ID is not null')
+p.branch(10, 'f?p=&APP_ID.:53:&SESSION.::&DEBUG.::P53_ID:&P53_ID.&success_msg=#SUCCESS_MSG#')
+
+p = app.page(54, 'Consolidated Statements', 'CONSOLIDATED', 'القوائم المالية الموحدة', scheme=TENANT)
+f = p.static('معايير القوائم الموحدة', 10)
+p.select('P54_GROUP', f, 10, 'مجموعة التجميع', lov_sql=CG_LOV, required=True)
+p.select('P54_KIND', f, 20, 'القائمة', null_text=None,
+         lov_sql='STATIC2:قائمة المركز المالي الموحدة;BS,قائمة الدخل الموحدة;IS,ميزان المراجعة الموحد;TB')
+p.date('P54_FROM', f, 30, 'من تاريخ')
+p.date('P54_TO', f, 40, 'إلى تاريخ')
+p.yesno('P54_BY', f, 50, 'عمود لكل شركة')
+p.button(f, 10, 'RUN', 'عرض', hot=True)
+p.button(f, 20, 'PRINT', 'طباعة', redirect='javascript:window.print();')
+b_ap = p.button(f, 30, 'APPROVE', 'اعتماد التجميع للفترة', condition=':P54_GROUP is not null')
+p.process(10, 'BEFORE_HEADER', 'Defaults', [
+    ":P54_FROM := nvl(:P54_FROM, to_char(trunc(sysdate, 'YYYY'), 'YYYY-MM-DD'));",
+    ":P54_TO := nvl(:P54_TO, to_char(sysdate, 'YYYY-MM-DD'));",
+    ":P54_KIND := nvl(:P54_KIND, 'BS'); :P54_BY := nvl(:P54_BY, 'Y');",
+    "if :P54_GROUP is null then select min(id) into :P54_GROUP from gl_consolidation_group where is_active = 'Y'; end if;"])
+p.process(10, 'AFTER_SUBMIT', 'Approve', [
+    'declare l number;',
+    'begin',
+    "    l := noona_consol_pkg.approve(:P54_GROUP, to_date(:P54_FROM, 'YYYY-MM-DD'), to_date(:P54_TO, 'YYYY-MM-DD'));",
+    'end;'], when_button=b_ap, success='تم اعتماد التجميع للفترة وحفظ نتائجه')
+p.dynamic('القائمة الموحدة', 20, [
+    "return case when :P54_GROUP is null then '<div class=\"nn-empty\">أنشئ مجموعة تجميع أولاً من «مجموعات التجميع»</div>'",
+    "  else noona_consol_pkg.report(:P54_GROUP, :P54_KIND, to_date(:P54_FROM, 'YYYY-MM-DD'), to_date(:P54_TO, 'YYYY-MM-DD'), nvl(:P54_BY, 'Y')) end;"],
+    hide_header=True, opts='#DEFAULT#:t-Region--scrollBody:nn-print-area')
+p.branch(10, url(54) + '&success_msg=#SUCCESS_MSG#')
+
 # التحليلات والتنبؤ (NOONA_ANL_PKG + anl.js)
 import anl_pages
 anl_pages.add(app, ['FIN'], TENANT, 11)
