@@ -28,7 +28,7 @@ wwv_flow_imp_page.create_page_plug(
 ,p_plug_template=>4072358936313175081
 ,p_plug_display_sequence=>5
 ,p_plug_source=>wwv_flow_string.join(wwv_flow_t_varchar2(
-'<div class="nn-hint">مجموعة التجميع تحدد الشركات التي تجمع قوائمها (مجموعة أعمال وما تحتها، أو كل شركات المؤسسة) وعملة التجميع. الحسابات المصنفة «بين الشركات» في دليل الحسابات، وأي حسابات تضيفها هنا، تستبعد بالكامل من الموحد.</div>'))
+'<div class="nn-hint">مجموعة التجميع تحدد الشركات التي تجمع قوائمها (مجموعة أعمال وما تحتها، أو كل شركات المؤسسة) وعملة التجميع. الحسابات المصنفة «بين الشركات» في دليل الحسابات، وأي حسابات تضيفها هنا، تستبعد بالكامل من الموحد. وإن حددت حساب الاستثمار في التابعات ونسب الملكية، يستبعد الاستثمار مقابل حقوق ملكية التابعات وتحسب الشهرة وحقوق الأقلية.</div>'))
 ,p_attributes=>wwv_flow_t_plugin_attributes(wwv_flow_t_varchar2(
   'expand_shortcuts', 'N',
   'output_as', 'HTML',
@@ -44,7 +44,7 @@ wwv_flow_imp_page.create_page_plug(
 ,p_query_type=>'SQL'
 ,p_plug_source=>wwv_flow_string.join(wwv_flow_t_varchar2(
 'select g.id, g.code, g.name_ar, g.consolidation_currency, nvl((select name_ar from org_business_group b where b.id = g.business_group_id), ''كل شركات المؤسسة'') bg_name,',
-'       noona_consol_pkg.elim_accounts(g.id) elim, (select max(period_code) from gl_consolidation_run r where r.group_id = g.id and r.status_code = ''APPROVED'') last_run',
+'       noona_consol_pkg.elim_accounts(g.id) elim, noona_consol_pkg.invest_accounts(g.id) invest, noona_consol_pkg.ownership_text(g.id) own, (select max(period_code) from gl_consolidation_run r where r.group_id = g.id and r.status_code = ''APPROVED'') last_run',
 '  from gl_consolidation_group g'))
 ,p_plug_source_type=>'NATIVE_IR'
 ,p_prn_page_header=>'مجموعات التجميع'
@@ -129,9 +129,29 @@ wwv_flow_imp_page.create_worksheet_column(
 );
 wwv_flow_imp_page.create_worksheet_column(
  p_id=>wwv_flow_imp.id(91820266000000934)
-,p_db_column_name=>'LAST_RUN'
+,p_db_column_name=>'INVEST'
 ,p_display_order=>70
 ,p_column_identifier=>'G'
+,p_column_label=>'حساب الاستثمار'
+,p_column_type=>'STRING'
+,p_heading_alignment=>'CENTER'
+,p_use_as_row_header=>'N'
+);
+wwv_flow_imp_page.create_worksheet_column(
+ p_id=>wwv_flow_imp.id(91820266000000935)
+,p_db_column_name=>'OWN'
+,p_display_order=>80
+,p_column_identifier=>'H'
+,p_column_label=>'نسب الملكية'
+,p_column_type=>'STRING'
+,p_heading_alignment=>'CENTER'
+,p_use_as_row_header=>'N'
+);
+wwv_flow_imp_page.create_worksheet_column(
+ p_id=>wwv_flow_imp.id(91820266000000936)
+,p_db_column_name=>'LAST_RUN'
+,p_display_order=>90
+,p_column_identifier=>'I'
 ,p_column_label=>'آخر فترة معتمدة'
 ,p_column_type=>'STRING'
 ,p_heading_alignment=>'CENTER'
@@ -144,10 +164,10 @@ wwv_flow_imp_page.create_worksheet_rpt(
 ,p_report_alias=>'927'
 ,p_status=>'PUBLIC'
 ,p_is_default=>'Y'
-,p_report_columns=>'CODE:NAME_AR:CONSOLIDATION_CURRENCY:BG_NAME:ELIM:LAST_RUN'
+,p_report_columns=>'CODE:NAME_AR:CONSOLIDATION_CURRENCY:BG_NAME:ELIM:INVEST:OWN:LAST_RUN'
 );
 wwv_flow_imp_page.create_page_button(
- p_id=>wwv_flow_imp.id(91820266000000935)
+ p_id=>wwv_flow_imp.id(91820266000000937)
 ,p_button_sequence=>10
 ,p_button_plug_id=>wwv_flow_imp.id(91820266000000925)
 ,p_button_name=>'CREATE'

@@ -835,14 +835,15 @@ CG_LOV = "select name_ar || ' (' || code || ')' d, id r from gl_consolidation_gr
 p = app.page(52, 'Consolidation Groups', 'CONSOLIDATION-GROUPS', 'مجموعات التجميع', scheme=TENANT)
 p.static('التجميع', 5, text=(
     '<div class="nn-hint">مجموعة التجميع تحدد الشركات التي تجمع قوائمها (مجموعة أعمال وما تحتها، أو كل شركات المؤسسة) وعملة التجميع. '
-    'الحسابات المصنفة «بين الشركات» في دليل الحسابات، وأي حسابات تضيفها هنا، تستبعد بالكامل من الموحد.</div>'))
+    'الحسابات المصنفة «بين الشركات» في دليل الحسابات، وأي حسابات تضيفها هنا، تستبعد بالكامل من الموحد. '
+    'وإن حددت حساب الاستثمار في التابعات ونسب الملكية، يستبعد الاستثمار مقابل حقوق ملكية التابعات وتحسب الشهرة وحقوق الأقلية.</div>'))
 r = p.ir('مجموعات التجميع', 10, [
     'select g.id, g.code, g.name_ar, g.consolidation_currency, nvl((select name_ar from org_business_group b where b.id = g.business_group_id), \'كل شركات المؤسسة\') bg_name,',
-    '       noona_consol_pkg.elim_accounts(g.id) elim, (select max(period_code) from gl_consolidation_run r where r.group_id = g.id and r.status_code = \'APPROVED\') last_run',
+    '       noona_consol_pkg.elim_accounts(g.id) elim, noona_consol_pkg.invest_accounts(g.id) invest, noona_consol_pkg.ownership_text(g.id) own, (select max(period_code) from gl_consolidation_run r where r.group_id = g.id and r.status_code = \'APPROVED\') last_run',
     '  from gl_consolidation_group g'],
     [('ID', '#', {'hidden': True, 'type': 'NUMBER'}), ('CODE', 'الرمز', {}), ('NAME_AR', 'الاسم', {}),
      ('CONSOLIDATION_CURRENCY', 'العملة', {}), ('BG_NAME', 'مجموعة الأعمال', {}), ('ELIM', 'حسابات استبعاد إضافية', {}),
-     ('LAST_RUN', 'آخر فترة معتمدة', {})],
+     ('INVEST', 'حساب الاستثمار', {}), ('OWN', 'نسب الملكية', {}), ('LAST_RUN', 'آخر فترة معتمدة', {})],
     link='f?p=&APP_ID.:53:&SESSION.::&DEBUG.:RP,53:P53_ID:#ID#')
 p.button(r, 10, 'CREATE', 'مجموعة تجميع جديدة', hot=True, redirect=url(53, clear='RP,53'), position='RIGHT_OF_IR_SEARCH_BAR')
 
@@ -855,6 +856,8 @@ p.select('P53_BG', f, 30, 'مجموعة الأعمال (الشركة القاب�
          lov_sql="select name_ar || ' (' || code || ')' d, id r from org_business_group where status_code = 'ACTIVE' order by 1")
 p.select('P53_CURRENCY', f, 40, 'عملة التجميع', lov_sql=CUR_LOV, required=True)
 p.text('P53_ELIM', f, 50, 'حسابات استبعاد إضافية (أرقام مفصولة بفواصل)', maxlen=1000)
+p.text('P53_INVEST', f, 60, 'حساب الاستثمار في الشركات التابعة (لدى القابضة)', maxlen=1000, width=30)
+p.text('P53_OWN', f, 70, 'نسب الملكية (رمز الشركة:النسبة، مثل RYD-TRD:80)', maxlen=2000)
 b = p.button(f, 10, 'SAVE', 'حفظ', hot=True)
 p.button(f, 20, 'BACK', 'رجوع', redirect=url(52))
 p.process(10, 'BEFORE_HEADER', 'Load', [
@@ -862,12 +865,18 @@ p.process(10, 'BEFORE_HEADER', 'Load', [
     '    select code, name_ar, business_group_id, consolidation_currency into :P53_CODE, :P53_NAME_AR, :P53_BG, :P53_CURRENCY',
     '      from gl_consolidation_group where id = :P53_ID;',
     '    :P53_ELIM := noona_consol_pkg.elim_accounts(:P53_ID);',
+    '    :P53_INVEST := noona_consol_pkg.invest_accounts(:P53_ID);',
+    '    :P53_OWN := noona_consol_pkg.ownership_text(:P53_ID);',
     'elsif :P53_CURRENCY is null then',
     '    :P53_CURRENCY := noona_gl_pkg.ledger_currency;',
     'end if;'])
 p.process(10, 'AFTER_SUBMIT', 'Save', [
-    ':P53_ID := noona_consol_pkg.save_group(:P53_ID, :P53_CODE, :P53_NAME_AR, :P53_BG, :P53_CURRENCY, :P53_ELIM);'],
+    ':P53_ID := noona_consol_pkg.save_group(:P53_ID, :P53_CODE, :P53_NAME_AR, :P53_BG, :P53_CURRENCY, :P53_ELIM, :P53_INVEST, :P53_OWN);'],
     when_button=b, success='تم حفظ مجموعة التجميع')
+p.static('الاستثمار وحقوق الأقلية', 15, text=(
+    '<div class="nn-hint">اترك حساب الاستثمار فارغاً إن لم تسجل القابضة استثمارها في التابعات. الشركة غير المذكورة في نسب الملكية '
+    'مملوكة 100%. <b>الشهرة</b> = رصيد الاستثمار − حصة القابضة من حقوق ملكية التابعة؛ و<b>حقوق الأقلية</b> = حصة الملاك الآخرين '
+    'من حقوق ملكية التابعة ونتيجتها. الإيرادات والمصروفات تترجم بمتوسط سعر الفترة والأرصدة بسعر الإقفال.</div>'))
 p.dynamic('الشركات المشمولة', 20, "return '<div class=\"nn-hint\">' || apex_escape.html(noona_consol_pkg.members_text(:P53_ID)) || '</div>';",
           condition=':P53_ID is not null')
 p.branch(10, 'f?p=&APP_ID.:53:&SESSION.::&DEBUG.::P53_ID:&P53_ID.&success_msg=#SUCCESS_MSG#')
