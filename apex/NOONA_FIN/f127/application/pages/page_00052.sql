@@ -22,7 +22,7 @@ wwv_flow_imp_page.create_page(
 ,p_protection_level=>'C'
 );
 wwv_flow_imp_page.create_page_plug(
- p_id=>wwv_flow_imp.id(91820266000000923)
+ p_id=>wwv_flow_imp.id(91820266000000924)
 ,p_plug_name=>'التجميع'
 ,p_region_template_options=>'#DEFAULT#'
 ,p_plug_template=>4072358936313175081
@@ -35,7 +35,7 @@ wwv_flow_imp_page.create_page_plug(
   'show_line_breaks', 'Y')).to_clob
 );
 wwv_flow_imp_page.create_page_plug(
- p_id=>wwv_flow_imp.id(91820266000000924)
+ p_id=>wwv_flow_imp.id(91820266000000925)
 ,p_plug_name=>'مجموعات التجميع'
 ,p_region_template_options=>'#DEFAULT#'
 ,p_component_template_options=>'#DEFAULT#'
@@ -50,7 +50,7 @@ wwv_flow_imp_page.create_page_plug(
 ,p_prn_page_header=>'مجموعات التجميع'
 );
 wwv_flow_imp_page.create_worksheet(
- p_id=>wwv_flow_imp.id(91820266000000925)
+ p_id=>wwv_flow_imp.id(91820266000000926)
 ,p_max_row_count=>'1000000'
 ,p_no_data_found_message=>'لا توجد بيانات'
 ,p_pagination_type=>'ROWS_X_TO_Y'
@@ -64,10 +64,10 @@ wwv_flow_imp_page.create_worksheet(
 ,p_detail_link=>'f?p=&APP_ID.:53:&SESSION.::&DEBUG.:RP,53:P53_ID:#ID#'
 ,p_detail_link_text=>'<span role="img" aria-label="تعديل" class="fa fa-edit" title="فتح"></span>'
 ,p_owner=>'NOONA'
-,p_internal_uid=>91820266000000925
+,p_internal_uid=>91820266000000926
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820266000000927)
+ p_id=>wwv_flow_imp.id(91820266000000928)
 ,p_db_column_name=>'ID'
 ,p_display_order=>10
 ,p_column_identifier=>'A'
@@ -78,7 +78,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820266000000928)
+ p_id=>wwv_flow_imp.id(91820266000000929)
 ,p_db_column_name=>'CODE'
 ,p_display_order=>20
 ,p_column_identifier=>'B'
@@ -88,7 +88,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820266000000929)
+ p_id=>wwv_flow_imp.id(91820266000000930)
 ,p_db_column_name=>'NAME_AR'
 ,p_display_order=>30
 ,p_column_identifier=>'C'
@@ -98,7 +98,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820266000000930)
+ p_id=>wwv_flow_imp.id(91820266000000931)
 ,p_db_column_name=>'CONSOLIDATION_CURRENCY'
 ,p_display_order=>40
 ,p_column_identifier=>'D'
@@ -108,7 +108,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820266000000931)
+ p_id=>wwv_flow_imp.id(91820266000000932)
 ,p_db_column_name=>'BG_NAME'
 ,p_display_order=>50
 ,p_column_identifier=>'E'
@@ -118,7 +118,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820266000000932)
+ p_id=>wwv_flow_imp.id(91820266000000933)
 ,p_db_column_name=>'ELIM'
 ,p_display_order=>60
 ,p_column_identifier=>'F'
@@ -128,7 +128,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820266000000933)
+ p_id=>wwv_flow_imp.id(91820266000000934)
 ,p_db_column_name=>'LAST_RUN'
 ,p_display_order=>70
 ,p_column_identifier=>'G'
@@ -138,18 +138,18 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_rpt(
- p_id=>wwv_flow_imp.id(91820266000000926)
+ p_id=>wwv_flow_imp.id(91820266000000927)
 ,p_application_user=>'APXWS_DEFAULT'
 ,p_report_seq=>10
-,p_report_alias=>'926'
+,p_report_alias=>'927'
 ,p_status=>'PUBLIC'
 ,p_is_default=>'Y'
 ,p_report_columns=>'CODE:NAME_AR:CONSOLIDATION_CURRENCY:BG_NAME:ELIM:LAST_RUN'
 );
 wwv_flow_imp_page.create_page_button(
- p_id=>wwv_flow_imp.id(91820266000000934)
+ p_id=>wwv_flow_imp.id(91820266000000935)
 ,p_button_sequence=>10
-,p_button_plug_id=>wwv_flow_imp.id(91820266000000924)
+,p_button_plug_id=>wwv_flow_imp.id(91820266000000925)
 ,p_button_name=>'CREATE'
 ,p_button_action=>'REDIRECT_URL'
 ,p_button_template_options=>'#DEFAULT#'

@@ -22,7 +22,7 @@ wwv_flow_imp_page.create_page(
 ,p_protection_level=>'C'
 );
 wwv_flow_imp_page.create_page_plug(
- p_id=>wwv_flow_imp.id(91820266000000070)
+ p_id=>wwv_flow_imp.id(91820266000000071)
 ,p_plug_name=>'الفترات المحاسبية'
 ,p_region_template_options=>'#DEFAULT#'
 ,p_component_template_options=>'#DEFAULT#'
@@ -43,7 +43,7 @@ wwv_flow_imp_page.create_page_plug(
 ,p_prn_page_header=>'الفترات المحاسبية'
 );
 wwv_flow_imp_page.create_worksheet(
- p_id=>wwv_flow_imp.id(91820266000000071)
+ p_id=>wwv_flow_imp.id(91820266000000072)
 ,p_max_row_count=>'1000000'
 ,p_no_data_found_message=>'لا توجد بيانات'
 ,p_pagination_type=>'ROWS_X_TO_Y'
@@ -55,10 +55,10 @@ wwv_flow_imp_page.create_worksheet(
 ,p_download_formats=>'CSV:HTML:XLSX:PDF'
 ,p_enable_mail_download=>'N'
 ,p_owner=>'NOONA'
-,p_internal_uid=>91820266000000071
+,p_internal_uid=>91820266000000072
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820266000000073)
+ p_id=>wwv_flow_imp.id(91820266000000074)
 ,p_db_column_name=>'ID'
 ,p_display_order=>10
 ,p_column_identifier=>'A'
@@ -69,7 +69,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820266000000074)
+ p_id=>wwv_flow_imp.id(91820266000000075)
 ,p_db_column_name=>'FISCAL_YEAR'
 ,p_display_order=>20
 ,p_column_identifier=>'B'
@@ -79,7 +79,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820266000000075)
+ p_id=>wwv_flow_imp.id(91820266000000076)
 ,p_db_column_name=>'PERIOD_NO'
 ,p_display_order=>30
 ,p_column_identifier=>'C'
@@ -89,7 +89,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820266000000076)
+ p_id=>wwv_flow_imp.id(91820266000000077)
 ,p_db_column_name=>'NAME_AR'
 ,p_display_order=>40
 ,p_column_identifier=>'D'
@@ -99,7 +99,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820266000000077)
+ p_id=>wwv_flow_imp.id(91820266000000078)
 ,p_db_column_name=>'START_DATE'
 ,p_display_order=>50
 ,p_column_identifier=>'E'
@@ -109,7 +109,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820266000000078)
+ p_id=>wwv_flow_imp.id(91820266000000079)
 ,p_db_column_name=>'END_DATE'
 ,p_display_order=>60
 ,p_column_identifier=>'F'
@@ -119,7 +119,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820266000000079)
+ p_id=>wwv_flow_imp.id(91820266000000080)
 ,p_db_column_name=>'STATUS_HTML'
 ,p_display_order=>70
 ,p_column_identifier=>'G'
@@ -130,7 +130,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820266000000080)
+ p_id=>wwv_flow_imp.id(91820266000000081)
 ,p_db_column_name=>'CLOSED_BY'
 ,p_display_order=>80
 ,p_column_identifier=>'H'
@@ -140,7 +140,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820266000000081)
+ p_id=>wwv_flow_imp.id(91820266000000082)
 ,p_db_column_name=>'CLOSED_AT'
 ,p_display_order=>90
 ,p_column_identifier=>'I'
@@ -150,16 +150,16 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_rpt(
- p_id=>wwv_flow_imp.id(91820266000000072)
+ p_id=>wwv_flow_imp.id(91820266000000073)
 ,p_application_user=>'APXWS_DEFAULT'
 ,p_report_seq=>10
-,p_report_alias=>'72'
+,p_report_alias=>'73'
 ,p_status=>'PUBLIC'
 ,p_is_default=>'Y'
 ,p_report_columns=>'FISCAL_YEAR:PERIOD_NO:NAME_AR:START_DATE:END_DATE:STATUS_HTML:CLOSED_BY:CLOSED_AT'
 );
 wwv_flow_imp_page.create_page_plug(
- p_id=>wwv_flow_imp.id(91820266000000082)
+ p_id=>wwv_flow_imp.id(91820266000000083)
 ,p_plug_name=>'تغيير حالة فترة'
 ,p_region_template_options=>'#DEFAULT#'
 ,p_plug_template=>4072358936313175081
@@ -170,10 +170,10 @@ wwv_flow_imp_page.create_page_plug(
   'show_line_breaks', 'Y')).to_clob
 );
 wwv_flow_imp_page.create_page_item(
- p_id=>wwv_flow_imp.id(91820266000000083)
+ p_id=>wwv_flow_imp.id(91820266000000084)
 ,p_name=>'P11_PERIOD'
 ,p_item_sequence=>10
-,p_item_plug_id=>wwv_flow_imp.id(91820266000000082)
+,p_item_plug_id=>wwv_flow_imp.id(91820266000000083)
 ,p_prompt=>'الفترة'
 ,p_display_as=>'NATIVE_SELECT_LIST'
 ,p_lov=>'select p.name_ar d, p.id r from gl_period p where p.company_id = noona_gl_pkg.company order by p.start_date'
@@ -187,10 +187,10 @@ wwv_flow_imp_page.create_page_item(
   'page_action_on_selection', 'NONE')).to_clob
 );
 wwv_flow_imp_page.create_page_item(
- p_id=>wwv_flow_imp.id(91820266000000084)
+ p_id=>wwv_flow_imp.id(91820266000000085)
 ,p_name=>'P11_STATUS'
 ,p_item_sequence=>20
-,p_item_plug_id=>wwv_flow_imp.id(91820266000000082)
+,p_item_plug_id=>wwv_flow_imp.id(91820266000000083)
 ,p_prompt=>'الحالة الجديدة'
 ,p_display_as=>'NATIVE_SELECT_LIST'
 ,p_lov=>'STATIC2:مفتوحة;OPEN,مقفلة مبدئياً (تمنع الترحيل);SOFT_CLOSED,مقفلة نهائياً;HARD_CLOSED'
@@ -203,20 +203,20 @@ wwv_flow_imp_page.create_page_item(
   'page_action_on_selection', 'NONE')).to_clob
 );
 wwv_flow_imp_page.create_page_validation(
- p_id=>wwv_flow_imp.id(91820266000000086)
+ p_id=>wwv_flow_imp.id(91820266000000087)
 ,p_validation_name=>'P11_PERIOD required (APPLY)'
 ,p_validation_sequence=>14
 ,p_validation=>'P11_PERIOD'
 ,p_validation_type=>'ITEM_NOT_NULL'
 ,p_error_message=>'#LABEL#: قيمة مطلوبة'
-,p_when_button_pressed=>wwv_flow_imp.id(91820266000000085)
-,p_associated_item=>wwv_flow_imp.id(91820266000000083)
+,p_when_button_pressed=>wwv_flow_imp.id(91820266000000086)
+,p_associated_item=>wwv_flow_imp.id(91820266000000084)
 ,p_error_display_location=>'INLINE_WITH_FIELD_AND_NOTIFICATION'
 );
 wwv_flow_imp_page.create_page_button(
- p_id=>wwv_flow_imp.id(91820266000000085)
+ p_id=>wwv_flow_imp.id(91820266000000086)
 ,p_button_sequence=>10
-,p_button_plug_id=>wwv_flow_imp.id(91820266000000082)
+,p_button_plug_id=>wwv_flow_imp.id(91820266000000083)
 ,p_button_name=>'APPLY'
 ,p_button_action=>'SUBMIT'
 ,p_button_template_options=>'#DEFAULT#'
@@ -226,7 +226,7 @@ wwv_flow_imp_page.create_page_button(
 ,p_button_position=>'NEXT'
 );
 wwv_flow_imp_page.create_page_process(
- p_id=>wwv_flow_imp.id(91820266000000087)
+ p_id=>wwv_flow_imp.id(91820266000000088)
 ,p_process_sequence=>10
 ,p_process_point=>'AFTER_SUBMIT'
 ,p_process_type=>'NATIVE_PLSQL'
@@ -235,14 +235,14 @@ wwv_flow_imp_page.create_page_process(
 'noona_gl_pkg.set_period_status(:P11_PERIOD, :P11_STATUS);'))
 ,p_process_clob_language=>'PLSQL'
 ,p_error_display_location=>'INLINE_IN_NOTIFICATION'
-,p_process_when_button_id=>wwv_flow_imp.id(91820266000000085)
+,p_process_when_button_id=>wwv_flow_imp.id(91820266000000086)
 ,p_process_success_message=>'تم تغيير حالة الفترة'
-,p_internal_uid=>91820266000000087
+,p_internal_uid=>91820266000000088
 );
 wwv_flow_imp_page.create_page_button(
- p_id=>wwv_flow_imp.id(91820266000000088)
+ p_id=>wwv_flow_imp.id(91820266000000089)
 ,p_button_sequence=>20
-,p_button_plug_id=>wwv_flow_imp.id(91820266000000070)
+,p_button_plug_id=>wwv_flow_imp.id(91820266000000071)
 ,p_button_name=>'OPEN_NEXT_YEAR'
 ,p_button_action=>'SUBMIT'
 ,p_button_template_options=>'#DEFAULT#'
@@ -251,7 +251,7 @@ wwv_flow_imp_page.create_page_button(
 ,p_button_position=>'RIGHT_OF_IR_SEARCH_BAR'
 );
 wwv_flow_imp_page.create_page_process(
- p_id=>wwv_flow_imp.id(91820266000000089)
+ p_id=>wwv_flow_imp.id(91820266000000090)
 ,p_process_sequence=>20
 ,p_process_point=>'AFTER_SUBMIT'
 ,p_process_type=>'NATIVE_PLSQL'
@@ -260,12 +260,12 @@ wwv_flow_imp_page.create_page_process(
 'declare l number; begin l := noona_gl_pkg.open_next_year; end;'))
 ,p_process_clob_language=>'PLSQL'
 ,p_error_display_location=>'INLINE_IN_NOTIFICATION'
-,p_process_when_button_id=>wwv_flow_imp.id(91820266000000088)
+,p_process_when_button_id=>wwv_flow_imp.id(91820266000000089)
 ,p_process_success_message=>'تم فتح السنة المالية التالية بفتراتها الاثنتي عشرة وترقيمها'
-,p_internal_uid=>91820266000000089
+,p_internal_uid=>91820266000000090
 );
 wwv_flow_imp_page.create_page_branch(
- p_id=>wwv_flow_imp.id(91820266000000090)
+ p_id=>wwv_flow_imp.id(91820266000000091)
 ,p_branch_action=>'f?p=&APP_ID.:11:&SESSION.::&DEBUG.:::&success_msg=#SUCCESS_MSG#'
 ,p_branch_point=>'AFTER_PROCESSING'
 ,p_branch_type=>'REDIRECT_URL'

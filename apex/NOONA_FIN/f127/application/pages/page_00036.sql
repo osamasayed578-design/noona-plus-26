@@ -22,7 +22,7 @@ wwv_flow_imp_page.create_page(
 ,p_protection_level=>'N'
 );
 wwv_flow_imp_page.create_page_plug(
- p_id=>wwv_flow_imp.id(91820266000000336)
+ p_id=>wwv_flow_imp.id(91820266000000337)
 ,p_plug_name=>'معايير التقرير'
 ,p_region_template_options=>'#DEFAULT#'
 ,p_plug_template=>4072358936313175081
@@ -33,10 +33,10 @@ wwv_flow_imp_page.create_page_plug(
   'show_line_breaks', 'Y')).to_clob
 );
 wwv_flow_imp_page.create_page_item(
- p_id=>wwv_flow_imp.id(91820266000000337)
+ p_id=>wwv_flow_imp.id(91820266000000338)
 ,p_name=>'P36_FROM'
 ,p_item_sequence=>10
-,p_item_plug_id=>wwv_flow_imp.id(91820266000000336)
+,p_item_plug_id=>wwv_flow_imp.id(91820266000000337)
 ,p_prompt=>'من تاريخ'
 ,p_display_as=>'NATIVE_DATE_PICKER_APEX'
 ,p_cSize=>20
@@ -52,10 +52,10 @@ wwv_flow_imp_page.create_page_item(
   'use_defaults', 'Y')).to_clob
 );
 wwv_flow_imp_page.create_page_item(
- p_id=>wwv_flow_imp.id(91820266000000338)
+ p_id=>wwv_flow_imp.id(91820266000000339)
 ,p_name=>'P36_TO'
 ,p_item_sequence=>20
-,p_item_plug_id=>wwv_flow_imp.id(91820266000000336)
+,p_item_plug_id=>wwv_flow_imp.id(91820266000000337)
 ,p_prompt=>'إلى تاريخ'
 ,p_display_as=>'NATIVE_DATE_PICKER_APEX'
 ,p_cSize=>20
@@ -72,10 +72,10 @@ wwv_flow_imp_page.create_page_item(
   'use_defaults', 'Y')).to_clob
 );
 wwv_flow_imp_page.create_page_item(
- p_id=>wwv_flow_imp.id(91820266000000339)
+ p_id=>wwv_flow_imp.id(91820266000000340)
 ,p_name=>'P36_STATUS'
 ,p_item_sequence=>30
-,p_item_plug_id=>wwv_flow_imp.id(91820266000000336)
+,p_item_plug_id=>wwv_flow_imp.id(91820266000000337)
 ,p_prompt=>'القيود'
 ,p_display_as=>'NATIVE_SELECT_LIST'
 ,p_lov=>'STATIC2:المرحلة;POSTED,غير المرحلة (مسودة ومرسلة ومعتمدة);UNPOSTED,المعكوسة وقيود عكسها;REVERSED,الكل عدا الملغاة;ALL'
@@ -87,10 +87,10 @@ wwv_flow_imp_page.create_page_item(
   'page_action_on_selection', 'NONE')).to_clob
 );
 wwv_flow_imp_page.create_page_item(
- p_id=>wwv_flow_imp.id(91820266000000340)
+ p_id=>wwv_flow_imp.id(91820266000000341)
 ,p_name=>'P36_TYPE'
 ,p_item_sequence=>40
-,p_item_plug_id=>wwv_flow_imp.id(91820266000000336)
+,p_item_plug_id=>wwv_flow_imp.id(91820266000000337)
 ,p_prompt=>'نوع القيد'
 ,p_display_as=>'NATIVE_SELECT_LIST'
 ,p_lov=>'select name_ar d, code r from (select t.*, row_number() over (partition by code order by tenant_id nulls last) rn from gl_journal_type t where is_active = ''Y'') where rn = 1 order by case type_group when ''MANUAL'' then 1 else 2 end, sort_order'
@@ -105,9 +105,9 @@ wwv_flow_imp_page.create_page_item(
   'page_action_on_selection', 'NONE')).to_clob
 );
 wwv_flow_imp_page.create_page_button(
- p_id=>wwv_flow_imp.id(91820266000000341)
+ p_id=>wwv_flow_imp.id(91820266000000342)
 ,p_button_sequence=>10
-,p_button_plug_id=>wwv_flow_imp.id(91820266000000336)
+,p_button_plug_id=>wwv_flow_imp.id(91820266000000337)
 ,p_button_name=>'RUN'
 ,p_button_action=>'SUBMIT'
 ,p_button_template_options=>'#DEFAULT#'
@@ -117,9 +117,9 @@ wwv_flow_imp_page.create_page_button(
 ,p_button_position=>'NEXT'
 );
 wwv_flow_imp_page.create_page_button(
- p_id=>wwv_flow_imp.id(91820266000000342)
+ p_id=>wwv_flow_imp.id(91820266000000343)
 ,p_button_sequence=>20
-,p_button_plug_id=>wwv_flow_imp.id(91820266000000336)
+,p_button_plug_id=>wwv_flow_imp.id(91820266000000337)
 ,p_button_name=>'PRINT'
 ,p_button_action=>'REDIRECT_URL'
 ,p_button_template_options=>'#DEFAULT#'
@@ -129,7 +129,7 @@ wwv_flow_imp_page.create_page_button(
 ,p_button_redirect_url=>'javascript:window.print();'
 );
 wwv_flow_imp_page.create_page_process(
- p_id=>wwv_flow_imp.id(91820266000000343)
+ p_id=>wwv_flow_imp.id(91820266000000344)
 ,p_process_sequence=>10
 ,p_process_point=>'BEFORE_HEADER'
 ,p_process_type=>'NATIVE_PLSQL'
@@ -139,10 +139,10 @@ wwv_flow_imp_page.create_page_process(
 ':P36_TO := nvl(:P36_TO, to_char(sysdate, ''YYYY-MM-DD''));'))
 ,p_process_clob_language=>'PLSQL'
 ,p_error_display_location=>'INLINE_IN_NOTIFICATION'
-,p_internal_uid=>91820266000000343
+,p_internal_uid=>91820266000000344
 );
 wwv_flow_imp_page.create_page_plug(
- p_id=>wwv_flow_imp.id(91820266000000344)
+ p_id=>wwv_flow_imp.id(91820266000000345)
 ,p_plug_name=>'يومية القيود'
 ,p_region_template_options=>'#DEFAULT#:t-Region--scrollBody:nn-print-area:t-Region--removeHeader js-removeLandmark:t-Region--noUI'
 ,p_plug_template=>4072358936313175081
