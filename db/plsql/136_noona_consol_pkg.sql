@@ -166,7 +166,7 @@ CREATE OR REPLACE PACKAGE BODY NOONA_CONSOL_PKG AS
                  AND (g.business_group_id IS NULL
                       OR business_group_id IN (SELECT id FROM org_business_group START WITH id = g.business_group_id
                                                CONNECT BY PRIOR id = parent_group_id))
-               ORDER BY CASE WHEN id = TO_NUMBER(SYS_CONTEXT('NOONA_CTX', 'COMPANY_ID')) THEN 0 ELSE 1 END, code) LOOP
+               ORDER BY id) LOOP                                   -- الشركة القابضة (أول شركة في المجموعة) أولاً
       IF NOONA_GL_PKG.primary_ledger(c.id) IS NULL THEN
         g_skip := g_skip || CASE WHEN g_skip IS NOT NULL THEN '، ' END || c.nm || ' (لم يجهز أستاذها العام)';
       ELSIF NOONA_SECURITY_PKG.can_access_company(c.id) <> 'Y' OR NOONA_SECURITY_PKG.has_permission('GL_BALANCE.VIEW', c.id) <> 'Y' THEN
@@ -359,7 +359,8 @@ CREATE OR REPLACE PACKAGE BODY NOONA_CONSOL_PKG AS
                            WHEN 'IS' THEN 'قائمة الدخل الموحدة من ' || TO_CHAR(p_from, 'YYYY-MM-DD') || ' إلى ' || TO_CHAR(p_to, 'YYYY-MM-DD')
                            ELSE 'قائمة المركز المالي الموحدة في ' || TO_CHAR(p_to, 'YYYY-MM-DD') END
                || ' - ' || g.name_ar;
-    l_html := NOONA_BRAND_PKG.report_header(l_title)
+    -- الترويسة باسم الشركة القابضة (أول شركة مشمولة) لا الشركة الحالية للمستخدم
+    l_html := NOONA_BRAND_PKG.report_header(l_title, g_co(1))
            || '<div class="nn-cns-info"><span><b>الشركات:</b> ';
     FOR i IN 1 .. g_co.COUNT LOOP
       l_html := l_html || CASE WHEN i > 1 THEN '، ' END || esc(g_cname(i)) || CASE WHEN g_rate(i) <> 1 THEN ' <small>(سعر ' || g_rate(i) || ')</small>' END;
