@@ -1215,7 +1215,8 @@ CREATE OR REPLACE PACKAGE BODY NOONA_SAL_PKG AS
     guard('SAL_INVOICE.VIEW');
     SELECT * INTO l_i FROM sal_invoice WHERE id = p_invoice_id AND company_id = company;
     l_html := NOONA_BRAND_PKG.report_header(CASE l_i.doc_type WHEN 'CREDIT_NOTE' THEN 'إشعار دائن (مرتجع مبيعات)'
-                                                              WHEN 'INVOICE' THEN 'فاتورة ضريبية' ELSE 'فاتورة ضريبية مبسطة' END || ' ' || l_i.doc_no)
+                                                              WHEN 'INVOICE' THEN 'فاتورة ضريبية' ELSE 'فاتورة ضريبية مبسطة' END || ' ' || l_i.doc_no,
+                                            l_i.company_id, l_i.branch_id)
            || '<table class="nn-rpt nn-rpt-meta"><tbody><tr><th>العميل</th><td>' || esc(l_i.customer_name_snapshot) || '</td><th>التاريخ</th><td>'
            || TO_CHAR(l_i.doc_date, 'YYYY-MM-DD') || '</td></tr><tr><th>الرقم الضريبي للعميل</th><td>' || esc(l_i.customer_tax_no_snapshot)
            || '</td><th>الرقم الضريبي للبائع</th><td>' || esc(l_vat) || '</td></tr><tr><th>الطريقة</th><td>' || mode_label(l_i.payment_mode)
@@ -1232,7 +1233,8 @@ CREATE OR REPLACE PACKAGE BODY NOONA_SAL_PKG AS
     RETURN l_html || (('</tbody><tfoot><tr><td colspan="5">الإجمالي</td><td>' || fmt0(l_i.subtotal) || '</td><td>' || fmt0(l_i.tax_amount)
         || '</td><td>' || fmt0(l_i.total_amount) || '</td></tr></tfoot></table>'
         || '<p class="nn-rpt-words">' || esc(NOONA_CSH_PKG.amount_words(l_i.total_amount, l_i.currency_code)) || '</p>'
-        || '<div class="nn-qr" data-qr="' || NVL(NOONA_EINV_PKG.invoice_qr(l_i.id), zatca_qr(NVL(l_i.issued_at, SYSTIMESTAMP), l_i.total_amount, l_i.tax_amount)) || '"></div>'));
+        || '<div class="nn-qr" data-qr="' || NVL(NOONA_EINV_PKG.invoice_qr(l_i.id), zatca_qr(NVL(l_i.issued_at, SYSTIMESTAMP), l_i.total_amount, l_i.tax_amount)) || '"></div>'
+        || NOONA_BRAND_PKG.doc_footer('المستلم (العميل)|المحاسب|المدير المعتمد', l_i.company_id, l_i.branch_id)));
   EXCEPTION WHEN NO_DATA_FOUND THEN
     NOONA_CORE_PKG.raise_error('NOONA-SAL-025', 'فاتورة المبيعات غير موجودة', 'Sales invoice not found');
   END invoice_print;

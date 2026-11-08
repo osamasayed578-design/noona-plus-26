@@ -18,11 +18,11 @@ wwv_flow_imp_page.create_page(
 ,p_step_title=>'التكاملات وواجهات API'
 ,p_autocomplete_on_off=>'OFF'
 ,p_page_template_options=>'#DEFAULT#'
-,p_required_role=>wwv_flow_imp.id(91820262000000683)
+,p_required_role=>wwv_flow_imp.id(91820262000000701)
 ,p_protection_level=>'C'
 );
 wwv_flow_imp_page.create_page_plug(
- p_id=>wwv_flow_imp.id(91820262000000684)
+ p_id=>wwv_flow_imp.id(91820262000000702)
 ,p_plug_name=>'مؤشرات التكاملات'
 ,p_region_template_options=>'#DEFAULT#:t-Region--scrollBody:t-Region--removeHeader js-removeLandmark:t-Region--noUI'
 ,p_plug_template=>4072358936313175081
@@ -33,7 +33,7 @@ wwv_flow_imp_page.create_page_plug(
 ,p_plug_source_type=>'NATIVE_DYNAMIC_CONTENT'
 );
 wwv_flow_imp_page.create_page_plug(
- p_id=>wwv_flow_imp.id(91820262000000685)
+ p_id=>wwv_flow_imp.id(91820262000000703)
 ,p_plug_name=>'إجراءات'
 ,p_region_template_options=>'#DEFAULT#:t-Region--removeHeader js-removeLandmark'
 ,p_plug_template=>4072358936313175081
@@ -44,9 +44,9 @@ wwv_flow_imp_page.create_page_plug(
   'show_line_breaks', 'Y')).to_clob
 );
 wwv_flow_imp_page.create_page_button(
- p_id=>wwv_flow_imp.id(91820262000000686)
+ p_id=>wwv_flow_imp.id(91820262000000704)
 ,p_button_sequence=>10
-,p_button_plug_id=>wwv_flow_imp.id(91820262000000685)
+,p_button_plug_id=>wwv_flow_imp.id(91820262000000703)
 ,p_button_name=>'CLIENTS'
 ,p_button_action=>'REDIRECT_URL'
 ,p_button_template_options=>'#DEFAULT#'
@@ -57,9 +57,9 @@ wwv_flow_imp_page.create_page_button(
 ,p_button_redirect_url=>'f?p=&APP_ID.:71:&SESSION.::&DEBUG.:::'
 );
 wwv_flow_imp_page.create_page_button(
- p_id=>wwv_flow_imp.id(91820262000000687)
+ p_id=>wwv_flow_imp.id(91820262000000705)
 ,p_button_sequence=>20
-,p_button_plug_id=>wwv_flow_imp.id(91820262000000685)
+,p_button_plug_id=>wwv_flow_imp.id(91820262000000703)
 ,p_button_name=>'WEBHOOKS'
 ,p_button_action=>'REDIRECT_URL'
 ,p_button_template_options=>'#DEFAULT#'
@@ -69,9 +69,9 @@ wwv_flow_imp_page.create_page_button(
 ,p_button_redirect_url=>'f?p=&APP_ID.:73:&SESSION.::&DEBUG.:::'
 );
 wwv_flow_imp_page.create_page_button(
- p_id=>wwv_flow_imp.id(91820262000000688)
+ p_id=>wwv_flow_imp.id(91820262000000706)
 ,p_button_sequence=>30
-,p_button_plug_id=>wwv_flow_imp.id(91820262000000685)
+,p_button_plug_id=>wwv_flow_imp.id(91820262000000703)
 ,p_button_name=>'OUTBOX'
 ,p_button_action=>'REDIRECT_URL'
 ,p_button_template_options=>'#DEFAULT#'
@@ -81,9 +81,9 @@ wwv_flow_imp_page.create_page_button(
 ,p_button_redirect_url=>'f?p=&APP_ID.:74:&SESSION.::&DEBUG.:::'
 );
 wwv_flow_imp_page.create_page_button(
- p_id=>wwv_flow_imp.id(91820262000000689)
+ p_id=>wwv_flow_imp.id(91820262000000707)
 ,p_button_sequence=>40
-,p_button_plug_id=>wwv_flow_imp.id(91820262000000685)
+,p_button_plug_id=>wwv_flow_imp.id(91820262000000703)
 ,p_button_name=>'CHANNELS'
 ,p_button_action=>'REDIRECT_URL'
 ,p_button_template_options=>'#DEFAULT#'
@@ -93,9 +93,9 @@ wwv_flow_imp_page.create_page_button(
 ,p_button_redirect_url=>'f?p=&APP_ID.:75:&SESSION.::&DEBUG.:::'
 );
 wwv_flow_imp_page.create_page_button(
- p_id=>wwv_flow_imp.id(91820262000000690)
+ p_id=>wwv_flow_imp.id(91820262000000708)
 ,p_button_sequence=>50
-,p_button_plug_id=>wwv_flow_imp.id(91820262000000685)
+,p_button_plug_id=>wwv_flow_imp.id(91820262000000703)
 ,p_button_name=>'IMPORT'
 ,p_button_action=>'REDIRECT_URL'
 ,p_button_template_options=>'#DEFAULT#'
@@ -105,9 +105,9 @@ wwv_flow_imp_page.create_page_button(
 ,p_button_redirect_url=>'f?p=&APP_ID.:76:&SESSION.::&DEBUG.:::'
 );
 wwv_flow_imp_page.create_page_button(
- p_id=>wwv_flow_imp.id(91820262000000691)
+ p_id=>wwv_flow_imp.id(91820262000000709)
 ,p_button_sequence=>60
-,p_button_plug_id=>wwv_flow_imp.id(91820262000000685)
+,p_button_plug_id=>wwv_flow_imp.id(91820262000000703)
 ,p_button_name=>'DOCS'
 ,p_button_action=>'REDIRECT_URL'
 ,p_button_template_options=>'#DEFAULT#'
@@ -117,7 +117,7 @@ wwv_flow_imp_page.create_page_button(
 ,p_button_redirect_url=>'f?p=&APP_ID.:77:&SESSION.::&DEBUG.:::'
 );
 wwv_flow_imp_page.create_page_plug(
- p_id=>wwv_flow_imp.id(91820262000000692)
+ p_id=>wwv_flow_imp.id(91820262000000710)
 ,p_plug_name=>'كيف تتكامل'
 ,p_region_template_options=>'#DEFAULT#'
 ,p_plug_template=>4072358936313175081
@@ -130,7 +130,7 @@ wwv_flow_imp_page.create_page_plug(
   'show_line_breaks', 'Y')).to_clob
 );
 wwv_flow_imp_page.create_page_plug(
- p_id=>wwv_flow_imp.id(91820262000000693)
+ p_id=>wwv_flow_imp.id(91820262000000711)
 ,p_plug_name=>'آخر الطلبات'
 ,p_region_template_options=>'#DEFAULT#:t-Region--scrollBody'
 ,p_plug_template=>4072358936313175081
