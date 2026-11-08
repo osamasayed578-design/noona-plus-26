@@ -12,7 +12,7 @@ wwv_flow_imp.component_begin (
 ,p_default_owner=>'NOONA_APP'
 );
 wwv_flow_imp_shared.create_security_scheme(
- p_id=>wwv_flow_imp.id(91820273000000870)
+ p_id=>wwv_flow_imp.id(91820273000000858)
 ,p_name=>'NOONA - Unit Sales'
 ,p_scheme_type=>'NATIVE_FUNCTION_BODY'
 ,p_attribute_01=>'return noona_security_pkg.has_permission(''RE_SALE_CONTRACT.VIEW'', noona_res_pkg.company) = ''Y'';'
