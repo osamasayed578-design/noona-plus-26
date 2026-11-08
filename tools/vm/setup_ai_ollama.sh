@@ -52,7 +52,7 @@ cat > /etc/systemd/system/ollama.service.d/noona.conf <<EOF
 [Service]
 Environment=OLLAMA_HOST=127.0.0.1:$OPORT
 Environment=OLLAMA_CONTEXT_LENGTH=8192
-Environment=OLLAMA_KEEP_ALIVE=24h
+Environment=OLLAMA_KEEP_ALIVE=10m
 Environment=OLLAMA_NUM_PARALLEL=1
 EOF
 chmod 644 /etc/systemd/system/ollama.service.d/noona.conf
