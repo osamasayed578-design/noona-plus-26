@@ -3,6 +3,7 @@
 --   sqlplus / as sysdba  (داخل الـ PDB)   @db/dev/ai_local_service.sql <host> <port> <model>
 --   مثال: @db/dev/ai_local_service.sql localhost 11434 qwen2.5:3b
 --   تنشئ خدمة APEX بالمعرف NOONA_AI_LOCAL في مساحة NOONAPLUS، وتمنح APEX الاتصال بالمضيف والمنفذ
+--   مهلة الرد 600 ثانية (الافتراضي 180 لا يكفي النموذج المحلي على المعالج فيظهر «فشل طلب HTTP»)
 -- =============================================================================
 SET DEFINE ON
 SET VERIFY OFF
@@ -30,9 +31,9 @@ BEGIN
   EXECUTE IMMEDIATE 'DELETE FROM ' || l_apex || '.wwv_remote_servers WHERE static_id = ''NOONA_AI_LOCAL'' AND security_group_id = :1' USING l_sg;
   EXECUTE IMMEDIATE 'SELECT ' || l_apex || '.wwv_seq.nextval FROM dual' INTO l_id;
   EXECUTE IMMEDIATE 'INSERT INTO ' || l_apex || '.wwv_remote_servers (id, security_group_id, name, static_id, base_url, server_type, prompt_on_install,'
-    || ' ai_provider_type, ai_provider_api, ai_is_builder_service, ai_model_name) VALUES'
+    || ' ai_provider_type, ai_provider_api, ai_is_builder_service, ai_model_name, server_timeout) VALUES'
     || ' (:1, :2, ''NOONA AI Local (Ollama)'', ''NOONA_AI_LOCAL'', ''http://&host:&port/v1/chat/completions'', ''GENERATIVE_AI'', ''N'','
-    || ' ''GENERIC_OPENAI'', ''CHAT_COMPLETIONS'', ''N'', :3)'
+    || ' ''GENERIC_OPENAI'', ''CHAT_COMPLETIONS'', ''N'', :3, 600)'
     USING l_id, l_sg, '&model';
   COMMIT;
   DBMS_OUTPUT.PUT_LINE('SERVICE_OK NOONA_AI_LOCAL -> http://&host:&port/v1/chat/completions (' || l_apex || ')');

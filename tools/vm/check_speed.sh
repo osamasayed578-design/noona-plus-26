@@ -4,7 +4,8 @@
 #   الفحص فقط:        bash tools/vm/check_speed.sh
 #   الفحص مع العلاج:  bash tools/vm/check_speed.sh --fix
 #   يعرض: الذاكرة والتبديل (swap) والمعالج، استهلاك Oracle وORDS وOllama، زمن الصفحة من المتصفح ومن APEX،
-#   وأبطأ الصفحات خلال آخر 24 ساعة. والعلاج: تحرير نموذج الذكاء الاصطناعي من الذاكرة عند عدم الاستخدام،
+#   وأبطأ الصفحات خلال آخر 24 ساعة، ومهلة خدمة الذكاء الاصطناعي. والعلاج: تحرير النموذج من الذاكرة عند عدم الاستخدام،
+#   ورفع مهلة رد الخدمة المحلية إلى 600 ثانية،
 #   وإعادة تشغيل ORDS إن كان لا يتصل بالقاعدة.
 # =============================================================================
 FIX=0; [ "$1" = "--fix" ] && FIX=1
@@ -42,6 +43,39 @@ if command -v ollama >/dev/null 2>&1 && systemctl is-active -q ollama; then
     if [ $FIX = 1 ]; then
       sed -i 's/OLLAMA_KEEP_ALIVE=.*/OLLAMA_KEEP_ALIVE=10m/' /etc/systemd/system/ollama.service.d/noona.conf
       systemctl daemon-reload; systemctl restart ollama; ok "تم: النموذج يتحرر من الذاكرة بعد 10 دقائق من آخر سؤال (أول سؤال بعدها يأخذ ثواني إضافية للتحميل)"
+    fi
+  fi
+fi
+
+# ----------------------------------------------------------------------------- خدمة الذكاء الاصطناعي في APEX
+AI_PDB=$(printf 'CONNECT / AS SYSDBA\nSET HEADING OFF FEEDBACK OFF PAGES 0\nSELECT name FROM v$pdbs WHERE name <> %s ORDER BY con_id FETCH FIRST 1 ROWS ONLY;\nEXIT\n' "'PDB\$SEED'" \
+  | su - oracle -c ". ~/.noona_env; sqlplus -S -L /nolog" 2>/dev/null | tr -d ' \n')
+if [ -n "$AI_PDB" ]; then
+  AIQ() { printf 'CONNECT / AS SYSDBA\nALTER SESSION SET CONTAINER=%s;\nSET HEADING OFF FEEDBACK OFF PAGES 0 LINES 300\n%s\nEXIT\n' "$AI_PDB" "$1" \
+    | su - oracle -c ". ~/.noona_env; sqlplus -S -L /nolog" 2>&1 | grep -v '^$\|^Session altered\|^Connected'; }
+  APX=$(AIQ "SELECT schema FROM dba_registry WHERE comp_id = 'APEX';" | tr -d ' ')
+  SRV=$(AIQ "SELECT static_id||' '||NVL(TO_CHAR(server_timeout),'-')||' '||base_url FROM $APX.wwv_remote_servers WHERE static_id = 'NOONA_AI_LOCAL';")
+  if [ -n "$SRV" ] && [[ "$SRV" != *ORA-* ]]; then
+    h "خدمة الذكاء الاصطناعي المحلية في APEX"
+    read -r _ TMO URL <<<"$SRV"
+    echo "  العنوان: $URL · مهلة الرد: ${TMO/-/الافتراضي 180} ثانية"
+    if [ "$TMO" = "-" ] || [ "$TMO" -lt 600 ] 2>/dev/null; then
+      bad "مهلة الرد قصيرة على نموذج محلي يعمل على المعالج؛ هذا يسبب «NOONA-AI-015: فشل طلب HTTP»"; ISSUES=$((ISSUES+1))
+      if [ $FIX = 1 ]; then
+        AIQ "UPDATE $APX.wwv_remote_servers SET server_timeout = 600 WHERE static_id = 'NOONA_AI_LOCAL';"$'\n'"COMMIT;" >/dev/null
+        ok "تم: مهلة الرد 600 ثانية"
+      fi
+    fi
+    if command -v ollama >/dev/null 2>&1; then
+      MDL=$(AIQ "SELECT ai_model_name FROM $APX.wwv_remote_servers WHERE static_id = 'NOONA_AI_LOCAL';" | tr -d ' ')
+      R=$(curl -s --noproxy '*' -m 600 -o /dev/null -w "%{http_code} %{time_total}" "$URL" -H 'Content-Type: application/json' \
+          -d "{\"model\":\"$MDL\",\"messages\":[{\"role\":\"user\",\"content\":\"قل مرحبا\"}],\"max_tokens\":20}")
+      echo "  تجربة سؤال قصير للنموذج $MDL: الحالة ${R% *} · الزمن ${R#* } ثانية"
+      case "${R% *}" in
+        200) awk -v t="${R#* }" 'BEGIN{exit !(t>60)}' && warn "النموذج بطيء جداً على هذا الخادم؛ جرّب qwen2.5:3b أو زد الذاكرة والأنوية" ;;
+        000) bad "Ollama لا يرد: systemctl restart ollama ثم journalctl -u ollama -n 30"; ISSUES=$((ISSUES+1)) ;;
+        *)   bad "Ollama رد بخطأ ${R% *} (هل النموذج $MDL منزّل؟ ollama list)"; ISSUES=$((ISSUES+1)) ;;
+      esac
     fi
   fi
 fi

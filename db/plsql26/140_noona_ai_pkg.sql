@@ -71,6 +71,26 @@ CREATE OR REPLACE PACKAGE BODY NOONA_AI_PKG AS
                           '\s*\[cid=[^]]+\]', '');
   END msg_text;
 
+  -- سبب فشل الاتصال بالخدمة بلغة واضحة (المهلة، صلاحية الشبكة، الخدمة متوقفة...) من تفاصيل UTL_HTTP
+  FUNCTION call_err(p VARCHAR2) RETURN VARCHAR2 IS
+    d VARCHAR2(4000);
+  BEGIN
+    BEGIN d := UTL_HTTP.GET_DETAILED_SQLERRM; EXCEPTION WHEN OTHERS THEN NULL; END;
+    d := NVL(d, p);
+    IF INSTR(d, 'ORA-29276') > 0 THEN
+      RETURN 'انتهت مهلة انتظار الرد؛ النموذج بطيء على هذا الخادم: ارفع مهلة الخدمة (Timeout) في APEX أو استخدم نموذجاً أصغر';
+    ELSIF INSTR(d, 'ORA-24247') > 0 THEN
+      RETURN 'قاعدة البيانات لا تملك صلاحية الشبكة (ACL) للوصول لعنوان الخدمة';
+    ELSIF INSTR(d, 'ORA-12541') > 0 OR INSTR(d, 'ORA-12535') > 0 OR INSTR(d, 'ORA-12543') > 0 THEN
+      RETURN 'الخدمة لا تعمل أو لا تستقبل على العنوان والمنفذ المضبوطين';
+    ELSIF INSTR(d, 'ORA-12545') > 0 OR INSTR(d, 'ORA-29261') > 0 THEN
+      RETURN 'تعذر الوصول لعنوان الخدمة (اسم المضيف أو الشبكة)';
+    ELSIF INSTR(d, 'ORA-29024') > 0 OR INSTR(d, 'ORA-24263') > 0 THEN
+      RETURN 'شهادة HTTPS للخدمة غير موثوقة في محفظة Oracle';
+    END IF;
+    RETURN msg_text(p) || CASE WHEN d <> p THEN ' (' || msg_text(d) || ')' END;
+  END call_err;
+
   -- ---------------------------------------------------------------- الإعداد
 
   FUNCTION cfg RETURN t_cfg IS
@@ -332,6 +352,7 @@ CREATE OR REPLACE PACKAGE BODY NOONA_AI_PKG AS
     l_mod    VARCHAR2(30) := UPPER(js(l_o, 'module'));
     l_title  VARCHAR2(400) := SUBSTR(js(l_o, 'pageTitle'), 1, 400);
     l_msgs   apex_ai.t_chat_messages;
+    l_err    VARCHAR2(400);
     l_ans    CLOB;
     l_sys    CLOB;
     l_n      PLS_INTEGER := 0;
@@ -374,8 +395,9 @@ CREATE OR REPLACE PACKAGE BODY NOONA_AI_PKG AS
       l_ans := apex_ai.chat(p_prompt => l_q, p_system_prompt => l_sys, p_service_static_id => c.service, p_temperature => 0.2,
                             p_messages => l_msgs, p_tools => tools, p_max_tool_roundtrips => 5, p_model => c.model);
     EXCEPTION WHEN OTHERS THEN
+      l_err := SUBSTR(call_err(SQLERRM), 1, 300);
       NOONA_AUDIT_PKG.log_event('CONFIG', 'AI_CONVERSATION', l_conv, 'CHAT', 'FAILED');
-      NOONA_CORE_PKG.raise_error('NOONA-AI-015', 'تعذر الوصول لخدمة الذكاء الاصطناعي: ' || SUBSTR(msg_text(SQLERRM), 1, 300),
+      NOONA_CORE_PKG.raise_error('NOONA-AI-015', 'تعذر الوصول لخدمة الذكاء الاصطناعي: ' || l_err,
         'AI service call failed');
     END;
     l_out := est_tokens(l_ans);
@@ -459,7 +481,7 @@ CREATE OR REPLACE PACKAGE BODY NOONA_AI_PKG AS
       l_ans := apex_ai.generate(p_prompt => l_p, p_system_prompt => 'أنت محلل مالي وإداري لنظام NOONA PLUS ERP. لا تخترع أرقاماً.',
                                 p_service_static_id => c.service, p_temperature => 0.3, p_model => c.model);
     EXCEPTION WHEN OTHERS THEN
-      NOONA_CORE_PKG.raise_error('NOONA-AI-015', 'تعذر الوصول لخدمة الذكاء الاصطناعي: ' || SUBSTR(msg_text(SQLERRM), 1, 300), 'AI service call failed');
+      NOONA_CORE_PKG.raise_error('NOONA-AI-015', 'تعذر الوصول لخدمة الذكاء الاصطناعي: ' || SUBSTR(call_err(SQLERRM), 1, 300), 'AI service call failed');
     END;
     add_usage(c.model_id, 'SUMMARY', l_in, est_tokens(l_ans), c.cin, c.cout);
     RETURN '{"summary":' || jtc(l_ans) || ',"asOf":"' || TO_CHAR(SYSDATE, 'YYYY-MM-DD HH24:MI') || '"}';
