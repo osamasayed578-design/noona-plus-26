@@ -23,6 +23,7 @@ CONTRACT_VALUE  AMT              | قيمة العقد الرئيسي
 BUDGET_AMOUNT   AMT              | الموازنة المعتمدة
 PERCENT_COMPLETE PCT @CALC       | نسبة الإنجاز
 REVENUE_METHOD  CODE IN:MILESTONE,PERCENT_COMPLETE,COST_TO_COST,BILLING,COMPLETED_CONTRACT | طريقة الاعتراف بالإيراد
+ESTIMATED_TOTAL_COST AMT          | التكلفة المتوقعة عند الإنجاز (آخر تقدير)
 ''', area='project')
 
 table('PRJ_WBS', 'هيكل تقسيم العمل', 'Work Breakdown Structure', scope='C', mix='code names status', codeuk=False,
@@ -76,6 +77,8 @@ START_DATE      DATE             | البداية
 END_DATE        DATE             | النهاية
 DEFECTS_LIABILITY_MONTHS INT     | فترة الضمان
 SIGNED_DOCUMENT_ID ID >DMS_DOCUMENT | العقد الموقع
+DELAY_PENALTY_PER_DAY AMT        | غرامة التأخير اليومية
+PENALTY_CAP_PCT PCT              | سقف الغرامات % من قيمة العقد
 ''', uk=[('TENANT_ID', 'COMPANY_ID', 'CONTRACT_NO')], area='contract')
 
 table('PRJ_BOQ_ITEM', 'جداول الكميات', 'Bill of Quantities', scope='C', mix='sort', cols='''
@@ -133,6 +136,11 @@ NET_PAYABLE     AMT  NN D=0      | الصافي
 CERTIFIED_BY    USR              | المعتمد/الاستشاري
 CERTIFICATE_DOCUMENT_ID ID >DMS_DOCUMENT | شهادة الإنجاز
 SALES_INVOICE_ID ID  >SAL_INVOICE | الفاتورة الناتجة (عميل)
+PENALTY_DAYS    INT              | أيام التأخير المحتسبة
+PENALTY_AMOUNT  AMT  NN D=0      | غرامة التأخير
+MOS_TO_DATE     AMT  NN D=0      | قيمة المواد المشونة بالموقع حتى تاريخه
+MOS_PREVIOUS    AMT  NN D=0      | المواد المشونة في المستخلص السابق
+IS_FINAL        YN   NN D='N'    | المستخلص الختامي
 ''', uk=[('CONTRACT_ID', 'CLAIM_NO')], area='billing')
 
 table('PRJ_PROGRESS_CLAIM_LINE', 'أسطر المستخلص', 'Progress Claim Lines', scope='C', cols='''
@@ -207,4 +215,43 @@ ISSUE_DATE      DATE NN          | الإصدار
 EXPIRY_DATE     DATE NN          | الانتهاء (تنبيه قبله)
 MARGIN_AMOUNT   AMT              | الغطاء النقدي
 DOCUMENT_ID     ID   >DMS_DOCUMENT | صورة الخطاب
+MARGIN_JOURNAL_ID ID >GL_JOURNAL | قيد تجنيب الغطاء
+RELEASE_DATE    DATE             | تاريخ الإفراج
+NOTES           V500             | ملاحظات
 ''', uk=[('TENANT_ID', 'COMPANY_ID', 'GUARANTEE_NO')], ix=[('TENANT_ID', 'EXPIRY_DATE')], area='contract')
+
+table('PRJ_REVENUE_RUN', 'الاعتراف بإيراد العقود حسب نسبة الإنجاز', 'Contract Revenue Recognition (WIP) Runs', scope='C',
+      mix='status', status='POSTED REVERSED', cols='''
+PROJECT_ID      ID   NN >PRJ_PROJECT | المشروع
+PERIOD_END      DATE NN          | نهاية الفترة
+REVENUE_METHOD  CODE NN          | طريقة نسبة الإنجاز (التكلفة أو الإنجاز الفعلي)
+CONTRACT_VALUE  AMT  NN D=0      | قيمة العقد الحالية
+ESTIMATED_TOTAL_COST AMT NN D=0  | التكلفة المتوقعة عند الإنجاز
+COST_TO_DATE    AMT  NN D=0      | التكلفة الفعلية حتى تاريخه
+POC_PCT         PCT  NN D=0      | نسبة الإنجاز
+REVENUE_TO_DATE AMT  NN D=0      | الإيراد المستحق حتى تاريخه
+BILLED_TO_DATE  AMT  NN D=0      | الإيراد المفوتر بالمستخلصات
+CONTRACT_ASSET  AMT  NN D=0      | أصول العقود (إيراد غير مفوتر)
+CONTRACT_LIABILITY AMT NN D=0    | التزامات العقود (فوترة تتجاوز الإنجاز)
+EXPECTED_LOSS   AMT  NN D=0      | الخسارة المتوقعة للعقد
+LOSS_PROVISION  AMT  NN D=0      | مخصص الخسارة المتبقية
+GL_JOURNAL_ID   ID   >GL_JOURNAL | قيد التسوية
+''', uk=[('PROJECT_ID', 'PERIOD_END')], area='billing')
+
+table('PRJ_EQUIPMENT', 'معدات المشروعات', 'Project Equipment', scope='C', mix='code names status', status='ACTIVE INACTIVE', cols='''
+EQUIPMENT_TYPE  V100             | النوع (حفار، رافعة، خلاطة...)
+OWNERSHIP       CODE NN D='OWNED' IN:OWNED,RENTED | مملوكة أو مستأجرة
+ASSET_ID        ID   >FA_ASSET   | الأصل الثابت المرتبط
+HOURLY_RATE     AMT  NN          | تكلفة الساعة المحملة
+''', area='cost')
+
+table('PRJ_EQUIPMENT_USAGE', 'تشغيل المعدات على المشروعات', 'Equipment Usage', scope='C', mix='status', status='DRAFT POSTED REVERSED', cols='''
+EQUIPMENT_ID    ID   NN >PRJ_EQUIPMENT | المعدة
+PROJECT_ID      ID   NN >PRJ_PROJECT | المشروع
+WBS_ID          ID   NN >PRJ_WBS | بند العمل
+USAGE_DATE      DATE NN          | التاريخ
+HOURS           QTY  NN          | الساعات
+RATE            AMT  NN          | تكلفة الساعة
+AMOUNT          AMT  NN          | التكلفة
+COST_LINE_ID    ID   >PRJ_COST_LINE | حركة التكلفة
+''', ix=[('TENANT_ID', 'PROJECT_ID', 'USAGE_DATE')], area='cost')

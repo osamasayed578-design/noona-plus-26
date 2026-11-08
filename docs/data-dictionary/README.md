@@ -35,7 +35,7 @@
 | 12 | المشتريات | Procurement | `NOONA_PROCUREMENT_PKG` | 17 | [p12_pur](p12_pur.md) |
 | 13 | المبيعات ونقاط البيع | Sales & Point of Sale | `NOONA_SALES_PKG` | 34 | [p13_sal](p13_sal.md) |
 | 14 | الأصول الثابتة | Fixed Assets | `NOONA_ASSETS_PKG` | 11 | [p14_fa](p14_fa.md) |
-| 15 | المشروعات والمقاولات والإنشاءات | Projects, Contracting & Construction | `NOONA_PROJECTS_PKG` | 15 | [p15_prj](p15_prj.md) |
+| 15 | المشروعات والمقاولات والإنشاءات | Projects, Contracting & Construction | `NOONA_PROJECTS_PKG` | 18 | [p15_prj](p15_prj.md) |
 | 16 | التطوير العقاري وبيع الوحدات | Real Estate Development & Unit Sales | `NOONA_REAL_ESTATE_PKG` | 17 | [p16_re](p16_re.md) |
 | 17 | إدارة الأملاك والإيجارات والضيافة | Property Management, Leasing & Hospitality | `NOONA_PROPERTY_PKG` | 25 | [p17_prp](p17_prp.md) |
 | 18 | الصيانة وإدارة المرافق | Maintenance & Facility Management | `NOONA_MAINTENANCE_PKG` | 11 | [p18_mnt](p18_mnt.md) |
@@ -55,5 +55,5 @@
 | 32 | مراكز خدمة السيارات | Auto Service Centers | `NOONA_AUT_PKG` | 10 | [p32_aut](p32_aut.md) |
 | 33 | النقل والشحن والترحيل | Transport & Logistics | `NOONA_TRN_PKG` | 12 | [p33_trn](p33_trn.md) |
 
-**الإجمالي:** 659 جدول · 11689 عمود.
+**الإجمالي:** 662 جدول · 11756 عمود.
 

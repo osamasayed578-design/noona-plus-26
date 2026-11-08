@@ -1,6 +1,7 @@
 -- =============================================================================
 -- NOONA PLUS ERP | بيانات المنصة للمشروعات والمقاولات (TENANT_ID = NULL) - قابل لإعادة التشغيل
---   * أحداث محاسبية: مستخلص العميل، مستخلص مقاول الباطن، تكلفة مباشرة على المشروع، تحميل العمالة
+--   * أحداث محاسبية: مستخلص العميل، مستخلص مقاول الباطن، تكلفة مباشرة على المشروع، تحميل العمالة والمعدات،
+--     تسوية الإيراد حسب نسبة الإنجاز ومخصص الخسائر، غطاء خطابات الضمان
 --   * نوع قيد ومصدر قيود المشروعات
 -- الحسابات (المحتجزات والدفعات المقدمة وإيرادات العقود وتكاليف المشروعات) تنشأ لكل شركة عند أول استخدام.
 -- =============================================================================
@@ -11,7 +12,10 @@ BEGIN
   USING (SELECT x0.* FROM (SELECT 'PRJ_CLAIM_RECEIVABLE' code, 'مستخلص عميل' name_ar, 'Customer progress claim' name_en, 'PRJ_PROGRESS_CLAIM' ent FROM dual
          UNION ALL SELECT 'PRJ_CLAIM_PAYABLE', 'مستخلص مقاول باطن', 'Subcontractor progress claim', 'PRJ_PROGRESS_CLAIM' FROM dual
          UNION ALL SELECT 'PRJ_COST_POSTED', 'تكلفة مباشرة على مشروع', 'Project direct cost', 'PRJ_COST_LINE' FROM dual
-         UNION ALL SELECT 'PRJ_LABOR_POSTED', 'تحميل عمالة على مشروع', 'Project labor charge', 'PRJ_TIMESHEET' FROM dual) x0
+         UNION ALL SELECT 'PRJ_LABOR_POSTED', 'تحميل عمالة على مشروع', 'Project labor charge', 'PRJ_TIMESHEET' FROM dual
+         UNION ALL SELECT 'PRJ_EQUIPMENT_POSTED', 'تحميل معدات على مشروع', 'Project equipment charge', 'PRJ_EQUIPMENT_USAGE' FROM dual
+         UNION ALL SELECT 'PRJ_REVENUE_RECOGNITION', 'تسوية إيراد العقود حسب نسبة الإنجاز', 'Contract revenue recognition (POC)', 'PRJ_REVENUE_RUN' FROM dual
+         UNION ALL SELECT 'PRJ_GUARANTEE_MARGIN', 'غطاء خطاب ضمان', 'Letter of guarantee margin', 'PRJ_GUARANTEE' FROM dual) x0
           JOIN ref_entity_type r ON r.entity_type_code = x0.ent) x
      ON (e.code = x.code)
    WHEN MATCHED THEN UPDATE SET e.name_ar = x.name_ar, e.name_en = x.name_en

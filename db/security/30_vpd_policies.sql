@@ -456,12 +456,15 @@ BEGIN
   NOONA_VPD_PKG.add_tenant_policy('PRJ_BUDGET_LINE');
   NOONA_VPD_PKG.add_tenant_policy('PRJ_CONTRACT');
   NOONA_VPD_PKG.add_tenant_policy('PRJ_COST_LINE');
+  NOONA_VPD_PKG.add_tenant_policy('PRJ_EQUIPMENT');
+  NOONA_VPD_PKG.add_tenant_policy('PRJ_EQUIPMENT_USAGE');
   NOONA_VPD_PKG.add_tenant_policy('PRJ_GUARANTEE');
   NOONA_VPD_PKG.add_tenant_policy('PRJ_MILESTONE');
   NOONA_VPD_PKG.add_tenant_policy('PRJ_PROGRESS_CLAIM');
   NOONA_VPD_PKG.add_tenant_policy('PRJ_PROGRESS_CLAIM_LINE');
   NOONA_VPD_PKG.add_tenant_policy('PRJ_PROGRESS_UPDATE');
   NOONA_VPD_PKG.add_tenant_policy('PRJ_PROJECT');
+  NOONA_VPD_PKG.add_tenant_policy('PRJ_REVENUE_RUN');
   NOONA_VPD_PKG.add_tenant_policy('PRJ_TIMESHEET');
   NOONA_VPD_PKG.add_tenant_policy('PRJ_VARIATION_LINE');
   NOONA_VPD_PKG.add_tenant_policy('PRJ_VARIATION_ORDER');

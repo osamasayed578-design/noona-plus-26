@@ -18,11 +18,11 @@ wwv_flow_imp_page.create_page(
 ,p_step_title=>'عقد إيجار'
 ,p_autocomplete_on_off=>'OFF'
 ,p_page_template_options=>'#DEFAULT#'
-,p_required_role=>wwv_flow_imp.id(91820273000000754)
+,p_required_role=>wwv_flow_imp.id(91820273000000871)
 ,p_protection_level=>'N'
 );
 wwv_flow_imp_page.create_page_plug(
- p_id=>wwv_flow_imp.id(91820273000000927)
+ p_id=>wwv_flow_imp.id(91820273000001044)
 ,p_plug_name=>'العقار والوحدات'
 ,p_region_template_options=>'#DEFAULT#'
 ,p_plug_template=>4072358936313175081
@@ -33,20 +33,20 @@ wwv_flow_imp_page.create_page_plug(
   'show_line_breaks', 'Y')).to_clob
 );
 wwv_flow_imp_page.create_page_item(
- p_id=>wwv_flow_imp.id(91820273000000928)
+ p_id=>wwv_flow_imp.id(91820273000001045)
 ,p_name=>'P41_ID'
 ,p_item_sequence=>1
-,p_item_plug_id=>wwv_flow_imp.id(91820273000000927)
+,p_item_plug_id=>wwv_flow_imp.id(91820273000001044)
 ,p_display_as=>'NATIVE_HIDDEN'
 ,p_protection_level=>'N'
 ,p_attributes=>wwv_flow_t_plugin_attributes(wwv_flow_t_varchar2(
   'value_protected', 'N')).to_clob
 );
 wwv_flow_imp_page.create_page_item(
- p_id=>wwv_flow_imp.id(91820273000000929)
+ p_id=>wwv_flow_imp.id(91820273000001046)
 ,p_name=>'P41_PROPERTY'
 ,p_item_sequence=>10
-,p_item_plug_id=>wwv_flow_imp.id(91820273000000927)
+,p_item_plug_id=>wwv_flow_imp.id(91820273000001044)
 ,p_prompt=>'العقار'
 ,p_display_as=>'NATIVE_SELECT_LIST'
 ,p_lov=>'select p.name_ar d, p.id r from re_property p where p.company_id = noona_res_pkg.company and p.status_code <> ''INACTIVE'' and exists (select 1 from re_unit u where u.property_id = p.id and u.usage_type in (''LEASE'', ''MIXED'')) order by p.code'
@@ -60,10 +60,10 @@ wwv_flow_imp_page.create_page_item(
   'page_action_on_selection', 'NONE')).to_clob
 );
 wwv_flow_imp_page.create_page_item(
- p_id=>wwv_flow_imp.id(91820273000000930)
+ p_id=>wwv_flow_imp.id(91820273000001047)
 ,p_name=>'P41_TYPE'
 ,p_item_sequence=>20
-,p_item_plug_id=>wwv_flow_imp.id(91820273000000927)
+,p_item_plug_id=>wwv_flow_imp.id(91820273000001044)
 ,p_prompt=>'نوع العقد'
 ,p_display_as=>'NATIVE_SELECT_LIST'
 ,p_lov=>'STATIC2:سكني;RESIDENTIAL,تجاري (مكتب/معرض);COMMERCIAL,محل تجزئة;RETAIL,صناعي/مستودع;INDUSTRIAL,أرض;LAND,مواقف;PARKING'
@@ -76,10 +76,10 @@ wwv_flow_imp_page.create_page_item(
   'page_action_on_selection', 'NONE')).to_clob
 );
 wwv_flow_imp_page.create_page_item(
- p_id=>wwv_flow_imp.id(91820273000000931)
+ p_id=>wwv_flow_imp.id(91820273000001048)
 ,p_name=>'P41_UNITS'
 ,p_item_sequence=>30
-,p_item_plug_id=>wwv_flow_imp.id(91820273000000927)
+,p_item_plug_id=>wwv_flow_imp.id(91820273000001044)
 ,p_prompt=>'الوحدات'
 ,p_display_as=>'NATIVE_CHECKBOX'
 ,p_lov=>'select u.code || '' - '' || noona_re_pkg.unit_type_label(u.unit_type) || '' ('' || noona_re_pkg.unit_status_label(u.status_code) || '')'' d, u.id r from re_unit u where u.property_id = :P41_PROPERTY and u.usage_type in (''LEASE'', ''MIXED'', ''OWNER_USE'') and u.status_code not in (''SOLD'', ''HANDED_OVER'', ''BLOCKED'') order by u.code'
@@ -91,7 +91,7 @@ wwv_flow_imp_page.create_page_item(
 ,p_item_template_options=>'#DEFAULT#'
 );
 wwv_flow_imp_page.create_page_plug(
- p_id=>wwv_flow_imp.id(91820273000000932)
+ p_id=>wwv_flow_imp.id(91820273000001049)
 ,p_plug_name=>'المستأجر'
 ,p_region_template_options=>'#DEFAULT#'
 ,p_plug_template=>4072358936313175081
@@ -102,10 +102,10 @@ wwv_flow_imp_page.create_page_plug(
   'show_line_breaks', 'Y')).to_clob
 );
 wwv_flow_imp_page.create_page_item(
- p_id=>wwv_flow_imp.id(91820273000000933)
+ p_id=>wwv_flow_imp.id(91820273000001050)
 ,p_name=>'P41_TENANT'
 ,p_item_sequence=>10
-,p_item_plug_id=>wwv_flow_imp.id(91820273000000932)
+,p_item_plug_id=>wwv_flow_imp.id(91820273000001049)
 ,p_prompt=>'المستأجر (مسجل)'
 ,p_display_as=>'NATIVE_SELECT_LIST'
 ,p_lov=>'select p.display_name_ar d, p.id r from pty_party p where p.status_code = ''ACTIVE'' and exists (select 1 from ar_customer c join ar_customer_account a on a.customer_id = c.id where c.party_id = p.id and a.company_id = noona_res_pkg.company and c.is_walk_in = ''N'') order by 1'
@@ -119,10 +119,10 @@ wwv_flow_imp_page.create_page_item(
   'page_action_on_selection', 'NONE')).to_clob
 );
 wwv_flow_imp_page.create_page_item(
- p_id=>wwv_flow_imp.id(91820273000000934)
+ p_id=>wwv_flow_imp.id(91820273000001051)
 ,p_name=>'P41_TENANT_NAME'
 ,p_item_sequence=>20
-,p_item_plug_id=>wwv_flow_imp.id(91820273000000932)
+,p_item_plug_id=>wwv_flow_imp.id(91820273000001049)
 ,p_prompt=>'أو اسم مستأجر جديد'
 ,p_display_as=>'NATIVE_TEXT_FIELD'
 ,p_cSize=>40
@@ -137,10 +137,10 @@ wwv_flow_imp_page.create_page_item(
   'trim_spaces', 'BOTH')).to_clob
 );
 wwv_flow_imp_page.create_page_item(
- p_id=>wwv_flow_imp.id(91820273000000935)
+ p_id=>wwv_flow_imp.id(91820273000001052)
 ,p_name=>'P41_PHONE'
 ,p_item_sequence=>30
-,p_item_plug_id=>wwv_flow_imp.id(91820273000000932)
+,p_item_plug_id=>wwv_flow_imp.id(91820273000001049)
 ,p_prompt=>'الجوال'
 ,p_display_as=>'NATIVE_TEXT_FIELD'
 ,p_cSize=>20
@@ -154,10 +154,10 @@ wwv_flow_imp_page.create_page_item(
   'trim_spaces', 'BOTH')).to_clob
 );
 wwv_flow_imp_page.create_page_item(
- p_id=>wwv_flow_imp.id(91820273000000936)
+ p_id=>wwv_flow_imp.id(91820273000001053)
 ,p_name=>'P41_TAX'
 ,p_item_sequence=>40
-,p_item_plug_id=>wwv_flow_imp.id(91820273000000932)
+,p_item_plug_id=>wwv_flow_imp.id(91820273000001049)
 ,p_prompt=>'الرقم الضريبي (للشركات)'
 ,p_display_as=>'NATIVE_TEXT_FIELD'
 ,p_cSize=>20
@@ -172,7 +172,7 @@ wwv_flow_imp_page.create_page_item(
   'trim_spaces', 'BOTH')).to_clob
 );
 wwv_flow_imp_page.create_page_plug(
- p_id=>wwv_flow_imp.id(91820273000000937)
+ p_id=>wwv_flow_imp.id(91820273000001054)
 ,p_plug_name=>'المدة والإيجار'
 ,p_region_template_options=>'#DEFAULT#'
 ,p_plug_template=>4072358936313175081
@@ -183,10 +183,10 @@ wwv_flow_imp_page.create_page_plug(
   'show_line_breaks', 'Y')).to_clob
 );
 wwv_flow_imp_page.create_page_item(
- p_id=>wwv_flow_imp.id(91820273000000938)
+ p_id=>wwv_flow_imp.id(91820273000001055)
 ,p_name=>'P41_START'
 ,p_item_sequence=>10
-,p_item_plug_id=>wwv_flow_imp.id(91820273000000937)
+,p_item_plug_id=>wwv_flow_imp.id(91820273000001054)
 ,p_prompt=>'البداية'
 ,p_display_as=>'NATIVE_DATE_PICKER_APEX'
 ,p_cSize=>20
@@ -202,10 +202,10 @@ wwv_flow_imp_page.create_page_item(
   'use_defaults', 'Y')).to_clob
 );
 wwv_flow_imp_page.create_page_item(
- p_id=>wwv_flow_imp.id(91820273000000939)
+ p_id=>wwv_flow_imp.id(91820273000001056)
 ,p_name=>'P41_END'
 ,p_item_sequence=>20
-,p_item_plug_id=>wwv_flow_imp.id(91820273000000937)
+,p_item_plug_id=>wwv_flow_imp.id(91820273000001054)
 ,p_prompt=>'النهاية'
 ,p_display_as=>'NATIVE_DATE_PICKER_APEX'
 ,p_cSize=>20
@@ -222,10 +222,10 @@ wwv_flow_imp_page.create_page_item(
   'use_defaults', 'Y')).to_clob
 );
 wwv_flow_imp_page.create_page_item(
- p_id=>wwv_flow_imp.id(91820273000000940)
+ p_id=>wwv_flow_imp.id(91820273000001057)
 ,p_name=>'P41_RENT'
 ,p_item_sequence=>30
-,p_item_plug_id=>wwv_flow_imp.id(91820273000000937)
+,p_item_plug_id=>wwv_flow_imp.id(91820273000001054)
 ,p_prompt=>'الإيجار السنوي'
 ,p_display_as=>'NATIVE_NUMBER_FIELD'
 ,p_cSize=>20
@@ -236,10 +236,10 @@ wwv_flow_imp_page.create_page_item(
   'virtual_keyboard', 'decimal')).to_clob
 );
 wwv_flow_imp_page.create_page_item(
- p_id=>wwv_flow_imp.id(91820273000000941)
+ p_id=>wwv_flow_imp.id(91820273000001058)
 ,p_name=>'P41_FREQ'
 ,p_item_sequence=>40
-,p_item_plug_id=>wwv_flow_imp.id(91820273000000937)
+,p_item_plug_id=>wwv_flow_imp.id(91820273000001054)
 ,p_prompt=>'دورية الفوترة'
 ,p_display_as=>'NATIVE_SELECT_LIST'
 ,p_lov=>'STATIC2:شهري;MONTHLY,ربع سنوي;QUARTERLY,نصف سنوي;SEMI_ANNUAL,سنوي;ANNUAL,مقدماً دفعة واحدة;UPFRONT'
@@ -252,10 +252,10 @@ wwv_flow_imp_page.create_page_item(
   'page_action_on_selection', 'NONE')).to_clob
 );
 wwv_flow_imp_page.create_page_item(
- p_id=>wwv_flow_imp.id(91820273000000942)
+ p_id=>wwv_flow_imp.id(91820273000001059)
 ,p_name=>'P41_ADVANCE'
 ,p_item_sequence=>50
-,p_item_plug_id=>wwv_flow_imp.id(91820273000000937)
+,p_item_plug_id=>wwv_flow_imp.id(91820273000001054)
 ,p_prompt=>'الفوترة مقدماً (أول الفترة)'
 ,p_display_as=>'NATIVE_SELECT_LIST'
 ,p_lov=>'STATIC2:نعم;Y,لا;N'
@@ -267,10 +267,10 @@ wwv_flow_imp_page.create_page_item(
   'page_action_on_selection', 'NONE')).to_clob
 );
 wwv_flow_imp_page.create_page_item(
- p_id=>wwv_flow_imp.id(91820273000000943)
+ p_id=>wwv_flow_imp.id(91820273000001060)
 ,p_name=>'P41_ESC'
 ,p_item_sequence=>60
-,p_item_plug_id=>wwv_flow_imp.id(91820273000000937)
+,p_item_plug_id=>wwv_flow_imp.id(91820273000001054)
 ,p_prompt=>'الزيادة السنوية %'
 ,p_display_as=>'NATIVE_NUMBER_FIELD'
 ,p_cSize=>20
@@ -282,10 +282,10 @@ wwv_flow_imp_page.create_page_item(
   'virtual_keyboard', 'decimal')).to_clob
 );
 wwv_flow_imp_page.create_page_item(
- p_id=>wwv_flow_imp.id(91820273000000944)
+ p_id=>wwv_flow_imp.id(91820273000001061)
 ,p_name=>'P41_DEPOSIT'
 ,p_item_sequence=>70
-,p_item_plug_id=>wwv_flow_imp.id(91820273000000937)
+,p_item_plug_id=>wwv_flow_imp.id(91820273000001054)
 ,p_prompt=>'التأمين'
 ,p_display_as=>'NATIVE_NUMBER_FIELD'
 ,p_cSize=>20
@@ -296,10 +296,10 @@ wwv_flow_imp_page.create_page_item(
   'virtual_keyboard', 'decimal')).to_clob
 );
 wwv_flow_imp_page.create_page_item(
- p_id=>wwv_flow_imp.id(91820273000000945)
+ p_id=>wwv_flow_imp.id(91820273000001062)
 ,p_name=>'P41_GRACE'
 ,p_item_sequence=>80
-,p_item_plug_id=>wwv_flow_imp.id(91820273000000937)
+,p_item_plug_id=>wwv_flow_imp.id(91820273000001054)
 ,p_prompt=>'فترة السماح للسداد (أيام)'
 ,p_display_as=>'NATIVE_NUMBER_FIELD'
 ,p_cSize=>20
@@ -311,10 +311,10 @@ wwv_flow_imp_page.create_page_item(
   'virtual_keyboard', 'decimal')).to_clob
 );
 wwv_flow_imp_page.create_page_item(
- p_id=>wwv_flow_imp.id(91820273000000946)
+ p_id=>wwv_flow_imp.id(91820273000001063)
 ,p_name=>'P41_NOTICE'
 ,p_item_sequence=>90
-,p_item_plug_id=>wwv_flow_imp.id(91820273000000937)
+,p_item_plug_id=>wwv_flow_imp.id(91820273000001054)
 ,p_prompt=>'مدة الإشعار (أيام)'
 ,p_display_as=>'NATIVE_NUMBER_FIELD'
 ,p_cSize=>20
@@ -325,10 +325,10 @@ wwv_flow_imp_page.create_page_item(
   'virtual_keyboard', 'decimal')).to_clob
 );
 wwv_flow_imp_page.create_page_item(
- p_id=>wwv_flow_imp.id(91820273000000947)
+ p_id=>wwv_flow_imp.id(91820273000001064)
 ,p_name=>'P41_REG'
 ,p_item_sequence=>100
-,p_item_plug_id=>wwv_flow_imp.id(91820273000000937)
+,p_item_plug_id=>wwv_flow_imp.id(91820273000001054)
 ,p_prompt=>'رقم التوثيق (إيجار)'
 ,p_display_as=>'NATIVE_TEXT_FIELD'
 ,p_cSize=>25
@@ -343,7 +343,7 @@ wwv_flow_imp_page.create_page_item(
   'trim_spaces', 'BOTH')).to_clob
 );
 wwv_flow_imp_page.create_page_plug(
- p_id=>wwv_flow_imp.id(91820273000000948)
+ p_id=>wwv_flow_imp.id(91820273000001065)
 ,p_plug_name=>'بنود إضافية'
 ,p_region_template_options=>'#DEFAULT#'
 ,p_plug_template=>4072358936313175081
@@ -354,10 +354,10 @@ wwv_flow_imp_page.create_page_plug(
   'show_line_breaks', 'Y')).to_clob
 );
 wwv_flow_imp_page.create_page_item(
- p_id=>wwv_flow_imp.id(91820273000000949)
+ p_id=>wwv_flow_imp.id(91820273000001066)
 ,p_name=>'P41_SERVICE'
 ,p_item_sequence=>10
-,p_item_plug_id=>wwv_flow_imp.id(91820273000000948)
+,p_item_plug_id=>wwv_flow_imp.id(91820273000001065)
 ,p_prompt=>'رسوم الخدمات (شهرياً)'
 ,p_display_as=>'NATIVE_NUMBER_FIELD'
 ,p_cSize=>20
@@ -368,10 +368,10 @@ wwv_flow_imp_page.create_page_item(
   'virtual_keyboard', 'decimal')).to_clob
 );
 wwv_flow_imp_page.create_page_item(
- p_id=>wwv_flow_imp.id(91820273000000950)
+ p_id=>wwv_flow_imp.id(91820273000001067)
 ,p_name=>'P41_PARKING'
 ,p_item_sequence=>20
-,p_item_plug_id=>wwv_flow_imp.id(91820273000000948)
+,p_item_plug_id=>wwv_flow_imp.id(91820273000001065)
 ,p_prompt=>'المواقف (شهرياً)'
 ,p_display_as=>'NATIVE_NUMBER_FIELD'
 ,p_cSize=>20
@@ -383,10 +383,10 @@ wwv_flow_imp_page.create_page_item(
   'virtual_keyboard', 'decimal')).to_clob
 );
 wwv_flow_imp_page.create_page_item(
- p_id=>wwv_flow_imp.id(91820273000000951)
+ p_id=>wwv_flow_imp.id(91820273000001068)
 ,p_name=>'P41_ONETIME'
 ,p_item_sequence=>30
-,p_item_plug_id=>wwv_flow_imp.id(91820273000000948)
+,p_item_plug_id=>wwv_flow_imp.id(91820273000001065)
 ,p_prompt=>'رسوم لمرة واحدة (عمولة/إدارة)'
 ,p_display_as=>'NATIVE_NUMBER_FIELD'
 ,p_cSize=>20
@@ -397,10 +397,10 @@ wwv_flow_imp_page.create_page_item(
   'virtual_keyboard', 'decimal')).to_clob
 );
 wwv_flow_imp_page.create_page_item(
- p_id=>wwv_flow_imp.id(91820273000000952)
+ p_id=>wwv_flow_imp.id(91820273000001069)
 ,p_name=>'P41_NOTES'
 ,p_item_sequence=>40
-,p_item_plug_id=>wwv_flow_imp.id(91820273000000948)
+,p_item_plug_id=>wwv_flow_imp.id(91820273000001065)
 ,p_prompt=>'ملاحظات'
 ,p_display_as=>'NATIVE_TEXT_FIELD'
 ,p_cSize=>40
@@ -415,9 +415,9 @@ wwv_flow_imp_page.create_page_item(
   'trim_spaces', 'BOTH')).to_clob
 );
 wwv_flow_imp_page.create_page_button(
- p_id=>wwv_flow_imp.id(91820273000000953)
+ p_id=>wwv_flow_imp.id(91820273000001070)
 ,p_button_sequence=>10
-,p_button_plug_id=>wwv_flow_imp.id(91820273000000948)
+,p_button_plug_id=>wwv_flow_imp.id(91820273000001065)
 ,p_button_name=>'SAVE'
 ,p_button_action=>'SUBMIT'
 ,p_button_template_options=>'#DEFAULT#'
@@ -426,9 +426,9 @@ wwv_flow_imp_page.create_page_button(
 ,p_button_position=>'NEXT'
 );
 wwv_flow_imp_page.create_page_button(
- p_id=>wwv_flow_imp.id(91820273000000954)
+ p_id=>wwv_flow_imp.id(91820273000001071)
 ,p_button_sequence=>20
-,p_button_plug_id=>wwv_flow_imp.id(91820273000000948)
+,p_button_plug_id=>wwv_flow_imp.id(91820273000001065)
 ,p_button_name=>'SAVE_ACTIVATE'
 ,p_button_action=>'SUBMIT'
 ,p_button_template_options=>'#DEFAULT#'
@@ -438,7 +438,7 @@ wwv_flow_imp_page.create_page_button(
 ,p_button_position=>'NEXT'
 );
 wwv_flow_imp_page.create_page_process(
- p_id=>wwv_flow_imp.id(91820273000000955)
+ p_id=>wwv_flow_imp.id(91820273000001072)
 ,p_process_sequence=>5
 ,p_process_point=>'BEFORE_HEADER'
 ,p_process_type=>'NATIVE_PLSQL'
@@ -459,10 +459,10 @@ wwv_flow_imp_page.create_page_process(
 'end;'))
 ,p_process_clob_language=>'PLSQL'
 ,p_error_display_location=>'INLINE_IN_NOTIFICATION'
-,p_internal_uid=>91820273000000955
+,p_internal_uid=>91820273000001072
 );
 wwv_flow_imp_page.create_page_process(
- p_id=>wwv_flow_imp.id(91820273000000956)
+ p_id=>wwv_flow_imp.id(91820273000001073)
 ,p_process_sequence=>10
 ,p_process_point=>'AFTER_SUBMIT'
 ,p_process_type=>'NATIVE_PLSQL'
@@ -487,11 +487,11 @@ wwv_flow_imp_page.create_page_process(
 'end;'))
 ,p_process_clob_language=>'PLSQL'
 ,p_error_display_location=>'INLINE_IN_NOTIFICATION'
-,p_process_when_button_id=>wwv_flow_imp.id(91820273000000953)
-,p_internal_uid=>91820273000000956
+,p_process_when_button_id=>wwv_flow_imp.id(91820273000001070)
+,p_internal_uid=>91820273000001073
 );
 wwv_flow_imp_page.create_page_process(
- p_id=>wwv_flow_imp.id(91820273000000957)
+ p_id=>wwv_flow_imp.id(91820273000001074)
 ,p_process_sequence=>20
 ,p_process_point=>'AFTER_SUBMIT'
 ,p_process_type=>'NATIVE_PLSQL'
@@ -517,8 +517,8 @@ wwv_flow_imp_page.create_page_process(
 'end;'))
 ,p_process_clob_language=>'PLSQL'
 ,p_error_display_location=>'INLINE_IN_NOTIFICATION'
-,p_process_when_button_id=>wwv_flow_imp.id(91820273000000954)
-,p_internal_uid=>91820273000000957
+,p_process_when_button_id=>wwv_flow_imp.id(91820273000001071)
+,p_internal_uid=>91820273000001074
 );
 
 wwv_flow_imp.component_end;

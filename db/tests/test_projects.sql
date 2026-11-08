@@ -77,7 +77,7 @@ DECLARE
 BEGIN
   NOONA_APEX_PKG.post_auth('ADMIN', TRUNC(DBMS_RANDOM.VALUE(1e12, 9e12)));
   l_n := NOONA_PRJ_PKG.setup_accounts;
-  ok('project accounts ready', l_n = 7 AND NOONA_INV_PKG.acc_id('1140') IS NOT NULL AND NOONA_INV_PKG.acc_id('4130') IS NOT NULL);
+  ok('project accounts ready', l_n = 19 AND NOONA_INV_PKG.acc_id('1140') IS NOT NULL AND NOONA_INV_PKG.acc_id('4130') IS NOT NULL);
   l_cust := NOONA_SAL_PKG.save_customer('{"name":"مالك اختبار ' || l_sfx || '","person":"N","tax":"300000000000003","term":"NET30"}');
   l_sup := NOONA_PUR_PKG.save_supplier('{"name":"مقاول باطن ' || l_sfx || '","person":"N","type":"SERVICES","term":"NET30"}');
   l_box := NOONA_CSH_PKG.create_cash_box('PB' || SUBSTR(l_sfx, 1, 6), 'صندوق مشروعات اختبار');

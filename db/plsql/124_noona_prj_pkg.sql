@@ -7,6 +7,8 @@
 --   * المستخلصات بالكميات التراكمية والمحتجز وسقفه واسترداد الدفعة المقدمة والضريبة، والدفعة المقدمة،
 --     والإفراج عن المحتجز؛ تعتمد بقيد وذمة على العميل أو للمقاول (تحصل وتسدد من شاشات التحصيل والسداد)
 --   * التخصيص العقاري: ربط المشروع بالعقار وتوزيع تكلفة التطوير على الوحدات حسب المساحة أو السعر أو العدد
+--   * غرامات التأخير (يومية بسقف من العقد) والمواد المشونة بالموقع في المستخلص، والمستخلص الختامي ينهي العقد
+--     (الاعتراف بالإيراد حسب نسبة الإنجاز والمعدات وخطابات الضمان والحساب الختامي في NOONA_PRJ_CTR_PKG)
 -- =============================================================================
 SET DEFINE OFF
 
@@ -14,6 +16,11 @@ CREATE OR REPLACE PACKAGE NOONA_PRJ_PKG AUTHID DEFINER AS
   FUNCTION company RETURN NUMBER;
   -- حسابات المشروعات للشركة (المحتجزات، الدفعات المقدمة، إيرادات العقود، التكاليف)؛ يعيد عدد المنشأ
   FUNCTION setup_accounts RETURN NUMBER;
+  -- حسابات المشروعات حسب النوع (تنشأ عند أول استخدام) وتسجيل حركة تكلفة (للحزم المساعدة)
+  FUNCTION acc(p_kind VARCHAR2) RETURN NUMBER;
+  FUNCTION add_cost(p_project NUMBER, p_wbs NUMBER, p_type VARCHAR2, p_date DATE, p_amount NUMBER, p_qty NUMBER, p_desc VARCHAR2,
+                    p_ref VARCHAR2, p_src_type VARCHAR2, p_src_id NUMBER) RETURN NUMBER;
+  FUNCTION penalties_to_date(p_contract_id IN NUMBER, p_exclude_claim IN NUMBER DEFAULT NULL) RETURN NUMBER;
 
   FUNCTION type_label(p_code IN VARCHAR2) RETURN VARCHAR2;
   FUNCTION status_label(p_code IN VARCHAR2) RETURN VARCHAR2;
@@ -48,7 +55,8 @@ CREATE OR REPLACE PACKAGE NOONA_PRJ_PKG AUTHID DEFINER AS
   FUNCTION hourly_rate(p_employee_id IN NUMBER) RETURN NUMBER;
 
   -- ---------------------------------------------------------- العقود
-  -- {"id","project","type":"MAIN_CONTRACT|SUBCONTRACT","no","customer","supplier","pricing","value","ret","retCap","adv","advRec","start","end","dlp"}
+  -- {"id","project","type":"MAIN_CONTRACT|SUBCONTRACT","no","customer","supplier","pricing","value","ret","retCap","adv","advRec","start","end","dlp",
+  --  "penalty": غرامة التأخير اليومية, "penCap": سقف الغرامات % من قيمة العقد}
   FUNCTION save_contract(p_doc IN CLOB) RETURN NUMBER;
   -- جدول الكميات: [{"id","code","d","u":uom,"q","r","w":wbs}] - البنود غير المرسلة تحذف إن لم تستخدم في مستخلص
   FUNCTION save_boq(p_contract_id IN NUMBER, p_lines IN CLOB) RETURN NUMBER;
@@ -64,7 +72,9 @@ CREATE OR REPLACE PACKAGE NOONA_PRJ_PKG AUTHID DEFINER AS
   -- مستخلص جديد (مسودة) بالكميات السابقة؛ النوع PROGRESS / ADVANCE / RETENTION_RELEASE
   FUNCTION new_claim(p_contract_id IN NUMBER, p_kind IN VARCHAR2 DEFAULT 'PROGRESS', p_from IN DATE DEFAULT NULL,
                      p_to IN DATE DEFAULT NULL) RETURN NUMBER;
-  -- {"id","from","to","date","other","amount","lines":[{"b":boqId,"q":qtyToDate}]}
+  -- {"id","from","to","date","other","amount","penaltyDays","penalty","mos","final":"Y|N","lines":[{"b":boqId,"q":qtyToDate}]}
+  --   penaltyDays: أيام التأخير تحسب بها الغرامة من الغرامة اليومية في العقد (حتى السقف) ما لم يدخل مبلغ penalty
+  --   mos: قيمة المواد المشونة بالموقع حتى تاريخه (التغير عن المستخلص السابق يضاف للمستحق أو يخصم منه)
   PROCEDURE save_claim(p_doc IN CLOB);
   FUNCTION claim_json(p_claim_id IN NUMBER) RETURN CLOB;
   PROCEDURE approve_claim(p_claim_id IN NUMBER);
@@ -180,7 +190,19 @@ CREATE OR REPLACE PACKAGE BODY NOONA_PRJ_PKG AS
       WHEN 'RET_PAY' THEN ensure_account('2141', 'محتجزات مقاولي الباطن', '21', 'LIABILITY')
       WHEN 'REVENUE' THEN ensure_account('4130', 'إيرادات عقود المشروعات', '4', 'REVENUE')
       WHEN 'COST' THEN ensure_account('5150', 'تكاليف المشروعات', '51', 'EXPENSE')
-      WHEN 'LABOR_APPLIED' THEN ensure_account('5159', 'تكلفة العمالة المحملة على المشروعات', '51', 'EXPENSE') END;
+      WHEN 'LABOR_APPLIED' THEN ensure_account('5159', 'تكلفة العمالة المحملة على المشروعات', '51', 'EXPENSE')
+      WHEN 'EQUIP_APPLIED' THEN ensure_account('5158', 'تكلفة المعدات المحملة على المشروعات', '51', 'EXPENSE')
+      WHEN 'PENALTY_REV' THEN ensure_account('4131', 'غرامات تأخير على عقود المشروعات (تخفيض الإيراد)', '4', 'REVENUE')
+      WHEN 'PENALTY_INC' THEN ensure_account('4291', 'غرامات مقاولي الباطن', '4', 'REVENUE')
+      WHEN 'MOS_BILLED' THEN ensure_account('2142', 'مبالغ مفوترة مقابل مواد مشونة بالموقع', '21', 'LIABILITY')
+      WHEN 'MOS_PAID' THEN ensure_account('1143', 'مواد مشونة بالموقع لدى مقاولي الباطن', '11', 'ASSET')
+      WHEN 'CONTRACT_ASSET' THEN ensure_account('1142', 'أصول العقود (إيراد مستحق غير مفوتر)', '11', 'ASSET')
+      WHEN 'CONTRACT_LIAB' THEN ensure_account('2144', 'التزامات العقود (فوترة تتجاوز الإنجاز)', '21', 'LIABILITY')
+      WHEN 'REV_ADJ' THEN ensure_account('4132', 'تسوية إيراد العقود حسب نسبة الإنجاز', '4', 'REVENUE')
+      WHEN 'LOSS_PROV' THEN ensure_account('2143', 'مخصص خسائر العقود المتوقعة', '21', 'LIABILITY')
+      WHEN 'LOSS_EXP' THEN ensure_account('5151', 'مصروف مخصص خسائر العقود', '51', 'EXPENSE')
+      WHEN 'GUAR_MARGIN' THEN ensure_account('1145', 'غطاء نقدي لخطابات الضمان', '11', 'ASSET')
+      WHEN 'GUAR_LOSS' THEN ensure_account('5153', 'خسائر تسييل خطابات الضمان', '51', 'EXPENSE') END;
   END acc;
 
   FUNCTION setup_accounts RETURN NUMBER IS
@@ -188,7 +210,9 @@ CREATE OR REPLACE PACKAGE BODY NOONA_PRJ_PKG AS
     l_x NUMBER;
   BEGIN
     guard('PRJ_PROJECT.CREATE');
-    FOR k IN (SELECT column_value c FROM TABLE(sys.odcivarchar2list('RET_REC', 'ADV_PAID', 'ADV_RCVD', 'RET_PAY', 'REVENUE', 'COST', 'LABOR_APPLIED'))) LOOP
+    FOR k IN (SELECT column_value c FROM TABLE(sys.odcivarchar2list('RET_REC', 'ADV_PAID', 'ADV_RCVD', 'RET_PAY', 'REVENUE', 'COST', 'LABOR_APPLIED',
+                'EQUIP_APPLIED', 'PENALTY_REV', 'PENALTY_INC', 'MOS_BILLED', 'MOS_PAID', 'CONTRACT_ASSET', 'CONTRACT_LIAB', 'REV_ADJ',
+                'LOSS_PROV', 'LOSS_EXP', 'GUAR_MARGIN', 'GUAR_LOSS'))) LOOP
       l_x := acc(k.c);
       l_n := l_n + 1;
     END LOOP;
@@ -306,6 +330,7 @@ CREATE OR REPLACE PACKAGE BODY NOONA_PRJ_PKG AS
     l_cv   NUMBER := jn(l_o, 'contract');
     l_bud  NUMBER := jn(l_o, 'budget');
     l_meth VARCHAR2(30) := js(l_o, 'method');
+    l_eac  NUMBER := jn(l_o, 'eac');
     l_st   VARCHAR2(30) := NVL(js(l_o, 'status'), 'PLANNED');
     l_br   NUMBER := TO_NUMBER(SYS_CONTEXT('NOONA_CTX', 'BRANCH_ID'));
     l_co   NUMBER := company;
@@ -317,6 +342,9 @@ CREATE OR REPLACE PACKAGE BODY NOONA_PRJ_PKG AS
     NOONA_CORE_PKG.assert(l_name IS NOT NULL, 'NOONA-PRJ-002', 'اكتب اسم المشروع', 'Project name is required');
     NOONA_CORE_PKG.assert(l_to IS NULL OR l_from IS NULL OR l_to >= l_from,
                           'NOONA-PRJ-003', 'تاريخ النهاية قبل البداية', 'End date is before start date');
+    NOONA_CORE_PKG.assert(l_meth IS NULL OR l_meth IN ('MILESTONE', 'PERCENT_COMPLETE', 'COST_TO_COST', 'BILLING', 'COMPLETED_CONTRACT'), 'NOONA-PRJ-006',
+                          'طريقة اعتراف بالإيراد غير صالحة', 'Invalid revenue method');
+    NOONA_CORE_PKG.assert(NVL(l_eac, 0) >= 0, 'NOONA-PRJ-007', 'التكلفة المتوقعة لا تكون سالبة', 'Estimated cost cannot be negative');
     NOONA_CORE_PKG.assert(l_type <> 'REAL_ESTATE_DEVELOPMENT' OR l_prop IS NOT NULL OR l_id IS NOT NULL, 'NOONA-PRJ-004',
                           'مشروع التطوير العقاري يرتبط بعقار؛ اختر العقار أو أنشئه من السجل العقاري', 'Choose the property for a development project');
     IF l_id IS NULL THEN
@@ -334,9 +362,9 @@ CREATE OR REPLACE PACKAGE BODY NOONA_PRJ_PKG AS
       END IF;
       INSERT INTO prj_project (company_id, branch_id, code, name_ar, name_en, project_type, parent_project_id, customer_account_id,
                                manager_employee_id, cost_center_id, currency_code, planned_start, planned_end, contract_value, budget_amount,
-                               percent_complete, revenue_method, status_code)
+                               percent_complete, revenue_method, estimated_total_cost, status_code)
       VALUES (l_co, l_br, l_code, l_name, l_en, l_type, l_par, l_cust, l_mgr, l_cc, l_cur, l_from, l_to, l_cv, l_bud, 0,
-              NVL(l_meth, 'BILLING'), l_st)
+              NVL(l_meth, 'BILLING'), l_eac, l_st)
       RETURNING id INTO l_id;
       l_x := default_wbs(l_id);
       NOONA_AUDIT_PKG.log_event('DATA_CHANGE', c_prj, l_id, 'CREATE', 'SUCCESS');
@@ -344,7 +372,8 @@ CREATE OR REPLACE PACKAGE BODY NOONA_PRJ_PKG AS
       UPDATE prj_project SET name_ar = l_name, name_en = l_en, project_type = l_type, parent_project_id = l_par,
                              customer_account_id = l_cust, manager_employee_id = l_mgr, planned_start = l_from, planned_end = l_to,
                              contract_value = NVL(l_cv, contract_value), budget_amount = NVL(l_bud, budget_amount),
-                             revenue_method = NVL(l_meth, revenue_method), cost_center_id = NVL(l_cc, cost_center_id)
+                             revenue_method = NVL(l_meth, revenue_method), cost_center_id = NVL(l_cc, cost_center_id),
+                             estimated_total_cost = NVL(l_eac, estimated_total_cost)
        WHERE id = l_id AND company_id = l_co;
       NOONA_CORE_PKG.assert(SQL%ROWCOUNT = 1, 'NOONA-PRJ-001', 'المشروع غير موجود', 'Project not found');
     END IF;
@@ -718,6 +747,8 @@ CREATE OR REPLACE PACKAGE BODY NOONA_PRJ_PKG AS
     l_pr    VARCHAR2(30) := js(l_o, 'pricing');
     l_ret   NUMBER := jn(l_o, 'ret');
     l_cap   NUMBER := jn(l_o, 'retCap');
+    l_pday  NUMBER := jn(l_o, 'penalty');
+    l_pcap  NUMBER := jn(l_o, 'penCap');
     l_adv   NUMBER := jn(l_o, 'adv');
     l_rec   NUMBER := jn(l_o, 'advRec');
     l_from  DATE := d(js(l_o, 'start'));
@@ -747,19 +778,22 @@ CREATE OR REPLACE PACKAGE BODY NOONA_PRJ_PKG AS
     END IF;
     NOONA_CORE_PKG.assert(NVL(l_ret, 0) BETWEEN 0 AND 50 AND NVL(l_adv, 0) BETWEEN 0 AND 100 AND NVL(l_rec, 0) BETWEEN 0 AND 100, 'NOONA-PRJ-035', 'نسب المحتجز والدفعة المقدمة غير منطقية',
                           'Invalid retention or advance percentages');
+    NOONA_CORE_PKG.assert(NVL(l_pday, 0) >= 0 AND NVL(l_pcap, 0) BETWEEN 0 AND 100, 'NOONA-PRJ-110',
+                          'الغرامة اليومية موجبة وسقف الغرامات بين 0 و100% من قيمة العقد', 'Invalid delay penalty terms');
     IF l_id IS NULL THEN
       IF l_no IS NULL THEN l_no := next_no('PRJ_CONTRACT', 'CT-'); END IF;
       INSERT INTO prj_contract (company_id, currency_code, exchange_rate, contract_no, project_id, contract_type, party_id, customer_account_id,
                                 supplier_account_id, pricing_type, original_value, current_value, retention_pct, retention_cap_pct, advance_pct,
-                                advance_recovery_pct, start_date, end_date, defects_liability_months, status_code)
+                                advance_recovery_pct, start_date, end_date, defects_liability_months, delay_penalty_per_day, penalty_cap_pct, status_code)
       VALUES (company, l_cur, 1, l_no, l_prj, l_type, l_party, l_cust, l_sup, NVL(l_pr, 'REMEASURED'),
-              l_val, l_val, l_ret, l_cap, l_adv, l_rec, l_from, l_to, l_dlp, 'DRAFT')
+              l_val, l_val, l_ret, l_cap, l_adv, l_rec, l_from, l_to, l_dlp, l_pday, l_pcap, 'DRAFT')
       RETURNING id INTO l_id;
     ELSE
       UPDATE prj_contract SET contract_no = NVL(l_no, contract_no), contract_type = l_type, party_id = l_party, customer_account_id = l_cust,
                               supplier_account_id = l_sup, pricing_type = NVL(l_pr, pricing_type), original_value = l_val,
                               current_value = l_val, retention_pct = l_ret, retention_cap_pct = l_cap, advance_pct = l_adv,
-                              advance_recovery_pct = l_rec, start_date = l_from, end_date = l_to, defects_liability_months = l_dlp
+                              advance_recovery_pct = l_rec, start_date = l_from, end_date = l_to, defects_liability_months = l_dlp,
+                              delay_penalty_per_day = l_pday, penalty_cap_pct = l_pcap
        WHERE id = l_id;
     END IF;
     RETURN l_id;
@@ -956,6 +990,16 @@ CREATE OR REPLACE PACKAGE BODY NOONA_PRJ_PKG AS
   END advance_open;
 
   -- يعيد حساب المستخلص من كمياته ونسب العقد
+  -- مجموع غرامات التأخير المعتمدة على العقد (لسقف الغرامات)
+  FUNCTION penalties_to_date(p_contract_id IN NUMBER, p_exclude_claim IN NUMBER DEFAULT NULL) RETURN NUMBER IS
+    l NUMBER;
+  BEGIN
+    SELECT NVL(SUM(penalty_amount), 0) INTO l FROM prj_progress_claim
+     WHERE contract_id = p_contract_id AND claim_kind = 'PROGRESS' AND status_code IN ('APPROVED', 'PAID')
+       AND id <> NVL(p_exclude_claim, -1);
+    RETURN l;
+  END penalties_to_date;
+
   PROCEDURE recalc(p_claim_id NUMBER) IS
     l_cl    prj_progress_claim%ROWTYPE;
     l_c     prj_contract%ROWTYPE;
@@ -968,6 +1012,8 @@ CREATE OR REPLACE PACKAGE BODY NOONA_PRJ_PKG AS
     l_held  NUMBER;
     l_cap   NUMBER;
     l_rate  NUMBER := NOONA_INV_PKG.tax_rate(vat_code);
+    l_mos   NUMBER := 0;
+    l_pen   NUMBER := 0;
   BEGIN
     SELECT * INTO l_cl FROM prj_progress_claim WHERE id = p_claim_id;
     l_c := get_contract(l_cl.contract_id);
@@ -989,10 +1035,18 @@ CREATE OR REPLACE PACKAGE BODY NOONA_PRJ_PKG AS
       END IF;
       -- استرداد الدفعة المقدمة بنسبته من قيمة الفترة دون تجاوز المتبقي منها
       l_rec := GREATEST(LEAST(ROUND(l_cur * NVL(l_c.advance_recovery_pct, 0) / 100, 2), advance_open(l_c.id)), 0);
-      l_tax := ROUND((l_cur - l_rec - l_cl.other_deductions) * l_rate / 100, 2);
+      -- المواد المشونة بالموقع: التغير عن المستخلص السابق (موجب يضاف، سالب يسترد بعد تركيبها)
+      l_mos := l_cl.mos_to_date - l_cl.mos_previous;
+      -- غرامة التأخير: من الأيام والغرامة اليومية ما لم تدخل مبلغاً، ودون تجاوز سقف الغرامات
+      l_pen := CASE WHEN l_cl.penalty_amount > 0 THEN l_cl.penalty_amount
+                    WHEN NVL(l_cl.penalty_days, 0) > 0 THEN ROUND(l_cl.penalty_days * NVL(l_c.delay_penalty_per_day, 0), 2) ELSE 0 END;
+      IF l_c.penalty_cap_pct IS NOT NULL THEN
+        l_pen := GREATEST(LEAST(l_pen, ROUND(contract_value(l_c.id) * l_c.penalty_cap_pct / 100, 2) - penalties_to_date(l_c.id, p_claim_id)), 0);
+      END IF;
+      l_tax := ROUND((l_cur + l_mos - l_rec - l_cl.other_deductions - l_pen) * l_rate / 100, 2);
       UPDATE prj_progress_claim SET gross_to_date = l_gross, previous_certified = l_prev, current_gross = l_cur, retention_amount = l_ret,
-                                    advance_recovery = l_rec, tax_amount = l_tax,
-                                    net_payable = l_cur - l_ret - l_rec - other_deductions + l_tax
+                                    advance_recovery = l_rec, tax_amount = l_tax, penalty_amount = l_pen,
+                                    net_payable = l_cur + l_mos - l_ret - l_rec - other_deductions - l_pen + l_tax
        WHERE id = p_claim_id;
     ELSIF l_cl.claim_kind = 'ADVANCE' THEN
       l_tax := ROUND(l_cl.current_gross * l_rate / 100, 2);
@@ -1016,7 +1070,8 @@ CREATE OR REPLACE PACKAGE BODY NOONA_PRJ_PKG AS
   BEGIN
     guard('PRJ_PROGRESS_CLAIM.CREATE');
     assert_open(l_c.project_id);
-    NOONA_CORE_PKG.assert(l_c.status_code = 'ACTIVE', 'NOONA-PRJ-080', 'المستخلصات على العقود المعتمدة (النشطة) فقط', 'The contract must be active');
+    NOONA_CORE_PKG.assert(l_c.status_code = 'ACTIVE' OR (l_c.status_code = 'COMPLETED' AND p_kind = 'RETENTION_RELEASE'), 'NOONA-PRJ-080',
+                          'المستخلصات على العقود المعتمدة (النشطة) فقط؛ بعد المستخلص الختامي يبقى الإفراج عن المحتجز', 'The contract must be active');
     NOONA_CORE_PKG.assert(p_kind IN ('PROGRESS', 'ADVANCE', 'RETENTION_RELEASE'), 'NOONA-PRJ-081', 'نوع مستخلص غير صالح', 'Invalid claim kind');
     SELECT COUNT(*) INTO l_n FROM prj_progress_claim WHERE contract_id = p_contract_id AND status_code = 'DRAFT';
     NOONA_CORE_PKG.assert(l_n = 0, 'NOONA-PRJ-082', 'يوجد مستخلص مسودة لهذا العقد؛ اعتمده أو ألغه أولاً', 'A draft claim already exists');
@@ -1040,6 +1095,11 @@ CREATE OR REPLACE PACKAGE BODY NOONA_PRJ_PKG AS
             l_from, NVL(p_to, TRUNC(SYSDATE)), l_amt, 'DRAFT')
     RETURNING id INTO l_id;
     UPDATE prj_progress_claim SET doc_no = 'مسودة-' || l_id WHERE id = l_id;
+    -- المواد المشونة: تبدأ بقيمة آخر مستخلص معتمد
+    UPDATE prj_progress_claim SET mos_previous = (SELECT NVL(MAX(mos_to_date) KEEP (DENSE_RANK LAST ORDER BY claim_no), 0) FROM prj_progress_claim
+                                                    WHERE contract_id = p_contract_id AND claim_kind = 'PROGRESS' AND status_code IN ('APPROVED', 'PAID'))
+     WHERE id = l_id;
+    UPDATE prj_progress_claim SET mos_to_date = mos_previous WHERE id = l_id;
     IF p_kind = 'PROGRESS' THEN
       -- الكميات السابقة من آخر مستخلص معتمد
       INSERT INTO prj_progress_claim_line (company_id, claim_id, boq_item_id, qty_to_date, previous_qty, current_qty, unit_rate, amount_to_date,
@@ -1063,14 +1123,29 @@ CREATE OR REPLACE PACKAGE BODY NOONA_PRJ_PKG AS
     l_dt  DATE := d(js(l_o, 'date'));
     l_oth NUMBER := jn(l_o, 'other');
     l_by  VARCHAR2(200) := js(l_o, 'certifiedBy');
+    l_pd  NUMBER := jn(l_o, 'penaltyDays');
+    l_pa  NUMBER := jn(l_o, 'penalty');
+    l_mos NUMBER := jn(l_o, 'mos');
+    l_fin VARCHAR2(1) := UPPER(js(l_o, 'final'));
+    l_hpd VARCHAR2(1) := CASE WHEN l_o.has('penaltyDays') THEN 'Y' ELSE 'N' END;
+    l_hpa VARCHAR2(1) := CASE WHEN l_o.has('penalty') THEN 'Y' ELSE 'N' END;
   BEGIN
     guard('PRJ_PROGRESS_CLAIM.UPDATE');
     SELECT * INTO l_cl FROM prj_progress_claim WHERE id = l_id AND company_id = company FOR UPDATE;
     NOONA_CORE_PKG.assert(l_cl.status_code = 'DRAFT', 'NOONA-PRJ-086', 'المستخلص معتمد؛ لا يعدل', 'Claim is not a draft');
     NOONA_CORE_PKG.assert(NVL(l_oth, 0) >= 0 AND (l_t IS NULL OR l_f IS NULL OR l_t >= l_f), 'NOONA-PRJ-087',
                           'الخصومات لا تكون سالبة ونهاية الفترة بعد بدايتها', 'Invalid deductions or period');
+    NOONA_CORE_PKG.assert(NVL(l_pd, 0) >= 0 AND NVL(l_pa, 0) >= 0 AND NVL(l_mos, 0) >= 0 AND NVL(l_fin, 'N') IN ('Y', 'N'), 'NOONA-PRJ-111',
+                          'أيام التأخير والغرامة والمواد المشونة لا تكون سالبة', 'Invalid penalty or materials on site');
+    NOONA_CORE_PKG.assert(l_cl.claim_kind = 'PROGRESS' OR (l_pd IS NULL AND l_pa IS NULL AND l_mos IS NULL AND NVL(l_fin, 'N') = 'N'), 'NOONA-PRJ-112',
+                          'الغرامات والمواد المشونة والختامي في مستخلص الأعمال فقط', 'Only progress claims carry penalties and materials');
+    NOONA_CORE_PKG.assert(NVL(l_fin, 'N') = 'N' OR NVL(l_mos, l_cl.mos_to_date) = 0, 'NOONA-PRJ-113',
+                          'المستخلص الختامي بلا مواد مشونة: كل المواد ركبت وحسبت في الكميات', 'Final claim cannot carry materials on site');
     UPDATE prj_progress_claim SET period_from = NVL(l_f, period_from), period_to = NVL(l_t, period_to), doc_date = NVL(l_dt, doc_date),
-                                  other_deductions = NVL(l_oth, other_deductions), certified_by = NVL(l_by, certified_by)
+                                  other_deductions = NVL(l_oth, other_deductions), certified_by = NVL(l_by, certified_by),
+                                  penalty_days = CASE WHEN l_hpd = 'Y' THEN l_pd ELSE penalty_days END,
+                                  penalty_amount = CASE WHEN l_hpa = 'Y' THEN NVL(l_pa, 0) WHEN l_hpd = 'Y' THEN 0 ELSE penalty_amount END,
+                                  mos_to_date = NVL(l_mos, mos_to_date), is_final = NVL(l_fin, is_final)
      WHERE id = l_id;
     IF l_cl.claim_kind = 'PROGRESS' THEN
       FOR r IN (SELECT * FROM JSON_TABLE(p_doc, '$.lines[*]' COLUMNS (b NUMBER PATH '$.b', q NUMBER PATH '$.q'))) LOOP
@@ -1102,6 +1177,9 @@ CREATE OR REPLACE PACKAGE BODY NOONA_PRJ_PKG AS
              'status' VALUE c.status_code, 'from' VALUE TO_CHAR(c.period_from, 'YYYY-MM-DD'), 'to' VALUE TO_CHAR(c.period_to, 'YYYY-MM-DD'),
              'gross' VALUE c.gross_to_date, 'prev' VALUE c.previous_certified, 'cur' VALUE c.current_gross, 'ret' VALUE c.retention_amount,
              'rec' VALUE c.advance_recovery, 'other' VALUE c.other_deductions, 'tax' VALUE c.tax_amount, 'net' VALUE c.net_payable,
+             'penaltyDays' VALUE c.penalty_days, 'penalty' VALUE c.penalty_amount, 'mos' VALUE c.mos_to_date, 'mosPrev' VALUE c.mos_previous,
+             'final' VALUE c.is_final,
+             'dailyPenalty' VALUE (SELECT delay_penalty_per_day FROM prj_contract WHERE id = c.contract_id),
              'lines' VALUE (SELECT JSON_ARRAYAGG(JSON_OBJECT('b' VALUE b.id, 'code' VALUE b.item_code, 'd' VALUE b.description_ar,
                               'max' VALUE b.contract_qty + b.variation_qty, 'prev' VALUE l.previous_qty, 'q' VALUE l.qty_to_date, 'r' VALUE l.unit_rate,
                               'cur' VALUE l.current_amount) ORDER BY b.sort_order, b.item_code RETURNING CLOB)
@@ -1126,6 +1204,8 @@ CREATE OR REPLACE PACKAGE BODY NOONA_PRJ_PKG AS
     l_x     NUMBER;
     l_due   NUMBER;
     l_cost  NUMBER;
+    l_mos   NUMBER;
+    l_n     NUMBER;
   BEGIN
     guard('PRJ_PROGRESS_CLAIM.APPROVE');
     SELECT * INTO l_cl FROM prj_progress_claim WHERE id = p_claim_id AND company_id = company FOR UPDATE;
@@ -1141,13 +1221,18 @@ CREATE OR REPLACE PACKAGE BODY NOONA_PRJ_PKG AS
     l_tax := CASE WHEN l_cl.tax_amount > 0 THEN NOONA_INV_PKG.tax_account(vat_code, CASE WHEN l_cl.claim_direction = 'RECEIVABLE' THEN 'SALE' ELSE 'PURCHASE' END) END;
     IF l_cl.claim_direction = 'RECEIVABLE' THEN
       l_party := NOONA_SAL_PKG.customer_label(l_c.customer_account_id);
-      l_desc := kind_label(l_cl.claim_kind) || ' رقم ' || l_cl.claim_no || ' (' || l_cl.doc_no || ') - ' || l_c.contract_no || ' - ' || l_p.name_ar;
+      l_desc := CASE WHEN l_cl.is_final = 'Y' THEN 'المستخلص الختامي' ELSE kind_label(l_cl.claim_kind) END || ' رقم ' || l_cl.claim_no || ' (' || l_cl.doc_no || ') - ' || l_c.contract_no || ' - ' || l_p.name_ar;
       SELECT NVL(receivable_account_id, NOONA_INV_PKG.acc_id('1103')) INTO l_ar FROM ar_customer_account WHERE id = l_c.customer_account_id;
       add_line(l_lines, l_ar, l_cl.net_payable, 0, NULL, l_c.party_id, l_desc);
       IF l_cl.claim_kind = 'PROGRESS' THEN
         add_line(l_lines, acc('RET_REC'), l_cl.retention_amount, 0, NULL, l_c.party_id, 'محتجز ' || l_desc);
         add_line(l_lines, acc('ADV_RCVD'), l_cl.advance_recovery, 0, NULL, l_c.party_id, 'استرداد دفعة مقدمة ' || l_desc);
         add_line(l_lines, acc('REVENUE'), 0, l_cl.current_gross - l_cl.other_deductions, l_p.cost_center_id, NULL, l_desc);
+        -- غرامة التأخير تخفض الإيراد في حسابها المستقل، والمواد المشونة مبالغ مفوترة قبل التنفيذ لا إيراد
+        add_line(l_lines, acc('PENALTY_REV'), l_cl.penalty_amount, 0, l_p.cost_center_id, l_c.party_id,
+                 'غرامة تأخير ' || l_cl.penalty_days || ' يوم ' || l_desc);
+        l_mos := l_cl.mos_to_date - l_cl.mos_previous;
+        add_line(l_lines, acc('MOS_BILLED'), GREATEST(-l_mos, 0), GREATEST(l_mos, 0), NULL, l_c.party_id, 'مواد مشونة بالموقع ' || l_desc);
       ELSIF l_cl.claim_kind = 'ADVANCE' THEN
         add_line(l_lines, acc('ADV_RCVD'), 0, l_cl.current_gross, NULL, l_c.party_id, l_desc);
       ELSE
@@ -1166,7 +1251,7 @@ CREATE OR REPLACE PACKAGE BODY NOONA_PRJ_PKG AS
               l_cl.doc_date + l_due, 1, l_cl.net_payable, l_cl.net_payable, l_cl.net_payable, l_cl.net_payable, l_cl.tax_amount, l_j, 'OPEN');
     ELSE
       l_party := NOONA_PUR_PKG.supplier_label(l_c.supplier_account_id);
-      l_desc := kind_label(l_cl.claim_kind) || ' مقاول ' || l_party || ' رقم ' || l_cl.claim_no || ' (' || l_cl.doc_no || ') - ' || l_c.contract_no
+      l_desc := CASE WHEN l_cl.is_final = 'Y' THEN 'المستخلص الختامي' ELSE kind_label(l_cl.claim_kind) END || ' مقاول ' || l_party || ' رقم ' || l_cl.claim_no || ' (' || l_cl.doc_no || ') - ' || l_c.contract_no
              || ' - ' || l_p.name_ar;
       SELECT NVL(payable_account_id, NOONA_INV_PKG.acc_id('2101')) INTO l_ap FROM ap_supplier_account WHERE id = l_c.supplier_account_id;
       IF l_cl.claim_kind = 'PROGRESS' THEN
@@ -1174,6 +1259,10 @@ CREATE OR REPLACE PACKAGE BODY NOONA_PRJ_PKG AS
         add_line(l_lines, acc('COST'), l_cost, 0, l_p.cost_center_id, NULL, l_desc);
         add_line(l_lines, acc('RET_PAY'), 0, l_cl.retention_amount, NULL, l_c.party_id, 'محتجز ' || l_desc);
         add_line(l_lines, acc('ADV_PAID'), 0, l_cl.advance_recovery, NULL, l_c.party_id, 'استرداد دفعة مقدمة ' || l_desc);
+        add_line(l_lines, acc('PENALTY_INC'), 0, l_cl.penalty_amount, l_p.cost_center_id, l_c.party_id,
+                 'غرامة تأخير على المقاول ' || l_cl.penalty_days || ' يوم ' || l_desc);
+        l_mos := l_cl.mos_to_date - l_cl.mos_previous;
+        add_line(l_lines, acc('MOS_PAID'), GREATEST(l_mos, 0), GREATEST(-l_mos, 0), NULL, l_c.party_id, 'مواد مشونة بالموقع ' || l_desc);
       ELSIF l_cl.claim_kind = 'ADVANCE' THEN
         add_line(l_lines, acc('ADV_PAID'), l_cl.current_gross, 0, NULL, l_c.party_id, l_desc);
       ELSE
@@ -1203,6 +1292,10 @@ CREATE OR REPLACE PACKAGE BODY NOONA_PRJ_PKG AS
     UPDATE prj_progress_claim SET status_code = 'APPROVED', accounting_event_id = l_ev, posted_at = SYSTIMESTAMP,
                                   posted_by = NOONA_CTX_PKG.current_user_name, certified_by = NVL(certified_by, NOONA_CTX_PKG.current_user_name)
      WHERE id = p_claim_id;
+    -- المستخلص الختامي: ينهي العقد (لا مستخلصات أعمال بعده؛ يبقى الإفراج عن المحتجز بعد فترة الضمان)
+    IF l_cl.is_final = 'Y' THEN
+      UPDATE prj_contract SET status_code = 'COMPLETED', end_date = NVL(end_date, l_cl.period_to) WHERE id = l_c.id;
+    END IF;
     NOONA_AUDIT_PKG.log_event('POSTING', c_claim, p_claim_id, 'APPROVE', 'SUCCESS');
   EXCEPTION WHEN NO_DATA_FOUND THEN
     NOONA_CORE_PKG.raise_error('NOONA-PRJ-091', 'المستخلص غير موجود', 'Claim not found');
@@ -1630,7 +1723,13 @@ CREATE OR REPLACE PACKAGE BODY NOONA_PRJ_PKG AS
         || '<tr><th>قيمة ' || esc(kind_label(l_cl.claim_kind)) || '</th><td>' || fmt(l_cl.current_gross) || '</td></tr>'
         || CASE WHEN l_cl.retention_amount > 0 THEN '<tr><th>يخصم: المحتجز (' || pct(l_c.retention_pct) || ')</th><td>(' || fmt(l_cl.retention_amount) || ')</td></tr>' END
         || CASE WHEN l_cl.advance_recovery > 0 THEN '<tr><th>يخصم: استرداد الدفعة المقدمة</th><td>(' || fmt(l_cl.advance_recovery) || ')</td></tr>' END
-        || CASE WHEN l_cl.other_deductions > 0 THEN '<tr><th>يخصم: خصومات وغرامات</th><td>(' || fmt(l_cl.other_deductions) || ')</td></tr>' END
+        || CASE WHEN l_cl.mos_to_date - l_cl.mos_previous > 0 THEN '<tr><th>يضاف: مواد مشونة بالموقع (' || fmt(l_cl.mos_to_date) || ' حتى تاريخه)</th><td>'
+                || fmt(l_cl.mos_to_date - l_cl.mos_previous) || '</td></tr>'
+                WHEN l_cl.mos_to_date - l_cl.mos_previous < 0 THEN '<tr><th>يخصم: مواد مشونة سابقاً ركبت في الأعمال</th><td>('
+                || fmt(l_cl.mos_previous - l_cl.mos_to_date) || ')</td></tr>' END
+        || CASE WHEN l_cl.other_deductions > 0 THEN '<tr><th>يخصم: خصومات أخرى</th><td>(' || fmt(l_cl.other_deductions) || ')</td></tr>' END
+        || CASE WHEN l_cl.penalty_amount > 0 THEN '<tr><th>يخصم: غرامة تأخير' || CASE WHEN l_cl.penalty_days > 0 THEN ' (' || l_cl.penalty_days || ' يوم)' END
+                || '</th><td>(' || fmt(l_cl.penalty_amount) || ')</td></tr>' END
         || '<tr><th>ضريبة القيمة المضافة</th><td>' || fmt(l_cl.tax_amount) || '</td></tr>'
         || '<tr class="is-total"><th>الصافي المستحق</th><td>' || fmt(l_cl.net_payable) || '</td></tr></table>'
         || '<div class="nn-prj-cert-sign"><div>المهندس المشرف<br><br>..................</div><div>الاستشاري / ' || esc(l_cl.certified_by)

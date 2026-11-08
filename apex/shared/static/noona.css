@@ -2317,3 +2317,16 @@ html[data-theme="dark"] .nn-kpi-value, html[data-theme="dark"] .nn-anl-kpi-val, 
 .nn-cns tr.nn-cns-net td { font-size: 1.05rem; }
 .nn-cns-note { font-size: .78rem; color: var(--nn-muted); margin-top: 10px; }
 @media print { .nn-cns td.nn-cns-elim, .nn-cns td.nn-cns-total, .nn-cns tr.nn-cns-ic td { -webkit-print-color-adjust: exact; print-color-adjust: exact; } }
+
+/* ===== محاسبة عقود المقاولات: ربحية العقد المتوقعة والمعاينة وكشف الأعمال تحت التنفيذ وخطابات الضمان */
+.nn-prj-fc { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 10px; }
+.nn-prj-fc > div { background: var(--nn-surface, #fff); border: 1px solid var(--nn-border, #e2e8f0); border-inline-start: 4px solid var(--nn-primary, #1d4ed8);
+  border-radius: 10px; padding: 10px 12px; }
+.nn-prj-fc small { display: block; color: var(--nn-muted, #64748b); font-size: .8rem; margin-bottom: 4px; }
+.nn-prj-fc b { font-family: NoonaDigits, inherit; font-size: 1.15rem; }
+.nn-prj-fc b i { font-style: normal; font-size: .85rem; color: var(--nn-muted, #64748b); margin-inline-start: 6px; }
+.nn-prj-fc.is-loss > div { border-inline-start-color: #dc2626; }
+.nn-prj-fc-warn { grid-column: 1 / -1; margin: 0; padding: 8px 12px; border-radius: 8px; background: #fef2f2; color: #991b1b; font-weight: 600; }
+.nn-prj-wip tr.is-bad td, .nn-prj-lg tr.is-bad td { background: #fff1f2; }
+.nn-prj-final tr.is-sub th, .nn-prj-final tr.is-sub td { font-weight: 700; border-top: 1px solid var(--nn-border, #e2e8f0); }
+.nn-prj-form .nn-chk { display: inline-flex; align-items: center; gap: 6px; }

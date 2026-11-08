@@ -12,7 +12,7 @@ wwv_flow_imp.component_begin (
 ,p_default_owner=>'NOONA_APP'
 );
 wwv_flow_imp_shared.create_security_scheme(
- p_id=>wwv_flow_imp.id(91820273000000754)
+ p_id=>wwv_flow_imp.id(91820273000000871)
 ,p_name=>'NOONA - Leasing'
 ,p_scheme_type=>'NATIVE_FUNCTION_BODY'
 ,p_attribute_01=>'return noona_security_pkg.has_permission(''PRP_LEASE.VIEW'', noona_res_pkg.company) = ''Y'';'
