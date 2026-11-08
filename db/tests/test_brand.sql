@@ -27,6 +27,8 @@ DECLARE
   l_hash VARCHAR2(128);
   l_c    CLOB;
   l_s    VARCHAR2(4000);
+  l_br   NUMBER;
+  l_a VARCHAR2(500); l_p VARCHAR2(20); l_ph VARCHAR2(40); l_mb VARCHAR2(40); l_em VARCHAR2(320);
   -- صورة PNG بحجم 1×1
   c_png  CONSTANT RAW(100) := HEXTORAW('89504E470D0A1A0A0000000D49484452000000010000000108060000001F15C489'
                                     || '0000000D4944415478DA63F8CFC0F01F0005000201FFA2E8B10000000049454E44AE426082');
@@ -69,6 +71,29 @@ BEGIN
      INSTR(l_c, 'nn-rpt-logo') > 0 AND INSTR(l_c, 'ميزان المراجعة') > 0 AND INSTR(l_c, 'NOONA PLUS') > 0);
   NOONA_BRAND_PKG.remove_company_logo(l_co);
   ok('logo removed', NOONA_BRAND_PKG.has_logo(l_co) = 'N');
+
+  -- العنوان ووسائل الاتصال في الترويسة والتذييل، وبيانات الفرع تتقدم على الشركة
+  NOONA_BRAND_PKG.save_contact(l_co, NULL, 'الرياض، حي العليا', '12214', '+966 11 000 1111', '+966 55 000 2222', 'Info@Test.SA');
+  NOONA_BRAND_PKG.get_contact(l_co, NULL, l_a, l_p, l_ph, l_mb, l_em);
+  ok('company contact saved (e-mail lower-cased)', l_a = 'الرياض، حي العليا' AND l_ph = '+966 11 000 1111' AND l_em = 'info@test.sa', l_em);
+  NOONA_BRAND_PKG.save_contact(l_co, NULL, 'الرياض، حي الملقا', '12214', '+966 11 000 3333', NULL, 'info@test.sa');
+  NOONA_BRAND_PKG.get_contact(l_co, NULL, l_a, l_p, l_ph, l_mb, l_em);
+  ok('saving again updates the same primary contact', l_a = 'الرياض، حي الملقا' AND l_ph = '+966 11 000 3333' AND l_mb IS NULL, l_ph);
+  BEGIN NOONA_BRAND_PKG.save_contact(l_co, NULL, NULL, NULL, NULL, NULL, 'not-an-email'); ok('invalid e-mail rejected', FALSE);
+  EXCEPTION WHEN OTHERS THEN expect('invalid e-mail rejected', 'NOONA-BRD-010', SQLERRM); END;
+  l_c := NOONA_BRAND_PKG.report_header('فاتورة ضريبية', l_co);
+  ok('letterhead shows address, phone and e-mail', INSTR(l_c, 'حي الملقا') > 0 AND INSTR(l_c, '+966 11 000 3333') > 0 AND INSTR(l_c, 'info@test.sa') > 0);
+  SELECT MIN(id) INTO l_br FROM org_branch WHERE company_id = l_co;
+  IF l_br IS NOT NULL THEN
+    NOONA_BRAND_PKG.save_contact(l_co, l_br, NULL, NULL, '+966 12 999 8888', NULL, NULL);
+    l_c := NOONA_BRAND_PKG.report_header('فاتورة ضريبية', l_co, l_br);
+    ok('branch phone overrides company, missing fields fall back to company',
+       INSTR(l_c, '+966 12 999 8888') > 0 AND INSTR(l_c, '+966 11 000 3333') = 0 AND INSTR(l_c, 'info@test.sa') > 0);
+  END IF;
+  l_c := NOONA_BRAND_PKG.doc_footer('المستلم|المحاسب', l_co);
+  ok('document footer has signatures, seal and contact line',
+     INSTR(l_c, 'المستلم') > 0 AND INSTR(l_c, 'المحاسب') > 0 AND INSTR(l_c, 'ختم الشركة') > 0
+     AND (INSTR(l_c, '+966 11 000 3333') > 0 OR INSTR(l_c, '+966 12 999 8888') > 0) AND INSTR(l_c, 'info@test.sa') > 0);
   ROLLBACK;
   NOONA_APEX_PKG.cleanup_request;
   DBMS_OUTPUT.PUT_LINE('=== RESULT: ' || g_pass || ' passed, ' || g_fail || ' failed');

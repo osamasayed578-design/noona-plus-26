@@ -299,7 +299,7 @@ wwv_flow_imp_shared.create_list_item(
 ,p_list_item_current_type=>'TARGET_PAGE'
 );
 wwv_flow_imp_shared.create_list_item(
- p_id=>wwv_flow_imp.id(91820262000000819)
+ p_id=>wwv_flow_imp.id(91820262000000837)
 ,p_list_item_display_sequence=>75
 ,p_list_item_link_text=>'الذكاء الاصطناعي'
 ,p_list_item_link_target=>'f?p=&APP_ID.:80:&APP_SESSION.::&DEBUG.:80::'
