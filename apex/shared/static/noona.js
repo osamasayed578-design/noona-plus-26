@@ -156,6 +156,7 @@
         var p = parse(n.nodeValue); if (!p) return;
         var sig = n.nodeValue;
         if (el.dataset.nnNum === sig) return;                       // عرضه العداد مسبقاً
+        el.classList.toggle('is-long', sig.replace(/\s/g, '').length > 9);   // الأرقام الطويلة بخط أصغر لتبقى داخل البطاقة
         var k = keyOf(el), had = k in last, from = had ? last[k] : 0, to = p.v;
         last[k] = to; el.dataset.nnNum = sig;
         var card = el.closest(CARD);

@@ -2240,6 +2240,7 @@ html .t-Header .nn-co-badge .nn-co-logo { background: #fff; padding: 2px; }
   font-family: var(--nn-digits) !important; font-variant-numeric: tabular-nums; letter-spacing: .6px; font-weight: 700 !important;
   direction: ltr; unicode-bidi: isolate; display: inline-block; }
 .nn-kpi-value { font-size: 1.55rem; color: var(--nn-brand-2); }
+.nn-kpi-value.is-long, .nn-anl-kpi-val.is-long, .nn-trn-kpi b.is-long, .nn-rst-kpi b.is-long { font-size: 1.18rem !important; letter-spacing: .2px; }
 .nn-anl-kpi-val { font-size: 1.5rem !important; color: var(--nn-text); }
 html[data-theme="dark"] .nn-kpi-value, html[data-theme="dark"] .nn-anl-kpi-val, html[data-theme="dark"] .nn-trn-kpi b, html[data-theme="dark"] .nn-rst-kpi b {
   color: #9fd0ff !important; text-shadow: 0 0 14px rgba(76, 157, 255, .35); }
