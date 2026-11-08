@@ -2196,12 +2196,23 @@ html[data-theme="dark"] {
   border-bottom: 0 !important; box-shadow: 0 2px 14px rgba(10, 42, 85, .25) !important; backdrop-filter: none; }
 .t-Header .t-Header-logo-link, .t-Header .t-Header-logo, .t-Header .t-Header-logo span, .t-Header .t-Header-controls .t-Button,
 .t-Header .t-NavigationBar .t-Button, .t-Header .t-NavigationBar .t-Button .fa, .t-Header .t-Button-label, .t-Header .a-Icon,
-.t-Header .nn-co, .t-Header .nn-co-name, .t-Header .nn-co-icon { color: #fff !important; }
-.t-Header .t-NavigationBar .t-Button, .t-Header .t-Header-controls .t-Button, .t-Header .nn-co {
+.t-Header .nn-co-name, .t-Header .nn-co-icon { color: #fff !important; }
+.t-Header .t-NavigationBar .t-Button, .t-Header .t-Header-controls .t-Button {
   background: rgba(255, 255, 255, .10) !important; border: 1px solid rgba(255, 255, 255, .22) !important; box-shadow: none !important; }
-.t-Header .t-NavigationBar .t-Button:hover, .t-Header .t-Header-controls .t-Button:hover, .t-Header .nn-co:hover {
+.t-Header .t-NavigationBar .t-Button:hover, .t-Header .t-Header-controls .t-Button:hover {
   background: rgba(255, 255, 255, .20) !important; border-color: rgba(255, 255, 255, .45) !important; }
+.t-Header .t-Header-branding, .t-Header .t-Header-nav { background: transparent !important; }
+:root, html[data-theme="dark"] { --ut-header-background-color: transparent; --ut-header-text-color: #fff; }
+.t-Header .t-Button:not(.t-Button--hot):not(.t-Button--noUI):not(.t-Button--link) {
+  background: rgba(255, 255, 255, .10) !important; border: 1px solid rgba(255, 255, 255, .22) !important; color: #fff !important; box-shadow: none !important; }
+.t-Header .t-Button:not(.t-Button--hot):not(.t-Button--noUI):not(.t-Button--link):hover {
+  background: rgba(255, 255, 255, .20) !important; border-color: rgba(255, 255, 255, .45) !important; color: #fff !important; }
+.t-Header .t-Button .t-Icon, .t-Header .t-Button .fa, .t-Header .t-Button .t-Button-label, .t-Header .t-Button .a-Icon { color: #fff !important; }
 .t-Header .nn-theme-toggle { background: rgba(255, 255, 255, .10); border-color: rgba(255, 255, 255, .25); color: #fff; }
+html .t-Header .nn-co-badge, html[data-theme="dark"] .t-Header .nn-co-badge { background: rgba(255, 255, 255, .12) !important;
+  border-color: rgba(255, 255, 255, .28) !important; color: #fff !important; }
+html .t-Header .nn-co-badge .nn-co-icon, html .t-Header .nn-co-badge .nn-co-name { color: #fff !important; }
+html .t-Header .nn-co-badge .nn-co-logo { background: #fff; padding: 2px; }
 .t-Header .nn-theme-toggle:hover { background: rgba(255, 255, 255, .22); color: #fff; border-color: rgba(255, 255, 255, .5); }
 
 /* ---------------------------------------------------------------- القائمة الجانبية الداكنة */
