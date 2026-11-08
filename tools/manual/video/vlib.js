@@ -89,7 +89,7 @@ module.exports = async function video(app, outDir, name, opts = {}) {
     const loc = L(sel);
     if (note) { cap = note; await ensure(); }
     await moveTo(loc); await hl(loc, true); await pulse();
-    const opt = await loc.evaluate((s, lab) => { const o = [...s.options].find((x) => x.textContent.trim().includes(lab)); return o ? o.value : null; }, label);
+    const opt = await loc.evaluate((s, lab) => { const ex = lab.charAt(0) === '='; const o = [...s.options].find((x) => (ex ? x.textContent.trim() === lab.slice(1) : x.textContent.trim().includes(lab))); return o ? o.value : null; }, label);
     if (opt !== null) await loc.selectOption(opt);
     await wait(700); await hl(loc, false);
   }
