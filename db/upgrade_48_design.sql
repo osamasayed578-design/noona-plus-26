@@ -30,6 +30,7 @@ WHENEVER SQLERROR CONTINUE
 GRANT EXECUTE ON NOONA_CONSOL_PKG TO NOONA_APP;
 @@plsql/105_noona_pur_pkg.sql
 @@plsql/106_noona_sal_pkg.sql
+@@plsql/110_noona_hr_pkg.sql
 EXEC DBMS_UTILITY.COMPILE_SCHEMA(USER, FALSE)
 SELECT object_type, object_name FROM user_objects WHERE status <> 'VALID';
 SELECT name||' '||line||':'||position||' '||substr(text,1,140) err FROM user_errors ORDER BY name, type, sequence;
