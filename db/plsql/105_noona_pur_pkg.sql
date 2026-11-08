@@ -1170,7 +1170,7 @@ CREATE OR REPLACE PACKAGE BODY NOONA_PUR_PKG AS
     guard('AP_INVOICE.VIEW');
     SELECT * INTO l_i FROM ap_invoice WHERE id = p_invoice_id AND company_id = company;
     l_html := NOONA_BRAND_PKG.report_header(CASE WHEN l_i.invoice_type = 'CREDIT_MEMO' THEN 'إشعار مرتجع مشتريات' ELSE 'فاتورة مشتريات' END
-                                            || ' ' || l_i.doc_no)
+                                            || ' ' || l_i.doc_no, l_i.company_id, l_i.branch_id)
            || '<table class="nn-rpt nn-rpt-meta"><tbody><tr><th>المورد</th><td>' || esc(supplier_label(l_i.supplier_account_id))
            || '</td><th>التاريخ</th><td>' || TO_CHAR(l_i.gl_date, 'YYYY-MM-DD') || '</td></tr><tr><th>فاتورة المورد</th><td>'
            || esc(CASE WHEN l_i.supplier_invoice_no NOT LIKE '#%' THEN l_i.supplier_invoice_no END) || '</td><th>الطريقة</th><td>' || mode_label(l_i.payment_mode) || '</td></tr></tbody></table>'
@@ -1186,7 +1186,8 @@ CREATE OR REPLACE PACKAGE BODY NOONA_PUR_PKG AS
     END LOOP;
     RETURN l_html || (('</tbody><tfoot><tr><td colspan="5">الإجمالي</td><td>' || fmt0(l_i.subtotal) || '</td><td>' || fmt0(l_i.tax_amount)
         || '</td><td>' || fmt0(l_i.total_amount) || '</td></tr></tfoot></table>'
-        || '<p class="nn-rpt-words">' || esc(NOONA_CSH_PKG.amount_words(l_i.total_amount, l_i.currency_code)) || '</p>'));
+        || '<p class="nn-rpt-words">' || esc(NOONA_CSH_PKG.amount_words(l_i.total_amount, l_i.currency_code)) || '</p>'
+        || NOONA_BRAND_PKG.doc_footer('أعده|المحاسب|المدير المعتمد', l_i.company_id, l_i.branch_id)));
   EXCEPTION WHEN NO_DATA_FOUND THEN
     NOONA_CORE_PKG.raise_error('NOONA-PUR-025', 'فاتورة المشتريات غير موجودة', 'Purchase invoice not found');
   END invoice_print;

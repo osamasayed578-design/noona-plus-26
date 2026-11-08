@@ -25,8 +25,19 @@ CREATE OR REPLACE PACKAGE NOONA_BRAND_PKG AUTHID DEFINER AS
   -- شارة الشركة الحالية في ترويسة التطبيقات: الشعار (إن وجد) واسم الشركة
   FUNCTION header_badge(p_app_id IN NUMBER, p_session IN VARCHAR2) RETURN VARCHAR2;
 
-  -- ترويسة التقارير: شعار الشركة وبياناتها، وعنوان التقرير، وعلامة النظام
-  FUNCTION report_header(p_title IN VARCHAR2, p_company_id IN NUMBER DEFAULT NULL) RETURN CLOB;
+  -- ترويسة التقارير والمستندات: الشعار واسم الشركة والفرع، والعنوان ووسائل الاتصال والسجل التجاري والرقم الضريبي،
+  -- ثم عنوان التقرير ووقت الطباعة والمستخدم. بيانات الفرع تتقدم على بيانات الشركة إن وجدت (الفرع الحالي افتراضياً)
+  FUNCTION report_header(p_title IN VARCHAR2, p_company_id IN NUMBER DEFAULT NULL, p_branch_id IN NUMBER DEFAULT NULL) RETURN CLOB;
+
+  -- تذييل المستندات المطبوعة: خانات التوقيع (عناوينها مفصولة بـ |) وختم الشركة وسطر الاتصال
+  FUNCTION doc_footer(p_signs IN VARCHAR2 DEFAULT 'المستلم|المحاسب|المدير المعتمد',
+                      p_company_id IN NUMBER DEFAULT NULL, p_branch_id IN NUMBER DEFAULT NULL) RETURN CLOB;
+
+  -- العنوان ووسائل الاتصال الرئيسية للشركة (p_branch_id فارغ) أو للفرع؛ تظهر في الترويسة والفواتير
+  PROCEDURE save_contact(p_company_id IN NUMBER, p_branch_id IN NUMBER, p_address IN VARCHAR2, p_postal IN VARCHAR2,
+                         p_phone IN VARCHAR2, p_mobile IN VARCHAR2, p_email IN VARCHAR2);
+  PROCEDURE get_contact(p_company_id IN NUMBER, p_branch_id IN NUMBER, o_address OUT VARCHAR2, o_postal OUT VARCHAR2,
+                        o_phone OUT VARCHAR2, o_mobile OUT VARCHAR2, o_email OUT VARCHAR2);
 END NOONA_BRAND_PKG;
 /
 
@@ -179,22 +190,166 @@ CREATE OR REPLACE PACKAGE BODY NOONA_BRAND_PKG AS
     RETURN NULL;
   END header_badge;
 
-  FUNCTION report_header(p_title IN VARCHAR2, p_company_id IN NUMBER DEFAULT NULL) RETURN CLOB IS
+  -- ---------------------------------------------------------------- العنوان ووسائل الاتصال
+  PROCEDURE get_contact(p_company_id IN NUMBER, p_branch_id IN NUMBER, o_address OUT VARCHAR2, o_postal OUT VARCHAR2,
+                        o_phone OUT VARCHAR2, o_mobile OUT VARCHAR2, o_email OUT VARCHAR2) IS
+  BEGIN
+    SELECT MAX(address_line_ar) KEEP (DENSE_RANK FIRST ORDER BY is_primary DESC, id DESC),
+           MAX(postal_code) KEEP (DENSE_RANK FIRST ORDER BY is_primary DESC, id DESC)
+      INTO o_address, o_postal
+      FROM ref_address
+     WHERE (p_branch_id IS NOT NULL AND branch_id = p_branch_id OR p_branch_id IS NULL AND company_id = p_company_id)
+       AND address_type = 'LEGAL' AND (effective_to IS NULL OR effective_to >= TRUNC(SYSDATE));
+    SELECT MAX(phone) KEEP (DENSE_RANK FIRST ORDER BY is_primary DESC, id DESC),
+           MAX(mobile) KEEP (DENSE_RANK FIRST ORDER BY is_primary DESC, id DESC),
+           MAX(email) KEEP (DENSE_RANK FIRST ORDER BY is_primary DESC, id DESC)
+      INTO o_phone, o_mobile, o_email
+      FROM ref_contact
+     WHERE (p_branch_id IS NOT NULL AND branch_id = p_branch_id OR p_branch_id IS NULL AND company_id = p_company_id)
+       AND contact_role = 'GENERAL' AND (effective_to IS NULL OR effective_to >= TRUNC(SYSDATE));
+  END get_contact;
+
+  PROCEDURE save_contact(p_company_id IN NUMBER, p_branch_id IN NUMBER, p_address IN VARCHAR2, p_postal IN VARCHAR2,
+                         p_phone IN VARCHAR2, p_mobile IN VARCHAR2, p_email IN VARCHAR2) IS
     l_co   org_company%ROWTYPE;
+    l_ctry VARCHAR2(10);
+    l_cnt  PLS_INTEGER;
+  BEGIN
+    NOONA_CORE_PKG.assert_tenant_writable;
+    SELECT * INTO l_co FROM org_company WHERE id = p_company_id;                 -- VPD: شركات المؤسسة فقط
+    IF p_branch_id IS NULL THEN
+      NOONA_SECURITY_PKG.assert_permission('ORG_COMPANY.UPDATE', p_company_id);
+      l_ctry := l_co.country_code;
+    ELSE
+      NOONA_SECURITY_PKG.assert_permission('ORG_BRANCH.UPDATE', p_company_id);
+      SELECT NVL(country_code, l_co.country_code) INTO l_ctry FROM org_branch WHERE id = p_branch_id AND company_id = p_company_id;
+    END IF;
+    NOONA_CORE_PKG.assert(p_email IS NULL OR REGEXP_LIKE(TRIM(p_email), '^[^@[:space:]]+@[^@[:space:]]+\.[^@[:space:]]+$'),
+      'NOONA-BRD-010', 'البريد الإلكتروني غير صحيح', 'Invalid e-mail address');
+
+    UPDATE ref_address SET address_line_ar = TRIM(p_address), postal_code = TRIM(p_postal)
+     WHERE (p_branch_id IS NOT NULL AND branch_id = p_branch_id OR p_branch_id IS NULL AND company_id = p_company_id)
+       AND address_type = 'LEGAL' AND is_primary = 'Y' AND effective_to IS NULL;
+    l_cnt := SQL%ROWCOUNT;
+    IF l_cnt = 0 AND (TRIM(p_address) IS NOT NULL OR TRIM(p_postal) IS NOT NULL) THEN
+      INSERT INTO ref_address (company_id, branch_id, address_type, country_code, address_line_ar, postal_code, is_primary)
+      VALUES (CASE WHEN p_branch_id IS NULL THEN p_company_id END, p_branch_id, 'LEGAL', l_ctry, TRIM(p_address), TRIM(p_postal), 'Y');
+    END IF;
+
+    UPDATE ref_contact SET phone = TRIM(p_phone), mobile = TRIM(p_mobile), email = LOWER(TRIM(p_email))
+     WHERE (p_branch_id IS NOT NULL AND branch_id = p_branch_id OR p_branch_id IS NULL AND company_id = p_company_id)
+       AND contact_role = 'GENERAL' AND is_primary = 'Y' AND effective_to IS NULL;
+    l_cnt := SQL%ROWCOUNT;
+    IF l_cnt = 0 AND (TRIM(p_phone) IS NOT NULL OR TRIM(p_mobile) IS NOT NULL OR TRIM(p_email) IS NOT NULL) THEN
+      INSERT INTO ref_contact (company_id, branch_id, contact_role, phone, mobile, email, is_primary)
+      VALUES (CASE WHEN p_branch_id IS NULL THEN p_company_id END, p_branch_id, 'GENERAL', TRIM(p_phone), TRIM(p_mobile),
+              LOWER(TRIM(p_email)), 'Y');
+    END IF;
+  EXCEPTION WHEN NO_DATA_FOUND THEN
+    NOONA_CORE_PKG.raise_error('NOONA-BRD-011', 'الشركة أو الفرع غير موجود', 'Company or branch not found');
+  END save_contact;
+
+  -- رقم التسجيل الرئيسي بنهاية رمز نوعه (_CR السجل التجاري، _VAT/_TRN/_TIN الضريبي)
+  FUNCTION reg_no(p_company_id NUMBER, p_branch_id NUMBER, p_kind VARCHAR2) RETURN VARCHAR2 IS
+    l VARCHAR2(100);
+  BEGIN
+    SELECT MAX(r.reg_number) KEEP (DENSE_RANK FIRST ORDER BY CASE WHEN r.branch_id = p_branch_id THEN 0 ELSE 1 END, r.is_primary DESC, r.id DESC)
+      INTO l
+      FROM org_legal_registration r JOIN loc_registration_type t ON t.id = r.reg_type_id
+     WHERE r.company_id = p_company_id AND (r.branch_id IS NULL OR r.branch_id = p_branch_id)
+       AND (r.effective_to IS NULL OR r.effective_to >= TRUNC(SYSDATE)) AND NVL(r.status_code, 'ACTIVE') = 'ACTIVE'
+       AND (p_kind = 'CR' AND t.code LIKE '%\_CR' ESCAPE '\'
+            OR p_kind = 'TAX' AND (t.code LIKE '%\_VAT' ESCAPE '\' OR t.code LIKE '%\_TRN' ESCAPE '\' OR t.code IN ('QA_TIN', 'SD_TIN')));
+    RETURN l;
+  END reg_no;
+
+  FUNCTION branch_of(p_branch_id NUMBER, p_company_id NUMBER) RETURN NUMBER IS
+    l NUMBER := NVL(p_branch_id, TO_NUMBER(SYS_CONTEXT('NOONA_CTX', 'BRANCH_ID')));
+    n PLS_INTEGER;
+  BEGIN
+    SELECT COUNT(*) INTO n FROM org_branch WHERE id = l AND company_id = p_company_id;
+    RETURN CASE WHEN n = 1 THEN l END;
+  END branch_of;
+
+  -- بيانات الاتصال الفعلية: ما سجل للفرع، وما نقص منه يؤخذ من الشركة
+  PROCEDURE contact_of(p_company_id NUMBER, p_branch_id NUMBER, o_address OUT VARCHAR2, o_phone OUT VARCHAR2,
+                       o_mobile OUT VARCHAR2, o_email OUT VARCHAR2) IS
+    a VARCHAR2(500); pc VARCHAR2(20); ph VARCHAR2(40); mb VARCHAR2(40); em VARCHAR2(320);
+  BEGIN
+    get_contact(p_company_id, NULL, o_address, pc, o_phone, o_mobile, o_email);
+    o_address := o_address || NVL2(pc, ' - ص.ب/الرمز البريدي ' || pc, '');
+    IF p_branch_id IS NOT NULL THEN
+      get_contact(p_company_id, p_branch_id, a, pc, ph, mb, em);
+      IF a IS NOT NULL THEN o_address := a || NVL2(pc, ' - ص.ب/الرمز البريدي ' || pc, ''); END IF;
+      o_phone := NVL(ph, o_phone); o_mobile := NVL(mb, o_mobile); o_email := NVL(em, o_email);
+    END IF;
+  END contact_of;
+
+  FUNCTION report_header(p_title IN VARCHAR2, p_company_id IN NUMBER DEFAULT NULL, p_branch_id IN NUMBER DEFAULT NULL) RETURN CLOB IS
+    l_co      org_company%ROWTYPE;
     l_logo    CLOB;
     l_company NUMBER := company_id(p_company_id);
+    l_branch  NUMBER;
+    l_bname   VARCHAR2(400);
+    l_addr    VARCHAR2(600); l_phone VARCHAR2(40); l_mobile VARCHAR2(40); l_email VARCHAR2(320);
+    l_cr      VARCHAR2(100); l_vat VARCHAR2(100);
+    l_info    VARCHAR2(4000);
+    FUNCTION item(p_icon VARCHAR2, p_label VARCHAR2, p_val VARCHAR2, p_ltr BOOLEAN DEFAULT FALSE) RETURN VARCHAR2 IS
+    BEGIN
+      RETURN CASE WHEN p_val IS NOT NULL THEN
+        '<span class="nn-lh-i"><span class="fa ' || p_icon || '" aria-hidden="true"></span>' || NVL2(p_label, '<em>' || p_label || '</em> ', '')
+        || CASE WHEN p_ltr THEN '<bdi dir="ltr">' || NOONA_UI_PKG.esc(p_val) || '</bdi>' ELSE NOONA_UI_PKG.esc(p_val) END || '</span>' END;
+    END item;
   BEGIN
     SELECT * INTO l_co FROM org_company WHERE id = l_company;
+    l_branch := branch_of(p_branch_id, l_company);
+    IF l_branch IS NOT NULL THEN
+      SELECT CASE WHEN NVL(is_head_office, 'N') = 'Y' THEN NULL ELSE name_ar END INTO l_bname FROM org_branch WHERE id = l_branch;
+    END IF;
+    contact_of(l_company, l_branch, l_addr, l_phone, l_mobile, l_email);
+    l_cr := reg_no(l_company, l_branch, 'CR');
+    l_vat := reg_no(l_company, l_branch, 'TAX');
     l_logo := logo_data_uri(l_co.id);
-    RETURN '<div class="nn-rpt-head"><div class="nn-rpt-co">'
-        || CASE WHEN l_logo IS NOT NULL THEN '<img class="nn-rpt-logo" alt="" src="' || l_logo || '">' END
+    l_info := item('fa-map-marker', NULL, l_addr) || item('fa-phone', 'هاتف', l_phone, TRUE) || item('fa-mobile', 'جوال', l_mobile, TRUE)
+           || item('fa-envelope-o', NULL, l_email, TRUE) || item('fa-id-card-o', 'س.ت', l_cr, TRUE) || item('fa-percent', 'الرقم الضريبي', l_vat, TRUE);
+    RETURN '<header class="nn-rpt-head nn-lh"><div class="nn-lh-top"><div class="nn-rpt-co">'
+        || CASE WHEN l_logo IS NOT NULL THEN '<img class="nn-rpt-logo" alt="" src="' || l_logo || '">'
+                ELSE '<span class="nn-lh-mono" aria-hidden="true">' || NOONA_UI_PKG.esc(SUBSTR(NVL(l_co.trade_name_ar, l_co.legal_name_ar), 1, 1)) || '</span>' END
         || '<div><div class="nn-rpt-co-name">' || NOONA_UI_PKG.esc(l_co.legal_name_ar) || '</div>'
-        || CASE WHEN l_co.legal_name_en IS NOT NULL
-             THEN '<div class="nn-rpt-co-en">' || NOONA_UI_PKG.esc(l_co.legal_name_en) || '</div>' END
-        || '</div></div><div class="nn-rpt-title">' || NOONA_UI_PKG.esc(p_title)
-        || '<small>' || TO_CHAR(SYSDATE, 'YYYY-MM-DD HH24:MI') || '</small></div>'
-        || '<div class="nn-rpt-sys">NOONA PLUS ERP</div></div>';
+        || CASE WHEN l_co.legal_name_en IS NOT NULL THEN '<div class="nn-rpt-co-en">' || NOONA_UI_PKG.esc(l_co.legal_name_en) || '</div>' END
+        || CASE WHEN l_bname IS NOT NULL THEN '<div class="nn-lh-branch">' || NOONA_UI_PKG.esc(l_bname) || '</div>' END
+        || '</div></div>'
+        || CASE WHEN l_info IS NOT NULL THEN '<div class="nn-lh-info">' || l_info || '</div>' END
+        || '</div><div class="nn-lh-band"><div class="nn-rpt-title">' || NOONA_UI_PKG.esc(p_title) || '</div>'
+        || '<div class="nn-lh-meta"><span>تاريخ الطباعة <bdi dir="ltr">' || TO_CHAR(SYSDATE, 'YYYY-MM-DD HH24:MI') || '</bdi></span>'
+        || CASE WHEN SYS_CONTEXT('NOONA_CTX', 'USERNAME') IS NOT NULL
+             THEN '<span>بواسطة ' || NOONA_UI_PKG.esc(LOWER(SYS_CONTEXT('NOONA_CTX', 'USERNAME'))) || '</span>' END
+        || '<span class="nn-rpt-sys">NOONA PLUS ERP</span></div></div></header>';
   END report_header;
+
+  FUNCTION doc_footer(p_signs IN VARCHAR2 DEFAULT 'المستلم|المحاسب|المدير المعتمد',
+                      p_company_id IN NUMBER DEFAULT NULL, p_branch_id IN NUMBER DEFAULT NULL) RETURN CLOB IS
+    l_company NUMBER := company_id(p_company_id);
+    l_branch  NUMBER := branch_of(p_branch_id, l_company);
+    l_co      org_company%ROWTYPE;
+    l_addr    VARCHAR2(600); l_phone VARCHAR2(40); l_mobile VARCHAR2(40); l_email VARCHAR2(320);
+    l_html    CLOB := '<footer class="nn-docfoot"><div class="nn-sign">';
+    l_n       PLS_INTEGER := 0;
+  BEGIN
+    SELECT * INTO l_co FROM org_company WHERE id = l_company;
+    FOR r IN (SELECT REGEXP_SUBSTR(p_signs, '[^|]+', 1, LEVEL) t FROM dual CONNECT BY REGEXP_SUBSTR(p_signs, '[^|]+', 1, LEVEL) IS NOT NULL) LOOP
+      l_n := l_n + 1;
+      l_html := l_html || '<div><b>' || NOONA_UI_PKG.esc(r.t) || '</b><span>الاسم: ..............................</span>'
+             || '<span>التوقيع: ............................</span><span>التاريخ: ......./......./..........</span></div>';
+    END LOOP;
+    l_html := l_html || '<div class="nn-docfoot-seal"><b>ختم الشركة</b><span class="nn-docfoot-stamp" aria-hidden="true"></span></div></div>';
+    contact_of(l_company, l_branch, l_addr, l_phone, l_mobile, l_email);
+    RETURN l_html || '<div class="nn-docfoot-line">' || NOONA_UI_PKG.esc(NVL(l_co.trade_name_ar, l_co.legal_name_ar))
+        || NVL2(l_addr, ' · ' || NOONA_UI_PKG.esc(l_addr), '')
+        || NVL2(l_phone, ' · هاتف <bdi dir="ltr">' || NOONA_UI_PKG.esc(l_phone) || '</bdi>', '')
+        || NVL2(l_email, ' · <bdi dir="ltr">' || NOONA_UI_PKG.esc(l_email) || '</bdi>', '')
+        || '</div><div class="nn-docfoot-note">مستند صادر من نظام NOONA PLUS ERP، ولا يعتد به دون توقيع وختم الشركة</div></footer>';
+  END doc_footer;
 
 END NOONA_BRAND_PKG;
 /

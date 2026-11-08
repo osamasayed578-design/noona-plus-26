@@ -89,6 +89,23 @@ p.process(20, 'AFTER_SUBMIT', 'Save Company', [
     ' where id = :P11_ID;'],
     when_button=b_save, success='تم حفظ بيانات الشركة')
 
+# العنوان ووسائل الاتصال: تظهر في ترويسة التقارير والفواتير المطبوعة (بيانات الفرع تتقدم عليها إن سجلت)
+ct = p.static('العنوان ووسائل الاتصال (ترويسة التقارير والفواتير)', 12, condition=':P11_ID is not null')
+p.text('P11_ADDRESS', ct, 10, 'العنوان (المدينة، الحي، الشارع، المبنى)', maxlen=500)
+p.text('P11_POSTAL', ct, 20, 'الرمز البريدي', maxlen=20, width=12)
+p.text('P11_PHONE', ct, 30, 'الهاتف', maxlen=40, width=20)
+p.text('P11_MOBILE', ct, 40, 'الجوال', maxlen=40, width=20)
+p.text('P11_EMAIL', ct, 50, 'البريد الإلكتروني', maxlen=320)
+b_ct = p.button(ct, 10, 'SAVE_CONTACT', 'حفظ بيانات الاتصال', hot=True)
+p.process(12, 'BEFORE_HEADER', 'Load Contact', [
+    'if :P11_ID is not null then',
+    '    noona_brand_pkg.get_contact(:P11_ID, null, :P11_ADDRESS, :P11_POSTAL, :P11_PHONE, :P11_MOBILE, :P11_EMAIL);',
+    'end if;'])
+p.process(22, 'AFTER_SUBMIT', 'Save Contact', [
+    'noona_brand_pkg.save_contact(p_company_id => :P11_ID, p_branch_id => null, p_address => :P11_ADDRESS, p_postal => :P11_POSTAL,',
+    '                             p_phone => :P11_PHONE, p_mobile => :P11_MOBILE, p_email => :P11_EMAIL);'],
+    when_button=b_ct, success='تم حفظ العنوان ووسائل الاتصال؛ تظهر في ترويسة التقارير والفواتير')
+
 # شعار المشترك: يظهر في ترويسة التطبيقات وفي ترويسة التقارير المطبوعة
 lg = p.static('شعار الشركة (الترويسة والتقارير)', 15, condition=':P11_ID is not null')
 p.file('P11_LOGO', lg, 10, 'ملف الشعار')
@@ -215,6 +232,22 @@ p.process(20, 'AFTER_SUBMIT', 'Save Branch', [
     " where id = :P13_ID and noona_sec_admin_pkg.can_admin_company(company_id) = 'Y';",
     "if sql%rowcount = 0 then raise_application_error(-20100, 'NOONA-SEC-260: لا تملك إدارة هذا الفرع'); end if;"],
     when_button=b_save, success='تم حفظ بيانات الفرع')
+# عنوان الفرع ووسائل اتصاله: تظهر في فواتيره وتقاريره بدل بيانات الشركة (ما يترك فارغاً يؤخذ من الشركة)
+ct = p.static('عنوان الفرع ووسائل الاتصال (فواتير الفرع وتقاريره)', 15, condition=':P13_ID is not null')
+p.text('P13_ADDRESS', ct, 10, 'العنوان', maxlen=500)
+p.text('P13_POSTAL', ct, 20, 'الرمز البريدي', maxlen=20, width=12)
+p.text('P13_PHONE', ct, 30, 'الهاتف', maxlen=40, width=20)
+p.text('P13_MOBILE', ct, 40, 'الجوال', maxlen=40, width=20)
+p.text('P13_EMAIL', ct, 50, 'البريد الإلكتروني', maxlen=320)
+b_ct = p.button(ct, 10, 'SAVE_CONTACT', 'حفظ بيانات الاتصال', hot=True)
+p.process(12, 'BEFORE_HEADER', 'Load Contact', [
+    'if :P13_ID is not null and :P13_COMPANY_ID is not null then',
+    '    noona_brand_pkg.get_contact(:P13_COMPANY_ID, :P13_ID, :P13_ADDRESS, :P13_POSTAL, :P13_PHONE, :P13_MOBILE, :P13_EMAIL);',
+    'end if;'])
+p.process(22, 'AFTER_SUBMIT', 'Save Contact', [
+    'noona_brand_pkg.save_contact(p_company_id => :P13_COMPANY_ID, p_branch_id => :P13_ID, p_address => :P13_ADDRESS,',
+    '                             p_postal => :P13_POSTAL, p_phone => :P13_PHONE, p_mobile => :P13_MOBILE, p_email => :P13_EMAIL);'],
+    when_button=b_ct, success='تم حفظ عنوان الفرع ووسائل اتصاله')
 cl = p.static('إغلاق الفرع', 20)
 p.textarea('P13_CLOSE_REASON', cl, 10, 'سبب الإغلاق', rows=2)
 b_close = p.button(cl, 10, 'CLOSE_BRANCH', 'إغلاق الفرع', condition=":P13_ID is not null")

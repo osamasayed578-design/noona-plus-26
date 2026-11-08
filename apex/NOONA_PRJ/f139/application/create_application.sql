@@ -52,7 +52,7 @@ wwv_imp_workspace.create_flow(
 ,p_substitution_string_01=>'APP_NAME'
 ,p_substitution_value_01=>'NOONA Real Estate & Hospitality'
 ,p_file_prefix => nvl(wwv_flow_application_install.get_static_app_file_prefix,'')
-,p_files_version=>371568
+,p_files_version=>598664
 ,p_version_scn=>137141849
 ,p_print_server_type=>'INSTANCE'
 ,p_file_storage=>'DB'
