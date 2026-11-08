@@ -22,7 +22,7 @@ wwv_flow_imp_page.create_page(
 ,p_protection_level=>'C'
 );
 wwv_flow_imp_page.create_page_plug(
- p_id=>wwv_flow_imp.id(91820262000000815)
+ p_id=>wwv_flow_imp.id(91820262000000846)
 ,p_plug_name=>'الحالة'
 ,p_region_template_options=>'#DEFAULT#'
 ,p_plug_template=>4072358936313175081
@@ -35,7 +35,7 @@ wwv_flow_imp_page.create_page_plug(
   'show_line_breaks', 'Y')).to_clob
 );
 wwv_flow_imp_page.create_page_plug(
- p_id=>wwv_flow_imp.id(91820262000000816)
+ p_id=>wwv_flow_imp.id(91820262000000847)
 ,p_plug_name=>'الاستهلاك'
 ,p_region_template_options=>'#DEFAULT#:t-Region--scrollBody:t-Region--removeHeader js-removeLandmark:t-Region--noUI'
 ,p_plug_template=>4072358936313175081
@@ -54,7 +54,7 @@ wwv_flow_imp_page.create_page_plug(
 ,p_plug_source_type=>'NATIVE_DYNAMIC_CONTENT'
 );
 wwv_flow_imp_page.create_page_plug(
- p_id=>wwv_flow_imp.id(91820262000000817)
+ p_id=>wwv_flow_imp.id(91820262000000848)
 ,p_plug_name=>'إعدادات المؤسسة'
 ,p_region_template_options=>'#DEFAULT#'
 ,p_plug_template=>4072358936313175081
@@ -65,10 +65,10 @@ wwv_flow_imp_page.create_page_plug(
   'show_line_breaks', 'Y')).to_clob
 );
 wwv_flow_imp_page.create_page_item(
- p_id=>wwv_flow_imp.id(91820262000000818)
+ p_id=>wwv_flow_imp.id(91820262000000849)
 ,p_name=>'P80_ENABLED'
 ,p_item_sequence=>10
-,p_item_plug_id=>wwv_flow_imp.id(91820262000000817)
+,p_item_plug_id=>wwv_flow_imp.id(91820262000000848)
 ,p_prompt=>'تفعيل مساعد نونا لكل مستخدمي المؤسسة'
 ,p_display_as=>'NATIVE_SELECT_LIST'
 ,p_lov=>'STATIC2:لا;N,نعم;Y'
@@ -80,10 +80,10 @@ wwv_flow_imp_page.create_page_item(
   'page_action_on_selection', 'NONE')).to_clob
 );
 wwv_flow_imp_page.create_page_item(
- p_id=>wwv_flow_imp.id(91820262000000819)
+ p_id=>wwv_flow_imp.id(91820262000000850)
 ,p_name=>'P80_MODEL'
 ,p_item_sequence=>20
-,p_item_plug_id=>wwv_flow_imp.id(91820262000000817)
+,p_item_plug_id=>wwv_flow_imp.id(91820262000000848)
 ,p_prompt=>'نموذج المحادثة'
 ,p_display_as=>'NATIVE_SELECT_LIST'
 ,p_lov=>'select p.name_ar || '' — '' || m.name_ar d, m.id r from ai_model m join ai_provider p on p.id = m.provider_id where m.model_kind = ''CHAT'' and m.status_code = ''ACTIVE'' and p.status_code = ''ACTIVE'' order by p.name_ar, m.name_ar'
@@ -98,10 +98,10 @@ wwv_flow_imp_page.create_page_item(
   'page_action_on_selection', 'NONE')).to_clob
 );
 wwv_flow_imp_page.create_page_item(
- p_id=>wwv_flow_imp.id(91820262000000820)
+ p_id=>wwv_flow_imp.id(91820262000000851)
 ,p_name=>'P80_QUOTA'
 ,p_item_sequence=>30
-,p_item_plug_id=>wwv_flow_imp.id(91820262000000817)
+,p_item_plug_id=>wwv_flow_imp.id(91820262000000848)
 ,p_prompt=>'الحصة الشهرية بالرموز (فارغ = بلا حد)'
 ,p_display_as=>'NATIVE_NUMBER_FIELD'
 ,p_cSize=>20
@@ -112,10 +112,10 @@ wwv_flow_imp_page.create_page_item(
   'virtual_keyboard', 'decimal')).to_clob
 );
 wwv_flow_imp_page.create_page_item(
- p_id=>wwv_flow_imp.id(91820262000000821)
+ p_id=>wwv_flow_imp.id(91820262000000852)
 ,p_name=>'P80_RET'
 ,p_item_sequence=>40
-,p_item_plug_id=>wwv_flow_imp.id(91820262000000817)
+,p_item_plug_id=>wwv_flow_imp.id(91820262000000848)
 ,p_prompt=>'الاحتفاظ بالمحادثات (يوم)'
 ,p_display_as=>'NATIVE_NUMBER_FIELD'
 ,p_cSize=>20
@@ -127,7 +127,7 @@ wwv_flow_imp_page.create_page_item(
   'virtual_keyboard', 'decimal')).to_clob
 );
 wwv_flow_imp_page.create_page_process(
- p_id=>wwv_flow_imp.id(91820262000000822)
+ p_id=>wwv_flow_imp.id(91820262000000853)
 ,p_process_sequence=>10
 ,p_process_point=>'BEFORE_HEADER'
 ,p_process_type=>'NATIVE_PLSQL'
@@ -140,12 +140,12 @@ wwv_flow_imp_page.create_page_process(
 'end;'))
 ,p_process_clob_language=>'PLSQL'
 ,p_error_display_location=>'INLINE_IN_NOTIFICATION'
-,p_internal_uid=>91820262000000822
+,p_internal_uid=>91820262000000853
 );
 wwv_flow_imp_page.create_page_button(
- p_id=>wwv_flow_imp.id(91820262000000823)
+ p_id=>wwv_flow_imp.id(91820262000000854)
 ,p_button_sequence=>10
-,p_button_plug_id=>wwv_flow_imp.id(91820262000000817)
+,p_button_plug_id=>wwv_flow_imp.id(91820262000000848)
 ,p_button_name=>'SAVE_AI'
 ,p_button_action=>'SUBMIT'
 ,p_button_template_options=>'#DEFAULT#'
@@ -155,7 +155,7 @@ wwv_flow_imp_page.create_page_button(
 ,p_button_position=>'NEXT'
 );
 wwv_flow_imp_page.create_page_process(
- p_id=>wwv_flow_imp.id(91820262000000824)
+ p_id=>wwv_flow_imp.id(91820262000000855)
 ,p_process_sequence=>20
 ,p_process_point=>'AFTER_SUBMIT'
 ,p_process_type=>'NATIVE_PLSQL'
@@ -169,12 +169,12 @@ wwv_flow_imp_page.create_page_process(
 'end;'))
 ,p_process_clob_language=>'PLSQL'
 ,p_error_display_location=>'INLINE_IN_NOTIFICATION'
-,p_process_when_button_id=>wwv_flow_imp.id(91820262000000823)
+,p_process_when_button_id=>wwv_flow_imp.id(91820262000000854)
 ,p_process_success_message=>'تم حفظ إعدادات الذكاء الاصطناعي'
-,p_internal_uid=>91820262000000824
+,p_internal_uid=>91820262000000855
 );
 wwv_flow_imp_page.create_page_plug(
- p_id=>wwv_flow_imp.id(91820262000000825)
+ p_id=>wwv_flow_imp.id(91820262000000856)
 ,p_plug_name=>'الاستهلاك اليومي'
 ,p_region_template_options=>'#DEFAULT#'
 ,p_component_template_options=>'#DEFAULT#'
@@ -189,7 +189,7 @@ wwv_flow_imp_page.create_page_plug(
 ,p_prn_page_header=>'الاستهلاك اليومي'
 );
 wwv_flow_imp_page.create_worksheet(
- p_id=>wwv_flow_imp.id(91820262000000826)
+ p_id=>wwv_flow_imp.id(91820262000000857)
 ,p_max_row_count=>'1000000'
 ,p_no_data_found_message=>'لا توجد بيانات'
 ,p_pagination_type=>'ROWS_X_TO_Y'
@@ -201,10 +201,10 @@ wwv_flow_imp_page.create_worksheet(
 ,p_download_formats=>'CSV:HTML:XLSX:PDF'
 ,p_enable_mail_download=>'N'
 ,p_owner=>'NOONA'
-,p_internal_uid=>91820262000000826
+,p_internal_uid=>91820262000000857
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820262000000828)
+ p_id=>wwv_flow_imp.id(91820262000000859)
 ,p_db_column_name=>'USAGE_DATE'
 ,p_display_order=>10
 ,p_column_identifier=>'A'
@@ -215,7 +215,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820262000000829)
+ p_id=>wwv_flow_imp.id(91820262000000860)
 ,p_db_column_name=>'FEATURE'
 ,p_display_order=>20
 ,p_column_identifier=>'B'
@@ -225,7 +225,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820262000000830)
+ p_id=>wwv_flow_imp.id(91820262000000861)
 ,p_db_column_name=>'MODEL'
 ,p_display_order=>30
 ,p_column_identifier=>'C'
@@ -235,7 +235,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820262000000831)
+ p_id=>wwv_flow_imp.id(91820262000000862)
 ,p_db_column_name=>'REQUEST_COUNT'
 ,p_display_order=>40
 ,p_column_identifier=>'D'
@@ -245,7 +245,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820262000000832)
+ p_id=>wwv_flow_imp.id(91820262000000863)
 ,p_db_column_name=>'INPUT_TOKENS'
 ,p_display_order=>50
 ,p_column_identifier=>'E'
@@ -255,7 +255,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820262000000833)
+ p_id=>wwv_flow_imp.id(91820262000000864)
 ,p_db_column_name=>'OUTPUT_TOKENS'
 ,p_display_order=>60
 ,p_column_identifier=>'F'
@@ -265,7 +265,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820262000000834)
+ p_id=>wwv_flow_imp.id(91820262000000865)
 ,p_db_column_name=>'TOTAL_TOKENS'
 ,p_display_order=>70
 ,p_column_identifier=>'G'
@@ -275,7 +275,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820262000000835)
+ p_id=>wwv_flow_imp.id(91820262000000866)
 ,p_db_column_name=>'COST_AMOUNT'
 ,p_display_order=>80
 ,p_column_identifier=>'H'
@@ -285,16 +285,16 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_rpt(
- p_id=>wwv_flow_imp.id(91820262000000827)
+ p_id=>wwv_flow_imp.id(91820262000000858)
 ,p_application_user=>'APXWS_DEFAULT'
 ,p_report_seq=>10
-,p_report_alias=>'827'
+,p_report_alias=>'858'
 ,p_status=>'PUBLIC'
 ,p_is_default=>'Y'
 ,p_report_columns=>'USAGE_DATE:FEATURE:MODEL:REQUEST_COUNT:INPUT_TOKENS:OUTPUT_TOKENS:TOTAL_TOKENS:COST_AMOUNT'
 );
 wwv_flow_imp_page.create_page_branch(
- p_id=>wwv_flow_imp.id(91820262000000836)
+ p_id=>wwv_flow_imp.id(91820262000000867)
 ,p_branch_action=>'f?p=&APP_ID.:80:&SESSION.::&DEBUG.:::&success_msg=#SUCCESS_MSG#'
 ,p_branch_point=>'AFTER_PROCESSING'
 ,p_branch_type=>'REDIRECT_URL'

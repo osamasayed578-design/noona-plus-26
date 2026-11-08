@@ -88,6 +88,9 @@ prompt --install
 @@application/pages/page_00049.sql
 @@application/pages/page_00050.sql
 @@application/pages/page_00051.sql
+@@application/pages/page_00052.sql
+@@application/pages/page_00053.sql
+@@application/pages/page_00054.sql
 @@application/pages/page_00060.sql
 @@application/pages/page_00061.sql
 @@application/pages/page_00063.sql

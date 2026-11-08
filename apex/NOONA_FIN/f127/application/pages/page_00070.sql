@@ -18,11 +18,11 @@ wwv_flow_imp_page.create_page(
 ,p_step_title=>'الضرائب والتوطين'
 ,p_autocomplete_on_off=>'OFF'
 ,p_page_template_options=>'#DEFAULT#'
-,p_required_role=>wwv_flow_imp.id(91820266000000740)
+,p_required_role=>wwv_flow_imp.id(91820266000000746)
 ,p_protection_level=>'C'
 );
 wwv_flow_imp_page.create_page_plug(
- p_id=>wwv_flow_imp.id(91820266000000741)
+ p_id=>wwv_flow_imp.id(91820266000000747)
 ,p_plug_name=>'تطبيق حزمة الدولة'
 ,p_region_template_options=>'#DEFAULT#'
 ,p_plug_template=>4072358936313175081
@@ -38,9 +38,9 @@ wwv_flow_imp_page.create_page_plug(
   'show_line_breaks', 'Y')).to_clob
 );
 wwv_flow_imp_page.create_page_button(
- p_id=>wwv_flow_imp.id(91820266000000742)
+ p_id=>wwv_flow_imp.id(91820266000000748)
 ,p_button_sequence=>10
-,p_button_plug_id=>wwv_flow_imp.id(91820266000000741)
+,p_button_plug_id=>wwv_flow_imp.id(91820266000000747)
 ,p_button_name=>'SETUP'
 ,p_button_action=>'SUBMIT'
 ,p_button_template_options=>'#DEFAULT#'
@@ -50,7 +50,7 @@ wwv_flow_imp_page.create_page_button(
 ,p_button_position=>'NEXT'
 );
 wwv_flow_imp_page.create_page_process(
- p_id=>wwv_flow_imp.id(91820266000000743)
+ p_id=>wwv_flow_imp.id(91820266000000749)
 ,p_process_sequence=>10
 ,p_process_point=>'AFTER_SUBMIT'
 ,p_process_type=>'NATIVE_PLSQL'
@@ -62,12 +62,12 @@ wwv_flow_imp_page.create_page_process(
 'end;'))
 ,p_process_clob_language=>'PLSQL'
 ,p_error_display_location=>'INLINE_IN_NOTIFICATION'
-,p_process_when_button_id=>wwv_flow_imp.id(91820266000000742)
+,p_process_when_button_id=>wwv_flow_imp.id(91820266000000748)
 ,p_process_success_message=>'تم تطبيق حزمة الدولة وتجهيز حسابات الضرائب'
-,p_internal_uid=>91820266000000743
+,p_internal_uid=>91820266000000749
 );
 wwv_flow_imp_page.create_page_plug(
- p_id=>wwv_flow_imp.id(91820266000000744)
+ p_id=>wwv_flow_imp.id(91820266000000750)
 ,p_plug_name=>'مؤشرات الضرائب'
 ,p_region_template_options=>'#DEFAULT#:t-Region--scrollBody:t-Region--removeHeader js-removeLandmark:t-Region--noUI'
 ,p_plug_template=>4072358936313175081
@@ -81,7 +81,7 @@ wwv_flow_imp_page.create_page_plug(
 ,p_plug_source_type=>'NATIVE_DYNAMIC_CONTENT'
 );
 wwv_flow_imp_page.create_page_plug(
- p_id=>wwv_flow_imp.id(91820266000000745)
+ p_id=>wwv_flow_imp.id(91820266000000751)
 ,p_plug_name=>'إجراءات'
 ,p_region_template_options=>'#DEFAULT#:t-Region--removeHeader js-removeLandmark'
 ,p_plug_template=>4072358936313175081
@@ -95,9 +95,9 @@ wwv_flow_imp_page.create_page_plug(
   'show_line_breaks', 'Y')).to_clob
 );
 wwv_flow_imp_page.create_page_button(
- p_id=>wwv_flow_imp.id(91820266000000746)
+ p_id=>wwv_flow_imp.id(91820266000000752)
 ,p_button_sequence=>10
-,p_button_plug_id=>wwv_flow_imp.id(91820266000000745)
+,p_button_plug_id=>wwv_flow_imp.id(91820266000000751)
 ,p_button_name=>'RETURNS'
 ,p_button_action=>'REDIRECT_URL'
 ,p_button_template_options=>'#DEFAULT#'
@@ -108,9 +108,9 @@ wwv_flow_imp_page.create_page_button(
 ,p_button_redirect_url=>'f?p=&APP_ID.:72:&SESSION.::&DEBUG.:::'
 );
 wwv_flow_imp_page.create_page_button(
- p_id=>wwv_flow_imp.id(91820266000000747)
+ p_id=>wwv_flow_imp.id(91820266000000753)
 ,p_button_sequence=>20
-,p_button_plug_id=>wwv_flow_imp.id(91820266000000745)
+,p_button_plug_id=>wwv_flow_imp.id(91820266000000751)
 ,p_button_name=>'REGISTER'
 ,p_button_action=>'REDIRECT_URL'
 ,p_button_template_options=>'#DEFAULT#'
@@ -120,9 +120,9 @@ wwv_flow_imp_page.create_page_button(
 ,p_button_redirect_url=>'f?p=&APP_ID.:74:&SESSION.::&DEBUG.:::'
 );
 wwv_flow_imp_page.create_page_button(
- p_id=>wwv_flow_imp.id(91820266000000748)
+ p_id=>wwv_flow_imp.id(91820266000000754)
 ,p_button_sequence=>30
-,p_button_plug_id=>wwv_flow_imp.id(91820266000000745)
+,p_button_plug_id=>wwv_flow_imp.id(91820266000000751)
 ,p_button_name=>'WHT'
 ,p_button_action=>'REDIRECT_URL'
 ,p_button_template_options=>'#DEFAULT#'
@@ -132,9 +132,9 @@ wwv_flow_imp_page.create_page_button(
 ,p_button_redirect_url=>'f?p=&APP_ID.:75:&SESSION.::&DEBUG.:::'
 );
 wwv_flow_imp_page.create_page_button(
- p_id=>wwv_flow_imp.id(91820266000000749)
+ p_id=>wwv_flow_imp.id(91820266000000755)
 ,p_button_sequence=>40
-,p_button_plug_id=>wwv_flow_imp.id(91820266000000745)
+,p_button_plug_id=>wwv_flow_imp.id(91820266000000751)
 ,p_button_name=>'EINV'
 ,p_button_action=>'REDIRECT_URL'
 ,p_button_template_options=>'#DEFAULT#'
@@ -144,9 +144,9 @@ wwv_flow_imp_page.create_page_button(
 ,p_button_redirect_url=>'f?p=&APP_ID.:77:&SESSION.::&DEBUG.:::'
 );
 wwv_flow_imp_page.create_page_button(
- p_id=>wwv_flow_imp.id(91820266000000750)
+ p_id=>wwv_flow_imp.id(91820266000000756)
 ,p_button_sequence=>50
-,p_button_plug_id=>wwv_flow_imp.id(91820266000000745)
+,p_button_plug_id=>wwv_flow_imp.id(91820266000000751)
 ,p_button_name=>'REGS'
 ,p_button_action=>'REDIRECT_URL'
 ,p_button_template_options=>'#DEFAULT#'
@@ -156,9 +156,9 @@ wwv_flow_imp_page.create_page_button(
 ,p_button_redirect_url=>'f?p=&APP_ID.:71:&SESSION.::&DEBUG.:::'
 );
 wwv_flow_imp_page.create_page_button(
- p_id=>wwv_flow_imp.id(91820266000000751)
+ p_id=>wwv_flow_imp.id(91820266000000757)
 ,p_button_sequence=>60
-,p_button_plug_id=>wwv_flow_imp.id(91820266000000745)
+,p_button_plug_id=>wwv_flow_imp.id(91820266000000751)
 ,p_button_name=>'RESYNC'
 ,p_button_action=>'SUBMIT'
 ,p_button_template_options=>'#DEFAULT#'
@@ -167,7 +167,7 @@ wwv_flow_imp_page.create_page_button(
 ,p_button_position=>'NEXT'
 );
 wwv_flow_imp_page.create_page_process(
- p_id=>wwv_flow_imp.id(91820266000000752)
+ p_id=>wwv_flow_imp.id(91820266000000758)
 ,p_process_sequence=>20
 ,p_process_point=>'AFTER_SUBMIT'
 ,p_process_type=>'NATIVE_PLSQL'
@@ -180,11 +180,11 @@ wwv_flow_imp_page.create_page_process(
 'end;'))
 ,p_process_clob_language=>'PLSQL'
 ,p_error_display_location=>'INLINE_IN_NOTIFICATION'
-,p_process_when_button_id=>wwv_flow_imp.id(91820266000000751)
-,p_internal_uid=>91820266000000752
+,p_process_when_button_id=>wwv_flow_imp.id(91820266000000757)
+,p_internal_uid=>91820266000000758
 );
 wwv_flow_imp_page.create_page_plug(
- p_id=>wwv_flow_imp.id(91820266000000753)
+ p_id=>wwv_flow_imp.id(91820266000000759)
 ,p_plug_name=>'حزمة الدولة'
 ,p_region_template_options=>'#DEFAULT#:t-Region--scrollBody'
 ,p_plug_template=>4072358936313175081
@@ -198,7 +198,7 @@ wwv_flow_imp_page.create_page_plug(
 ,p_plug_source_type=>'NATIVE_DYNAMIC_CONTENT'
 );
 wwv_flow_imp_page.create_page_branch(
- p_id=>wwv_flow_imp.id(91820266000000754)
+ p_id=>wwv_flow_imp.id(91820266000000760)
 ,p_branch_action=>'f?p=&APP_ID.:70:&SESSION.::&DEBUG.:::&success_msg=#SUCCESS_MSG#'
 ,p_branch_point=>'AFTER_PROCESSING'
 ,p_branch_type=>'REDIRECT_URL'

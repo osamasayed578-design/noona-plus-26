@@ -18,11 +18,11 @@ wwv_flow_imp_page.create_page(
 ,p_step_title=>'تقارير الأصول الثابتة'
 ,p_autocomplete_on_off=>'OFF'
 ,p_page_template_options=>'#DEFAULT#'
-,p_required_role=>wwv_flow_imp.id(91820266000000523)
+,p_required_role=>wwv_flow_imp.id(91820266000000529)
 ,p_protection_level=>'N'
 );
 wwv_flow_imp_page.create_page_plug(
- p_id=>wwv_flow_imp.id(91820266000000687)
+ p_id=>wwv_flow_imp.id(91820266000000693)
 ,p_plug_name=>'التقرير'
 ,p_region_template_options=>'#DEFAULT#:nn-rpt-filters'
 ,p_plug_template=>4072358936313175081
@@ -33,10 +33,10 @@ wwv_flow_imp_page.create_page_plug(
   'show_line_breaks', 'Y')).to_clob
 );
 wwv_flow_imp_page.create_page_item(
- p_id=>wwv_flow_imp.id(91820266000000688)
+ p_id=>wwv_flow_imp.id(91820266000000694)
 ,p_name=>'P66_REPORT'
 ,p_item_sequence=>10
-,p_item_plug_id=>wwv_flow_imp.id(91820266000000687)
+,p_item_plug_id=>wwv_flow_imp.id(91820266000000693)
 ,p_prompt=>'التقرير'
 ,p_display_as=>'NATIVE_SELECT_LIST'
 ,p_lov=>'STATIC2:سجل الأصول;REGISTER,حركة الأصول (التكلفة والمجمع) ومطابقة الأستاذ;ROLL,الاستبعادات وأرباحها وخسائرها;DISPOSALS,الأصول المستبعدة;DISPOSED'
@@ -48,10 +48,10 @@ wwv_flow_imp_page.create_page_item(
   'page_action_on_selection', 'SUBMIT')).to_clob
 );
 wwv_flow_imp_page.create_page_item(
- p_id=>wwv_flow_imp.id(91820266000000689)
+ p_id=>wwv_flow_imp.id(91820266000000695)
 ,p_name=>'P66_FROM'
 ,p_item_sequence=>20
-,p_item_plug_id=>wwv_flow_imp.id(91820266000000687)
+,p_item_plug_id=>wwv_flow_imp.id(91820266000000693)
 ,p_prompt=>'من'
 ,p_display_as=>'NATIVE_DATE_PICKER_APEX'
 ,p_cSize=>20
@@ -68,10 +68,10 @@ wwv_flow_imp_page.create_page_item(
   'use_defaults', 'Y')).to_clob
 );
 wwv_flow_imp_page.create_page_item(
- p_id=>wwv_flow_imp.id(91820266000000690)
+ p_id=>wwv_flow_imp.id(91820266000000696)
 ,p_name=>'P66_TO'
 ,p_item_sequence=>30
-,p_item_plug_id=>wwv_flow_imp.id(91820266000000687)
+,p_item_plug_id=>wwv_flow_imp.id(91820266000000693)
 ,p_prompt=>'إلى'
 ,p_display_as=>'NATIVE_DATE_PICKER_APEX'
 ,p_cSize=>20
@@ -87,10 +87,10 @@ wwv_flow_imp_page.create_page_item(
   'use_defaults', 'Y')).to_clob
 );
 wwv_flow_imp_page.create_page_item(
- p_id=>wwv_flow_imp.id(91820266000000691)
+ p_id=>wwv_flow_imp.id(91820266000000697)
 ,p_name=>'P66_CAT'
 ,p_item_sequence=>40
-,p_item_plug_id=>wwv_flow_imp.id(91820266000000687)
+,p_item_plug_id=>wwv_flow_imp.id(91820266000000693)
 ,p_prompt=>'الفئة'
 ,p_display_as=>'NATIVE_SELECT_LIST'
 ,p_lov=>'select name_ar d, id r from fa_category where company_id = noona_fa_pkg.company and is_active = ''Y'' order by code'
@@ -105,10 +105,10 @@ wwv_flow_imp_page.create_page_item(
   'page_action_on_selection', 'NONE')).to_clob
 );
 wwv_flow_imp_page.create_page_item(
- p_id=>wwv_flow_imp.id(91820266000000692)
+ p_id=>wwv_flow_imp.id(91820266000000698)
 ,p_name=>'P66_BRANCH'
 ,p_item_sequence=>50
-,p_item_plug_id=>wwv_flow_imp.id(91820266000000687)
+,p_item_plug_id=>wwv_flow_imp.id(91820266000000693)
 ,p_prompt=>'الفرع'
 ,p_display_as=>'NATIVE_SELECT_LIST'
 ,p_lov=>'select name_ar d, id r from org_branch where company_id = noona_fa_pkg.company and status_code = ''ACTIVE'' order by name_ar'
@@ -122,9 +122,9 @@ wwv_flow_imp_page.create_page_item(
   'page_action_on_selection', 'NONE')).to_clob
 );
 wwv_flow_imp_page.create_page_button(
- p_id=>wwv_flow_imp.id(91820266000000693)
+ p_id=>wwv_flow_imp.id(91820266000000699)
 ,p_button_sequence=>10
-,p_button_plug_id=>wwv_flow_imp.id(91820266000000687)
+,p_button_plug_id=>wwv_flow_imp.id(91820266000000693)
 ,p_button_name=>'RUN'
 ,p_button_action=>'SUBMIT'
 ,p_button_template_options=>'#DEFAULT#'
@@ -134,7 +134,7 @@ wwv_flow_imp_page.create_page_button(
 ,p_button_position=>'NEXT'
 );
 wwv_flow_imp_page.create_page_process(
- p_id=>wwv_flow_imp.id(91820266000000694)
+ p_id=>wwv_flow_imp.id(91820266000000700)
 ,p_process_sequence=>5
 ,p_process_point=>'BEFORE_HEADER'
 ,p_process_type=>'NATIVE_PLSQL'
@@ -147,10 +147,10 @@ wwv_flow_imp_page.create_page_process(
 'end;'))
 ,p_process_clob_language=>'PLSQL'
 ,p_error_display_location=>'INLINE_IN_NOTIFICATION'
-,p_internal_uid=>91820266000000694
+,p_internal_uid=>91820266000000700
 );
 wwv_flow_imp_page.create_page_plug(
- p_id=>wwv_flow_imp.id(91820266000000695)
+ p_id=>wwv_flow_imp.id(91820266000000701)
 ,p_plug_name=>'التقرير'
 ,p_region_template_options=>'#DEFAULT#:t-Region--scrollBody:nn-print-area:t-Region--removeHeader js-removeLandmark:t-Region--noUI'
 ,p_plug_template=>4072358936313175081
@@ -169,7 +169,7 @@ wwv_flow_imp_page.create_page_plug(
 ,p_plug_source_type=>'NATIVE_DYNAMIC_CONTENT'
 );
 wwv_flow_imp_page.create_page_branch(
- p_id=>wwv_flow_imp.id(91820266000000696)
+ p_id=>wwv_flow_imp.id(91820266000000702)
 ,p_branch_action=>'f?p=&APP_ID.:66:&SESSION.::&DEBUG.:66:P66_REPORT,P66_FROM,P66_TO,P66_CAT,P66_BRANCH:&P66_REPORT.,&P66_FROM.,&P66_TO.,&P66_CAT.,&P66_BRANCH.'
 ,p_branch_point=>'AFTER_PROCESSING'
 ,p_branch_type=>'REDIRECT_URL'

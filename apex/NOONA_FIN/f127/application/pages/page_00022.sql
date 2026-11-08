@@ -55,7 +55,7 @@ wwv_flow_imp_page.create_page(
 ,p_protection_level=>'N'
 );
 wwv_flow_imp_page.create_page_plug(
- p_id=>wwv_flow_imp.id(91820266000000317)
+ p_id=>wwv_flow_imp.id(91820266000000320)
 ,p_plug_name=>'القيد'
 ,p_region_template_options=>'#DEFAULT#'
 ,p_plug_template=>4072358936313175081
@@ -66,19 +66,19 @@ wwv_flow_imp_page.create_page_plug(
   'show_line_breaks', 'Y')).to_clob
 );
 wwv_flow_imp_page.create_page_item(
- p_id=>wwv_flow_imp.id(91820266000000318)
+ p_id=>wwv_flow_imp.id(91820266000000321)
 ,p_name=>'P22_ID'
 ,p_item_sequence=>1
-,p_item_plug_id=>wwv_flow_imp.id(91820266000000317)
+,p_item_plug_id=>wwv_flow_imp.id(91820266000000320)
 ,p_display_as=>'NATIVE_HIDDEN'
 ,p_protection_level=>'N'
 ,p_attributes=>wwv_flow_t_plugin_attributes(wwv_flow_t_varchar2(
   'value_protected', 'N')).to_clob
 );
 wwv_flow_imp_page.create_page_button(
- p_id=>wwv_flow_imp.id(91820266000000319)
+ p_id=>wwv_flow_imp.id(91820266000000322)
 ,p_button_sequence=>10
-,p_button_plug_id=>wwv_flow_imp.id(91820266000000317)
+,p_button_plug_id=>wwv_flow_imp.id(91820266000000320)
 ,p_button_name=>'PRINT'
 ,p_button_action=>'REDIRECT_URL'
 ,p_button_template_options=>'#DEFAULT#'
@@ -89,9 +89,9 @@ wwv_flow_imp_page.create_page_button(
 ,p_button_redirect_url=>'javascript:window.print();'
 );
 wwv_flow_imp_page.create_page_button(
- p_id=>wwv_flow_imp.id(91820266000000320)
+ p_id=>wwv_flow_imp.id(91820266000000323)
 ,p_button_sequence=>20
-,p_button_plug_id=>wwv_flow_imp.id(91820266000000317)
+,p_button_plug_id=>wwv_flow_imp.id(91820266000000320)
 ,p_button_name=>'BACK'
 ,p_button_action=>'REDIRECT_URL'
 ,p_button_template_options=>'#DEFAULT#'
@@ -101,9 +101,9 @@ wwv_flow_imp_page.create_page_button(
 ,p_button_redirect_url=>'javascript:history.back();'
 );
 wwv_flow_imp_page.create_page_button(
- p_id=>wwv_flow_imp.id(91820266000000321)
+ p_id=>wwv_flow_imp.id(91820266000000324)
 ,p_button_sequence=>30
-,p_button_plug_id=>wwv_flow_imp.id(91820266000000317)
+,p_button_plug_id=>wwv_flow_imp.id(91820266000000320)
 ,p_button_name=>'OPEN'
 ,p_button_action=>'REDIRECT_URL'
 ,p_button_template_options=>'#DEFAULT#'
@@ -113,7 +113,7 @@ wwv_flow_imp_page.create_page_button(
 ,p_button_redirect_url=>'f?p=&APP_ID.:21:&SESSION.::&DEBUG.:RP,21:P21_ID:&P22_ID.'
 );
 wwv_flow_imp_page.create_page_plug(
- p_id=>wwv_flow_imp.id(91820266000000322)
+ p_id=>wwv_flow_imp.id(91820266000000325)
 ,p_plug_name=>'القيد ومستند المصدر'
 ,p_region_template_options=>'#DEFAULT#:t-Region--scrollBody:nn-print-area:t-Region--removeHeader js-removeLandmark:t-Region--noUI'
 ,p_plug_template=>4072358936313175081

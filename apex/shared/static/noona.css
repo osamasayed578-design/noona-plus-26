@@ -2305,3 +2305,15 @@ html[data-theme="dark"] .nn-kpi-value, html[data-theme="dark"] .nn-anl-kpi-val, 
   .nn-docfoot { break-inside: avoid; }
 }
 @media (prefers-reduced-motion: reduce) { .nn-num-up, .nn-num-down { animation: none; } }
+
+/* ===================================================================== القوائم الموحدة (NOONA_CONSOL_PKG) */
+.nn-cns-info { display: flex; flex-wrap: wrap; gap: 6px 18px; margin: 0 0 10px; font-size: .85rem; color: var(--nn-muted); }
+.nn-cns-info b { color: var(--nn-text); }
+.nn-cns-skip { color: var(--nn-warning); }
+.nn-cns td.nn-cns-elim { color: var(--nn-accent); font-style: italic; background: color-mix(in srgb, var(--nn-accent) 6%, transparent); }
+.nn-cns td.nn-cns-total { font-weight: 800; background: color-mix(in srgb, var(--nn-primary) 6%, transparent); }
+.nn-cns tr.nn-cns-ic td { background: color-mix(in srgb, var(--nn-warning) 7%, transparent); }
+.nn-cns-tag { display: inline-block; font-size: .7rem; font-weight: 700; color: var(--nn-warning); border: 1px solid currentColor; border-radius: 999px; padding: 0 8px; margin-inline-start: 6px; }
+.nn-cns tr.nn-cns-net td { font-size: 1.05rem; }
+.nn-cns-note { font-size: .78rem; color: var(--nn-muted); margin-top: 10px; }
+@media print { .nn-cns td.nn-cns-elim, .nn-cns td.nn-cns-total, .nn-cns tr.nn-cns-ic td { -webkit-print-color-adjust: exact; print-color-adjust: exact; } }

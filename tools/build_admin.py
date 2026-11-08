@@ -64,6 +64,8 @@ p.text('P11_LEGAL_NAME_EN', info, 30, 'الاسم القانوني بالإنج�
 p.text('P11_TRADE_NAME_AR', info, 40, 'الاسم التجاري')
 p.select('P11_COUNTRY_CODE', info, 50, 'الدولة', lov_name='NOONA_COUNTRIES', required=True)
 p.select('P11_FUNCTIONAL_CURRENCY', info, 60, 'العملة الوظيفية', lov_name='NOONA_CURRENCIES', required=True)
+p.select('P11_BUSINESS_GROUP_ID', info, 65, 'مجموعة الأعمال (الشركة القابضة)', null_text='- شركة مستقلة -',
+         lov_sql="select name_ar || ' (' || code || ')' d, id r from org_business_group where status_code = 'ACTIVE' order by 1")
 p.display('P11_STATUS', info, 70, 'الحالة')
 b_create = p.button(info, 10, 'CREATE', 'إنشاء الشركة', hot=True, condition=':P11_ID is null')
 b_save = p.button(info, 20, 'SAVE', 'حفظ التعديلات', hot=True, condition=':P11_ID is not null')
@@ -71,22 +73,24 @@ p.button(info, 30, 'BACK', 'رجوع', redirect=back(10))
 p.process(10, 'BEFORE_HEADER', 'Load Company', [
     'if :P11_ID is not null then',
     '    select code, legal_name_ar, legal_name_en, trade_name_ar, country_code, functional_currency,',
-    '           noona_ui_pkg.status_label(status_code)',
+    '           noona_ui_pkg.status_label(status_code), business_group_id',
     '      into :P11_CODE, :P11_LEGAL_NAME_AR, :P11_LEGAL_NAME_EN, :P11_TRADE_NAME_AR, :P11_COUNTRY_CODE,',
-    '           :P11_FUNCTIONAL_CURRENCY, :P11_STATUS',
+    '           :P11_FUNCTIONAL_CURRENCY, :P11_STATUS, :P11_BUSINESS_GROUP_ID',
     '      from org_company where id = :P11_ID;',
     'end if;'])
 p.process(10, 'AFTER_SUBMIT', 'Create Company', [
     ':P11_ID := noona_platform_pkg.create_company(',
     '    p_code => :P11_CODE, p_legal_name_ar => :P11_LEGAL_NAME_AR, p_legal_name_en => :P11_LEGAL_NAME_EN,',
     '    p_country_code => :P11_COUNTRY_CODE, p_functional_currency => :P11_FUNCTIONAL_CURRENCY);',
-    'update org_company set trade_name_ar = :P11_TRADE_NAME_AR where id = :P11_ID;'],
+    'update org_company set trade_name_ar = :P11_TRADE_NAME_AR where id = :P11_ID;',
+    'if :P11_BUSINESS_GROUP_ID is not null then noona_consol_pkg.set_company_group(:P11_ID, :P11_BUSINESS_GROUP_ID); end if;'],
     when_button=b_create, success='تم إنشاء الشركة؛ أكمل الفروع ثم شغّل فحوص التفعيل')
 p.process(20, 'AFTER_SUBMIT', 'Save Company', [
     'noona_security_pkg.assert_permission(\'ORG_COMPANY.UPDATE\', :P11_ID);',
     'update org_company',
     '   set legal_name_ar = :P11_LEGAL_NAME_AR, legal_name_en = :P11_LEGAL_NAME_EN, trade_name_ar = :P11_TRADE_NAME_AR',
-    ' where id = :P11_ID;'],
+    ' where id = :P11_ID;',
+    'noona_consol_pkg.set_company_group(:P11_ID, :P11_BUSINESS_GROUP_ID);'],
     when_button=b_save, success='تم حفظ بيانات الشركة')
 
 # العنوان ووسائل الاتصال: تظهر في ترويسة التقارير والفواتير المطبوعة (بيانات الفرع تتقدم عليها إن سجلت)
@@ -256,11 +260,64 @@ p.process(30, 'AFTER_SUBMIT', 'Close Branch',
           when_button=b_close, success='تم إغلاق الفرع')
 p.branch(10, 'f?p=&APP_ID.:13:&SESSION.::&DEBUG.::P13_ID:&P13_ID.&success_msg=#SUCCESS_MSG#')
 
+# =============================================================== 14) مجموعات الأعمال (الشركات القابضة)
+BG_LOV = "select name_ar || ' (' || code || ')' d, id r from org_business_group where status_code = 'ACTIVE' order by 1"
+p = app.page(14, 'Business Groups', 'BUSINESS-GROUPS', 'مجموعات الأعمال (الشركات القابضة)', scheme=ADMIN)
+p.static('ما هي مجموعة الأعمال؟', 5, text=(
+    '<div class="nn-hint">مجموعة الأعمال هي <b>الشركة القابضة</b> وما يتبعها من شركات. اربط كل شركة بمجموعتها من شاشة الشركة، '
+    'ثم اختر عند تجهيز ماليتها: <b>دليل حسابات خاص بالشركة</b> (حساباتها على حدة) أو <b>دليل المجموعة الموحد</b> '
+    '(كل الشركات على دليل واحد). القوائم الموحدة للمجموعة في المالية ← القوائم الموحدة.</div>'))
+r = p.ir('مجموعات الأعمال', 10, [
+    'select g.id, g.code, g.name_ar, g.consolidation_currency, (select name_ar from org_business_group x where x.id = g.parent_group_id) parent_name,',
+    '       (select count(*) from org_company c where c.business_group_id = g.id) companies,',
+    "       (select listagg(nvl(c.trade_name_ar, c.legal_name_ar), '، ') within group (order by c.code) from org_company c where c.business_group_id = g.id) company_names,",
+    '       noona_ui_pkg.status_badge(g.status_code) status_html',
+    '  from org_business_group g'],
+    [('ID', '#', {'hidden': True, 'type': 'NUMBER'}), ('CODE', 'الرمز', {}), ('NAME_AR', 'الاسم', {}),
+     ('CONSOLIDATION_CURRENCY', 'عملة التجميع', {}), ('PARENT_NAME', 'المجموعة الأم', {}),
+     ('COMPANIES', 'عدد الشركات', {'type': 'NUMBER'}), ('COMPANY_NAMES', 'الشركات', {}), ('STATUS_HTML', 'الحالة', {'html': True})],
+    link='f?p=&APP_ID.:15:&SESSION.::&DEBUG.:RP,15:P15_ID:#ID#')
+p.button(r, 10, 'CREATE', 'مجموعة جديدة', hot=True, redirect='f?p=&APP_ID.:15:&SESSION.::&DEBUG.:RP,15::', position='RIGHT_OF_IR_SEARCH_BAR')
+
+p = app.page(15, 'Business Group', 'BUSINESS-GROUP', 'مجموعة الأعمال', scheme=ADMIN)
+info = p.static('بيانات المجموعة', 10)
+p.hidden('P15_ID', info, 1)
+p.text('P15_CODE', info, 10, 'الرمز', required=True, maxlen=50, width=20)
+p.text('P15_NAME_AR', info, 20, 'اسم المجموعة (الشركة القابضة)', required=True)
+p.text('P15_NAME_EN', info, 30, 'الاسم بالإنجليزية')
+p.select('P15_CURRENCY', info, 40, 'عملة التجميع (القوائم الموحدة)', lov_name='NOONA_CURRENCIES', required=True)
+p.select('P15_PARENT_ID', info, 50, 'المجموعة الأم (اختياري)', lov_sql=BG_LOV, null_text='- مجموعة رئيسية -')
+b = p.button(info, 10, 'SAVE', 'حفظ', hot=True)
+p.button(info, 20, 'BACK', 'رجوع', redirect=back(14))
+p.process(10, 'BEFORE_HEADER', 'Load', [
+    'if :P15_ID is not null then',
+    '    select code, name_ar, name_en, consolidation_currency, parent_group_id',
+    '      into :P15_CODE, :P15_NAME_AR, :P15_NAME_EN, :P15_CURRENCY, :P15_PARENT_ID from org_business_group where id = :P15_ID;',
+    "elsif :P15_CURRENCY is null then",
+    "    select max(functional_currency) into :P15_CURRENCY from org_company where id = to_number(sys_context('NOONA_CTX', 'COMPANY_ID'));",
+    'end if;'])
+p.process(10, 'AFTER_SUBMIT', 'Save', [
+    ':P15_ID := noona_consol_pkg.save_business_group(:P15_ID, :P15_CODE, :P15_NAME_AR, :P15_CURRENCY, :P15_PARENT_ID, :P15_NAME_EN);'],
+    when_button=b, success='تم حفظ مجموعة الأعمال؛ اربط بها الشركات من شاشة كل شركة')
+p.dynamic('شركات المجموعة', 20, [
+    "declare l clob := '<table class=\"nn-table\"><thead><tr><th>الشركة</th><th>العملة</th><th>دليل الحسابات</th><th>الحالة</th></tr></thead><tbody>';",
+    'begin',
+    '    for c in (select id, code, nvl(trade_name_ar, legal_name_ar) nm, functional_currency, status_code from org_company',
+    '               where business_group_id = :P15_ID order by code) loop',
+    "        l := l || '<tr><td>' || apex_escape.html(c.nm) || ' (' || c.code || ')</td><td>' || c.functional_currency || '</td><td>'",
+    "          || case noona_gl_pkg.coa_mode(c.id) when 'GROUP' then 'دليل المجموعة الموحد' when 'OWN' then 'دليل خاص بالشركة' else 'لم تجهز ماليتها' end",
+    "          || '</td><td>' || noona_ui_pkg.status_badge(c.status_code) || '</td></tr>';",
+    '    end loop;',
+    "    return l || '</tbody></table>';",
+    'end;'], condition=':P15_ID is not null')
+p.branch(10, 'f?p=&APP_ID.:15:&SESSION.::&DEBUG.::P15_ID:&P15_ID.&success_msg=#SUCCESS_MSG#')
+
 # =============================================================== التنقل
 app.nav_item('لوحة الإدارة', 1, 'fa-dashboard', 10)
 org = app.nav_item('الشركات والفروع', None, 'fa-building-o', 20)
 app.nav_item('الشركات', 10, 'fa-building', 21, parent=org, scheme=ADMIN)
 app.nav_item('الفروع', 12, 'fa-map-marker', 22, parent=org)
+app.nav_item('مجموعات الأعمال (القابضة)', 14, 'fa-sitemap', 23, parent=org, scheme=ADMIN)
 
 
 # ######################################################################## المرحلة 2: الهيكل التنظيمي
