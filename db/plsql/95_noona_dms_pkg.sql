@@ -677,6 +677,11 @@ CREATE OR REPLACE PACKAGE BODY NOONA_DMS_PKG AS
       l_content := store_content(l_type, p_file_name, p_mime, p_content);
     END IF;
     -- رقم الأرشيف بسنة الأرشفة لا بتاريخ المستند (مستند قديم كسجل صادر العام الماضي يؤرشف اليوم)
+    -- شركة لم يجهز أرشيفها بعد (مثل شركة تابعة جديدة): ينشأ تسلسل أرقام الأرشيف لها تلقائياً بدل رفض الأرشفة
+    INSERT INTO ref_doc_sequence (company_id, doc_type_code, fiscal_year, prefix, next_number, padding, is_gapless, reset_policy, is_active)
+    SELECT company, 'DMS_ARCHIVE', EXTRACT(YEAR FROM SYSDATE), 'ARC-', 1, 6, 'Y', 'YEARLY', 'Y' FROM dual
+     WHERE NOT EXISTS (SELECT 1 FROM ref_doc_sequence WHERE company_id = company AND doc_type_code = 'DMS_ARCHIVE'
+                          AND (fiscal_year = EXTRACT(YEAR FROM SYSDATE) OR fiscal_year IS NULL));
     l_no := NOONA_REFERENCE_PKG.next_doc_no('DMS_ARCHIVE', company, NULL, TRUNC(SYSDATE), 'DMS_DOCUMENT', NULL);
     INSERT INTO dms_document (company_id, branch_id, document_type_id, reference_no, external_ref, physical_location, title, description,
                               origin_type, owner_member_id, document_date, valid_from, valid_to, status_code, confidentiality_level)
