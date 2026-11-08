@@ -13,6 +13,8 @@
 --     رئيس المحاسبة، مدير الشؤون الإدارية، أخصائية الأرشيف)، والأرشيف (السجل التجاري)، ومذكرة داخلية للمحاسب
 --   * هيكل لكل شركة تابعة وموظفوها: التجارة 6 (الرياض والدمام)، والمقاولات 4؛ المجموع 15 موظفاً
 --   * تفعيل الشركات الثلاث: السجل التجاري والرقم الضريبي لكل شركة، ثم فحوص التفعيل والتفعيل (الحالة «نشطة»)
+--   * مشروع مقاولات في الريادة للمقاولات (برج الريادة السكني): عقد رئيسي بغرامة تأخير، عقدا باطن، مستخلصات بمواد مشونة
+--     وغرامة، معدات وتشغيلها، اعتراف بالإيراد حسب نسبة الإنجاز، وخطابا ضمان
 -- إعادة التشغيل لا تكرر البيانات: تعيد تعيين كلمتي المرور، وتضيف ما ينقص من نسخة سابقة من هذا السكربت
 -- =============================================================================
 SET DEFINE ON
@@ -248,6 +250,85 @@ DECLARE
       c_co := l_h; c_st := 'ORG-HQ';
       NOONA_SECURITY_PKG.switch_company(l_h);
     END IF;
+    -- مشروع المقاولات في الريادة للمقاولات
+    NOONA_SECURITY_PKG.switch_company(l_b);
+    SELECT COUNT(*) INTO l_q FROM prj_project WHERE company_id = l_b AND code = 'CON-TWR';
+    IF l_q = 0 THEN
+      DECLARE
+        l_own NUMBER; l_s1 NUMBER; l_s2 NUMBER; l_prj NUMBER; l_w1 NUMBER; l_w2 NUMBER; l_mc NUMBER; l_c1 NUMBER; l_c2 NUMBER;
+        l_cl NUMBER; l_e1 NUMBER; l_e2 NUMBER; l_g NUMBER; l_bk NUMBER; l_pp NUMBER; l_sp NUMBER; l_bi NUMBER;
+        FUNCTION boq_id(p_ct NUMBER, p_code VARCHAR2) RETURN NUMBER IS l NUMBER;
+        BEGIN SELECT id INTO l FROM prj_boq_item WHERE contract_id = p_ct AND item_code = p_code; RETURN l; END;
+      BEGIN
+        l_q := NOONA_CSH_PKG.quick_setup;
+        l_q := NOONA_INV_PKG.quick_setup;
+        l_q := NOONA_SAL_PKG.quick_setup;
+        l_q := NOONA_PUR_PKG.quick_setup;
+        l_q := NOONA_PRJ_PKG.setup_accounts;
+        l_own := NOONA_SAL_PKG.save_customer('{"name":"شركة التطوير العمراني (المالك)","person":"N","tax":"310123456700003","term":"NET30"}');
+        l_s1 := NOONA_PUR_PKG.save_supplier('{"name":"مؤسسة الإتقان للخرسانة","person":"N","type":"SERVICES","term":"NET30"}');
+        l_s2 := NOONA_PUR_PKG.save_supplier('{"name":"شركة اللمسة للتشطيبات","person":"N","type":"SERVICES","term":"NET30"}');
+        l_prj := NOONA_PRJ_PKG.save_project('{"code":"CON-TWR","name":"برج الريادة السكني","type":"CONSTRUCTION","customer":' || l_own
+                 || ',"method":"COST_TO_COST","eac":3200000,"start":"' || TO_CHAR(l_d - 120, 'YYYY-MM-DD') || '","end":"' || TO_CHAR(l_d + 240, 'YYYY-MM-DD') || '"}');
+        l_w1 := NOONA_PRJ_PKG.save_wbs('{"project":' || l_prj || ',"code":"01","name":"الهيكل الخرساني","weight":60}');
+        l_w2 := NOONA_PRJ_PKG.save_wbs('{"project":' || l_prj || ',"code":"02","name":"التشطيبات","weight":40}');
+        NOONA_PRJ_PKG.update_progress(l_w1, 45, 'صب أسقف الأدوار 1-9');
+        NOONA_PRJ_PKG.update_progress(l_w2, 15);
+        -- العقد الرئيسي مع المالك: محتجز 10% وغرامة تأخير 2,000 يومياً بسقف 10%
+        l_mc := NOONA_PRJ_PKG.save_contract('{"project":' || l_prj || ',"type":"MAIN_CONTRACT","no":"CON-TWR-MC","customer":' || l_own
+                || ',"ret":10,"retCap":10,"penalty":2000,"penCap":10,"start":"' || TO_CHAR(l_d - 120, 'YYYY-MM-DD') || '","end":"'
+                || TO_CHAR(l_d + 240, 'YYYY-MM-DD') || '","dlp":12}');
+        l_q := NOONA_PRJ_PKG.save_boq(l_mc, '[{"code":"1","d":"أعمال الخرسانة المسلحة","q":2000,"r":900,"w":' || l_w1 || '},'
+               || '{"code":"2","d":"أعمال التشطيبات الداخلية","q":12000,"r":150,"w":' || l_w2 || '}]');
+        NOONA_PRJ_PKG.activate_contract(l_mc);
+        -- عقدا الباطن
+        l_c1 := NOONA_PRJ_PKG.save_contract('{"project":' || l_prj || ',"type":"SUBCONTRACT","no":"CON-TWR-SC1","supplier":' || l_s1 || ',"ret":5}');
+        l_q := NOONA_PRJ_PKG.save_boq(l_c1, '[{"code":"S1","d":"توريد وصب الخرسانة","q":2000,"r":650,"w":' || l_w1 || '}]');
+        NOONA_PRJ_PKG.activate_contract(l_c1);
+        l_c2 := NOONA_PRJ_PKG.save_contract('{"project":' || l_prj || ',"type":"SUBCONTRACT","no":"CON-TWR-SC2","supplier":' || l_s2 || ',"ret":5}');
+        l_q := NOONA_PRJ_PKG.save_boq(l_c2, '[{"code":"S2","d":"تشطيبات داخلية","q":12000,"r":110,"w":' || l_w2 || '}]');
+        NOONA_PRJ_PKG.activate_contract(l_c2);
+        -- مستخلصات الباطن (تكلفة)
+        l_cl := NOONA_PRJ_PKG.new_claim(l_c1, 'PROGRESS', l_d - 60, l_d - 1);
+        NOONA_PRJ_PKG.save_claim('{"id":' || l_cl || ',"lines":[{"b":' || boq_id(l_c1, 'S1') || ',"q":900}]}');
+        NOONA_PRJ_PKG.approve_claim(l_cl);
+        l_cl := NOONA_PRJ_PKG.new_claim(l_c2, 'PROGRESS', l_d - 60, l_d - 1);
+        NOONA_PRJ_PKG.save_claim('{"id":' || l_cl || ',"lines":[{"b":' || boq_id(l_c2, 'S2') || ',"q":3000}]}');
+        NOONA_PRJ_PKG.approve_claim(l_cl);
+        -- مستخلص المالك: 800 م³ خرسانة، مواد مشونة 150,000، تأخير 5 أيام
+        l_cl := NOONA_PRJ_PKG.new_claim(l_mc, 'PROGRESS', l_d - 60, l_d - 1);
+        NOONA_PRJ_PKG.save_claim('{"id":' || l_cl || ',"penaltyDays":5,"mos":150000,"lines":[{"b":' || boq_id(l_mc, '1') || ',"q":800}]}');
+        NOONA_PRJ_PKG.approve_claim(l_cl);
+        -- المعدات وتشغيلها
+        l_e1 := NOONA_PRJ_CTR_PKG.save_equipment('{"code":"EQ-EXC","name":"حفار كاتربيلر 320","type":"حفار","ownership":"OWNED","rate":350}');
+        l_e2 := NOONA_PRJ_CTR_PKG.save_equipment('{"code":"EQ-CRN","name":"رافعة برجية","type":"رافعة","ownership":"RENTED","rate":500}');
+        FOR k IN 1 .. 12 LOOP
+          l_q := NOONA_PRJ_CTR_PKG.log_usage('{"equipment":' || l_e1 || ',"project":' || l_prj || ',"wbs":' || l_w1 || ',"hours":10,"date":"'
+                 || TO_CHAR(l_d - 40 + k, 'YYYY-MM-DD') || '"}');
+          l_q := NOONA_PRJ_CTR_PKG.log_usage('{"equipment":' || l_e2 || ',"project":' || l_prj || ',"wbs":' || l_w1 || ',"hours":8,"date":"'
+                 || TO_CHAR(l_d - 40 + k, 'YYYY-MM-DD') || '"}');
+        END LOOP;
+        l_q := NOONA_PRJ_CTR_PKG.post_usage(l_prj);
+        -- الاعتراف بالإيراد حسب نسبة الإنجاز (بالتكلفة)
+        l_q := NOONA_PRJ_CTR_PKG.run_revenue(l_prj, l_d);
+        -- خطابا ضمان: نهائي صادر منا للمالك، ودفعة مقدمة وارد من مقاول الخرسانة
+        SELECT MIN(id) INTO l_bk FROM ref_bank;
+        SELECT MAX(c.party_id) INTO l_pp FROM ar_customer c JOIN ar_customer_account a ON a.customer_id = c.id WHERE a.id = l_own;
+        SELECT MAX(s.party_id) INTO l_sp FROM ap_supplier s JOIN ap_supplier_account a ON a.supplier_id = s.id WHERE a.id = l_s1;
+        IF l_bk IS NOT NULL THEN
+          l_g := NOONA_PRJ_CTR_PKG.save_guarantee('{"no":"LG-2026-0451","type":"PERFORMANCE","direction":"ISSUED_BY_US","contract":' || l_mc
+                 || ',"bank":' || l_bk || ',"beneficiary":' || NVL(TO_CHAR(l_pp), 'null') || ',"amount":360000,"issue":"' || TO_CHAR(l_d - 115, 'YYYY-MM-DD')
+                 || '","expiry":"' || TO_CHAR(l_d + 25, 'YYYY-MM-DD') || '","notes":"ضمان حسن التنفيذ 10% من قيمة العقد"}');
+          NOONA_PRJ_CTR_PKG.guarantee_action(l_g, 'ISSUE', l_d - 115);
+          l_g := NOONA_PRJ_CTR_PKG.save_guarantee('{"no":"SLG-7781","type":"PERFORMANCE","direction":"RECEIVED_FROM_PARTY","contract":' || l_c1
+                 || ',"bank":' || l_bk || ',"beneficiary":' || NVL(TO_CHAR(l_sp), 'null') || ',"amount":65000,"issue":"' || TO_CHAR(l_d - 100, 'YYYY-MM-DD')
+                 || '","expiry":"' || TO_CHAR(l_d + 300, 'YYYY-MM-DD') || '"}');
+          NOONA_PRJ_CTR_PKG.guarantee_action(l_g, 'ISSUE', l_d - 100);
+        END IF;
+      END;
+      COMMIT;
+    END IF;
+    NOONA_SECURITY_PKG.switch_company(l_h);
     -- الأرشيف: التجهيز وأرشفة السجل التجاري (أصل ورقي)
     SELECT COUNT(*) INTO l_q FROM dms_document WHERE company_id = l_h AND external_ref = 'CR-1010778899';
     IF l_q = 0 THEN
