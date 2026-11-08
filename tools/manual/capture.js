@@ -77,8 +77,11 @@ function extract() {
   if (await page.locator('#P9999_USERNAME').count()) {
     if (spec.loginShot) await page.screenshot({ path: path.join(out, 'img', spec.loginShot + '.png') });
     await page.fill('#P9999_USERNAME', spec.user); await page.fill('#P9999_PASSWORD', spec.pwd);
-    await page.getByRole('button').filter({ hasText: /Sign In|تسجيل الدخول|دخول/ }).first().click(); await settle();
+    await page.getByRole('button').filter({ hasText: /Sign In|تسجيل الدخول|دخول/ }).first().click();
+    await page.waitForURL(/session=\d+/, { timeout: 60000 }).catch(() => {});
+    await settle();
   }
+  if (!new URL(page.url()).searchParams.get('session')) { console.error('login failed: no session (' + page.url() + ')'); process.exit(2); }
   const sess = new URL(page.url()).searchParams.get('session');
   if (!page.url().includes(`/${spec.app}/`)) { await page.goto(`${base}/home?session=${sess}`); await settle(); }
   const go = async (alias, qs = '') => { await page.goto(`${base}/${alias.toLowerCase()}?session=${sess}${qs}`); await settle(); };
