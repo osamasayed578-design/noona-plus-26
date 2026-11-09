@@ -52,7 +52,7 @@ done
 step "إنشاء مجموعة الريادة القابضة (دقيقة تقريباً)"
 OUT=$( { printf '%s\nDEFINE DEMO_PWD = "%s"\n' "$CONN_A" "$DEMO_PWD"; cat "$SQL"; printf '\nEXIT\n'; } | sqlrun 2>&1 )
 echo "$OUT" | grep -v "DEMO_PWD" >> "$LOG"
-unset APP_PWD DEMO_PWD DEMO_PWD2
+unset DEMO_PWD DEMO_PWD2
 if echo "$OUT" | grep -q "^DONE:"; then
   ok "تم إنشاء المجموعة: ثلاث شركات وفروعها، القيود معتمدة، والتجميع معتمد"
 elif echo "$OUT" | grep -q "^EXISTS:"; then
@@ -61,6 +61,40 @@ else
   echo "$OUT" | grep -E "ABORT|ORA-|PLS-|SP2-" | head -5
   die "لم يكتمل الإنشاء (لم يحفظ شيء من الخطوة المتعثرة)"
 fi
+
+# ----------------------------------------------------------------------------- مساعد نونا للمجموعة
+# المساعد يفعل لكل مؤسسة على حدة: نفعله لمجموعة الريادة بالخدمة المتاحة على الخادم (Claude إن أنشئت، وإلا النموذج المحلي)
+step "تفعيل «اسأل نونا» والملخص لمجموعة الريادة"
+SYSQ() { printf 'CONNECT / AS SYSDBA\nALTER SESSION SET CONTAINER=%s;\nSET HEADING OFF FEEDBACK OFF PAGES 0\n%s\nEXIT\n' "$PDB" "$1" \
+  | su - oracle -c ". ~/.noona_env; sqlplus -S -L /nolog" 2>/dev/null | grep -v '^$\|^Session altered'; }
+APX=$(SYSQ "SELECT schema FROM dba_registry WHERE comp_id = 'APEX';" | tr -d ' ')
+HAS_CLAUDE=$(SYSQ "SELECT COUNT(*) FROM $APX.wwv_remote_servers WHERE static_id = 'NOONA_AI_CLAUDE';" | tr -dc 0-9)
+HAS_LOCAL=$(SYSQ "SELECT COUNT(*) FROM $APX.wwv_remote_servers WHERE static_id = 'NOONA_AI_LOCAL';" | tr -dc 0-9)
+T=/tmp/noona_ai_demo_$$.sql
+AI_OK=0
+for U in RYD_ADMIN RYD_FIN; do
+  if [ "${HAS_CLAUDE:-0}" != 0 ]; then
+    cp "$ROOT/db/dev/ai_claude_tenant.sql" "$T"; chmod 644 "$T"; ARGS="$U CLAUDE_HAIKU 2000000"; KIND="Claude"
+  elif [ "${HAS_LOCAL:-0}" != 0 ]; then
+    MODEL=$(command -v ollama >/dev/null && ollama list 2>/dev/null | awk 'NR==2{print $1}')
+    cp "$ROOT/db/dev/ai_local_tenant.sql" "$T"; chmod 644 "$T"; ARGS="$U ${MODEL:-qwen2.5:3b}"; KIND="النموذج المحلي ${MODEL:-qwen2.5:3b}"
+  else
+    break
+  fi
+  R=$(printf '%s\n@%s %s\n' "$CONN_A" "$T" "$ARGS" | su - oracle -c ". ~/.noona_env; export NLS_LANG=AMERICAN_AMERICA.AL32UTF8; sqlplus -S -L /nolog" 2>&1)
+  echo "$R" >> "$LOG"
+  echo "$R" | grep -q "TENANT_OK.*available=Y" && AI_OK=1
+  break   # إعداد المؤسسة واحد لكل مستخدميها
+done
+rm -f "$T"
+unset APP_PWD CONN_A
+if [ $AI_OK = 1 ]; then ok "«اسأل نونا» مفعل للمجموعة ($KIND)"
+elif [ "${HAS_CLAUDE:-0}" = 0 ] && [ "${HAS_LOCAL:-0}" = 0 ]; then
+  echo "  لا توجد خدمة ذكاء اصطناعي على الخادم بعد: bash tools/vm/use_claude.sh (Claude) أو bash tools/vm/setup_ai_ollama.sh (محلي)، ثم أعد هذا السكربت"
+else
+  echo "  تعذر تفعيل المساعد للمجموعة؛ التفاصيل في $LOG أو شغّل: bash tools/vm/fix_ai.sh"
+fi
+
 echo
 echo "  ادخل من صفحة الدخول المعتادة:"
 echo "    RYD_ADMIN  مسؤول المؤسسة (إدارة المؤسسة والمالية وكل الأنظمة)"
