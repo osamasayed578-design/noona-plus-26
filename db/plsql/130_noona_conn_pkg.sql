@@ -234,6 +234,8 @@ CREATE OR REPLACE PACKAGE BODY NOONA_CONN_PKG AS
     l := REPLACE(REPLACE(l, ',', ''), ' ', '');
     IF l LIKE '(%)' THEN l := '-' || TRIM(BOTH '()' FROM l); END IF;
     RETURN TO_NUMBER(l, '9999999999999999990.999999', 'NLS_NUMERIC_CHARACTERS=''.,''');
+  EXCEPTION WHEN VALUE_ERROR OR INVALID_NUMBER THEN
+    RAISE_APPLICATION_ERROR(-20001, 'NOONA-CON-006: رقم غير مفهوم: ' || SUBSTR(p, 1, 60));
   END to_num;
 
   FUNCTION to_dt(p VARCHAR2) RETURN DATE IS
@@ -1191,8 +1193,11 @@ CREATE OR REPLACE PACKAGE BODY NOONA_CONN_PKG AS
     guard('API_IMPORT_JOB.VIEW');
     l_h := '<table class="nn-prj-t"><thead><tr><th>الدفعة</th><th>النوع</th><th>التاريخ</th><th>الملف</th><th class="n">الأسطر</th>'
         || '<th class="n">الإجمالي</th><th>القيد</th><th>الحالة</th></tr></thead><tbody>';
-    FOR b IN (SELECT b.*, j.doc_no jno, j.doc_date jdt,
-                     (SELECT COUNT(*) FROM gl_opening_line l WHERE l.batch_id = b.id) ln,
+    FOR b IN (SELECT b.*, j.doc_no jno,
+                     NVL(j.doc_date, (SELECT MIN(t.doc_date) FROM inv_transaction t WHERE t.source_entity_type = 'GL_OPENING_BATCH' AND t.source_entity_id = b.id)) jdt,
+                     (SELECT COUNT(*) FROM gl_opening_line l WHERE l.batch_id = b.id)
+                     + (SELECT COUNT(*) FROM inv_transaction t JOIN inv_transaction_line tl ON tl.transaction_id = t.id
+                         WHERE t.source_entity_type = 'GL_OPENING_BATCH' AND t.source_entity_id = b.id) ln,
                      (SELECT SUM(l.debit_amount) FROM gl_opening_line l WHERE l.batch_id = b.id) tot,
                      (SELECT SUM(tl.total_cost) FROM inv_transaction t JOIN inv_transaction_line tl ON tl.transaction_id = t.id
                        WHERE t.source_entity_type = 'GL_OPENING_BATCH' AND t.source_entity_id = b.id) inv
@@ -1200,7 +1205,8 @@ CREATE OR REPLACE PACKAGE BODY NOONA_CONN_PKG AS
                WHERE b.company_id = company ORDER BY b.id DESC) LOOP
       l_n := l_n + 1;
       l_h := l_h || ('<tr><td>' || esc(b.batch_no) || '</td><td>' || esc(scope_label(b.scope_code)) || '</td><td>' || TO_CHAR(NVL(b.jdt, b.created_at), 'YYYY-MM-DD')
-          || '</td><td>' || esc(b.source_system) || '</td><td class="n">' || b.ln || '</td><td class="n">' || fmt(NVL(b.tot, b.inv)) || '</td><td>' || esc(b.jno)
+          || '</td><td>' || esc(b.source_system) || '</td><td class="n">' || b.ln || '</td><td class="n">' || fmt(NVL(b.tot, b.inv)) || '</td><td>'
+          || esc(NVL(b.jno, CASE WHEN b.scope_code = 'INV' THEN 'مستند مخزون' END))
           || '</td><td><span class="nn-badge ' || CASE b.status_code WHEN 'POSTED' THEN 'is-success">مرحلة' WHEN 'CANCELLED' THEN 'is-muted">ملغاة'
                                                    ELSE 'is-warning">' || b.status_code END || '</span></td></tr>');
     END LOOP;

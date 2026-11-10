@@ -35,11 +35,12 @@ def add(app, scheme, nav_seq):
            max_kb=10240, title='اسحب ملف Excel أو CSV هنا أو اضغط للاختيار', hint='xlsx أو CSV حتى 10 ميجابايت')
     p.hidden('P90_JOB', f, 90)
     b_imp = p.button(f, 10, 'IMPORT', 'استيراد', hot=True)
-    b_tpl = p.button(f, 20, 'TEMPLATE', 'تنزيل نموذج الملف')
+    # التنزيل بطلب GET (إرسال الصفحة في APEX يتوقع JSON): الرابط يحمل الطلب TEMPLATE ونوع الملف من حالة الجلسة
+    p.button(f, 20, 'TEMPLATE', 'تنزيل نموذج الملف', redirect='f?p=&APP_ID.:90:&SESSION.:TEMPLATE:&DEBUG.:::')
     p.process(5, 'BEFORE_HEADER', 'Defaults', [
         "if :P90_TYPE is null then :P90_TYPE := 'ACCOUNTS'; end if;",
         "if :P90_DATE is null then :P90_DATE := to_char(trunc(sysdate, 'YYYY'), 'YYYY-MM-DD'); end if;"])
-    p.process(10, 'AFTER_SUBMIT', 'Template', [
+    p.process(6, 'BEFORE_HEADER', 'Template', [
         'declare l varchar2(32767) := noona_conn_pkg.template_csv(:P90_TYPE);',
         'begin',
         "    owa_util.mime_header('text/csv', false, 'UTF-8');",
@@ -47,7 +48,7 @@ def add(app, scheme, nav_seq):
         '    owa_util.http_header_close;',
         "    htp.prn(unistr('\\FEFF') || l);",
         '    apex_application.stop_apex_engine;',
-        'end;'], when_button=b_tpl)
+        'end;'], when=":REQUEST = 'TEMPLATE'")
     p.process(20, 'AFTER_SUBMIT', 'Import', [
         'declare l_blob blob; l_name varchar2(400); l_csv clob; l_job number; l_ok number; l_bad number; l_st varchar2(30);', 'begin',
         *READ,

@@ -136,11 +136,12 @@ wwv_flow_imp_page.create_page_button(
 ,p_button_sequence=>20
 ,p_button_plug_id=>wwv_flow_imp.id(91820262000000848)
 ,p_button_name=>'TEMPLATE'
-,p_button_action=>'SUBMIT'
+,p_button_action=>'REDIRECT_URL'
 ,p_button_template_options=>'#DEFAULT#'
 ,p_button_template_id=>4072362960822175091
 ,p_button_image_alt=>'تنزيل نموذج الملف'
 ,p_button_position=>'NEXT'
+,p_button_redirect_url=>'f?p=&APP_ID.:90:&SESSION.:TEMPLATE:&DEBUG.:::'
 );
 wwv_flow_imp_page.create_page_process(
  p_id=>wwv_flow_imp.id(91820262000000855)
@@ -157,8 +158,8 @@ wwv_flow_imp_page.create_page_process(
 );
 wwv_flow_imp_page.create_page_process(
  p_id=>wwv_flow_imp.id(91820262000000856)
-,p_process_sequence=>10
-,p_process_point=>'AFTER_SUBMIT'
+,p_process_sequence=>6
+,p_process_point=>'BEFORE_HEADER'
 ,p_process_type=>'NATIVE_PLSQL'
 ,p_process_name=>'Template'
 ,p_process_sql_clob=>wwv_flow_string.join(wwv_flow_t_varchar2(
@@ -172,7 +173,9 @@ wwv_flow_imp_page.create_page_process(
 'end;'))
 ,p_process_clob_language=>'PLSQL'
 ,p_error_display_location=>'INLINE_IN_NOTIFICATION'
-,p_process_when_button_id=>wwv_flow_imp.id(91820262000000854)
+,p_process_when=>':REQUEST = ''TEMPLATE'''
+,p_process_when_type=>'EXPRESSION'
+,p_process_when2=>'PLSQL'
 ,p_internal_uid=>91820262000000856
 );
 wwv_flow_imp_page.create_page_process(
