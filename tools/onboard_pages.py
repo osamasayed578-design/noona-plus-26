@@ -29,7 +29,7 @@ def add(app, scheme, nav_seq):
     p.process(3, 'AFTER_SUBMIT', 'Setup', "apex_application.g_print_success_message := 'جهز: ' || noona_account_pkg.setup_company;",
               when_button=b_setup)
     p.dynamic('خطوات بدء التشغيل', 10, [
-        "return noona_conn_pkg.onboarding_html('f?p=' || :APP_ID || ':90:' || :APP_SESSION || '::NO::P90_TYPE:#TYPE#');"])
+        "return noona_conn_pkg.onboarding_html('APEX:90:P90_TYPE');"])
 
     f = p.static('استيراد ملف', 20, text=(
         '<p class="nn-hint">ملف Excel (xlsx، الورقة الأولى) أو CSV. السطر الأول عناوين الأعمدة بالعربي أو الإنجليزي '

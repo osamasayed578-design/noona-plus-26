@@ -1119,12 +1119,21 @@ CREATE OR REPLACE PACKAGE BODY NOONA_CONN_PKG AS
        WHERE j.ledger_id = l_led AND j.status_code IN ('POSTED', 'REVERSED') AND l.account_id = p_acc AND j.doc_date <= NVL(l_dt, SYSDATE);
       RETURN l;
     END bal;
+    -- APEX:<page>:<item> رابط بمجموع اختباري (الصفحات محمية ضد تعديل الروابط)، أو قالب نصي فيه #TYPE#
+    FUNCTION link_for(p_type VARCHAR2) RETURN VARCHAR2 IS
+    BEGIN
+      IF p_link LIKE 'APEX:%' THEN
+        RETURN apex_page.get_url(p_page => TO_NUMBER(REGEXP_SUBSTR(p_link, '[^:]+', 1, 2)), p_items => REGEXP_SUBSTR(p_link, '[^:]+', 1, 3),
+                                 p_values => p_type);
+      END IF;
+      RETURN REPLACE(p_link, '#TYPE#', p_type);
+    END link_for;
     PROCEDURE add_row(p_title VARCHAR2, p_type VARCHAR2, p_count VARCHAR2, p_done BOOLEAN, p_hint VARCHAR2) IS
     BEGIN
       l_step := l_step + 1;
       l_h := l_h || ('<tr><td class="n">' || l_step || '</td><td>' || esc(p_title) || '</td><td class="n">' || p_count || '</td><td><span class="nn-badge '
           || CASE WHEN p_done THEN 'is-success">تم' ELSE 'is-muted">لم يبدأ' END || '</span></td><td class="nn-hint">' || esc(p_hint) || '</td><td>'
-          || CASE WHEN p_link IS NOT NULL AND p_type IS NOT NULL THEN '<a class="t-Button t-Button--small" href="' || REPLACE(p_link, '#TYPE#', p_type) || '">استيراد</a>' END
+          || CASE WHEN p_link IS NOT NULL AND p_type IS NOT NULL THEN '<a class="t-Button t-Button--small" href="' || link_for(p_type) || '">استيراد</a>' END
           || '</td></tr>');
     END add_row;
   BEGIN
