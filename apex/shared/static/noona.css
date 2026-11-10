@@ -2330,3 +2330,32 @@ html[data-theme="dark"] .nn-kpi-value, html[data-theme="dark"] .nn-anl-kpi-val, 
 .nn-prj-wip tr.is-bad td, .nn-prj-lg tr.is-bad td { background: #fff1f2; }
 .nn-prj-final tr.is-sub th, .nn-prj-final tr.is-sub td { font-weight: 700; border-top: 1px solid var(--nn-border, #e2e8f0); }
 .nn-prj-form .nn-chk { display: inline-flex; align-items: center; gap: 6px; }
+
+/* ===================================================== التسجيل الذاتي (NOONA_MASTER:SIGNUP) */
+.nn-sgn-hero { display: flex; gap: 16px; align-items: center; max-width: 920px; margin: 8px auto 4px; }
+.nn-sgn-hero img { width: 64px; height: 64px; border-radius: 16px; }
+.nn-sgn-hero h1 { margin: 0; font-size: 1.6rem; }
+.nn-sgn-hero p { margin: 4px 0 0; opacity: .8; }
+.nn-sgn-steps { display: flex; gap: 6px; list-style: none; padding: 0; margin: 14px auto; max-width: 920px; flex-wrap: wrap; }
+.nn-sgn-steps li { flex: 1 1 120px; display: flex; align-items: center; gap: 8px; padding: 8px 10px; border-radius: 10px;
+  background: var(--nn-surface-2, #f1f4f9); color: var(--nn-muted, #66708a); font-weight: 600; font-size: .9rem; }
+.nn-sgn-steps li span { width: 24px; height: 24px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center;
+  background: #cfd8e6; color: #fff; font-size: .8rem; }
+.nn-sgn-steps li.is-current { background: #e6efff; color: #1d4ed8; }
+.nn-sgn-steps li.is-current span { background: #1d4ed8; }
+.nn-sgn-steps li.is-done { color: #15803d; }
+.nn-sgn-steps li.is-done span { background: #16a34a; }
+.nn-sgn-demo { margin: 8px 0; padding: 10px 12px; border-radius: 8px; background: #fff7e6; border: 1px dashed #f59e0b; color: #92400e; font-weight: 600; }
+.nn-sgn-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px; }
+.nn-sgn-card { display: flex; flex-direction: column; gap: 4px; padding: 12px; border-radius: 12px; border: 1px solid var(--nn-border, #e3e8f0); }
+.nn-sgn-card .fa { font-size: 1.4rem; color: #1d4ed8; }
+.nn-sgn-card small { opacity: .75; line-height: 1.5; }
+.nn-sgn-card em { font-style: normal; font-weight: 700; color: #15803d; margin-top: auto; }
+.nn-sgn-bank { padding: 12px; border-radius: 10px; background: #f0f9ff; border: 1px solid #bae6fd; line-height: 1.8; }
+.nn-sgn-done { text-align: center; padding: 24px 12px; }
+.nn-sgn-done .fa { font-size: 3rem; color: #16a34a; }
+.nn-sgn-done h2 { margin: 8px 0; }
+.nn-sgn-login-link { text-align: center; padding: 6px; font-weight: 600; }
+.t-PageBody--noNav .t-Body-content { max-width: 960px; margin: 0 auto; }
+@media (prefers-color-scheme: dark) { .nn-sgn-demo { background: #3a2a05; color: #fcd34d; } .nn-sgn-bank { background: #0b2533; border-color: #155e75; } }
+.page-20 .t-NavigationBar-item:has(.fa-user), .page-20 .t-NavigationBar-item:has(.t-Button--navBar[title*="nobody"]) { display: none; }

@@ -91,6 +91,7 @@ PROMPT ========== 4/7 Core PL/SQL services
 @@plsql/135_noona_trn_pkg.sql
 @@plsql/136_noona_consol_pkg.sql
 @@plsql/137_noona_prj_ctr_pkg.sql
+@@plsql/138_noona_signup_pkg.sql
 
 PROMPT ========== 5/7 Seed: registry & reference data
 @@seed/01_registry_seed.sql
@@ -112,6 +113,7 @@ PROMPT ========== 5/7 Seed: registry & reference data
 @@seed/18_api.sql
 @@seed/19_cities.sql
 @@seed/20_onboarding.sql
+@@seed/21_signup.sql
 @@seed/14_reports_catalog.sql
 
 PROMPT ========== 6/7 Row-Level Security (VPD)

@@ -55,5 +55,6 @@ prompt --install
 @@application/pages/page_00000.sql
 @@application/pages/page_00001.sql
 @@application/pages/page_00010.sql
+@@application/pages/page_00020.sql
 @@application/pages/page_09999.sql
 @@application/end_environment.sql

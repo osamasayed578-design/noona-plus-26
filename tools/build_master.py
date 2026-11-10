@@ -53,5 +53,10 @@ p.branch(10, 'f?p=&APP_ID.:10:&SESSION.::&DEBUG.:10::&success_msg=#SUCCESS_MSG#'
 app.nav_item('الأنظمة', 1, 'fa-th', 10)
 app.nav_item('تغيير كلمة المرور', 10, 'fa-key', 20)
 
+# =============================================================== 20) التسجيل الذاتي (صفحة عامة)
+import signup_pages
+signup_pages.add(app)
+
 app.finalize()
+signup_pages.login_link(os.path.join(ROOT, 'apex/NOONA_MASTER/f115'))
 print('NOONA_MASTER built:', len(app.pages), 'pages')

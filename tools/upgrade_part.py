@@ -69,8 +69,9 @@ for t in tables:
             L.append(f"  INSERT INTO {tbl} {cols} SELECT {vals} FROM dual WHERE NOT EXISTS (SELECT 1 FROM {tbl} WHERE {col} = '{key}');")
 L.append("  NOONA_CORE_PKG.end_system;\n  COMMIT;\nEXCEPTION WHEN OTHERS THEN\n  NOONA_CORE_PKG.end_system;\n  RAISE;\nEND;\n/")
 for t in tables:
-    pol = re.search(rf"NOONA_VPD_PKG\.(add_\w+_policy)\('{t}'\);", vpd).group(1)
-    L.append(f"BEGIN\n  NOONA_VPD_PKG.{pol}('{t}');\nEND;\n/")
+    m = re.search(rf"NOONA_VPD_PKG\.(add_\w+_policy)\('{t}'\);", vpd)
+    if m:    # الجداول العامة للمنصة (scope G) بلا سياسة عزل
+        L.append(f"BEGIN\n  NOONA_VPD_PKG.{m.group(1)}('{t}');\nEND;\n/")
     L.append(f"GRANT SELECT, INSERT, UPDATE, DELETE ON {t} TO NOONA_APP;")
 open(out, 'w', encoding='utf-8').write('\n'.join(L) + '\n')
 print('written', out)

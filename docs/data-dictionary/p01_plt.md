@@ -27,6 +27,8 @@ Control Plane للمنصة: دليل المؤسسات والخلايا الإق�
 | [`PLT_PRODUCT`](#plt_product) | المنتجات | Products | G | INTERNAL |
 | [`PLT_EDITION`](#plt_edition) | الإصدارات التجارية | Editions | G | INTERNAL |
 | [`PLT_PLAN`](#plt_plan) | الباقات | Plans | G | INTERNAL |
+| [`PLT_OFFERING`](#plt_offering) | أنظمة الاشتراك وأسعارها | Subscription Offerings | G | INTERNAL |
+| [`PLT_SIGNUP`](#plt_signup) | طلبات التسجيل الذاتي | Self-Service Signups | G | INTERNAL |
 | [`PLT_PLAN_VERSION`](#plt_plan_version) | إصدارات الباقة | Plan Versions | G | INTERNAL |
 | [`PLT_PLAN_MODULE`](#plt_plan_module) | وحدات إصدار الباقة | Plan Version Modules | G | INTERNAL |
 | [`PLT_PLAN_LIMIT`](#plt_plan_limit) | حدود إصدار الباقة | Plan Version Limits | G | INTERNAL |
@@ -633,12 +635,105 @@ Control Plane للمنصة: دليل المؤسسات والخلايا الإق�
 | 4 | `NAME_EN` | اسم | `VARCHAR2(200 CHAR)` |  |  |  |  | إدخال المستخدم |  | الاسم بالإنجليزية |
 | 5 | `EDITION_ID` | معرف | `NUMBER(19)` | ✔ |  | FK→PLT_EDITION |  | إدخال المستخدم |  | الإصدار |
 | 6 | `BILLING_CYCLE` | رمز | `VARCHAR2(30 CHAR)` | ✔ |  |  | MONTHLY, QUARTERLY, SEMI_ANNUAL, ANNUAL, MULTI_YEAR, ONE_TIME, CONTRACT | إدخال المستخدم |  | دورة الفوترة |
-| 7 | `IS_ACTIVE` | منطقي Y/N | `CHAR(1 CHAR)` | ✔ | 'Y' |  | Y, N | إدخال المستخدم |  | نشط؟ |
-| 8 | `ROW_VERSION` | عدد صحيح | `NUMBER(10)` | ✔ | 1 |  |  | Trigger |  | رقم الإصدار للتحكم في التزامن المتفائل |
-| 9 | `CREATED_BY` | اسم مستخدم | `VARCHAR2(128 CHAR)` | ✔ |  |  |  | Trigger |  | منشئ السجل |
-| 10 | `CREATED_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` | ✔ | SYSTIMESTAMP |  |  | Trigger |  | وقت الإنشاء |
-| 11 | `UPDATED_BY` | اسم مستخدم | `VARCHAR2(128 CHAR)` |  |  |  |  | Trigger |  | آخر من عدل السجل |
-| 12 | `UPDATED_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` |  |  |  |  | Trigger |  | وقت آخر تعديل |
+| 7 | `DISCOUNT_PCT` | نسبة | `NUMBER(9,6)` | ✔ | 0 |  |  | إدخال المستخدم |  | خصم المدة على السعر الشهري (التسجيل الذاتي) |
+| 8 | `SELF_SERVICE` | منطقي Y/N | `CHAR(1 CHAR)` | ✔ | 'Y' |  | Y, N | إدخال المستخدم |  | تظهر في صفحة التسجيل الذاتي |
+| 9 | `IS_ACTIVE` | منطقي Y/N | `CHAR(1 CHAR)` | ✔ | 'Y' |  | Y, N | إدخال المستخدم |  | نشط؟ |
+| 10 | `ROW_VERSION` | عدد صحيح | `NUMBER(10)` | ✔ | 1 |  |  | Trigger |  | رقم الإصدار للتحكم في التزامن المتفائل |
+| 11 | `CREATED_BY` | اسم مستخدم | `VARCHAR2(128 CHAR)` | ✔ |  |  |  | Trigger |  | منشئ السجل |
+| 12 | `CREATED_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` | ✔ | SYSTIMESTAMP |  |  | Trigger |  | وقت الإنشاء |
+| 13 | `UPDATED_BY` | اسم مستخدم | `VARCHAR2(128 CHAR)` |  |  |  |  | Trigger |  | آخر من عدل السجل |
+| 14 | `UPDATED_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` |  |  |  |  | Trigger |  | وقت آخر تعديل |
+
+## PLT_OFFERING
+
+| البند | القيمة |
+|---|---|
+| الاسم العربي | أنظمة الاشتراك وأسعارها |
+| English | Subscription Offerings |
+| الحزمة المالكة | 01 — `NOONA_PLATFORM_PKG` |
+| نطاق الملكية | `G` — منصة عامة Platform Global (بدون TENANT_ID) |
+| الحساسية | INTERNAL |
+| النمط | قابل للتعديل وفق دورة الحياة |
+| الغرض | ما يختاره العميل في التسجيل الذاتي: نظام = مجموعة وحدات بسعر شهري |
+| مفاتيح فريدة | UK1: (CODE) |
+
+| # | العمود | النوع المنطقي | Oracle Type | إلزامي | افتراضي | مفاتيح | القيم المقبولة | المصدر | PII | الوصف |
+|---:|---|---|---|:---:|---|---|---|---|:---:|---|
+| 1 | `ID` | معرف | `NUMBER(19)` | ✔ |  | PK |  | النظام/الحزمة |  | المفتاح الداخلي الثابت (Identity) - لا يعاد استخدامه |
+| 2 | `CODE` | نص | `VARCHAR2(50 CHAR)` | ✔ |  | UK1 |  | إدخال المستخدم |  | الرمز الفريد ضمن النطاق |
+| 3 | `NAME_AR` | اسم | `VARCHAR2(200 CHAR)` | ✔ |  |  |  | إدخال المستخدم |  | الاسم بالعربية |
+| 4 | `NAME_EN` | اسم | `VARCHAR2(200 CHAR)` |  |  |  |  | إدخال المستخدم |  | الاسم بالإنجليزية |
+| 5 | `DESCRIPTION` | نص | `VARCHAR2(4000 CHAR)` |  |  |  |  | إدخال المستخدم |  | الوصف |
+| 6 | `ICON` | نص | `VARCHAR2(60 CHAR)` |  |  |  |  | إدخال المستخدم |  | الأيقونة |
+| 7 | `MODULE_CODES` | نص | `VARCHAR2(400 CHAR)` | ✔ |  |  |  | إدخال المستخدم |  | رموز الوحدات المشمولة (مفصولة بفاصلة) |
+| 8 | `MONTHLY_PRICE` | مبلغ | `NUMBER(24,6)` | ✔ | 0 |  |  | إدخال المستخدم |  | السعر الشهري |
+| 9 | `CURRENCY_CODE` | رمز عملة ISO | `VARCHAR2(3 CHAR)` | ✔ | 'SAR' | FK→REF_CURRENCY |  | إدخال المستخدم |  | العملة |
+| 10 | `REQUIRES_CODES` | نص | `VARCHAR2(200 CHAR)` |  |  |  |  | إدخال المستخدم |  | أنظمة يتطلبها (مثل المالية للمخزون) |
+| 11 | `IS_ACTIVE` | منطقي Y/N | `CHAR(1 CHAR)` | ✔ | 'Y' |  | Y, N | إدخال المستخدم |  | نشط؟ |
+| 12 | `SORT_ORDER` | عدد صحيح | `NUMBER(10)` |  |  |  |  | إدخال المستخدم |  | ترتيب العرض |
+| 13 | `ROW_VERSION` | عدد صحيح | `NUMBER(10)` | ✔ | 1 |  |  | Trigger |  | رقم الإصدار للتحكم في التزامن المتفائل |
+| 14 | `CREATED_BY` | اسم مستخدم | `VARCHAR2(128 CHAR)` | ✔ |  |  |  | Trigger |  | منشئ السجل |
+| 15 | `CREATED_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` | ✔ | SYSTIMESTAMP |  |  | Trigger |  | وقت الإنشاء |
+| 16 | `UPDATED_BY` | اسم مستخدم | `VARCHAR2(128 CHAR)` |  |  |  |  | Trigger |  | آخر من عدل السجل |
+| 17 | `UPDATED_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` |  |  |  |  | Trigger |  | وقت آخر تعديل |
+
+## PLT_SIGNUP
+
+| البند | القيمة |
+|---|---|
+| الاسم العربي | طلبات التسجيل الذاتي |
+| English | Self-Service Signups |
+| الحزمة المالكة | 01 — `NOONA_PLATFORM_PKG` |
+| نطاق الملكية | `G` — منصة عامة Platform Global (بدون TENANT_ID) |
+| الحساسية | INTERNAL |
+| النمط | قابل للتعديل وفق دورة الحياة |
+| الغرض | تسجيل العميل بنفسه: التحقق بالرمز، المؤسسة، الأنظمة والخطة، ثم التجهيز الآلي؛ والدفع بالتحويل يعتمده مسؤول المنصة |
+| مفاتيح فريدة | UK1: (TOKEN_HASH) |
+
+| # | العمود | النوع المنطقي | Oracle Type | إلزامي | افتراضي | مفاتيح | القيم المقبولة | المصدر | PII | الوصف |
+|---:|---|---|---|:---:|---|---|---|---|:---:|---|
+| 1 | `ID` | معرف | `NUMBER(19)` | ✔ |  | PK |  | النظام/الحزمة |  | المفتاح الداخلي الثابت (Identity) - لا يعاد استخدامه |
+| 2 | `FULL_NAME` | اسم | `VARCHAR2(200 CHAR)` | ✔ |  |  |  | إدخال المستخدم |  | الاسم الكامل |
+| 3 | `EMAIL` | نص | `VARCHAR2(320 CHAR)` | ✔ |  |  |  | إدخال المستخدم | ✔ | البريد الإلكتروني |
+| 4 | `MOBILE` | نص | `VARCHAR2(40 CHAR)` | ✔ |  |  |  | إدخال المستخدم | ✔ | الجوال |
+| 5 | `USERNAME` | نص | `VARCHAR2(128 CHAR)` | ✔ |  |  |  | إدخال المستخدم |  | اسم الدخول المطلوب |
+| 6 | `PASSWORD_HASH` | نص | `VARCHAR2(200 CHAR)` | ✔ |  |  |  | إدخال المستخدم |  | كلمة المرور (PBKDF2) |
+| 7 | `PASSWORD_SALT` | نص | `VARCHAR2(64 CHAR)` | ✔ |  |  |  | إدخال المستخدم |  | الملح |
+| 8 | `TOKEN_HASH` | Hash | `VARCHAR2(128 CHAR)` | ✔ |  | UK1 |  | إدخال المستخدم |  | بصمة رمز الجلسة |
+| 9 | `EMAIL_OTP_HASH` | Hash | `VARCHAR2(128 CHAR)` |  |  |  |  | إدخال المستخدم |  | بصمة رمز البريد |
+| 10 | `MOBILE_OTP_HASH` | Hash | `VARCHAR2(128 CHAR)` |  |  |  |  | إدخال المستخدم |  | بصمة رمز الجوال |
+| 11 | `OTP_EXPIRES_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` |  |  |  |  | إدخال المستخدم |  | انتهاء الرمز |
+| 12 | `OTP_SENT_COUNT` | عدد صحيح | `NUMBER(10)` | ✔ | 0 |  |  | إدخال المستخدم |  | مرات الإرسال |
+| 13 | `OTP_FAILED` | عدد صحيح | `NUMBER(10)` | ✔ | 0 |  |  | إدخال المستخدم |  | المحاولات الخاطئة |
+| 14 | `LAST_SENT_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` |  |  |  |  | إدخال المستخدم |  | آخر إرسال |
+| 15 | `EMAIL_VERIFIED_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` |  |  |  |  | إدخال المستخدم |  | تحقق البريد |
+| 16 | `MOBILE_VERIFIED_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` |  |  |  |  | إدخال المستخدم |  | تحقق الجوال |
+| 17 | `TERMS_VERSION` | نص | `VARCHAR2(20 CHAR)` | ✔ |  |  |  | إدخال المستخدم |  | إصدار الشروط الموافق عليها |
+| 18 | `TERMS_ACCEPTED_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` | ✔ |  |  |  | إدخال المستخدم |  | وقت الموافقة |
+| 19 | `IP_ADDRESS` | نص | `VARCHAR2(64 CHAR)` |  |  |  |  | إدخال المستخدم |  | عنوان IP |
+| 20 | `ORG_NAME_AR` | اسم | `VARCHAR2(200 CHAR)` |  |  |  |  | إدخال المستخدم |  | اسم المؤسسة |
+| 21 | `ORG_NAME_EN` | اسم | `VARCHAR2(200 CHAR)` |  |  |  |  | إدخال المستخدم |  | الاسم بالإنجليزية |
+| 22 | `COUNTRY_CODE` | رمز دولة ISO | `VARCHAR2(2 CHAR)` |  |  | FK→REF_COUNTRY |  | إدخال المستخدم |  | الدولة |
+| 23 | `CURRENCY_CODE` | رمز عملة ISO | `VARCHAR2(3 CHAR)` |  |  | FK→REF_CURRENCY |  | إدخال المستخدم |  | العملة |
+| 24 | `CR_NO` | نص | `VARCHAR2(50 CHAR)` |  |  |  |  | إدخال المستخدم |  | السجل التجاري |
+| 25 | `VAT_NO` | نص | `VARCHAR2(50 CHAR)` |  |  |  |  | إدخال المستخدم |  | الرقم الضريبي |
+| 26 | `CITY` | نص | `VARCHAR2(100 CHAR)` |  |  |  |  | إدخال المستخدم |  | المدينة |
+| 27 | `OFFERINGS` | نص | `VARCHAR2(400 CHAR)` |  |  |  |  | إدخال المستخدم |  | الأنظمة المختارة |
+| 28 | `USER_COUNT` | عدد صحيح | `NUMBER(10)` |  |  |  |  | إدخال المستخدم |  | عدد المستخدمين |
+| 29 | `PLAN_CODE` | رمز | `VARCHAR2(30 CHAR)` |  |  |  |  | إدخال المستخدم |  | الخطة |
+| 30 | `PAYMENT_METHOD` | رمز | `VARCHAR2(30 CHAR)` |  |  |  | NONE, BANK_TRANSFER, CARD | إدخال المستخدم |  | طريقة الدفع |
+| 31 | `PAYMENT_REF` | نص | `VARCHAR2(200 CHAR)` |  |  |  |  | إدخال المستخدم |  | مرجع التحويل |
+| 32 | `QUOTE` | JSON | `CLOB` |  |  |  | JSON صالح | إدخال المستخدم |  | تفاصيل السعر وقت الطلب |
+| 33 | `AMOUNT_DUE` | مبلغ | `NUMBER(24,6)` |  |  |  |  | إدخال المستخدم |  | المبلغ المستحق شاملاً الضريبة |
+| 34 | `TENANT_ID` | معرف | `NUMBER(19)` |  |  | FK→PLT_TENANT |  | إدخال المستخدم |  | المؤسسة المنشأة |
+| 35 | `DECIDED_BY` | اسم مستخدم | `VARCHAR2(128 CHAR)` |  |  |  |  | إدخال المستخدم |  | قرار مسؤول المنصة |
+| 36 | `DECISION_NOTE` | نص | `VARCHAR2(1000 CHAR)` |  |  |  |  | إدخال المستخدم |  | ملاحظة القرار |
+| 37 | `STATUS_CODE` | رمز | `VARCHAR2(30 CHAR)` | ✔ | 'STARTED' |  | STARTED, VERIFIED, DETAILS, PROVISIONED, PAYMENT_PENDING, PAID, REJECTED, EXPIRED | النظام/الحزمة |  | الحالة ضمن دورة الحياة المعتمدة |
+| 38 | `ROW_VERSION` | عدد صحيح | `NUMBER(10)` | ✔ | 1 |  |  | Trigger |  | رقم الإصدار للتحكم في التزامن المتفائل |
+| 39 | `CREATED_BY` | اسم مستخدم | `VARCHAR2(128 CHAR)` | ✔ |  |  |  | Trigger |  | منشئ السجل |
+| 40 | `CREATED_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` | ✔ | SYSTIMESTAMP |  |  | Trigger |  | وقت الإنشاء |
+| 41 | `UPDATED_BY` | اسم مستخدم | `VARCHAR2(128 CHAR)` |  |  |  |  | Trigger |  | آخر من عدل السجل |
+| 42 | `UPDATED_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` |  |  |  |  | Trigger |  | وقت آخر تعديل |
 
 ## PLT_PLAN_VERSION
 

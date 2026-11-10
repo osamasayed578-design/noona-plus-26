@@ -171,7 +171,57 @@ RTO_MINUTES     INT              | RTO المستهدف بالدقائق
 table('PLT_PLAN', 'الباقات', 'Plans', scope='G', mix='code names active', cols='''
 EDITION_ID      ID   NN >PLT_EDITION | الإصدار
 BILLING_CYCLE   CODE NN IN:MONTHLY,QUARTERLY,SEMI_ANNUAL,ANNUAL,MULTI_YEAR,ONE_TIME,CONTRACT | دورة الفوترة
+DISCOUNT_PCT    PCT  NN D=0      | خصم المدة على السعر الشهري (التسجيل الذاتي)
+SELF_SERVICE    YN   NN D='Y'    | تظهر في صفحة التسجيل الذاتي
 ''', area='catalog')
+
+table('PLT_OFFERING', 'أنظمة الاشتراك وأسعارها', 'Subscription Offerings', scope='G', mix='code names desc sort active', cols='''
+ICON            V60              | الأيقونة
+MODULE_CODES    V400 NN          | رموز الوحدات المشمولة (مفصولة بفاصلة)
+MONTHLY_PRICE   AMT  NN D=0      | السعر الشهري
+CURRENCY_CODE   CUR  NN D='SAR'  | العملة
+REQUIRES_CODES  V200             | أنظمة يتطلبها (مثل المالية للمخزون)
+''', area='catalog', purpose='ما يختاره العميل في التسجيل الذاتي: نظام = مجموعة وحدات بسعر شهري')
+
+table('PLT_SIGNUP', 'طلبات التسجيل الذاتي', 'Self-Service Signups', scope='G', mix='status',
+      status='STARTED VERIFIED DETAILS PROVISIONED PAYMENT_PENDING PAID REJECTED EXPIRED', cols='''
+FULL_NAME       NAME NN          | الاسم الكامل
+EMAIL           V320 NN PII      | البريد الإلكتروني
+MOBILE          V40  NN PII      | الجوال
+USERNAME        V128 NN          | اسم الدخول المطلوب
+PASSWORD_HASH   V200 NN          | كلمة المرور (PBKDF2)
+PASSWORD_SALT   V64  NN          | الملح
+TOKEN_HASH      HASH NN U        | بصمة رمز الجلسة
+EMAIL_OTP_HASH  HASH             | بصمة رمز البريد
+MOBILE_OTP_HASH HASH             | بصمة رمز الجوال
+OTP_EXPIRES_AT  TS               | انتهاء الرمز
+OTP_SENT_COUNT  INT  NN D=0      | مرات الإرسال
+OTP_FAILED      INT  NN D=0      | المحاولات الخاطئة
+LAST_SENT_AT    TS               | آخر إرسال
+EMAIL_VERIFIED_AT TS             | تحقق البريد
+MOBILE_VERIFIED_AT TS            | تحقق الجوال
+TERMS_VERSION   V20  NN          | إصدار الشروط الموافق عليها
+TERMS_ACCEPTED_AT TS NN          | وقت الموافقة
+IP_ADDRESS      V64              | عنوان IP
+ORG_NAME_AR     NAME             | اسم المؤسسة
+ORG_NAME_EN     NAME             | الاسم بالإنجليزية
+COUNTRY_CODE    CTRY             | الدولة
+CURRENCY_CODE   CUR              | العملة
+CR_NO           V50              | السجل التجاري
+VAT_NO          V50              | الرقم الضريبي
+CITY            V100             | المدينة
+OFFERINGS       V400             | الأنظمة المختارة
+USER_COUNT      INT              | عدد المستخدمين
+PLAN_CODE       CODE             | الخطة
+PAYMENT_METHOD  CODE IN:NONE,BANK_TRANSFER,CARD | طريقة الدفع
+PAYMENT_REF     V200             | مرجع التحويل
+QUOTE           JSON             | تفاصيل السعر وقت الطلب
+AMOUNT_DUE      AMT              | المبلغ المستحق شاملاً الضريبة
+TENANT_ID       ID   >PLT_TENANT | المؤسسة المنشأة
+DECIDED_BY      USR              | قرار مسؤول المنصة
+DECISION_NOTE   V1000            | ملاحظة القرار
+''', ix=[('EMAIL',), ('MOBILE',), ('STATUS_CODE',)], area='catalog',
+      purpose='تسجيل العميل بنفسه: التحقق بالرمز، المؤسسة، الأنظمة والخطة، ثم التجهيز الآلي؛ والدفع بالتحويل يعتمده مسؤول المنصة')
 
 table('PLT_PLAN_VERSION', 'إصدارات الباقة', 'Plan Versions', scope='G', mix='eff status', status='DRAFT PUBLISHED RETIRED', cols='''
 PLAN_ID         ID   NN >PLT_PLAN | الباقة
