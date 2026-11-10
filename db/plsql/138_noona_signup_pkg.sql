@@ -38,6 +38,8 @@ CREATE OR REPLACE PACKAGE NOONA_SIGNUP_PKG AUTHID DEFINER AS
   FUNCTION quote_json(p_offerings IN VARCHAR2, p_users IN NUMBER, p_plan IN VARCHAR2) RETURN CLOB;
   FUNCTION quote_html(p_offerings IN VARCHAR2, p_users IN NUMBER, p_plan IN VARCHAR2) RETURN CLOB;
   FUNCTION offerings_html RETURN CLOB;
+  -- يتحقق من الأنظمة ومتطلباتها؛ يعيد الرموز المعتمدة مفصولة بفاصلة
+  FUNCTION validate_offerings(p_offerings IN VARCHAR2) RETURN VARCHAR2;
   FUNCTION bank_details RETURN VARCHAR2;
   FUNCTION setting(p_key IN VARCHAR2) RETURN VARCHAR2;
 
@@ -103,8 +105,8 @@ CREATE OR REPLACE PACKAGE BODY NOONA_SIGNUP_PKG AS
     l plt_signup%ROWTYPE;
     l_e VARCHAR2(6) := LPAD(TRUNC(DBMS_RANDOM.VALUE(0, 1000000)), 6, '0');
     l_m VARCHAR2(6) := LPAD(TRUNC(DBMS_RANDOM.VALUE(0, 1000000)), 6, '0');
-    l_mode VARCHAR2(20) := NVL(setting('SIGNUP.OTP_MODE'), 'DEMO');
-    l_he VARCHAR2(128); l_hm VARCHAR2(128);
+    l_mode VARCHAR2(20) := CASE WHEN NOONA_MAIL_PKG.enabled = 'Y' THEN NVL(setting('SIGNUP.OTP_MODE'), 'DEMO') ELSE 'DEMO' END;
+    l_he VARCHAR2(128); l_hm VARCHAR2(128); l_x NUMBER;
   BEGIN
     SELECT * INTO l FROM plt_signup WHERE id = p_id FOR UPDATE;
     NOONA_CORE_PKG.assert(l.otp_sent_count < 5, 'NOONA-SGN-010', 'تجاوزت عدد مرات إرسال الرمز؛ ابدأ تسجيلاً جديداً لاحقاً',
@@ -118,8 +120,9 @@ CREATE OR REPLACE PACKAGE BODY NOONA_SIGNUP_PKG AS
      WHERE id = p_id;
     IF l_mode = 'EMAIL' THEN
       -- البريد عبر APEX_MAIL (يتطلب إعداد SMTP في APEX)؛ الجوال لا يتحقق منه حتى يربط مزود رسائل
-      apex_mail.send(p_to => l.email, p_from => NVL(setting('SIGNUP.MAIL_FROM'), 'no-reply@noona.local'),
-                     p_subj => 'رمز التحقق - نونا بلس', p_body => 'رمز التحقق لتسجيلك في نونا بلس: ' || l_e || CHR(10) || 'صالح 10 دقائق.');
+      l_x := NOONA_MAIL_PKG.send(l.email, 'رمز التحقق - نونا بلس',
+               NOONA_MAIL_PKG.wrap('رمز التحقق', '<p>مرحباً ' || NOONA_UI_PKG.esc(l.full_name) || '،</p><p>رمز التحقق لتسجيلك في نونا بلس:</p>'
+               || '<p style="font-size:26px;font-weight:bold;letter-spacing:6px">' || l_e || '</p><p>صالح 10 دقائق.</p>'));
       g_demo := NULL;
     ELSE
       g_demo := 'وضع تجريبي (لا يوجد مزود رسائل): رمز البريد ' || l_e || ' ورمز الجوال ' || l_m;
@@ -193,7 +196,7 @@ CREATE OR REPLACE PACKAGE BODY NOONA_SIGNUP_PKG AS
 
   PROCEDURE verify(p_token IN VARCHAR2, p_email_code IN VARCHAR2, p_mobile_code IN VARCHAR2) IS
     l      plt_signup%ROWTYPE;
-    l_mode VARCHAR2(20) := NVL(setting('SIGNUP.OTP_MODE'), 'DEMO');
+    l_mode VARCHAR2(20) := CASE WHEN NOONA_MAIL_PKG.enabled = 'Y' THEN NVL(setting('SIGNUP.OTP_MODE'), 'DEMO') ELSE 'DEMO' END;
     l_ok   BOOLEAN;
   BEGIN
     NOONA_CORE_PKG.begin_system;
@@ -328,6 +331,28 @@ CREATE OR REPLACE PACKAGE BODY NOONA_SIGNUP_PKG AS
     RETURN NVL(setting('SIGNUP.BANK_DETAILS'), 'يحدد مسؤول المنصة بيانات الحساب البنكي');
   END bank_details;
 
+  FUNCTION validate_offerings(p_offerings IN VARCHAR2) RETURN VARCHAR2 IS
+    l_list  VARCHAR2(4000) := norm_list(p_offerings);
+    l_codes VARCHAR2(400);
+    l_need  VARCHAR2(400);
+    l_n     NUMBER;
+  BEGIN
+    SELECT LISTAGG(code, ',') WITHIN GROUP (ORDER BY sort_order), COUNT(*) INTO l_codes, l_n
+      FROM plt_offering WHERE is_active = 'Y' AND INSTR(l_list, ',' || code || ',') > 0;
+    NOONA_CORE_PKG.assert(l_n > 0, 'NOONA-SGN-041', 'اختر نظاماً واحداً على الأقل', 'Choose at least one system');
+    -- المتطلبات: مثل المالية للمخزون والمبيعات
+    FOR o IN (SELECT name_ar, requires_codes FROM plt_offering WHERE INSTR(l_list, ',' || code || ',') > 0 AND requires_codes IS NOT NULL) LOOP
+      FOR r IN (SELECT TRIM(REGEXP_SUBSTR(o.requires_codes, '[^,]+', 1, LEVEL)) c FROM dual
+                CONNECT BY REGEXP_SUBSTR(o.requires_codes, '[^,]+', 1, LEVEL) IS NOT NULL) LOOP
+        IF INSTR(',' || l_codes || ',', ',' || r.c || ',') = 0 THEN
+          SELECT MAX(name_ar) INTO l_need FROM plt_offering WHERE code = r.c;
+          NOONA_CORE_PKG.raise_error('NOONA-SGN-042', o.name_ar || ' يتطلب ' || l_need || '؛ أضفه إلى اختيارك', 'Missing required system');
+        END IF;
+      END LOOP;
+    END LOOP;
+    RETURN l_codes;
+  END validate_offerings;
+
   PROCEDURE save_plan(p_token IN VARCHAR2, p_offerings IN VARCHAR2, p_users IN NUMBER, p_plan IN VARCHAR2,
                       p_payment IN VARCHAR2 DEFAULT NULL, p_payment_ref IN VARCHAR2 DEFAULT NULL) IS
     l      plt_signup%ROWTYPE;
@@ -342,19 +367,7 @@ CREATE OR REPLACE PACKAGE BODY NOONA_SIGNUP_PKG AS
     NOONA_CORE_PKG.begin_system;
     l := get_row(p_token, TRUE);
     NOONA_CORE_PKG.assert(l.status_code IN ('DETAILS'), 'NOONA-SGN-040', 'أكمل بيانات المؤسسة أولاً', 'Complete the organisation first');
-    SELECT LISTAGG(code, ',') WITHIN GROUP (ORDER BY sort_order), COUNT(*) INTO l_codes, l_n
-      FROM plt_offering WHERE is_active = 'Y' AND INSTR(l_list, ',' || code || ',') > 0;
-    NOONA_CORE_PKG.assert(l_n > 0, 'NOONA-SGN-041', 'اختر نظاماً واحداً على الأقل', 'Choose at least one system');
-    -- المتطلبات: مثل المالية للمخزون والمبيعات
-    FOR o IN (SELECT name_ar, requires_codes FROM plt_offering WHERE INSTR(l_list, ',' || code || ',') > 0 AND requires_codes IS NOT NULL) LOOP
-      FOR r IN (SELECT TRIM(REGEXP_SUBSTR(o.requires_codes, '[^,]+', 1, LEVEL)) c FROM dual
-                CONNECT BY REGEXP_SUBSTR(o.requires_codes, '[^,]+', 1, LEVEL) IS NOT NULL) LOOP
-        IF INSTR(',' || l_codes || ',', ',' || r.c || ',') = 0 THEN
-          SELECT MAX(name_ar) INTO l_need FROM plt_offering WHERE code = r.c;
-          NOONA_CORE_PKG.raise_error('NOONA-SGN-042', o.name_ar || ' يتطلب ' || l_need || '؛ أضفه إلى اختيارك', 'Missing required system');
-        END IF;
-      END LOOP;
-    END LOOP;
+    l_codes := validate_offerings(p_offerings);
     NOONA_CORE_PKG.assert(NVL(p_users, 0) BETWEEN 1 AND 1000, 'NOONA-SGN-043', 'عدد المستخدمين بين 1 و 1000', 'Users must be 1-1000');
     SELECT COUNT(*) INTO l_n FROM plt_plan WHERE code = UPPER(p_plan) AND is_active = 'Y' AND self_service = 'Y';
     NOONA_CORE_PKG.assert(l_n = 1, 'NOONA-SGN-044', 'اختر الخطة', 'Choose a plan');
@@ -457,6 +470,15 @@ CREATE OR REPLACE PACKAGE BODY NOONA_SIGNUP_PKG AS
       END;
       NOONA_CTX_PKG.clear_context;
     END IF;
+    BEGIN
+      NOONA_ACCOUNT_PKG.notify_admins(l_ten, 'مرحباً بك في نونا بلس', 'تم إنشاء مؤسستك ' || l.org_name_ar,
+        '<p>اسم الدخول: <b dir="ltr">' || l.username || '</b>. تجربتك المجانية تمتد 14 يوماً بكل الأنظمة التي اخترتها.</p>'
+        || '<p>ابدأ من «إدارة المؤسسة ← بدء التشغيل ونقل البيانات» لاستيراد حساباتك وعملائك وأرصدتك من ملفات Excel.</p>'
+        || CASE WHEN l.plan_code <> 'TRIAL' THEN '<p>طلبت خطة ' || l.plan_code || ' بمبلغ ' || fmt(l.amount_due)
+                || ' ريال؛ تتحول مؤسستك للاشتراك المدفوع فور تأكيد التحويل.</p>' END,
+        NOONA_MAIL_PKG.url('NOONA_MASTER', 'home'), 'الدخول إلى النظام');
+    EXCEPTION WHEN OTHERS THEN NULL;     -- البريد لا يمنع إنشاء المؤسسة
+    END;
     NOONA_CORE_PKG.begin_system;
     NOONA_AUDIT_PKG.log_event('CONFIG', 'PLT_TENANT', l_ten, 'SELF_SIGNUP', 'SUCCESS',
       p_new_values => '{"signup":' || l.id || ',"plan":"' || l.plan_code || '","offerings":"' || l.offerings || '"}');
@@ -530,6 +552,7 @@ CREATE OR REPLACE PACKAGE BODY NOONA_SIGNUP_PKG AS
   PROCEDURE confirm_payment(p_signup_id IN NUMBER, p_note IN VARCHAR2 DEFAULT NULL) IS
     l     plt_signup%ROWTYPE;
     l_sub NUMBER;
+    l_inv VARCHAR2(100);
   BEGIN
     NOONA_CORE_PKG.require_platform_admin;
     SELECT * INTO l FROM plt_signup WHERE id = p_signup_id FOR UPDATE;
@@ -538,8 +561,14 @@ CREATE OR REPLACE PACKAGE BODY NOONA_SIGNUP_PKG AS
     -- الاشتراك المدفوع يبدأ من اليوم لمدة الخطة
     l_sub := NOONA_PLATFORM_ADMIN_PKG.set_subscription(l.tenant_id, l.plan_code, TRUNC(SYSDATE), 1, NULL,
                'تأكيد تحويل التسجيل الذاتي ' || l.payment_ref || NVL2(p_note, ' - ' || p_note, ''));
-    UPDATE plt_signup SET status_code = 'PAID', decided_by = NOONA_CTX_PKG.current_user_name, decision_note = SUBSTR(p_note, 1, 1000)
+    l_inv := NOONA_ACCOUNT_PKG.issue_invoice(l.tenant_id, 'اشتراك نونا بلس - ' || l.plan_code || ' - ' || REPLACE(l.offerings, ',', '، ')
+                                             || ' - ' || l.user_count || ' مستخدمين', JSON_VALUE(l.quote, '$.subtotal' RETURNING NUMBER), l.payment_ref);
+    UPDATE plt_signup SET status_code = 'PAID', decided_by = NOONA_CTX_PKG.current_user_name, decision_note = SUBSTR(p_note, 1, 1000),
+                          invoice_ref = l_inv
      WHERE id = p_signup_id;
+    NOONA_ACCOUNT_PKG.notify_admins(l.tenant_id, 'تم تأكيد اشتراكك - نونا بلس', 'تم تأكيد الدفع',
+      '<p>تحول اشتراك مؤسستك إلى خطة ' || l.plan_code || '.' || NVL2(l_inv, ' فاتورتك رقم ' || l_inv || ' مرسلة في رسالة مستقلة.', '') || '</p>',
+      NOONA_MAIL_PKG.url('NOONA_ADMIN', 'my-subscription'), 'اشتراكي');
     NOONA_AUDIT_PKG.log_event('CONFIG', 'PLT_TENANT', l.tenant_id, 'CONFIRM_SIGNUP_PAYMENT', 'SUCCESS',
       p_new_values => '{"signup":' || l.id || ',"plan":"' || l.plan_code || '","amount":' || NVL(l.amount_due, 0) || '}', p_reason => p_note);
   EXCEPTION WHEN NO_DATA_FOUND THEN
@@ -583,7 +612,7 @@ CREATE OR REPLACE PACKAGE BODY NOONA_SIGNUP_PKG AS
   PROCEDURE save_setting(p_key IN VARCHAR2, p_value IN VARCHAR2) IS
   BEGIN
     NOONA_CORE_PKG.require_platform_admin;
-    NOONA_CORE_PKG.assert(p_key LIKE 'SIGNUP.%', 'NOONA-SGN-074', 'إعداد غير معروف', 'Unknown setting');
+    NOONA_CORE_PKG.assert(p_key LIKE 'SIGNUP.%' OR p_key LIKE 'MAIL.%' OR p_key LIKE 'PLATFORM.%' OR p_key LIKE 'BILLING.%', 'NOONA-SGN-074', 'إعداد غير معروف', 'Unknown setting');
     NOONA_CORE_PKG.assert(p_key <> 'SIGNUP.OTP_MODE' OR p_value IN ('DEMO', 'EMAIL'), 'NOONA-SGN-075', 'وضع الرموز: DEMO أو EMAIL', 'OTP mode: DEMO or EMAIL');
     UPDATE plt_setting_def SET default_value = p_value WHERE setting_key = p_key;
     NOONA_CORE_PKG.assert(SQL%ROWCOUNT = 1, 'NOONA-SGN-074', 'إعداد غير معروف', 'Unknown setting');

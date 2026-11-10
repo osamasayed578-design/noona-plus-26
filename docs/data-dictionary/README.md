@@ -21,7 +21,7 @@
 
 | # | الحزمة | Package | PL/SQL | الجداول | الملف |
 |---:|---|---|---|---:|---|
-| 01 | نواة المنصة والمؤسسات والترخيص | Platform Core, Tenancy, Licensing & Companies | `NOONA_PLATFORM_PKG` | 67 | [p01_plt](p01_plt.md) |
+| 01 | نواة المنصة والمؤسسات والترخيص | Platform Core, Tenancy, Licensing & Companies | `NOONA_PLATFORM_PKG` | 70 | [p01_plt](p01_plt.md) |
 | 02 | الهيكل التنظيمي والهوية والأمن | Organization Structure, Identity & Security | `NOONA_SECURITY_PKG` | 37 | [p02_sec](p02_sec.md) |
 | 03 | سير العمل والطلبات والاعتمادات والتفويض | Workflow, Requests, Approvals & Delegation | `NOONA_WORKFLOW_PKG` | 27 | [p03_wf](p03_wf.md) |
 | 04 | إدارة المستندات والأرشفة | Document Management & Archive | `NOONA_DMS_PKG` | 31 | [p04_dms](p04_dms.md) |
@@ -55,5 +55,5 @@
 | 32 | مراكز خدمة السيارات | Auto Service Centers | `NOONA_AUT_PKG` | 10 | [p32_aut](p32_aut.md) |
 | 33 | النقل والشحن والترحيل | Transport & Logistics | `NOONA_TRN_PKG` | 12 | [p33_trn](p33_trn.md) |
 
-**الإجمالي:** 664 جدول · 11818 عمود.
+**الإجمالي:** 667 جدول · 11860 عمود.
 

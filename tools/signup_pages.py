@@ -122,19 +122,48 @@ def add(app):
     p.branch(10, 'f?p=&APP_ID.:20:&SESSION.::&DEBUG.:::')
 
 
+def add_reset(app):
+    """«نسيت كلمة المرور»: رمز للبريد ثم كلمة مرور جديدة (NOONA_ACCOUNT_PKG)"""
+    p = app.page(21, 'Reset Password', 'RESET-PASSWORD', 'استعادة كلمة المرور - نونا بلس', protection='C', public=True)
+    a = p.static('استعادة كلمة المرور', 10, condition=':P21_TOKEN is null', text=(
+        '<p class="nn-hint">أدخل اسم الدخول أو البريد المسجل؛ نرسل رمزاً صالحاً 15 دقيقة إلى بريدك.</p>'))
+    p.text('P21_LOGIN', a, 10, 'اسم الدخول أو البريد الإلكتروني', maxlen=320)
+    b_send = p.button(a, 10, 'SEND', 'إرسال الرمز', hot=True)
+    p.process(10, 'AFTER_SUBMIT', 'Send', ":P21_TOKEN := noona_account_pkg.request_reset(:P21_LOGIN, owa_util.get_cgi_env('REMOTE_ADDR'));",
+              when_button=b_send, success='إن كان الحساب مسجلاً فقد أرسلنا رمزاً إلى بريده')
+    c = p.static('كلمة مرور جديدة', 20, condition=':P21_TOKEN is not null and :P21_DONE is null', text=(
+        '<p class="nn-hint">أدخل الرمز المرسل إلى بريدك وكلمة المرور الجديدة (10 أحرف على الأقل: حرف كبير وصغير ورقم).</p>'))
+    p.text('P21_CODE', c, 10, 'الرمز', maxlen=6, width=10)
+    p.password('P21_NEW', c, 20, 'كلمة المرور الجديدة')
+    p.password('P21_NEW2', c, 30, 'تأكيد كلمة المرور')
+    b_set = p.button(c, 10, 'SET', 'تغيير كلمة المرور', hot=True)
+    b_again = p.button(c, 20, 'AGAIN', 'طلب رمز جديد')
+    p.process(20, 'AFTER_SUBMIT', 'Set', [
+        'noona_account_pkg.complete_reset(:P21_TOKEN, :P21_CODE, :P21_NEW, :P21_NEW2);',
+        ":P21_NEW := null; :P21_NEW2 := null; :P21_DONE := 'Y';"], when_button=b_set)
+    p.process(25, 'AFTER_SUBMIT', 'Again', ':P21_TOKEN := null; :P21_CODE := null;', when_button=b_again)
+    p.dynamic('تم', 30, [
+        "return '<div class=\"nn-sgn-done\"><span class=\"fa fa-check-circle\"></span><h2>تم تغيير كلمة المرور</h2>'",
+        "  || '<a class=\"t-Button t-Button--hot t-Button--large\" href=\"f?p=' || :APP_ID || ':1:0\">الدخول إلى النظام</a></div>';"],
+        hide_header=True, condition=":P21_DONE = 'Y'")
+    for it in ('P21_TOKEN', 'P21_DONE'):
+        p.hidden(it, a, 900)
+    p.branch(10, 'f?p=&APP_ID.:21:&SESSION.::&DEBUG.:::')
+
+
 def login_link(out_dir):
     """رابط «أنشئ حساب مؤسستك» تحت نموذج الدخول في التطبيق الرئيسي"""
     path = out_dir + '/application/pages/page_09999.sql'
     s = open(path, encoding='utf-8').read()
     if 'NOONA-SIGNUP-LINK' in s:
-        return
+        return  # يعاد توليد الصفحة من القالب في كل بناء
     region = """wwv_flow_imp_page.create_page_plug(
  p_id=>wwv_flow_imp.id(91820263000099001)
 ,p_plug_name=>'NOONA-SIGNUP-LINK'
 ,p_region_template_options=>'#DEFAULT#'
 ,p_plug_template=>4501440665235496320
 ,p_plug_display_sequence=>90
-,p_plug_source=>'<div class="nn-sgn-login-link">ليس لديك حساب؟ <a href="f?p=&APP_ID.:SIGNUP:0">أنشئ حساب مؤسستك وجرّب مجاناً 14 يوماً</a></div>'
+,p_plug_source=>'<div class="nn-sgn-login-link"><a href="f?p=&APP_ID.:RESET-PASSWORD:0">نسيت كلمة المرور؟</a><br>ليس لديك حساب؟ <a href="f?p=&APP_ID.:SIGNUP:0">أنشئ حساب مؤسستك وجرّب مجاناً 14 يوماً</a></div>'
 ,p_attributes=>wwv_flow_t_plugin_attributes(wwv_flow_t_varchar2(
   'expand_shortcuts', 'Y',
   'output_as', 'HTML')).to_clob
