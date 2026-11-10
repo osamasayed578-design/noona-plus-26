@@ -220,8 +220,42 @@ AMOUNT_DUE      AMT              | المبلغ المستحق شاملاً ال
 TENANT_ID       ID   >PLT_TENANT | المؤسسة المنشأة
 DECIDED_BY      USR              | قرار مسؤول المنصة
 DECISION_NOTE   V1000            | ملاحظة القرار
+INVOICE_REF     V100             | رقم فاتورة الاشتراك
 ''', ix=[('EMAIL',), ('MOBILE',), ('STATUS_CODE',)], area='catalog',
       purpose='تسجيل العميل بنفسه: التحقق بالرمز، المؤسسة، الأنظمة والخطة، ثم التجهيز الآلي؛ والدفع بالتحويل يعتمده مسؤول المنصة')
+
+table('PLT_SUB_REQUEST', 'طلبات تعديل الاشتراك', 'Subscription Change Requests', scope='G', mix='status',
+      status='PENDING APPROVED REJECTED CANCELLED', cols='''
+TENANT_ID       ID   NN >PLT_TENANT | المؤسسة
+OFFERINGS       V400 NN          | الأنظمة المطلوبة (كامل المجموعة بعد التعديل)
+USER_COUNT      INT  NN          | عدد المستخدمين
+PLAN_CODE       CODE NN          | الخطة
+QUOTE           JSON             | تفاصيل السعر
+AMOUNT_DUE      AMT              | المستحق شاملاً الضريبة
+PAYMENT_REF     V200             | مرجع التحويل
+REQUESTED_BY    USR  NN          | مقدم الطلب
+DECIDED_BY      USR              | المعتمد
+DECISION_NOTE   V1000            | ملاحظة القرار
+INVOICE_REF     V100             | رقم فاتورة الاشتراك
+''', ix=[('TENANT_ID', 'STATUS_CODE')], area='contracts',
+      purpose='العميل يطلب من «اشتراكي» إضافة أنظمة أو مستخدمين أو التجديد أو الترقية؛ يطبق عند تأكيد مسؤول المنصة للتحويل')
+
+table('PLT_PASSWORD_RESET', 'طلبات استعادة كلمة المرور', 'Password Reset Requests', scope='G', cols='''
+USER_ID         ID   NN >SEC_USER | المستخدم
+TOKEN_HASH      HASH NN U        | بصمة رمز الجلسة
+CODE_HASH       HASH NN          | بصمة الرمز
+EXPIRES_AT      TS   NN          | الانتهاء
+ATTEMPTS        INT  NN D=0      | المحاولات الخاطئة
+USED_AT         TS               | وقت الاستخدام
+IP_ADDRESS      V64              | عنوان IP
+''', ix=[('USER_ID',)], area='security', purpose='رمز يرسل للبريد، صالح 15 دقيقة، 5 محاولات، ويستخدم مرة واحدة')
+
+table('PLT_NOTICE_LOG', 'سجل تنبيهات الاشتراك', 'Subscription Notice Log', scope='G', cols='''
+TENANT_ID       ID   NN >PLT_TENANT | المؤسسة
+NOTICE_CODE     CODE NN          | التنبيه
+REF_DATE        DATE NN          | التاريخ المرجعي (نهاية الاشتراك)
+SENT_TO         V1000            | المرسل إليهم
+''', uk=[('TENANT_ID', 'NOTICE_CODE', 'REF_DATE')], area='contracts', purpose='لا يتكرر التنبيه نفسه لنفس الفترة')
 
 table('PLT_PLAN_VERSION', 'إصدارات الباقة', 'Plan Versions', scope='G', mix='eff status', status='DRAFT PUBLISHED RETIRED', cols='''
 PLAN_ID         ID   NN >PLT_PLAN | الباقة

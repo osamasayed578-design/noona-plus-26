@@ -56,6 +56,7 @@ app.nav_item('تغيير كلمة المرور', 10, 'fa-key', 20)
 # =============================================================== 20) التسجيل الذاتي (صفحة عامة)
 import signup_pages
 signup_pages.add(app)
+signup_pages.add_reset(app)
 
 app.finalize()
 signup_pages.login_link(os.path.join(ROOT, 'apex/NOONA_MASTER/f115'))

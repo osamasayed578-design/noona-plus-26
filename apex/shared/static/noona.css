@@ -2355,3 +2355,4 @@ html[data-theme="dark"] .nn-kpi-value, html[data-theme="dark"] .nn-anl-kpi-val, 
 .t-PageBody--noNav .t-Body-content { max-width: 960px; margin: 0 auto; }
 @media (prefers-color-scheme: dark) { .nn-sgn-demo { background: #3a2a05; color: #fcd34d; } .nn-sgn-bank { background: #0b2533; border-color: #155e75; } }
 .page-20 .t-NavigationBar-item:has(.fa-user), .page-20 .t-NavigationBar-item:has(.t-Button--navBar[title*="nobody"]) { display: none; }
+.page-21 .t-NavigationBar-item:has(.fa-user) { display: none; }

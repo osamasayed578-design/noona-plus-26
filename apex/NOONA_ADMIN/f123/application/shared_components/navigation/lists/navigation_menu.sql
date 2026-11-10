@@ -317,6 +317,15 @@ wwv_flow_imp_shared.create_list_item(
 ,p_security_scheme=>wwv_flow_imp.id(91820262000000009)
 ,p_list_item_current_type=>'TARGET_PAGE'
 );
+wwv_flow_imp_shared.create_list_item(
+ p_id=>wwv_flow_imp.id(91820262000000885)
+,p_list_item_display_sequence=>16
+,p_list_item_link_text=>'اشتراكي'
+,p_list_item_link_target=>'f?p=&APP_ID.:91:&APP_SESSION.::&DEBUG.:91::'
+,p_list_item_icon=>'fa-credit-card'
+,p_security_scheme=>wwv_flow_imp.id(17758617306442989)
+,p_list_item_current_type=>'TARGET_PAGE'
+);
 wwv_flow_imp.component_end;
 end;
 /

@@ -278,6 +278,21 @@ p.select('P9_STATUS', f, 30, 'عرض', lov_sql=(
     'STATIC2:بانتظار تأكيد التحويل;PAYMENT_PENDING,تجربة فعالة;PROVISIONED,مدفوع;PAID,غير مكتمل;STARTED,مرفوض;REJECTED'),
     null_text='الكل', submit=True)
 p.dynamic('الطلبات', 20, 'return noona_signup_pkg.signups_html(:P9_STATUS);')
+q = p.static('طلبات «اشتراكي» من المؤسسات (تجديد، ترقية، إضافة أنظمة أو مستخدمين)', 30, text=(
+    '<p class="nn-hint">عند التأكيد: تفعل الأنظمة المطلوبة وحد المستخدمين، ويجدد الاشتراك (أو يبدأ بالخطة الجديدة من اليوم)، '
+    'وتصدر فاتورة مبيعات في مؤسستك (BILLING.SELLER_USERNAME) وترسل للعميل بالبريد.</p>'))
+p.select('P9_REQ', q, 10, 'الطلب', lov_sql=(
+    "select '#' || r.id || ' ' || t.name_ar || ' - ' || r.plan_code || ' - ' || to_char(r.amount_due, 'FM999,999,990.00') || ' ريال'"
+    " || nvl2(r.payment_ref, ' (' || r.payment_ref || ')', '') d, r.id r from plt_sub_request r join plt_tenant t on t.id = r.tenant_id"
+    " where r.status_code = 'PENDING' order by r.id"))
+p.text('P9_RNOTE', q, 20, 'ملاحظة (إلزامية للرفض)', maxlen=400)
+b_rok = p.button(q, 10, 'CONFIRM_REQ', 'تأكيد التحويل وتنفيذ الطلب', hot=True)
+b_rno = p.button(q, 20, 'REJECT_REQ', 'رفض الطلب')
+p.process(30, 'AFTER_SUBMIT', 'Confirm request', 'noona_account_pkg.confirm_request(to_number(:P9_REQ), :P9_RNOTE); :P9_REQ := null; :P9_RNOTE := null;',
+          when_button=b_rok, success='نفذ الطلب وأصدرت الفاتورة')
+p.process(40, 'AFTER_SUBMIT', 'Reject request', 'noona_account_pkg.reject_request(to_number(:P9_REQ), :P9_RNOTE); :P9_REQ := null; :P9_RNOTE := null;',
+          when_button=b_rno, success='رفض الطلب')
+p.dynamic('طلبات المؤسسات', 35, "return noona_account_pkg.requests_html(null);", hide_header=True)
 
 # =============================================================== 10) الأسعار وإعدادات التسجيل
 p = app.page(10, 'Pricing', 'PRICING', 'الأسعار وإعدادات التسجيل', scheme=PLATFORM)
@@ -301,12 +316,15 @@ g = p.static('إعدادات التسجيل', 30, text=(
     '<p class="nn-hint">وضع الرموز DEMO يعرض رمز التحقق على الشاشة (للتجربة المحلية)، وEMAIL يرسله بالبريد عبر APEX '
     '(يتطلب ضبط SMTP في APEX). رسائل الجوال تحتاج ربط مزود رسائل.</p>'))
 p.select('P10_KEY', g, 10, 'الإعداد', lov_sql=(
-    "select name_ar || ': ' || substr(default_value, 1, 60) d, setting_key r from plt_setting_def where setting_key like 'SIGNUP.%' order by setting_key"),
+    "select name_ar || ': ' || substr(default_value, 1, 60) d, setting_key r from plt_setting_def"
+    " where (setting_key like 'SIGNUP.%' or setting_key like 'MAIL.%' or setting_key like 'PLATFORM.%' or setting_key like 'BILLING.%')"
+    " order by setting_key"),
     submit=True)
 p.textarea('P10_VALUE', g, 20, 'القيمة', rows=2)
 b_st = p.button(g, 10, 'SAVE_SET', 'حفظ الإعداد')
 p.process(5, 'BEFORE_HEADER', 'Load setting', ':P10_VALUE := noona_signup_pkg.setting(:P10_KEY);', when=':P10_KEY is not null')
 p.process(30, 'AFTER_SUBMIT', 'Setting', 'noona_signup_pkg.save_setting(:P10_KEY, :P10_VALUE);', when_button=b_st, success='حفظ الإعداد')
+p.dynamic('بريد النظام', 35, 'return noona_mail_pkg.status_html;')
 p.dynamic('الأنظمة كما يراها العميل', 40, 'return noona_signup_pkg.offerings_html;')
 p.dynamic('مثال تسعير: المالية والمخزون، 5 مستخدمين، سنوي', 50, "return noona_signup_pkg.quote_html('FIN:SCM', 5, 'ANNUAL');")
 

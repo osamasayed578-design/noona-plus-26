@@ -1,6 +1,6 @@
 # ERD — الحزمة 01: نواة المنصة والمؤسسات والترخيص
 
-**Platform Core, Tenancy, Licensing & Companies** · الحزمة البرمجية `NOONA_PLATFORM_PKG` · عدد الجداول: **67**
+**Platform Core, Tenancy, Licensing & Companies** · الحزمة البرمجية `NOONA_PLATFORM_PKG` · عدد الجداول: **70**
 
 Control Plane للمنصة: دليل المؤسسات والخلايا الإقليمية ودورة حياة Tenant والإعدادات الهرمية وكتالوج المنتجات والباقات والعقود والاشتراكات والاستحقاقات والفوترة والتحصيل وترخيص On-Premises، إضافة إلى الهيكل القانوني Tenant → Business Group → Company → Branch → Business Site.
 
@@ -143,6 +143,22 @@ erDiagram
     VARCHAR2 CURRENCY_CODE FK
     NUMBER TENANT_ID FK
     VARCHAR2 STATUS_CODE
+  }
+  PLT_SUB_REQUEST {
+    NUMBER ID PK
+    NUMBER TENANT_ID FK
+    VARCHAR2 STATUS_CODE
+  }
+  PLT_PASSWORD_RESET {
+    NUMBER ID PK
+    NUMBER USER_ID FK
+    VARCHAR2 TOKEN_HASH UK
+  }
+  PLT_NOTICE_LOG {
+    NUMBER ID PK
+    NUMBER TENANT_ID FK,UK
+    VARCHAR2 NOTICE_CODE UK
+    DATE REF_DATE UK
   }
   PLT_PLAN_VERSION {
     NUMBER ID PK
@@ -691,6 +707,7 @@ erDiagram
   REF_LANGUAGE ||--o{ PLT_TENANT : "DEFAULT_LANGUAGE"
   REF_PAYMENT_TERM |o--o{ ORG_INTERCOMPANY_RULE : "PAYMENT_TERM_ID"
   SEC_USER |o--o{ PLT_SETTING_VALUE : "USER_ID"
+  SEC_USER ||--o{ PLT_PASSWORD_RESET : "USER_ID"
   SEC_USER ||--o{ PLT_SUPPORT_ACCESS : "SUPPORT_USER_ID"
   SEC_USER_MEMBERSHIP |o--o{ PLT_SUPPORT_ACCESS : "APPROVED_BY_MEMBER_ID"
   WF_INSTANCE |o--o{ ORG_LEGAL_EVENT : "WF_INSTANCE_ID"
@@ -722,6 +739,9 @@ erDiagram
 | `PLT_PLAN` | الباقات | Plans | G |
 | `PLT_OFFERING` | أنظمة الاشتراك وأسعارها | Subscription Offerings | G |
 | `PLT_SIGNUP` | طلبات التسجيل الذاتي | Self-Service Signups | G |
+| `PLT_SUB_REQUEST` | طلبات تعديل الاشتراك | Subscription Change Requests | G |
+| `PLT_PASSWORD_RESET` | طلبات استعادة كلمة المرور | Password Reset Requests | G |
+| `PLT_NOTICE_LOG` | سجل تنبيهات الاشتراك | Subscription Notice Log | G |
 | `PLT_PLAN_VERSION` | إصدارات الباقة | Plan Versions | G |
 | `PLT_PLAN_MODULE` | وحدات إصدار الباقة | Plan Version Modules | G |
 | `PLT_PLAN_LIMIT` | حدود إصدار الباقة | Plan Version Limits | G |

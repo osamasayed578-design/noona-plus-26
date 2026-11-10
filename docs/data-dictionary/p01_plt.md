@@ -29,6 +29,9 @@ Control Plane للمنصة: دليل المؤسسات والخلايا الإق�
 | [`PLT_PLAN`](#plt_plan) | الباقات | Plans | G | INTERNAL |
 | [`PLT_OFFERING`](#plt_offering) | أنظمة الاشتراك وأسعارها | Subscription Offerings | G | INTERNAL |
 | [`PLT_SIGNUP`](#plt_signup) | طلبات التسجيل الذاتي | Self-Service Signups | G | INTERNAL |
+| [`PLT_SUB_REQUEST`](#plt_sub_request) | طلبات تعديل الاشتراك | Subscription Change Requests | G | INTERNAL |
+| [`PLT_PASSWORD_RESET`](#plt_password_reset) | طلبات استعادة كلمة المرور | Password Reset Requests | G | INTERNAL |
+| [`PLT_NOTICE_LOG`](#plt_notice_log) | سجل تنبيهات الاشتراك | Subscription Notice Log | G | INTERNAL |
 | [`PLT_PLAN_VERSION`](#plt_plan_version) | إصدارات الباقة | Plan Versions | G | INTERNAL |
 | [`PLT_PLAN_MODULE`](#plt_plan_module) | وحدات إصدار الباقة | Plan Version Modules | G | INTERNAL |
 | [`PLT_PLAN_LIMIT`](#plt_plan_limit) | حدود إصدار الباقة | Plan Version Limits | G | INTERNAL |
@@ -728,12 +731,101 @@ Control Plane للمنصة: دليل المؤسسات والخلايا الإق�
 | 34 | `TENANT_ID` | معرف | `NUMBER(19)` |  |  | FK→PLT_TENANT |  | إدخال المستخدم |  | المؤسسة المنشأة |
 | 35 | `DECIDED_BY` | اسم مستخدم | `VARCHAR2(128 CHAR)` |  |  |  |  | إدخال المستخدم |  | قرار مسؤول المنصة |
 | 36 | `DECISION_NOTE` | نص | `VARCHAR2(1000 CHAR)` |  |  |  |  | إدخال المستخدم |  | ملاحظة القرار |
-| 37 | `STATUS_CODE` | رمز | `VARCHAR2(30 CHAR)` | ✔ | 'STARTED' |  | STARTED, VERIFIED, DETAILS, PROVISIONED, PAYMENT_PENDING, PAID, REJECTED, EXPIRED | النظام/الحزمة |  | الحالة ضمن دورة الحياة المعتمدة |
-| 38 | `ROW_VERSION` | عدد صحيح | `NUMBER(10)` | ✔ | 1 |  |  | Trigger |  | رقم الإصدار للتحكم في التزامن المتفائل |
-| 39 | `CREATED_BY` | اسم مستخدم | `VARCHAR2(128 CHAR)` | ✔ |  |  |  | Trigger |  | منشئ السجل |
-| 40 | `CREATED_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` | ✔ | SYSTIMESTAMP |  |  | Trigger |  | وقت الإنشاء |
-| 41 | `UPDATED_BY` | اسم مستخدم | `VARCHAR2(128 CHAR)` |  |  |  |  | Trigger |  | آخر من عدل السجل |
-| 42 | `UPDATED_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` |  |  |  |  | Trigger |  | وقت آخر تعديل |
+| 37 | `INVOICE_REF` | نص | `VARCHAR2(100 CHAR)` |  |  |  |  | إدخال المستخدم |  | رقم فاتورة الاشتراك |
+| 38 | `STATUS_CODE` | رمز | `VARCHAR2(30 CHAR)` | ✔ | 'STARTED' |  | STARTED, VERIFIED, DETAILS, PROVISIONED, PAYMENT_PENDING, PAID, REJECTED, EXPIRED | النظام/الحزمة |  | الحالة ضمن دورة الحياة المعتمدة |
+| 39 | `ROW_VERSION` | عدد صحيح | `NUMBER(10)` | ✔ | 1 |  |  | Trigger |  | رقم الإصدار للتحكم في التزامن المتفائل |
+| 40 | `CREATED_BY` | اسم مستخدم | `VARCHAR2(128 CHAR)` | ✔ |  |  |  | Trigger |  | منشئ السجل |
+| 41 | `CREATED_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` | ✔ | SYSTIMESTAMP |  |  | Trigger |  | وقت الإنشاء |
+| 42 | `UPDATED_BY` | اسم مستخدم | `VARCHAR2(128 CHAR)` |  |  |  |  | Trigger |  | آخر من عدل السجل |
+| 43 | `UPDATED_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` |  |  |  |  | Trigger |  | وقت آخر تعديل |
+
+## PLT_SUB_REQUEST
+
+| البند | القيمة |
+|---|---|
+| الاسم العربي | طلبات تعديل الاشتراك |
+| English | Subscription Change Requests |
+| الحزمة المالكة | 01 — `NOONA_PLATFORM_PKG` |
+| نطاق الملكية | `G` — منصة عامة Platform Global (بدون TENANT_ID) |
+| الحساسية | INTERNAL |
+| النمط | قابل للتعديل وفق دورة الحياة |
+| الغرض | العميل يطلب من «اشتراكي» إضافة أنظمة أو مستخدمين أو التجديد أو الترقية؛ يطبق عند تأكيد مسؤول المنصة للتحويل |
+
+| # | العمود | النوع المنطقي | Oracle Type | إلزامي | افتراضي | مفاتيح | القيم المقبولة | المصدر | PII | الوصف |
+|---:|---|---|---|:---:|---|---|---|---|:---:|---|
+| 1 | `ID` | معرف | `NUMBER(19)` | ✔ |  | PK |  | النظام/الحزمة |  | المفتاح الداخلي الثابت (Identity) - لا يعاد استخدامه |
+| 2 | `TENANT_ID` | معرف | `NUMBER(19)` | ✔ |  | FK→PLT_TENANT |  | إدخال المستخدم |  | المؤسسة |
+| 3 | `OFFERINGS` | نص | `VARCHAR2(400 CHAR)` | ✔ |  |  |  | إدخال المستخدم |  | الأنظمة المطلوبة (كامل المجموعة بعد التعديل) |
+| 4 | `USER_COUNT` | عدد صحيح | `NUMBER(10)` | ✔ |  |  |  | إدخال المستخدم |  | عدد المستخدمين |
+| 5 | `PLAN_CODE` | رمز | `VARCHAR2(30 CHAR)` | ✔ |  |  |  | إدخال المستخدم |  | الخطة |
+| 6 | `QUOTE` | JSON | `CLOB` |  |  |  | JSON صالح | إدخال المستخدم |  | تفاصيل السعر |
+| 7 | `AMOUNT_DUE` | مبلغ | `NUMBER(24,6)` |  |  |  |  | إدخال المستخدم |  | المستحق شاملاً الضريبة |
+| 8 | `PAYMENT_REF` | نص | `VARCHAR2(200 CHAR)` |  |  |  |  | إدخال المستخدم |  | مرجع التحويل |
+| 9 | `REQUESTED_BY` | اسم مستخدم | `VARCHAR2(128 CHAR)` | ✔ |  |  |  | إدخال المستخدم |  | مقدم الطلب |
+| 10 | `DECIDED_BY` | اسم مستخدم | `VARCHAR2(128 CHAR)` |  |  |  |  | إدخال المستخدم |  | المعتمد |
+| 11 | `DECISION_NOTE` | نص | `VARCHAR2(1000 CHAR)` |  |  |  |  | إدخال المستخدم |  | ملاحظة القرار |
+| 12 | `INVOICE_REF` | نص | `VARCHAR2(100 CHAR)` |  |  |  |  | إدخال المستخدم |  | رقم فاتورة الاشتراك |
+| 13 | `STATUS_CODE` | رمز | `VARCHAR2(30 CHAR)` | ✔ | 'PENDING' |  | PENDING, APPROVED, REJECTED, CANCELLED | النظام/الحزمة |  | الحالة ضمن دورة الحياة المعتمدة |
+| 14 | `ROW_VERSION` | عدد صحيح | `NUMBER(10)` | ✔ | 1 |  |  | Trigger |  | رقم الإصدار للتحكم في التزامن المتفائل |
+| 15 | `CREATED_BY` | اسم مستخدم | `VARCHAR2(128 CHAR)` | ✔ |  |  |  | Trigger |  | منشئ السجل |
+| 16 | `CREATED_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` | ✔ | SYSTIMESTAMP |  |  | Trigger |  | وقت الإنشاء |
+| 17 | `UPDATED_BY` | اسم مستخدم | `VARCHAR2(128 CHAR)` |  |  |  |  | Trigger |  | آخر من عدل السجل |
+| 18 | `UPDATED_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` |  |  |  |  | Trigger |  | وقت آخر تعديل |
+
+## PLT_PASSWORD_RESET
+
+| البند | القيمة |
+|---|---|
+| الاسم العربي | طلبات استعادة كلمة المرور |
+| English | Password Reset Requests |
+| الحزمة المالكة | 01 — `NOONA_PLATFORM_PKG` |
+| نطاق الملكية | `G` — منصة عامة Platform Global (بدون TENANT_ID) |
+| الحساسية | INTERNAL |
+| النمط | قابل للتعديل وفق دورة الحياة |
+| الغرض | رمز يرسل للبريد، صالح 15 دقيقة، 5 محاولات، ويستخدم مرة واحدة |
+| مفاتيح فريدة | UK1: (TOKEN_HASH) |
+
+| # | العمود | النوع المنطقي | Oracle Type | إلزامي | افتراضي | مفاتيح | القيم المقبولة | المصدر | PII | الوصف |
+|---:|---|---|---|:---:|---|---|---|---|:---:|---|
+| 1 | `ID` | معرف | `NUMBER(19)` | ✔ |  | PK |  | النظام/الحزمة |  | المفتاح الداخلي الثابت (Identity) - لا يعاد استخدامه |
+| 2 | `USER_ID` | معرف | `NUMBER(19)` | ✔ |  | FK→SEC_USER |  | إدخال المستخدم |  | المستخدم |
+| 3 | `TOKEN_HASH` | Hash | `VARCHAR2(128 CHAR)` | ✔ |  | UK1 |  | إدخال المستخدم |  | بصمة رمز الجلسة |
+| 4 | `CODE_HASH` | Hash | `VARCHAR2(128 CHAR)` | ✔ |  |  |  | إدخال المستخدم |  | بصمة الرمز |
+| 5 | `EXPIRES_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` | ✔ |  |  |  | إدخال المستخدم |  | الانتهاء |
+| 6 | `ATTEMPTS` | عدد صحيح | `NUMBER(10)` | ✔ | 0 |  |  | إدخال المستخدم |  | المحاولات الخاطئة |
+| 7 | `USED_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` |  |  |  |  | إدخال المستخدم |  | وقت الاستخدام |
+| 8 | `IP_ADDRESS` | نص | `VARCHAR2(64 CHAR)` |  |  |  |  | إدخال المستخدم |  | عنوان IP |
+| 9 | `ROW_VERSION` | عدد صحيح | `NUMBER(10)` | ✔ | 1 |  |  | Trigger |  | رقم الإصدار للتحكم في التزامن المتفائل |
+| 10 | `CREATED_BY` | اسم مستخدم | `VARCHAR2(128 CHAR)` | ✔ |  |  |  | Trigger |  | منشئ السجل |
+| 11 | `CREATED_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` | ✔ | SYSTIMESTAMP |  |  | Trigger |  | وقت الإنشاء |
+| 12 | `UPDATED_BY` | اسم مستخدم | `VARCHAR2(128 CHAR)` |  |  |  |  | Trigger |  | آخر من عدل السجل |
+| 13 | `UPDATED_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` |  |  |  |  | Trigger |  | وقت آخر تعديل |
+
+## PLT_NOTICE_LOG
+
+| البند | القيمة |
+|---|---|
+| الاسم العربي | سجل تنبيهات الاشتراك |
+| English | Subscription Notice Log |
+| الحزمة المالكة | 01 — `NOONA_PLATFORM_PKG` |
+| نطاق الملكية | `G` — منصة عامة Platform Global (بدون TENANT_ID) |
+| الحساسية | INTERNAL |
+| النمط | قابل للتعديل وفق دورة الحياة |
+| الغرض | لا يتكرر التنبيه نفسه لنفس الفترة |
+| مفاتيح فريدة | UK1: (TENANT_ID, NOTICE_CODE, REF_DATE) |
+
+| # | العمود | النوع المنطقي | Oracle Type | إلزامي | افتراضي | مفاتيح | القيم المقبولة | المصدر | PII | الوصف |
+|---:|---|---|---|:---:|---|---|---|---|:---:|---|
+| 1 | `ID` | معرف | `NUMBER(19)` | ✔ |  | PK |  | النظام/الحزمة |  | المفتاح الداخلي الثابت (Identity) - لا يعاد استخدامه |
+| 2 | `TENANT_ID` | معرف | `NUMBER(19)` | ✔ |  | FK→PLT_TENANT UK1 |  | إدخال المستخدم |  | المؤسسة |
+| 3 | `NOTICE_CODE` | رمز | `VARCHAR2(30 CHAR)` | ✔ |  | UK1 |  | إدخال المستخدم |  | التنبيه |
+| 4 | `REF_DATE` | تاريخ | `DATE` | ✔ |  | UK1 |  | إدخال المستخدم |  | التاريخ المرجعي (نهاية الاشتراك) |
+| 5 | `SENT_TO` | نص | `VARCHAR2(1000 CHAR)` |  |  |  |  | إدخال المستخدم |  | المرسل إليهم |
+| 6 | `ROW_VERSION` | عدد صحيح | `NUMBER(10)` | ✔ | 1 |  |  | Trigger |  | رقم الإصدار للتحكم في التزامن المتفائل |
+| 7 | `CREATED_BY` | اسم مستخدم | `VARCHAR2(128 CHAR)` | ✔ |  |  |  | Trigger |  | منشئ السجل |
+| 8 | `CREATED_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` | ✔ | SYSTIMESTAMP |  |  | Trigger |  | وقت الإنشاء |
+| 9 | `UPDATED_BY` | اسم مستخدم | `VARCHAR2(128 CHAR)` |  |  |  |  | Trigger |  | آخر من عدل السجل |
+| 10 | `UPDATED_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` |  |  |  |  | Trigger |  | وقت آخر تعديل |
 
 ## PLT_PLAN_VERSION
 
