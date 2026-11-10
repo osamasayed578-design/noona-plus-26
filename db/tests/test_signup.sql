@@ -97,6 +97,7 @@ BEGIN
   l_s := NOONA_SIGNUP_PKG.finish(l_tok);
   ok('finish returns the username', l_s = UPPER('sg' || l_sfx), l_s);
   ok('step 5 (done)', NOONA_SIGNUP_PKG.step(l_tok) = 5);
+  COMMIT;   -- التجهيز نهائي (يتراجع الاختبار عن الاستيراد التجريبي فقط)
   SELECT tenant_id INTO l_ten FROM plt_signup WHERE username = UPPER('sg' || l_sfx);
   SELECT COUNT(*) INTO l_n FROM plt_tenant WHERE id = l_ten AND status_code = 'TRIAL';
   ok('tenant created in trial', l_n = 1);
@@ -115,6 +116,11 @@ BEGIN
   ok('CR and VAT registered', l_n = 2, l_n);
   SELECT COUNT(*) INTO l_n FROM sec_user WHERE username = UPPER('sg' || l_sfx) AND mobile = l_mob;
   ok('admin user with mobile', l_n = 1);
+  ok('company set up for the chosen systems (ledger, cash, sales)', NOONA_GL_PKG.primary_ledger IS NOT NULL AND NOONA_CSH_PKG.is_ready = 'Y'
+     AND NOONA_SAL_PKG.is_ready = 'Y', NOONA_GL_PKG.primary_ledger || ' ' || NOONA_CSH_PKG.is_ready || ' ' || NOONA_SAL_PKG.is_ready);
+  l_n := NOONA_CONN_PKG.import_csv('CUSTOMERS', 'c.csv', 'name,phone' || CHR(10) || 'عميل أول ' || l_sfx || ',0550000001');
+  SELECT ok_rows INTO l_n FROM api_import_job WHERE id = l_n;
+  ok('new organisation can import customers right away', l_n = 1, l_n);
   NOONA_APEX_PKG.logout;
   COMMIT;   -- التحقق من كلمة المرور معاملة مستقلة لا ترى غير المحفوظ
   l_s := NOONA_APEX_PKG.check_password('sg' || l_sfx, l_pwd);

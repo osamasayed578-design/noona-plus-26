@@ -22,6 +22,12 @@ def add(app, scheme, nav_seq):
         "اتبع الخطوات بالترتيب: البيانات الأساسية أولاً ثم الأرصدة الافتتاحية في تاريخ بدء العمل على النظام. "
         "كل ملف أرصدة يرحل كاملاً أو لا يرحل منه شيء، فصحح الأخطاء الظاهرة وأعد رفعه. "
         "لتغيير الشركة استخدم مبدل الشركة أعلى الشاشة.</div>';"], hide_header=True)
+    st = p.static('تجهيز الأنظمة', 8, condition='noona_gl_pkg.primary_ledger is null', text=(
+        '<p class="nn-hint">الشركة لم تجهز بعد: يجهز هذا الزر دليل الحسابات القياسي والسنة المالية والنقدية والمخزون والمبيعات '
+        'والمشتريات وباقي الأنظمة المشترك فيها، ثم تبدأ الاستيراد.</p>'))
+    b_setup = p.button(st, 10, 'SETUP', 'تجهيز الأنظمة', hot=True)
+    p.process(3, 'AFTER_SUBMIT', 'Setup', "apex_application.g_print_success_message := 'جهز: ' || noona_account_pkg.setup_company;",
+              when_button=b_setup)
     p.dynamic('خطوات بدء التشغيل', 10, [
         "return noona_conn_pkg.onboarding_html('f?p=' || :APP_ID || ':90:' || :APP_SESSION || '::NO::P90_TYPE:#TYPE#');"])
 

@@ -309,7 +309,7 @@ wwv_flow_imp_shared.create_list_item(
 ,p_list_item_current_type=>'TARGET_PAGE'
 );
 wwv_flow_imp_shared.create_list_item(
- p_id=>wwv_flow_imp.id(91820262000000867)
+ p_id=>wwv_flow_imp.id(91820262000000870)
 ,p_list_item_display_sequence=>15
 ,p_list_item_link_text=>'بدء التشغيل ونقل البيانات'
 ,p_list_item_link_target=>'f?p=&APP_ID.:90:&APP_SESSION.::&DEBUG.:90::'
@@ -318,7 +318,7 @@ wwv_flow_imp_shared.create_list_item(
 ,p_list_item_current_type=>'TARGET_PAGE'
 );
 wwv_flow_imp_shared.create_list_item(
- p_id=>wwv_flow_imp.id(91820262000000885)
+ p_id=>wwv_flow_imp.id(91820262000000888)
 ,p_list_item_display_sequence=>16
 ,p_list_item_link_text=>'اشتراكي'
 ,p_list_item_link_target=>'f?p=&APP_ID.:91:&APP_SESSION.::&DEBUG.:91::'
