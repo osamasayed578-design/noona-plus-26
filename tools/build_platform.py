@@ -301,7 +301,7 @@ p.select('P10_OFF', f, 10, 'النظام', lov_sql=(
     "select name_ar || ' - ' || to_char(monthly_price, 'FM999,990') || ' ريال' || case when is_active = 'N' then ' (موقوف)' end d, code r"
     " from plt_offering order by sort_order"))
 p.number('P10_PRICE', f, 20, 'السعر الشهري الجديد')
-p.yesno('P10_ACTIVE', f, 30, 'متاح للتسجيل')
+p.select('P10_ACTIVE', f, 30, 'الحالة', lov_sql='STATIC2:متاح للتسجيل;Y,موقوف;N', null_text=None)
 b_pr = p.button(f, 10, 'SAVE_PRICE', 'حفظ السعر', hot=True)
 p.process(10, 'AFTER_SUBMIT', 'Price', "noona_signup_pkg.save_offering(:P10_OFF, to_number(:P10_PRICE), nvl(:P10_ACTIVE, 'Y'));",
           when_button=b_pr, success='حفظ السعر')

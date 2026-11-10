@@ -71,9 +71,9 @@ wwv_flow_imp_page.create_page_item(
 ,p_name=>'P10_ACTIVE'
 ,p_item_sequence=>30
 ,p_item_plug_id=>wwv_flow_imp.id(91820265000000237)
-,p_prompt=>'متاح للتسجيل'
+,p_prompt=>'الحالة'
 ,p_display_as=>'NATIVE_SELECT_LIST'
-,p_lov=>'STATIC2:لا;N,نعم;Y'
+,p_lov=>'STATIC2:متاح للتسجيل;Y,موقوف;N'
 ,p_cHeight=>1
 ,p_lov_display_extra=>'NO'
 ,p_field_template=>1609121967514267634
