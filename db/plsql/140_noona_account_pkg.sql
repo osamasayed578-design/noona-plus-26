@@ -17,6 +17,9 @@ CREATE OR REPLACE PACKAGE NOONA_ACCOUNT_PKG AUTHID DEFINER AS
 
   -- ---------------------------------------------------------- اشتراكي (مسؤول المؤسسة)
   FUNCTION tenant RETURN NUMBER;
+  -- تجهيز الشركة الحالية للأنظمة المشترك فيها (الأستاذ العام ودليله والسنة المالية، النقدية، المخزون، المشتريات، المبيعات،
+  -- نقاط البيع، الرواتب، الأصول، التصنيع، الأرشيف)؛ آمن لإعادة التشغيل، ويعيد ملخصاً بما جهز
+  FUNCTION setup_company RETURN VARCHAR2;
   FUNCTION tenant_offerings(p_tenant_id IN NUMBER DEFAULT NULL) RETURN VARCHAR2;
   FUNCTION user_limit(p_tenant_id IN NUMBER DEFAULT NULL) RETURN NUMBER;
   FUNCTION my_subscription_html RETURN CLOB;
@@ -144,6 +147,43 @@ CREATE OR REPLACE PACKAGE BODY NOONA_ACCOUNT_PKG AS
   END complete_reset;
 
   -- ================================================================ اشتراكي
+  PROCEDURE assert_tenant_admin IS
+  BEGIN
+    NOONA_CORE_PKG.assert(tenant IS NOT NULL AND NOONA_APEX_PKG.is_tenant_admin = 'Y', 'NOONA-ACC-020',
+                          'إدارة الاشتراك لمسؤول المؤسسة فقط', 'Only the organisation administrator manages the subscription');
+  END assert_tenant_admin;
+
+  FUNCTION setup_company RETURN VARCHAR2 IS
+    l_out VARCHAR2(4000);
+    l_x   NUMBER;
+    PROCEDURE run(p_label VARCHAR2, p_module VARCHAR2, p_sql VARCHAR2) IS
+    BEGIN
+      IF p_module IS NOT NULL AND NOONA_PLATFORM_PKG.module_enabled(p_module) = 'N' THEN RETURN; END IF;
+      SAVEPOINT setup_step;
+      EXECUTE IMMEDIATE 'DECLARE n NUMBER; BEGIN n := ' || p_sql || '; END;';
+      l_out := l_out || CASE WHEN l_out IS NOT NULL THEN '، ' END || p_label;
+    EXCEPTION WHEN OTHERS THEN
+      ROLLBACK TO setup_step;
+      l_out := l_out || CASE WHEN l_out IS NOT NULL THEN '، ' END || p_label || ' (تعذر: ' || SUBSTR(REGEXP_SUBSTR(SQLERRM, 'NOONA-[A-Z]+-[0-9]+: [^' || CHR(10) || ']+'), 1, 120) || ')';
+    END run;
+  BEGIN
+    assert_tenant_admin;
+    NOONA_CORE_PKG.assert(SYS_CONTEXT('NOONA_CTX', 'COMPANY_ID') IS NOT NULL, 'NOONA-ACC-040', 'اختر الشركة أولاً', 'Choose a company first');
+    IF NOONA_GL_PKG.primary_ledger IS NULL THEN
+      run('الأستاذ العام ودليل الحسابات والسنة المالية', 'GL', 'NOONA_GL_PKG.quick_setup(NULL, ''OWN'')');
+    END IF;
+    run('النقدية والبنوك', 'CSH', 'NOONA_CSH_PKG.quick_setup');
+    run('المخزون', 'INV', 'NOONA_INV_PKG.quick_setup');
+    run('المشتريات', 'PUR', 'NOONA_PUR_PKG.quick_setup');
+    run('المبيعات', 'SAL', 'NOONA_SAL_PKG.quick_setup');
+    run('نقاط البيع', 'SAL', 'NOONA_POS_PKG.quick_setup');
+    run('الرواتب', 'PAY', 'NOONA_PAY_PKG.quick_setup');
+    run('الأصول الثابتة', 'FA', 'NOONA_FA_PKG.quick_setup');
+    run('التصنيع', 'MFG', 'NOONA_MFG_PKG.quick_setup');
+    run('الأرشيف', NULL, 'NOONA_DMS_PKG.quick_setup');
+    RETURN NVL(l_out, 'لا يوجد ما يجهز');
+  END setup_company;
+
   FUNCTION tenant_offerings(p_tenant_id IN NUMBER DEFAULT NULL) RETURN VARCHAR2 IS
     l_t   NUMBER := NVL(p_tenant_id, tenant);
     l_out VARCHAR2(4000);
@@ -183,11 +223,6 @@ CREATE OR REPLACE PACKAGE BODY NOONA_ACCOUNT_PKG AS
     RAISE;
   END user_limit;
 
-  PROCEDURE assert_tenant_admin IS
-  BEGIN
-    NOONA_CORE_PKG.assert(tenant IS NOT NULL AND NOONA_APEX_PKG.is_tenant_admin = 'Y', 'NOONA-ACC-020',
-                          'إدارة الاشتراك لمسؤول المؤسسة فقط', 'Only the organisation administrator manages the subscription');
-  END assert_tenant_admin;
 
   FUNCTION my_subscription_html RETURN CLOB IS
     l_h    CLOB;

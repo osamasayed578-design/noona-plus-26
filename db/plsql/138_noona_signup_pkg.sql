@@ -413,7 +413,7 @@ CREATE OR REPLACE PACKAGE BODY NOONA_SIGNUP_PKG AS
     l_co    NUMBER;
     l_br    NUMBER;
     l_mods  VARCHAR2(4000);
-    l_x     VARCHAR2(400);
+    l_x     VARCHAR2(4000);
     l_sub   NUMBER;
     l_code  VARCHAR2(30);
     l_svc   NUMBER;
@@ -457,6 +457,13 @@ CREATE OR REPLACE PACKAGE BODY NOONA_SIGNUP_PKG AS
      WHERE m.user_id = l_user AND m.tenant_id = l_ten;
     NOONA_CORE_PKG.end_system;
     -- السجل التجاري والرقم الضريبي للشركة (بصلاحيات مسؤول المؤسسة الجديدة)
+    -- تجهيز الشركة للأنظمة المختارة (الدليل والسنة المالية والنقدية والمخزون والمبيعات...) بصلاحيات مسؤولها الجديد
+    BEGIN
+      NOONA_CTX_PKG.set_context(l_ten, l_user, l_mem, l.username, l_co, l_br, 'ar', 'INTERNAL', NULL, NULL, 'Y');
+      l_x := NOONA_ACCOUNT_PKG.setup_company;
+    EXCEPTION WHEN OTHERS THEN NULL;     -- يستكمل من «بدء التشغيل» (زر تجهيز الأنظمة)
+    END;
+    NOONA_CTX_PKG.clear_context;
     IF l.cr_no IS NOT NULL OR l.vat_no IS NOT NULL THEN
       BEGIN
         NOONA_CTX_PKG.set_context(l_ten, l_user, l_mem, l.username, l_co, l_br, 'ar', 'INTERNAL', NULL, NULL, 'Y');

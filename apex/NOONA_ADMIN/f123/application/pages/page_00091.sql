@@ -22,7 +22,7 @@ wwv_flow_imp_page.create_page(
 ,p_protection_level=>'C'
 );
 wwv_flow_imp_page.create_page_plug(
- p_id=>wwv_flow_imp.id(91820262000000868)
+ p_id=>wwv_flow_imp.id(91820262000000871)
 ,p_plug_name=>'اشتراك المؤسسة'
 ,p_region_template_options=>'#DEFAULT#:t-Region--scrollBody'
 ,p_plug_template=>4072358936313175081
@@ -33,7 +33,7 @@ wwv_flow_imp_page.create_page_plug(
 ,p_plug_source_type=>'NATIVE_DYNAMIC_CONTENT'
 );
 wwv_flow_imp_page.create_page_plug(
- p_id=>wwv_flow_imp.id(91820262000000869)
+ p_id=>wwv_flow_imp.id(91820262000000872)
 ,p_plug_name=>'طلب تجديد أو إضافة أنظمة أو مستخدمين'
 ,p_region_template_options=>'#DEFAULT#'
 ,p_plug_template=>4072358936313175081
@@ -46,10 +46,10 @@ wwv_flow_imp_page.create_page_plug(
   'show_line_breaks', 'Y')).to_clob
 );
 wwv_flow_imp_page.create_page_item(
- p_id=>wwv_flow_imp.id(91820262000000870)
+ p_id=>wwv_flow_imp.id(91820262000000873)
 ,p_name=>'P91_OFF'
 ,p_item_sequence=>10
-,p_item_plug_id=>wwv_flow_imp.id(91820262000000869)
+,p_item_plug_id=>wwv_flow_imp.id(91820262000000872)
 ,p_prompt=>'الأنظمة'
 ,p_display_as=>'NATIVE_CHECKBOX'
 ,p_lov=>'select name_ar || case when monthly_price > 0 then '' ('' || to_char(monthly_price, ''FM999,990'') || '' ريال/شهر)'' else '' (مشمول)'' end d, code r from plt_offering where is_active = ''Y'' order by sort_order'
@@ -58,10 +58,10 @@ wwv_flow_imp_page.create_page_item(
 ,p_item_template_options=>'#DEFAULT#'
 );
 wwv_flow_imp_page.create_page_item(
- p_id=>wwv_flow_imp.id(91820262000000871)
+ p_id=>wwv_flow_imp.id(91820262000000874)
 ,p_name=>'P91_USERS'
 ,p_item_sequence=>20
-,p_item_plug_id=>wwv_flow_imp.id(91820262000000869)
+,p_item_plug_id=>wwv_flow_imp.id(91820262000000872)
 ,p_prompt=>'عدد المستخدمين'
 ,p_display_as=>'NATIVE_NUMBER_FIELD'
 ,p_cSize=>20
@@ -72,10 +72,10 @@ wwv_flow_imp_page.create_page_item(
   'virtual_keyboard', 'decimal')).to_clob
 );
 wwv_flow_imp_page.create_page_item(
- p_id=>wwv_flow_imp.id(91820262000000872)
+ p_id=>wwv_flow_imp.id(91820262000000875)
 ,p_name=>'P91_PLAN'
 ,p_item_sequence=>30
-,p_item_plug_id=>wwv_flow_imp.id(91820262000000869)
+,p_item_plug_id=>wwv_flow_imp.id(91820262000000872)
 ,p_prompt=>'الخطة'
 ,p_display_as=>'NATIVE_SELECT_LIST'
 ,p_lov=>'select name_ar || case when discount_pct > 0 then '' - خصم '' || to_char(discount_pct) || ''%'' end d, code r from plt_plan where is_active = ''Y'' and self_service = ''Y'' and code <> ''TRIAL'' order by decode(code, ''MONTHLY'', 1, ''QUARTERLY'', 2, ''SEMI_ANNUAL'', 3, ''ANNUAL'', 4, 9)'
@@ -88,10 +88,10 @@ wwv_flow_imp_page.create_page_item(
   'page_action_on_selection', 'SUBMIT')).to_clob
 );
 wwv_flow_imp_page.create_page_item(
- p_id=>wwv_flow_imp.id(91820262000000873)
+ p_id=>wwv_flow_imp.id(91820262000000876)
 ,p_name=>'P91_REF'
 ,p_item_sequence=>40
-,p_item_plug_id=>wwv_flow_imp.id(91820262000000869)
+,p_item_plug_id=>wwv_flow_imp.id(91820262000000872)
 ,p_prompt=>'مرجع التحويل'
 ,p_display_as=>'NATIVE_TEXT_FIELD'
 ,p_cSize=>40
@@ -105,9 +105,9 @@ wwv_flow_imp_page.create_page_item(
   'trim_spaces', 'BOTH')).to_clob
 );
 wwv_flow_imp_page.create_page_button(
- p_id=>wwv_flow_imp.id(91820262000000874)
+ p_id=>wwv_flow_imp.id(91820262000000877)
 ,p_button_sequence=>10
-,p_button_plug_id=>wwv_flow_imp.id(91820262000000869)
+,p_button_plug_id=>wwv_flow_imp.id(91820262000000872)
 ,p_button_name=>'CALC'
 ,p_button_action=>'SUBMIT'
 ,p_button_template_options=>'#DEFAULT#'
@@ -116,9 +116,9 @@ wwv_flow_imp_page.create_page_button(
 ,p_button_position=>'NEXT'
 );
 wwv_flow_imp_page.create_page_button(
- p_id=>wwv_flow_imp.id(91820262000000875)
+ p_id=>wwv_flow_imp.id(91820262000000878)
 ,p_button_sequence=>20
-,p_button_plug_id=>wwv_flow_imp.id(91820262000000869)
+,p_button_plug_id=>wwv_flow_imp.id(91820262000000872)
 ,p_button_name=>'REQUEST'
 ,p_button_action=>'SUBMIT'
 ,p_button_template_options=>'#DEFAULT#'
@@ -128,7 +128,7 @@ wwv_flow_imp_page.create_page_button(
 ,p_button_position=>'NEXT'
 );
 wwv_flow_imp_page.create_page_process(
- p_id=>wwv_flow_imp.id(91820262000000876)
+ p_id=>wwv_flow_imp.id(91820262000000879)
 ,p_process_sequence=>5
 ,p_process_point=>'BEFORE_HEADER'
 ,p_process_type=>'NATIVE_PLSQL'
@@ -139,10 +139,10 @@ wwv_flow_imp_page.create_page_process(
 'if :P91_PLAN is null then :P91_PLAN := ''ANNUAL''; end if;'))
 ,p_process_clob_language=>'PLSQL'
 ,p_error_display_location=>'INLINE_IN_NOTIFICATION'
-,p_internal_uid=>91820262000000876
+,p_internal_uid=>91820262000000879
 );
 wwv_flow_imp_page.create_page_process(
- p_id=>wwv_flow_imp.id(91820262000000877)
+ p_id=>wwv_flow_imp.id(91820262000000880)
 ,p_process_sequence=>10
 ,p_process_point=>'AFTER_SUBMIT'
 ,p_process_type=>'NATIVE_PLSQL'
@@ -155,12 +155,12 @@ wwv_flow_imp_page.create_page_process(
 'end;'))
 ,p_process_clob_language=>'PLSQL'
 ,p_error_display_location=>'INLINE_IN_NOTIFICATION'
-,p_process_when_button_id=>wwv_flow_imp.id(91820262000000875)
+,p_process_when_button_id=>wwv_flow_imp.id(91820262000000878)
 ,p_process_success_message=>'أرسل الطلب؛ نفعله عند تأكيد التحويل'
-,p_internal_uid=>91820262000000877
+,p_internal_uid=>91820262000000880
 );
 wwv_flow_imp_page.create_page_plug(
- p_id=>wwv_flow_imp.id(91820262000000878)
+ p_id=>wwv_flow_imp.id(91820262000000881)
 ,p_plug_name=>'السعر'
 ,p_region_template_options=>'#DEFAULT#:t-Region--scrollBody'
 ,p_plug_template=>4072358936313175081
@@ -171,7 +171,7 @@ wwv_flow_imp_page.create_page_plug(
 ,p_plug_source_type=>'NATIVE_DYNAMIC_CONTENT'
 );
 wwv_flow_imp_page.create_page_plug(
- p_id=>wwv_flow_imp.id(91820262000000879)
+ p_id=>wwv_flow_imp.id(91820262000000882)
 ,p_plug_name=>'بيانات التحويل'
 ,p_region_template_options=>'#DEFAULT#:t-Region--scrollBody:t-Region--removeHeader js-removeLandmark:t-Region--noUI'
 ,p_plug_template=>4072358936313175081
@@ -182,7 +182,7 @@ wwv_flow_imp_page.create_page_plug(
 ,p_plug_source_type=>'NATIVE_DYNAMIC_CONTENT'
 );
 wwv_flow_imp_page.create_page_plug(
- p_id=>wwv_flow_imp.id(91820262000000880)
+ p_id=>wwv_flow_imp.id(91820262000000883)
 ,p_plug_name=>'طلباتي'
 ,p_region_template_options=>'#DEFAULT#'
 ,p_plug_template=>4072358936313175081
@@ -193,10 +193,10 @@ wwv_flow_imp_page.create_page_plug(
   'show_line_breaks', 'Y')).to_clob
 );
 wwv_flow_imp_page.create_page_item(
- p_id=>wwv_flow_imp.id(91820262000000881)
+ p_id=>wwv_flow_imp.id(91820262000000884)
 ,p_name=>'P91_REQ'
 ,p_item_sequence=>10
-,p_item_plug_id=>wwv_flow_imp.id(91820262000000880)
+,p_item_plug_id=>wwv_flow_imp.id(91820262000000883)
 ,p_prompt=>'إلغاء طلب قائم'
 ,p_display_as=>'NATIVE_SELECT_LIST'
 ,p_lov=>'select ''#'' || id || '' '' || plan_code || '' - '' || to_char(amount_due, ''FM999,999,990.00'') || '' ريال'' d, id r from plt_sub_request where status_code = ''PENDING'' and tenant_id = noona_account_pkg.tenant order by id desc'
@@ -210,9 +210,9 @@ wwv_flow_imp_page.create_page_item(
   'page_action_on_selection', 'NONE')).to_clob
 );
 wwv_flow_imp_page.create_page_button(
- p_id=>wwv_flow_imp.id(91820262000000882)
+ p_id=>wwv_flow_imp.id(91820262000000885)
 ,p_button_sequence=>10
-,p_button_plug_id=>wwv_flow_imp.id(91820262000000880)
+,p_button_plug_id=>wwv_flow_imp.id(91820262000000883)
 ,p_button_name=>'CANCEL_REQ'
 ,p_button_action=>'SUBMIT'
 ,p_button_template_options=>'#DEFAULT#'
@@ -221,7 +221,7 @@ wwv_flow_imp_page.create_page_button(
 ,p_button_position=>'NEXT'
 );
 wwv_flow_imp_page.create_page_process(
- p_id=>wwv_flow_imp.id(91820262000000883)
+ p_id=>wwv_flow_imp.id(91820262000000886)
 ,p_process_sequence=>20
 ,p_process_point=>'AFTER_SUBMIT'
 ,p_process_type=>'NATIVE_PLSQL'
@@ -230,12 +230,12 @@ wwv_flow_imp_page.create_page_process(
 'noona_account_pkg.cancel_request(to_number(:P91_REQ)); :P91_REQ := null;'))
 ,p_process_clob_language=>'PLSQL'
 ,p_error_display_location=>'INLINE_IN_NOTIFICATION'
-,p_process_when_button_id=>wwv_flow_imp.id(91820262000000882)
+,p_process_when_button_id=>wwv_flow_imp.id(91820262000000885)
 ,p_process_success_message=>'ألغي الطلب'
-,p_internal_uid=>91820262000000883
+,p_internal_uid=>91820262000000886
 );
 wwv_flow_imp_page.create_page_plug(
- p_id=>wwv_flow_imp.id(91820262000000884)
+ p_id=>wwv_flow_imp.id(91820262000000887)
 ,p_plug_name=>'الطلبات'
 ,p_region_template_options=>'#DEFAULT#:t-Region--scrollBody:t-Region--removeHeader js-removeLandmark:t-Region--noUI'
 ,p_plug_template=>4072358936313175081
