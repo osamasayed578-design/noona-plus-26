@@ -1275,9 +1275,9 @@ CREATE OR REPLACE PACKAGE BODY NOONA_PRJ_PKG AS
       SELECT accounting_event_id INTO l_ev FROM gl_journal WHERE id = l_j;
       SELECT NVL(MAX(t.due_days), 0) INTO l_due FROM ap_supplier_account a LEFT JOIN ref_payment_term t ON t.id = a.payment_term_id
        WHERE a.id = l_c.supplier_account_id;
-      INSERT INTO ap_open_item (company_id, currency_code, exchange_rate, supplier_account_id, item_type, doc_no, due_date, installment_no,
+      INSERT INTO ap_open_item (company_id, currency_code, exchange_rate, supplier_account_id, item_type, doc_no, doc_date, due_date, installment_no,
                                 original_amount, open_amount, original_func, open_func, status_code)
-      VALUES (company, l_cl.currency_code, 1, l_c.supplier_account_id, 'INVOICE', l_cl.doc_no, l_cl.doc_date + l_due, 1,
+      VALUES (company, l_cl.currency_code, 1, l_c.supplier_account_id, 'INVOICE', l_cl.doc_no, l_cl.doc_date, l_cl.doc_date + l_due, 1,
               l_cl.net_payable, l_cl.net_payable, l_cl.net_payable, l_cl.net_payable, 'OPEN');
       IF l_cl.claim_kind = 'PROGRESS' THEN
         l_x := add_cost(l_p.id, default_wbs(l_p.id), 'SUBCONTRACT', l_cl.doc_date, l_cost, NULL, l_desc, l_cl.doc_no, c_claim, p_claim_id);

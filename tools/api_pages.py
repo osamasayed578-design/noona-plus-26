@@ -200,13 +200,14 @@ def build_admin(app, url):
         'العملاء والموردون: <code dir="ltr">name, phone, email, tax, cr, address, term</code> — '
         'الأصناف: <code dir="ltr">no, name, nameEn, type, price, barcode, category</code> — '
         'شجرة الحسابات: <code dir="ltr">code, name, parent, type, postable</code></p>'))
-    p.select('P76_TYPE', f, 10, 'نوع البيانات', lov_sql='STATIC2:العملاء;CUSTOMERS,الموردون;SUPPLIERS,الأصناف;ITEMS,شجرة الحسابات;ACCOUNTS', null_text=None)
-    p.file('P76_FILE', f, 20, 'الملف', file_types='.csv,text/csv,text/plain', max_kb=5120,
-           title='اسحب ملف CSV هنا أو اضغط للاختيار', hint='CSV بترميز UTF-8 حتى 5 ميجابايت')
+    p.select('P76_TYPE', f, 10, 'نوع البيانات', lov_sql='STATIC2:العملاء;CUSTOMERS,الموردون;SUPPLIERS,الأصناف;ITEMS,شجرة الحسابات;ACCOUNTS,الموظفون;EMPLOYEES', null_text=None)
+    p.file('P76_FILE', f, 20, 'الملف', file_types='.xlsx,.csv,text/csv,text/plain', max_kb=10240,
+           title='اسحب ملف Excel أو CSV هنا أو اضغط للاختيار', hint='xlsx أو CSV حتى 10 ميجابايت؛ الأرصدة الافتتاحية من «بدء التشغيل ونقل البيانات»')
     b_imp = p.button(f, 10, 'IMPORT', 'استيراد', hot=True)
     p.process(10, 'AFTER_SUBMIT', 'Import', [
         'declare l_blob blob; l_name varchar2(400); l_csv clob; l_job number; l_ok number; l_bad number;', 'begin',
-        *[x.format(item=':P76_FILE') for x in READ_FILE],
+        *[x.format(item=':P76_FILE') for x in READ_FILE[:2]],
+        '    l_csv := noona_conn_pkg.file_to_csv(l_blob, l_name);',
         '    l_job := noona_conn_pkg.import_csv(:P76_TYPE, l_name, l_csv);',
         '    select ok_rows, failed_rows into l_ok, l_bad from api_import_job where id = l_job;',
         '    :P76_JOB := l_job;',
@@ -215,7 +216,7 @@ def build_admin(app, url):
     p.hidden('P76_JOB', f, 90)
     p.dynamic('نتيجة الاستيراد', 20, 'return noona_conn_pkg.job_html(to_number(:P76_JOB));', condition=':P76_JOB is not null')
     tp = p.static('نماذج الملفات', 25)
-    p.select('P76_TPL', tp, 10, 'النموذج', lov_sql='STATIC2:العملاء;CUSTOMERS,الموردون;SUPPLIERS,الأصناف;ITEMS,شجرة الحسابات;ACCOUNTS,كشف حساب بنكي;BANK_STATEMENT',
+    p.select('P76_TPL', tp, 10, 'النموذج', lov_sql='STATIC2:العملاء;CUSTOMERS,الموردون;SUPPLIERS,الأصناف;ITEMS,شجرة الحسابات;ACCOUNTS,الموظفون;EMPLOYEES,كشف حساب بنكي;BANK_STATEMENT',
              null_text=None)
     p.button(tp, 10, 'SHOW', 'عرض النموذج')
     p.dynamic('النموذج', 26, "return '<pre dir=\"ltr\" class=\"nn-csv\">' || noona_ui_pkg.esc(noona_conn_pkg.template_csv(nvl(:P76_TPL, 'CUSTOMERS'))) || '</pre>';",

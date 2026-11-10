@@ -111,6 +111,7 @@ SUPPLIER_ACCOUNT_ID ID NN >AP_SUPPLIER_ACCOUNT | الحساب
 INVOICE_ID      ID   >AP_INVOICE | الفاتورة
 ITEM_TYPE       CODE NN IN:INVOICE,CREDIT_MEMO,PREPAYMENT,RETENTION,WITHHOLDING,ADJUSTMENT | النوع
 DOC_NO          V50  NN          | رقم المستند
+DOC_DATE        DATE             | تاريخ المستند (للأرصدة الافتتاحية والمستخلصات دون فاتورة)
 DUE_DATE        DATE NN          | الاستحقاق
 INSTALLMENT_NO  INT              | القسط
 ORIGINAL_AMOUNT AMT  NN          | الأصلي

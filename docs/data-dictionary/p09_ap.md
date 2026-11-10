@@ -302,18 +302,19 @@
 | 10 | `INVOICE_ID` | معرف | `NUMBER(19)` |  |  | FK→AP_INVOICE |  | إدخال المستخدم |  | الفاتورة |
 | 11 | `ITEM_TYPE` | رمز | `VARCHAR2(30 CHAR)` | ✔ |  |  | INVOICE, CREDIT_MEMO, PREPAYMENT, RETENTION, WITHHOLDING, ADJUSTMENT | إدخال المستخدم |  | النوع |
 | 12 | `DOC_NO` | نص | `VARCHAR2(50 CHAR)` | ✔ |  |  |  | إدخال المستخدم |  | رقم المستند |
-| 13 | `DUE_DATE` | تاريخ | `DATE` | ✔ |  |  |  | إدخال المستخدم |  | الاستحقاق |
-| 14 | `INSTALLMENT_NO` | عدد صحيح | `NUMBER(10)` |  |  |  |  | إدخال المستخدم |  | القسط |
-| 15 | `ORIGINAL_AMOUNT` | مبلغ | `NUMBER(24,6)` | ✔ |  |  |  | إدخال المستخدم |  | الأصلي |
-| 16 | `OPEN_AMOUNT` | مبلغ | `NUMBER(24,6)` | ✔ |  |  |  | إدخال المستخدم |  | المتبقي |
-| 17 | `ORIGINAL_FUNC` | مبلغ | `NUMBER(24,6)` | ✔ |  |  |  | إدخال المستخدم |  | الأصلي الوظيفي |
-| 18 | `OPEN_FUNC` | مبلغ | `NUMBER(24,6)` | ✔ |  |  |  | إدخال المستخدم |  | المتبقي الوظيفي |
-| 19 | `STATUS_CODE` | رمز | `VARCHAR2(30 CHAR)` | ✔ | 'OPEN' |  | OPEN, SCHEDULED, PARTIALLY_PAID, PAID, ON_HOLD, CANCELLED | النظام/الحزمة |  | الحالة ضمن دورة الحياة المعتمدة |
-| 20 | `ROW_VERSION` | عدد صحيح | `NUMBER(10)` | ✔ | 1 |  |  | Trigger |  | رقم الإصدار للتحكم في التزامن المتفائل |
-| 21 | `CREATED_BY` | اسم مستخدم | `VARCHAR2(128 CHAR)` | ✔ |  |  |  | Trigger |  | منشئ السجل |
-| 22 | `CREATED_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` | ✔ | SYSTIMESTAMP |  |  | Trigger |  | وقت الإنشاء |
-| 23 | `UPDATED_BY` | اسم مستخدم | `VARCHAR2(128 CHAR)` |  |  |  |  | Trigger |  | آخر من عدل السجل |
-| 24 | `UPDATED_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` |  |  |  |  | Trigger |  | وقت آخر تعديل |
+| 13 | `DOC_DATE` | تاريخ | `DATE` |  |  |  |  | إدخال المستخدم |  | تاريخ المستند (للأرصدة الافتتاحية والمستخلصات دون فاتورة) |
+| 14 | `DUE_DATE` | تاريخ | `DATE` | ✔ |  |  |  | إدخال المستخدم |  | الاستحقاق |
+| 15 | `INSTALLMENT_NO` | عدد صحيح | `NUMBER(10)` |  |  |  |  | إدخال المستخدم |  | القسط |
+| 16 | `ORIGINAL_AMOUNT` | مبلغ | `NUMBER(24,6)` | ✔ |  |  |  | إدخال المستخدم |  | الأصلي |
+| 17 | `OPEN_AMOUNT` | مبلغ | `NUMBER(24,6)` | ✔ |  |  |  | إدخال المستخدم |  | المتبقي |
+| 18 | `ORIGINAL_FUNC` | مبلغ | `NUMBER(24,6)` | ✔ |  |  |  | إدخال المستخدم |  | الأصلي الوظيفي |
+| 19 | `OPEN_FUNC` | مبلغ | `NUMBER(24,6)` | ✔ |  |  |  | إدخال المستخدم |  | المتبقي الوظيفي |
+| 20 | `STATUS_CODE` | رمز | `VARCHAR2(30 CHAR)` | ✔ | 'OPEN' |  | OPEN, SCHEDULED, PARTIALLY_PAID, PAID, ON_HOLD, CANCELLED | النظام/الحزمة |  | الحالة ضمن دورة الحياة المعتمدة |
+| 21 | `ROW_VERSION` | عدد صحيح | `NUMBER(10)` | ✔ | 1 |  |  | Trigger |  | رقم الإصدار للتحكم في التزامن المتفائل |
+| 22 | `CREATED_BY` | اسم مستخدم | `VARCHAR2(128 CHAR)` | ✔ |  |  |  | Trigger |  | منشئ السجل |
+| 23 | `CREATED_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` | ✔ | SYSTIMESTAMP |  |  | Trigger |  | وقت الإنشاء |
+| 24 | `UPDATED_BY` | اسم مستخدم | `VARCHAR2(128 CHAR)` |  |  |  |  | Trigger |  | آخر من عدل السجل |
+| 25 | `UPDATED_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` |  |  |  |  | Trigger |  | وقت آخر تعديل |
 
 ## AP_PAYMENT_BATCH
 

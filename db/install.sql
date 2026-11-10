@@ -111,6 +111,7 @@ PROMPT ========== 5/7 Seed: registry & reference data
 @@seed/17_real_estate.sql
 @@seed/18_api.sql
 @@seed/19_cities.sql
+@@seed/20_onboarding.sql
 @@seed/14_reports_catalog.sql
 
 PROMPT ========== 6/7 Row-Level Security (VPD)
