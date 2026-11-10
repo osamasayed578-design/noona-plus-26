@@ -81,7 +81,7 @@ wwv_flow_imp_page.create_page_plug(
 ,p_plug_display_sequence=>10
 ,p_function_body_language=>'PLSQL'
 ,p_plug_source=>wwv_flow_string.join(wwv_flow_t_varchar2(
-'return noona_conn_pkg.onboarding_html(''f?p='' || :APP_ID || '':90:'' || :APP_SESSION || ''::NO::P90_TYPE:#TYPE#'');'))
+'return noona_conn_pkg.onboarding_html(''APEX:90:P90_TYPE'');'))
 ,p_plug_source_type=>'NATIVE_DYNAMIC_CONTENT'
 );
 wwv_flow_imp_page.create_page_plug(

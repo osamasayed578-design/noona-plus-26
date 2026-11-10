@@ -16,6 +16,7 @@
 | `specs/m08_healthcare.py` | المستشفيات والمراكز الطبية |
 | `specs/m09_auto_service.py` | مراكز خدمة السيارات |
 | `specs/m10_reports_integrations.py` | مركز التقارير والتكاملات |
+| `specs/m12_subscription.py` | الاشتراك وبدء التشغيل: التسجيل الذاتي، نسيت كلمة المرور، نقل البيانات والأرصدة، «اشتراكي»، طلبات التسجيل والأسعار |
 
 ## التوليد
 
@@ -84,3 +85,5 @@ python3 tools/manual/video2/export_specs.py /tmp/specs.json
 PW_PATH=... NOONA_PWD_ADMIN=... NOONA_PWD_PLATFORM=... node tools/manual/video2/tour.js /tmp/specs.json m02 <outDir> 3
 ONLY=scm-preturn,pos-return node tools/manual/video2/tour.js ...     # شاشات محددة للتجربة
 ```
+
+| `video/h03_subscription.js` | 15 الاشتراك وبدء التشغيل: تسجيل ذاتي ← تحقق ← تجربة ← استيراد العملاء وأرصدتهم ← «اشتراكي» ← تأكيد المنصة والفاتورة (LONG=1 للمطول) |
