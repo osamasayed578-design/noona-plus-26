@@ -2354,3 +2354,4 @@ html[data-theme="dark"] .nn-kpi-value, html[data-theme="dark"] .nn-anl-kpi-val, 
 .nn-sgn-login-link { text-align: center; padding: 6px; font-weight: 600; }
 .t-PageBody--noNav .t-Body-content { max-width: 960px; margin: 0 auto; }
 @media (prefers-color-scheme: dark) { .nn-sgn-demo { background: #3a2a05; color: #fcd34d; } .nn-sgn-bank { background: #0b2533; border-color: #155e75; } }
+.page-20 .t-NavigationBar-item:has(.fa-user), .page-20 .t-NavigationBar-item:has(.t-Button--navBar[title*="nobody"]) { display: none; }

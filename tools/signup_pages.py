@@ -13,7 +13,7 @@ def add(app):
     p.dynamic('الخطوات', 5, [
         'declare l_s number := nvl(:P20_STEP, 1); l_h varchar2(4000);',
         'begin',
-        "  l_h := '<div class=\"nn-sgn-hero\"><img src=\"#APP_FILES#icons/app-icon-512.png\" alt=\"\"><div><h1>نونا بلس</h1>'",
+        "  l_h := '<div class=\"nn-sgn-hero\"><div><h1>نونا بلس</h1>'",
         "      || '<p>نظام متكامل لإدارة مؤسستك: المالية والمخزون والمبيعات والموارد البشرية وغيرها. ابدأ بتجربة مجانية 14 يوماً.</p></div></div>'",
         "      || '<ol class=\"nn-sgn-steps\">';",
         "  for i in 1 .. 5 loop",
