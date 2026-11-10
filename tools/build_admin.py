@@ -1165,6 +1165,9 @@ def url(page_no, items='', values='', clear=''):
 
 from api_pages import build_admin as api_pages
 api_pages(app, url)
+# بدء التشغيل ونقل البيانات: استيراد Excel/CSV والأرصدة الافتتاحية ومطابقتها
+import onboard_pages
+onboard_pages.add(app, ORG, 15)
 # نسخة 26 فقط: إعدادات مساعد الذكاء الاصطناعي للمؤسسة (tools/ai_admin_pages.py غير موجود في نسخة 21c)
 try:
     import ai_admin_pages

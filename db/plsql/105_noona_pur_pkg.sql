@@ -298,6 +298,10 @@ CREATE OR REPLACE PACKAGE BODY NOONA_PUR_PKG AS
        AND status_code IN ('POSTED', 'PARTIALLY_PAID', 'PAID') AND gl_date <= l_to;
     SELECT NVL(SUM(amount), 0) INTO l_pay FROM ap_payment
      WHERE supplier_account_id = p_account_id AND company_id = company AND status_code = 'SETTLED' AND doc_date <= l_to;
+    -- مستحقات دون فاتورة مشتريات: الأرصدة الافتتاحية المستوردة ومستخلصات مقاولي الباطن
+    SELECT l_inv + NVL(SUM(CASE WHEN item_type = 'CREDIT_MEMO' THEN -original_amount ELSE original_amount END), 0) INTO l_inv
+      FROM ap_open_item WHERE supplier_account_id = p_account_id AND company_id = company AND invoice_id IS NULL
+       AND item_type IN ('INVOICE', 'CREDIT_MEMO') AND status_code <> 'CANCELLED' AND NVL(doc_date, due_date) <= l_to;
     RETURN l_inv - l_pay;
   END supplier_balance;
 
@@ -1046,6 +1050,12 @@ CREATE OR REPLACE PACKAGE BODY NOONA_PUR_PKG AS
                      CASE WHEN invoice_type = 'CREDIT_MEMO' THEN 0 ELSE total_amount END cr, payment_mode, 1 o, id
                 FROM ap_invoice WHERE supplier_account_id = p_account_id AND company_id = company
                  AND status_code IN ('POSTED', 'PARTIALLY_PAID', 'PAID') AND gl_date BETWEEN p_from AND p_to
+              UNION ALL
+              SELECT NVL(doc_date, due_date), doc_no, CASE WHEN item_type = 'CREDIT_MEMO' THEN 'رصيد افتتاحي مدين' ELSE 'رصيد مستحق' END,
+                     CASE WHEN item_type = 'CREDIT_MEMO' THEN original_amount ELSE 0 END,
+                     CASE WHEN item_type = 'CREDIT_MEMO' THEN 0 ELSE original_amount END, 'CREDIT', 1, id
+                FROM ap_open_item WHERE supplier_account_id = p_account_id AND company_id = company AND invoice_id IS NULL
+                 AND item_type IN ('INVOICE', 'CREDIT_MEMO') AND status_code <> 'CANCELLED' AND NVL(doc_date, due_date) BETWEEN p_from AND p_to
               UNION ALL
               -- الفاتورة النقدية تسدد فوراً
               SELECT gl_date, doc_no, 'سداد نقدي للفاتورة', CASE WHEN invoice_type = 'CREDIT_MEMO' THEN 0 ELSE total_amount END,

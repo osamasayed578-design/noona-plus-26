@@ -41,7 +41,7 @@ wwv_flow_imp_page.create_page_item(
 ,p_item_plug_id=>wwv_flow_imp.id(91820262000000823)
 ,p_prompt=>'نوع البيانات'
 ,p_display_as=>'NATIVE_SELECT_LIST'
-,p_lov=>'STATIC2:العملاء;CUSTOMERS,الموردون;SUPPLIERS,الأصناف;ITEMS,شجرة الحسابات;ACCOUNTS'
+,p_lov=>'STATIC2:العملاء;CUSTOMERS,الموردون;SUPPLIERS,الأصناف;ITEMS,شجرة الحسابات;ACCOUNTS,الموظفون;EMPLOYEES'
 ,p_cHeight=>1
 ,p_lov_display_extra=>'NO'
 ,p_field_template=>1609121967514267634
@@ -62,11 +62,11 @@ wwv_flow_imp_page.create_page_item(
   'storage_type', 'APEX_APPLICATION_TEMP_FILES',
   'purge_file_at', 'REQUEST',
   'allow_multiple_files', 'N',
-  'file_types', '.csv,text/csv,text/plain',
+  'file_types', '.xlsx,.csv,text/csv,text/plain',
   'display_as', 'DROPZONE_BLOCK',
-  'dropzone_title', 'اسحب ملف CSV هنا أو اضغط للاختيار',
-  'dropzone_description', 'CSV بترميز UTF-8 حتى 5 ميجابايت',
-  'max_file_size', '5120')).to_clob
+  'dropzone_title', 'اسحب ملف Excel أو CSV هنا أو اضغط للاختيار',
+  'dropzone_description', 'xlsx أو CSV حتى 10 ميجابايت؛ الأرصدة الافتتاحية من «بدء التشغيل ونقل البيانات»',
+  'max_file_size', '10240')).to_clob
 );
 wwv_flow_imp_page.create_page_button(
  p_id=>wwv_flow_imp.id(91820262000000826)
@@ -91,7 +91,7 @@ wwv_flow_imp_page.create_page_process(
 'begin',
 '    if :P76_FILE is null then raise_application_error(-20500, ''NOONA-CON-025: اختر الملف أولاً''); end if;',
 '    select blob_content, filename into l_blob, l_name from apex_application_temp_files where name = :P76_FILE;',
-'    l_csv := apex_util.blob_to_clob(p_blob => l_blob, p_charset => ''AL32UTF8'');',
+'    l_csv := noona_conn_pkg.file_to_csv(l_blob, l_name);',
 '    l_job := noona_conn_pkg.import_csv(:P76_TYPE, l_name, l_csv);',
 '    select ok_rows, failed_rows into l_ok, l_bad from api_import_job where id = l_job;',
 '    :P76_JOB := l_job;',
@@ -143,7 +143,7 @@ wwv_flow_imp_page.create_page_item(
 ,p_item_plug_id=>wwv_flow_imp.id(91820262000000830)
 ,p_prompt=>'النموذج'
 ,p_display_as=>'NATIVE_SELECT_LIST'
-,p_lov=>'STATIC2:العملاء;CUSTOMERS,الموردون;SUPPLIERS,الأصناف;ITEMS,شجرة الحسابات;ACCOUNTS,كشف حساب بنكي;BANK_STATEMENT'
+,p_lov=>'STATIC2:العملاء;CUSTOMERS,الموردون;SUPPLIERS,الأصناف;ITEMS,شجرة الحسابات;ACCOUNTS,الموظفون;EMPLOYEES,كشف حساب بنكي;BANK_STATEMENT'
 ,p_cHeight=>1
 ,p_lov_display_extra=>'NO'
 ,p_field_template=>1609121967514267634

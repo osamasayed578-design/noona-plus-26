@@ -416,7 +416,7 @@ Integration Matrix، وعملاء API وأسرارهم بمراجع Vault، وس
 | 1 | `ID` | معرف | `NUMBER(19)` | ✔ |  | PK |  | النظام/الحزمة |  | المفتاح الداخلي الثابت (Identity) - لا يعاد استخدامه |
 | 2 | `TENANT_ID` | معرف | `NUMBER(19)` | ✔ |  | FK→PLT_TENANT |  | Security Context |  | المؤسسة المالكة؛ يملأ من Security Context الموثوق لا من مدخلات المستخدم |
 | 3 | `COMPANY_ID` | معرف | `NUMBER(19)` |  |  | FK→ORG_COMPANY |  | إدخال المستخدم |  | الشركة |
-| 4 | `IMPORT_TYPE` | رمز | `VARCHAR2(30 CHAR)` | ✔ |  |  | CUSTOMERS, SUPPLIERS, ITEMS, ACCOUNTS, BANK_STATEMENT, ORDERS | إدخال المستخدم |  | النوع |
+| 4 | `IMPORT_TYPE` | رمز | `VARCHAR2(30 CHAR)` | ✔ |  |  | CUSTOMERS, SUPPLIERS, ITEMS, ACCOUNTS, BANK_STATEMENT, ORDERS, EMPLOYEES, OPENING_GL, OPENING_AR, OPENING_AP, OPENING_STOCK | إدخال المستخدم |  | النوع |
 | 5 | `FILE_NAME` | نص | `VARCHAR2(300 CHAR)` |  |  |  |  | إدخال المستخدم |  | الملف |
 | 6 | `TOTAL_ROWS` | عدد صحيح | `NUMBER(10)` | ✔ | 0 |  |  | إدخال المستخدم |  | الأسطر |
 | 7 | `OK_ROWS` | عدد صحيح | `NUMBER(10)` | ✔ | 0 |  |  | إدخال المستخدم |  | الناجحة |

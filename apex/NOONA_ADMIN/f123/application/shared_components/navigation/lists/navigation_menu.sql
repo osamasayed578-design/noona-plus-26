@@ -308,6 +308,15 @@ wwv_flow_imp_shared.create_list_item(
 ,p_security_scheme=>wwv_flow_imp.id(91820262000000732)
 ,p_list_item_current_type=>'TARGET_PAGE'
 );
+wwv_flow_imp_shared.create_list_item(
+ p_id=>wwv_flow_imp.id(91820262000000867)
+,p_list_item_display_sequence=>15
+,p_list_item_link_text=>'بدء التشغيل ونقل البيانات'
+,p_list_item_link_target=>'f?p=&APP_ID.:90:&APP_SESSION.::&DEBUG.:90::'
+,p_list_item_icon=>'fa-upload'
+,p_security_scheme=>wwv_flow_imp.id(91820262000000009)
+,p_list_item_current_type=>'TARGET_PAGE'
+);
 wwv_flow_imp.component_end;
 end;
 /
