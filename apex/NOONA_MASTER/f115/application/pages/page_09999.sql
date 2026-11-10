@@ -227,6 +227,17 @@ wwv_flow_imp_page.create_page_process(
 ,p_process_clob_language=>'PLSQL'
 ,p_internal_uid=>17764879997443037
 );
+wwv_flow_imp_page.create_page_plug(
+ p_id=>wwv_flow_imp.id(91820263000099001)
+,p_plug_name=>'NOONA-SIGNUP-LINK'
+,p_region_template_options=>'#DEFAULT#'
+,p_plug_template=>4501440665235496320
+,p_plug_display_sequence=>90
+,p_plug_source=>'<div class="nn-sgn-login-link">ليس لديك حساب؟ <a href="f?p=&APP_ID.:SIGNUP:0">أنشئ حساب مؤسستك وجرّب مجاناً 14 يوماً</a></div>'
+,p_attributes=>wwv_flow_t_plugin_attributes(wwv_flow_t_varchar2(
+  'expand_shortcuts', 'Y',
+  'output_as', 'HTML')).to_clob
+);
 wwv_flow_imp.component_end;
 end;
 /

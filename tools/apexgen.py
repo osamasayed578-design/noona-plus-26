@@ -276,8 +276,8 @@ class App:
         self._branding = True
 
     # ------------------------------------------------------------------ الصفحات
-    def page(self, pid, name, alias, title, scheme=None, protection='C', mode=None):
-        p = Page(self, pid, name, alias, title, scheme, protection, mode)
+    def page(self, pid, name, alias, title, scheme=None, protection='C', mode=None, public=False):
+        p = Page(self, pid, name, alias, title, scheme, protection, mode, public)
         self.pages[pid] = p
         return p
 
@@ -371,7 +371,7 @@ class App:
 
 
 class Page:
-    def __init__(self, app, pid, name, alias, title, scheme, protection, mode):
+    def __init__(self, app, pid, name, alias, title, scheme, protection, mode, public=False):
         self.app, self.pid, self.parts = app, pid, []
         s = f"""wwv_flow_imp_page.create_page(
  p_id=>{pid}
@@ -382,6 +382,8 @@ class Page:
 ,p_page_template_options=>'#DEFAULT#'"""
         if scheme:
             s += f"\n,p_required_role=>wwv_flow_imp.id({scheme})"
+        if public:      # صفحة عامة بلا دخول وبلا قائمة تنقل (Minimal - No Navigation)
+            s += "\n,p_step_template=>2977628563533209425\n,p_page_is_public_y_n=>'Y'"
         s += f"\n,p_protection_level=>'{protection}'\n);\n"
         self.header = s
         self.items_after = []

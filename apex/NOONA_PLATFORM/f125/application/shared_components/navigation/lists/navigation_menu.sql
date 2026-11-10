@@ -18,7 +18,7 @@ wwv_flow_imp_shared.create_list(
 ,p_version_scn=>137120771
 );
 wwv_flow_imp_shared.create_list_item(
- p_id=>wwv_flow_imp.id(91820265000000220)
+ p_id=>wwv_flow_imp.id(91820265000000248)
 ,p_list_item_display_sequence=>10
 ,p_list_item_link_text=>'لوحة المنصة'
 ,p_list_item_link_target=>'f?p=&APP_ID.:1:&APP_SESSION.::&DEBUG.:1::'
@@ -26,7 +26,23 @@ wwv_flow_imp_shared.create_list_item(
 ,p_list_item_current_type=>'TARGET_PAGE'
 );
 wwv_flow_imp_shared.create_list_item(
- p_id=>wwv_flow_imp.id(91820265000000221)
+ p_id=>wwv_flow_imp.id(91820265000000249)
+,p_list_item_display_sequence=>12
+,p_list_item_link_text=>'طلبات التسجيل'
+,p_list_item_link_target=>'f?p=&APP_ID.:9:&APP_SESSION.::&DEBUG.:9::'
+,p_list_item_icon=>'fa-user-plus'
+,p_list_item_current_type=>'TARGET_PAGE'
+);
+wwv_flow_imp_shared.create_list_item(
+ p_id=>wwv_flow_imp.id(91820265000000250)
+,p_list_item_display_sequence=>13
+,p_list_item_link_text=>'الأسعار والتسجيل'
+,p_list_item_link_target=>'f?p=&APP_ID.:10:&APP_SESSION.::&DEBUG.:10::'
+,p_list_item_icon=>'fa-tags'
+,p_list_item_current_type=>'TARGET_PAGE'
+);
+wwv_flow_imp_shared.create_list_item(
+ p_id=>wwv_flow_imp.id(91820265000000251)
 ,p_list_item_display_sequence=>15
 ,p_list_item_link_text=>'الاشتراكات'
 ,p_list_item_link_target=>'f?p=&APP_ID.:8:&APP_SESSION.::&DEBUG.:8::'
@@ -34,7 +50,7 @@ wwv_flow_imp_shared.create_list_item(
 ,p_list_item_current_type=>'TARGET_PAGE'
 );
 wwv_flow_imp_shared.create_list_item(
- p_id=>wwv_flow_imp.id(91820265000000222)
+ p_id=>wwv_flow_imp.id(91820265000000252)
 ,p_list_item_display_sequence=>20
 ,p_list_item_link_text=>'تجهيز مؤسسة'
 ,p_list_item_link_target=>'f?p=&APP_ID.:4:&APP_SESSION.::&DEBUG.:4::'
@@ -42,7 +58,7 @@ wwv_flow_imp_shared.create_list_item(
 ,p_list_item_current_type=>'TARGET_PAGE'
 );
 wwv_flow_imp_shared.create_list_item(
- p_id=>wwv_flow_imp.id(91820265000000223)
+ p_id=>wwv_flow_imp.id(91820265000000253)
 ,p_list_item_display_sequence=>30
 ,p_list_item_link_text=>'سجل تدقيق المنصة'
 ,p_list_item_link_target=>'f?p=&APP_ID.:5:&APP_SESSION.::&DEBUG.:5::'
@@ -50,7 +66,7 @@ wwv_flow_imp_shared.create_list_item(
 ,p_list_item_current_type=>'TARGET_PAGE'
 );
 wwv_flow_imp_shared.create_list_item(
- p_id=>wwv_flow_imp.id(91820265000000224)
+ p_id=>wwv_flow_imp.id(91820265000000254)
 ,p_list_item_display_sequence=>40
 ,p_list_item_link_text=>'وحدات النظام'
 ,p_list_item_link_target=>'f?p=&APP_ID.:6:&APP_SESSION.::&DEBUG.:6::'
@@ -58,7 +74,7 @@ wwv_flow_imp_shared.create_list_item(
 ,p_list_item_current_type=>'TARGET_PAGE'
 );
 wwv_flow_imp_shared.create_list_item(
- p_id=>wwv_flow_imp.id(91820265000000225)
+ p_id=>wwv_flow_imp.id(91820265000000255)
 ,p_list_item_display_sequence=>50
 ,p_list_item_link_text=>'مسؤولو المنصة'
 ,p_list_item_link_target=>'f?p=&APP_ID.:7:&APP_SESSION.::&DEBUG.:7::'

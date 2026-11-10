@@ -1,6 +1,6 @@
 # ERD — الحزمة 01: نواة المنصة والمؤسسات والترخيص
 
-**Platform Core, Tenancy, Licensing & Companies** · الحزمة البرمجية `NOONA_PLATFORM_PKG` · عدد الجداول: **65**
+**Platform Core, Tenancy, Licensing & Companies** · الحزمة البرمجية `NOONA_PLATFORM_PKG` · عدد الجداول: **67**
 
 Control Plane للمنصة: دليل المؤسسات والخلايا الإقليمية ودورة حياة Tenant والإعدادات الهرمية وكتالوج المنتجات والباقات والعقود والاشتراكات والاستحقاقات والفوترة والتحصيل وترخيص On-Premises، إضافة إلى الهيكل القانوني Tenant → Business Group → Company → Branch → Business Site.
 
@@ -129,6 +129,20 @@ erDiagram
     VARCHAR2 CODE UK
     VARCHAR2 NAME_AR
     NUMBER EDITION_ID FK
+  }
+  PLT_OFFERING {
+    NUMBER ID PK
+    VARCHAR2 CODE UK
+    VARCHAR2 NAME_AR
+    VARCHAR2 CURRENCY_CODE FK
+  }
+  PLT_SIGNUP {
+    NUMBER ID PK
+    VARCHAR2 TOKEN_HASH UK
+    VARCHAR2 COUNTRY_CODE FK
+    VARCHAR2 CURRENCY_CODE FK
+    NUMBER TENANT_ID FK
+    VARCHAR2 STATUS_CODE
   }
   PLT_PLAN_VERSION {
     NUMBER ID PK
@@ -653,6 +667,7 @@ erDiagram
   REF_COUNTRY |o--o{ PLT_PRICE_BOOK : "COUNTRY_CODE"
   REF_COUNTRY |o--o{ PLT_REGION : "COUNTRY_CODE"
   REF_COUNTRY |o--o{ PLT_SETTING_VALUE : "COUNTRY_CODE"
+  REF_COUNTRY |o--o{ PLT_SIGNUP : "COUNTRY_CODE"
   REF_COUNTRY ||--o{ ORG_BRANCH : "COUNTRY_CODE"
   REF_COUNTRY ||--o{ ORG_COMPANY : "COUNTRY_CODE"
   REF_COUNTRY ||--o{ ORG_LEGAL_REGISTRATION : "COUNTRY_CODE"
@@ -661,11 +676,13 @@ erDiagram
   REF_CURRENCY |o--o{ ORG_BUSINESS_GROUP : "CONSOLIDATION_CURRENCY"
   REF_CURRENCY |o--o{ ORG_COMPANY : "REPORTING_CURRENCY"
   REF_CURRENCY |o--o{ ORG_INTERCOMPANY_RULE : "CURRENCY_CODE"
+  REF_CURRENCY |o--o{ PLT_SIGNUP : "CURRENCY_CODE"
   REF_CURRENCY ||--o{ ORG_COMPANY : "FUNCTIONAL_CURRENCY"
   REF_CURRENCY ||--o{ ORG_COMPANY_CURRENCY : "CURRENCY_CODE"
   REF_CURRENCY ||--o{ PLT_BILLING_INVOICE : "CURRENCY_CODE"
   REF_CURRENCY ||--o{ PLT_BILLING_PAYMENT : "CURRENCY_CODE"
   REF_CURRENCY ||--o{ PLT_CONTRACT : "CURRENCY_CODE"
+  REF_CURRENCY ||--o{ PLT_OFFERING : "CURRENCY_CODE"
   REF_CURRENCY ||--o{ PLT_PRICE_BOOK : "CURRENCY_CODE"
   REF_CURRENCY ||--o{ PLT_QUOTE : "CURRENCY_CODE"
   REF_CURRENCY ||--o{ PLT_SUBSCRIPTION_ITEM : "CURRENCY_CODE"
@@ -703,6 +720,8 @@ erDiagram
 | `PLT_PRODUCT` | المنتجات | Products | G |
 | `PLT_EDITION` | الإصدارات التجارية | Editions | G |
 | `PLT_PLAN` | الباقات | Plans | G |
+| `PLT_OFFERING` | أنظمة الاشتراك وأسعارها | Subscription Offerings | G |
+| `PLT_SIGNUP` | طلبات التسجيل الذاتي | Self-Service Signups | G |
 | `PLT_PLAN_VERSION` | إصدارات الباقة | Plan Versions | G |
 | `PLT_PLAN_MODULE` | وحدات إصدار الباقة | Plan Version Modules | G |
 | `PLT_PLAN_LIMIT` | حدود إصدار الباقة | Plan Version Limits | G |

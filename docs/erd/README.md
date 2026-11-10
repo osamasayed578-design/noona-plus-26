@@ -6,7 +6,7 @@
 
 | # | الحزمة | Package | الجداول | المخطط |
 |---:|---|---|---:|---|
-| 01 | نواة المنصة والمؤسسات والترخيص | Platform Core, Tenancy, Licensing & Companies | 65 | [p01_plt](p01_plt.md) |
+| 01 | نواة المنصة والمؤسسات والترخيص | Platform Core, Tenancy, Licensing & Companies | 67 | [p01_plt](p01_plt.md) |
 | 02 | الهيكل التنظيمي والهوية والأمن | Organization Structure, Identity & Security | 37 | [p02_sec](p02_sec.md) |
 | 03 | سير العمل والطلبات والاعتمادات والتفويض | Workflow, Requests, Approvals & Delegation | 27 | [p03_wf](p03_wf.md) |
 | 04 | إدارة المستندات والأرشفة | Document Management & Archive | 31 | [p04_dms](p04_dms.md) |
@@ -40,7 +40,7 @@
 | 32 | مراكز خدمة السيارات | Auto Service Centers | 10 | [p32_aut](p32_aut.md) |
 | 33 | النقل والشحن والترحيل | Transport & Logistics | 12 | [p33_trn](p33_trn.md) |
 
-**الإجمالي: 662 جدول.**
+**الإجمالي: 664 جدول.**
 
 ## خريطة اعتماديات الحزم
 

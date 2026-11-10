@@ -258,7 +258,61 @@ p.ir('مسؤولو المنصة', 10, [
 p = app.page(8, 'Subscriptions', 'SUBSCRIPTIONS', 'الاشتراكات', scheme=PLATFORM)
 p.ir('اشتراكات المؤسسات', 10, tenants_where('1 = 1', 'days_left nulls first'), TENANTS_COLS, link=TENANT_LINK, rows=100)
 
+# =============================================================== 9) طلبات التسجيل الذاتي
+p = app.page(9, 'Signups', 'SIGNUPS', 'طلبات التسجيل الذاتي', scheme=PLATFORM)
+f = p.static('تأكيد التحويل أو رفض الطلب', 5, text=(
+    '<p class="nn-hint">العميل يسجل بنفسه من صفحة الدخول فتنشأ مؤسسته فوراً بتجربة 14 يوماً. الخطة المدفوعة بالتحويل البنكي '
+    'تبقى «بانتظار تأكيد التحويل» حتى تتأكد من وصول المبلغ فتؤكدها هنا، فيتحول اشتراكها للخطة المدفوعة من اليوم.</p>'))
+p.select('P9_SIGNUP', f, 10, 'الطلب', lov_sql=(
+    "select '#' || id || ' ' || org_name_ar || ' - ' || plan_code || ' - ' || to_char(amount_due, 'FM999,999,990.00') || ' ريال'"
+    " || nvl2(payment_ref, ' (' || payment_ref || ')', '') d, id r from plt_signup"
+    " where status_code in ('PAYMENT_PENDING', 'STARTED', 'VERIFIED', 'DETAILS') order by decode(status_code, 'PAYMENT_PENDING', 0, 1), id desc"))
+p.text('P9_NOTE', f, 20, 'ملاحظة (إلزامية للرفض)', maxlen=400)
+b_ok = p.button(f, 10, 'CONFIRM', 'تأكيد وصول التحويل', hot=True)
+b_no = p.button(f, 20, 'REJECT', 'رفض الطلب')
+p.process(10, 'AFTER_SUBMIT', 'Confirm', 'noona_signup_pkg.confirm_payment(to_number(:P9_SIGNUP), :P9_NOTE); :P9_SIGNUP := null; :P9_NOTE := null;',
+          when_button=b_ok, success='تأكد الدفع وتحول الاشتراك للخطة المدفوعة')
+p.process(20, 'AFTER_SUBMIT', 'Reject', 'noona_signup_pkg.reject_signup(to_number(:P9_SIGNUP), :P9_NOTE); :P9_SIGNUP := null; :P9_NOTE := null;',
+          when_button=b_no, success='رفض الطلب')
+p.select('P9_STATUS', f, 30, 'عرض', lov_sql=(
+    'STATIC2:بانتظار تأكيد التحويل;PAYMENT_PENDING,تجربة فعالة;PROVISIONED,مدفوع;PAID,غير مكتمل;STARTED,مرفوض;REJECTED'),
+    null_text='الكل', submit=True)
+p.dynamic('الطلبات', 20, 'return noona_signup_pkg.signups_html(:P9_STATUS);')
+
+# =============================================================== 10) الأسعار وإعدادات التسجيل
+p = app.page(10, 'Pricing', 'PRICING', 'الأسعار وإعدادات التسجيل', scheme=PLATFORM)
+f = p.static('سعر نظام', 10, text='<p class="nn-hint">السعر الشهري بالريال قبل الضريبة؛ لا يؤثر على الطلبات السابقة (يحفظ السعر وقت الطلب).</p>')
+p.select('P10_OFF', f, 10, 'النظام', lov_sql=(
+    "select name_ar || ' - ' || to_char(monthly_price, 'FM999,990') || ' ريال' || case when is_active = 'N' then ' (موقوف)' end d, code r"
+    " from plt_offering order by sort_order"))
+p.number('P10_PRICE', f, 20, 'السعر الشهري الجديد')
+p.yesno('P10_ACTIVE', f, 30, 'متاح للتسجيل')
+b_pr = p.button(f, 10, 'SAVE_PRICE', 'حفظ السعر', hot=True)
+p.process(10, 'AFTER_SUBMIT', 'Price', "noona_signup_pkg.save_offering(:P10_OFF, to_number(:P10_PRICE), nvl(:P10_ACTIVE, 'Y'));",
+          when_button=b_pr, success='حفظ السعر')
+d = p.static('خصم المدة', 20)
+p.select('P10_PLAN', d, 10, 'الخطة', lov_sql=(
+    "select name_ar || ' - خصم ' || to_char(discount_pct) || '%' d, code r from plt_plan where code <> 'TRIAL' and is_active = 'Y'"
+    " order by decode(code, 'MONTHLY', 1, 'QUARTERLY', 2, 'SEMI_ANNUAL', 3, 'ANNUAL', 4, 9)"))
+p.number('P10_PCT', d, 20, 'الخصم %')
+b_ds = p.button(d, 10, 'SAVE_DISC', 'حفظ الخصم')
+p.process(20, 'AFTER_SUBMIT', 'Discount', 'noona_signup_pkg.save_plan_discount(:P10_PLAN, to_number(:P10_PCT));', when_button=b_ds, success='حفظ الخصم')
+g = p.static('إعدادات التسجيل', 30, text=(
+    '<p class="nn-hint">وضع الرموز DEMO يعرض رمز التحقق على الشاشة (للتجربة المحلية)، وEMAIL يرسله بالبريد عبر APEX '
+    '(يتطلب ضبط SMTP في APEX). رسائل الجوال تحتاج ربط مزود رسائل.</p>'))
+p.select('P10_KEY', g, 10, 'الإعداد', lov_sql=(
+    "select name_ar || ': ' || substr(default_value, 1, 60) d, setting_key r from plt_setting_def where setting_key like 'SIGNUP.%' order by setting_key"),
+    submit=True)
+p.textarea('P10_VALUE', g, 20, 'القيمة', rows=2)
+b_st = p.button(g, 10, 'SAVE_SET', 'حفظ الإعداد')
+p.process(5, 'BEFORE_HEADER', 'Load setting', ':P10_VALUE := noona_signup_pkg.setting(:P10_KEY);', when=':P10_KEY is not null')
+p.process(30, 'AFTER_SUBMIT', 'Setting', 'noona_signup_pkg.save_setting(:P10_KEY, :P10_VALUE);', when_button=b_st, success='حفظ الإعداد')
+p.dynamic('الأنظمة كما يراها العميل', 40, 'return noona_signup_pkg.offerings_html;')
+p.dynamic('مثال تسعير: المالية والمخزون، 5 مستخدمين، سنوي', 50, "return noona_signup_pkg.quote_html('FIN:SCM', 5, 'ANNUAL');")
+
 app.nav_item('لوحة المنصة', 1, 'fa-server', 10)
+app.nav_item('طلبات التسجيل', 9, 'fa-user-plus', 12)
+app.nav_item('الأسعار والتسجيل', 10, 'fa-tags', 13)
 app.nav_item('الاشتراكات', 8, 'fa-calendar-check-o', 15)
 app.nav_item('تجهيز مؤسسة', 4, 'fa-plus-circle', 20)
 app.nav_item('سجل تدقيق المنصة', 5, 'fa-shield', 30)
