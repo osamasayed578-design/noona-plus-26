@@ -69,6 +69,15 @@ CREATE OR REPLACE PACKAGE NOONA_INV_PKG AUTHID DEFINER AS
   -- حساب «صيانة تحت التنفيذ» 1116
   FUNCTION maint_wip_account RETURN NUMBER;
 
+  -- ---------------------------------------------------------- طريقة التكلفة
+  -- WEIGHTED_AVERAGE (المتوسط المرجح، الافتراضي) أو FIFO (الوارد أولاً يصرف أولاً): لكل صنف في الشركة
+  FUNCTION costing_method(p_item_id IN NUMBER) RETURN VARCHAR2;
+  -- للصنف، أو لكل أصناف الفئة (ويصبح افتراضي الأصناف الجديدة فيها)؛ يعيد عدد الأصناف المتغيرة
+  --   التحول إلى FIFO: الرصيد القائم يصبح أول طبقة بتكلفته الحالية؛ والعودة للمتوسط تكمل من القيمة الحالية
+  FUNCTION set_costing_method(p_item_id IN NUMBER, p_category_id IN NUMBER, p_method IN VARCHAR2) RETURN NUMBER;
+  -- طبقات FIFO المفتوحة للصنف (التاريخ، الكمية الأصلية، المتبقية، التكلفة)
+  FUNCTION fifo_layers_html(p_item_id IN NUMBER) RETURN CLOB;
+
   -- ---------------------------------------------------------- مستندات المخزون المباشرة
   -- الأنواع: OPENING رصيد افتتاحي، ADJ_IN تسوية بالزيادة، ADJ_OUT عجز، SCRAP إتلاف، CONSUMPTION صرف لمركز تكلفة،
   --          TRANSFER_OUT تحويل بين مستودعين
@@ -426,6 +435,7 @@ CREATE OR REPLACE PACKAGE BODY NOONA_INV_PKG AS
     l_id    NUMBER := l_o.get_number('id');
     l_no    VARCHAR2(50) := TRIM(l_o.get_string('no'));
     l_cat   NUMBER := l_o.get_number('cat');
+    l_cm    VARCHAR2(30);
     l_uom   NUMBER := l_o.get_number('uom');
     l_type  VARCHAR2(30) := NVL(l_o.get_string('type'), 'STOCK');
     l_prof  VARCHAR2(30);
@@ -515,6 +525,14 @@ CREATE OR REPLACE PACKAGE BODY NOONA_INV_PKG AS
       SELECT COUNT(*) INTO l_n FROM inv_transaction_line WHERE item_id = l_id AND ROWNUM = 1;
       IF l_n = 0 THEN UPDATE inv_item SET base_uom_id = l_uom WHERE id = l_id; END IF;
     END IF;
+    -- طريقة التكلفة للصنف الجديد: من المستند أو افتراضي الفئة
+    IF l_o.has('costing') AND NOT l_o.get('costing').is_null THEN
+      l_cm := l_o.get_string('costing');
+    ELSE
+      SELECT NVL(MAX(default_costing_method), 'WEIGHTED_AVERAGE') INTO l_cm
+        FROM inv_item_category WHERE id = (SELECT category_id FROM inv_item WHERE id = l_id);
+    END IF;
+    IF l_cm NOT IN ('WEIGHTED_AVERAGE', 'FIFO') THEN l_cm := 'WEIGHTED_AVERAGE'; END IF;
     -- إعدادات الشركة: الأسعار والضريبة والمركز والمستودع والحدود
     MERGE INTO inv_item_company c
     USING (SELECT l_id item_id FROM dual) x ON (c.company_id = company AND c.item_id = x.item_id)
@@ -528,7 +546,7 @@ CREATE OR REPLACE PACKAGE BODY NOONA_INV_PKG AS
      WHEN NOT MATCHED THEN INSERT (company_id, item_id, costing_method, sale_price, min_sale_price, prices_include_tax, sales_tax_code_id,
                                    purchase_tax_code_id, default_cost_center_id, default_warehouse_id, min_qty, max_qty, reorder_qty,
                                    standard_cost, is_active)
-          VALUES (company, l_id, 'WEIGHTED_AVERAGE', n_price, n_minPrice, NVL(s_incl, 'N'),
+          VALUES (company, l_id, l_cm, n_price, n_minPrice, NVL(s_incl, 'N'),
                   tax_id(NVL(s_tax, 'VAT15')),
                   tax_id(NVL(s_ptax, NVL(s_tax, 'VAT15'))),
                   n_cc, n_wh, n_min, n_max, n_reorder,
@@ -707,6 +725,118 @@ CREATE OR REPLACE PACKAGE BODY NOONA_INV_PKG AS
   END add_onhand;
 
   -- يطبق سطراً واحداً على الأرصدة والتكلفة؛ يعيد تكلفة السطر الإجمالية (موجبة)
+  -- ================================================================ طريقة التكلفة و FIFO
+  FUNCTION costing_method(p_item_id IN NUMBER) RETURN VARCHAR2 IS
+    l VARCHAR2(30);
+  BEGIN
+    SELECT MAX(costing_method) INTO l FROM inv_item_company WHERE item_id = p_item_id AND company_id = company;
+    RETURN NVL(l, 'WEIGHTED_AVERAGE');
+  END costing_method;
+
+  -- الرصيد القائم قبل التحول إلى FIFO (أو الذي لا طبقات له) يصبح أقدم طبقة بالمتوسط الحالي
+  PROCEDURE fifo_open(p_item NUMBER, p_cost inv_item_cost%ROWTYPE) IS
+    l_rem NUMBER;
+  BEGIN
+    SELECT NVL(SUM(remaining_qty), 0) INTO l_rem FROM inv_cost_layer
+     WHERE company_id = company AND item_id = p_item AND status_code = 'OPEN';
+    IF NVL(p_cost.on_hand_qty, 0) - l_rem > 0.000001 THEN
+      INSERT INTO inv_cost_layer (company_id, item_id, warehouse_id, receipt_txn_line_id, layer_date, original_qty, remaining_qty,
+                                  unit_cost, status_code)
+      VALUES (company, p_item, NULL, NULL, DATE '1900-01-01', p_cost.on_hand_qty - l_rem, p_cost.on_hand_qty - l_rem,
+              CASE WHEN p_cost.on_hand_qty > 0 AND p_cost.total_value > 0 THEN ROUND(p_cost.total_value / p_cost.on_hand_qty, 6)
+                   ELSE NVL(p_cost.average_cost, 0) END, 'OPEN');
+    END IF;
+  END fifo_open;
+
+  PROCEDURE fifo_add(p_item NUMBER, p_qty NUMBER, p_unit NUMBER, p_line NUMBER, p_cost inv_item_cost%ROWTYPE) IS
+  BEGIN
+    fifo_open(p_item, p_cost);
+    INSERT INTO inv_cost_layer (company_id, item_id, warehouse_id, receipt_txn_line_id, layer_date, original_qty, remaining_qty,
+                                unit_cost, status_code)
+    VALUES (company, p_item, NULL, p_line, TRUNC(SYSDATE), p_qty, p_qty, NVL(p_unit, 0), 'OPEN');
+    UPDATE inv_transaction_line SET cost_layer_id = (SELECT MAX(id) FROM inv_cost_layer WHERE receipt_txn_line_id = p_line) WHERE id = p_line;
+  END fifo_add;
+
+  -- يستهلك الطبقات من الأقدم ويعيد التكلفة الإجمالية؛ الزائد عن الطبقات (صرف بالسالب) بتكلفة آخر طبقة أو المتوسط
+  FUNCTION fifo_take(p_item NUMBER, p_qty NUMBER, p_cost inv_item_cost%ROWTYPE) RETURN NUMBER IS
+    l_left  NUMBER := p_qty;
+    l_take  NUMBER;
+    l_total NUMBER := 0;
+    l_last  NUMBER;
+  BEGIN
+    fifo_open(p_item, p_cost);
+    FOR y IN (SELECT id, remaining_qty, unit_cost FROM inv_cost_layer
+               WHERE company_id = company AND item_id = p_item AND status_code = 'OPEN' AND remaining_qty > 0
+               ORDER BY layer_date, id FOR UPDATE) LOOP
+      EXIT WHEN l_left <= 0;
+      l_take := LEAST(l_left, y.remaining_qty);
+      l_total := l_total + l_take * y.unit_cost;
+      l_last := y.unit_cost;
+      UPDATE inv_cost_layer SET remaining_qty = remaining_qty - l_take,
+             status_code = CASE WHEN remaining_qty - l_take <= 0 THEN 'EXHAUSTED' ELSE 'OPEN' END
+       WHERE id = y.id;
+      l_left := l_left - l_take;
+    END LOOP;
+    IF l_left > 0 THEN
+      l_total := l_total + l_left * NVL(l_last, CASE WHEN p_cost.average_cost > 0 THEN p_cost.average_cost ELSE avg_cost(p_item) END);
+    END IF;
+    RETURN l_total;
+  END fifo_take;
+
+  FUNCTION set_costing_method(p_item_id IN NUMBER, p_category_id IN NUMBER, p_method IN VARCHAR2) RETURN NUMBER IS
+    l_n NUMBER := 0;
+  BEGIN
+    guard('INV_ITEM.UPDATE');
+    NOONA_CORE_PKG.assert(p_method IN ('WEIGHTED_AVERAGE', 'FIFO'), 'NOONA-INV-092',
+      'طريقة التكلفة: المتوسط المرجح أو الوارد أولاً يصرف أولاً (FIFO)', 'Costing method must be WEIGHTED_AVERAGE or FIFO');
+    NOONA_CORE_PKG.assert(p_item_id IS NOT NULL OR p_category_id IS NOT NULL, 'NOONA-INV-093', 'اختر الصنف أو الفئة', 'Item or category required');
+    IF p_category_id IS NOT NULL THEN
+      UPDATE inv_item_category SET default_costing_method = p_method WHERE id = p_category_id;
+    END IF;
+    FOR i IN (SELECT id FROM inv_item WHERE (id = p_item_id OR (p_item_id IS NULL AND category_id = p_category_id))) LOOP
+      MERGE INTO inv_item_company c
+      USING (SELECT i.id item_id FROM dual) x ON (c.company_id = company AND c.item_id = x.item_id)
+       WHEN MATCHED THEN UPDATE SET costing_method = p_method WHERE c.costing_method <> p_method
+       WHEN NOT MATCHED THEN INSERT (company_id, item_id, costing_method, is_active) VALUES (company, i.id, p_method, 'Y');
+      l_n := l_n + SQL%ROWCOUNT;
+      IF p_method = 'FIFO' THEN
+        -- الرصيد القائم يصبح أول طبقة فوراً بتكلفته الحالية
+        FOR k IN (SELECT * FROM inv_item_cost WHERE company_id = company AND item_id = i.id AND warehouse_id IS NULL) LOOP
+          fifo_open(i.id, k);
+        END LOOP;
+      END IF;
+      IF p_method = 'WEIGHTED_AVERAGE' THEN
+        -- الطبقات المفتوحة لا تعود تستخدم؛ تقفل حتى لا تؤثر إن أعيد التحول لاحقاً
+        UPDATE inv_cost_layer SET status_code = 'EXHAUSTED', remaining_qty = 0
+         WHERE company_id = company AND item_id = i.id AND status_code = 'OPEN';
+      END IF;
+    END LOOP;
+    NOONA_AUDIT_PKG.log_event('CONFIG', 'INV_ITEM', p_item_id, 'COSTING_METHOD', 'SUCCESS',
+      p_new_values => '{"method":"' || p_method || '","category":' || NVL(TO_CHAR(p_category_id), 'null') || ',"items":' || l_n || '}');
+    RETURN l_n;
+  END set_costing_method;
+
+  FUNCTION fifo_layers_html(p_item_id IN NUMBER) RETURN CLOB IS
+    l_h CLOB;
+    l_q NUMBER := 0;
+    l_v NUMBER := 0;
+  BEGIN
+    FOR y IN (SELECT l.layer_date, l.original_qty, l.remaining_qty, l.unit_cost, t.doc_no
+                FROM inv_cost_layer l LEFT JOIN inv_transaction_line tl ON tl.id = l.receipt_txn_line_id
+                LEFT JOIN inv_transaction t ON t.id = tl.transaction_id
+               WHERE l.company_id = company AND l.item_id = p_item_id AND l.status_code = 'OPEN' AND l.remaining_qty > 0
+               ORDER BY l.layer_date, l.id) LOOP
+      l_q := l_q + y.remaining_qty; l_v := l_v + y.remaining_qty * y.unit_cost;
+      l_h := l_h || '<tr><td>' || CASE WHEN y.layer_date = DATE '1900-01-01' THEN 'رصيد قائم عند التحول' ELSE TO_CHAR(y.layer_date, 'YYYY-MM-DD') END
+          || '</td><td>' || esc(y.doc_no) || '</td><td class="u-tE">' || fqty(y.original_qty) || '</td><td class="u-tE">' || fqty(y.remaining_qty)
+          || '</td><td class="u-tE">' || fnum(y.unit_cost) || '</td><td class="u-tE">' || fmt(y.remaining_qty * y.unit_cost) || '</td></tr>';
+    END LOOP;
+    RETURN CASE WHEN l_h IS NULL THEN '<p class="nn-hint">لا طبقات مفتوحة (الصنف بالمتوسط المرجح أو بلا رصيد).</p>'
+           ELSE '<table class="nn-table"><thead><tr><th>تاريخ الطبقة</th><th>مستند الاستلام</th><th>الكمية الأصلية</th><th>المتبقية</th>'
+             || '<th>تكلفة الوحدة</th><th>القيمة</th></tr></thead><tbody>' || l_h || '<tr class="nn-total"><td colspan="3"><b>الإجمالي</b></td>'
+             || '<td class="u-tE"><b>' || fqty(l_q) || '</b></td><td></td><td class="u-tE"><b>' || fmt(l_v) || '</b></td></tr></tbody></table>' END;
+  END fifo_layers_html;
+
   FUNCTION apply_line(p_txn NUMBER, p_no IN OUT PLS_INTEGER, p_sign NUMBER, p_wh NUMBER, p_class VARCHAR2,
                       p_m IN OUT NOCOPY t_move, p_for_sale BOOLEAN) RETURN NUMBER IS
     l_item    inv_item%ROWTYPE;
@@ -720,6 +850,8 @@ CREATE OR REPLACE PACKAGE BODY NOONA_INV_PKG AS
     l_avail   NUMBER;
     l_cur     VARCHAR2(3) := NOONA_GL_PKG.ledger_currency;
     l_fs      VARCHAR2(1) := CASE WHEN p_for_sale THEN 'Y' ELSE 'N' END;
+    -- التحويل بين المستودعات لا يغير طبقات FIFO (التكلفة على مستوى الشركة)
+    l_fifo    BOOLEAN := costing_method(p_m.item_id) = 'FIFO' AND p_class NOT IN ('TRANSFER_OUT', 'TRANSFER_IN');
     PROCEDURE ins(p_lot NUMBER, p_q NUMBER, p_unit NUMBER) IS
     BEGIN
       p_no := p_no + 1;
@@ -757,6 +889,7 @@ CREATE OR REPLACE PACKAGE BODY NOONA_INV_PKG AS
       END IF;
       l_uc := NVL(p_m.unit_cost, CASE WHEN l_cost.average_cost > 0 THEN l_cost.average_cost ELSE avg_cost(p_m.item_id) END);
       ins(p_m.lot_id, p_m.qty, l_uc);
+      IF l_fifo THEN fifo_add(p_m.item_id, p_m.qty, l_uc, l_line, l_cost); END IF;
       l_total := ROUND(p_m.qty * l_uc, 2);
       UPDATE inv_item_cost
          SET on_hand_qty = on_hand_qty + p_m.qty, total_value = total_value + l_total,
@@ -764,8 +897,12 @@ CREATE OR REPLACE PACKAGE BODY NOONA_INV_PKG AS
                                  ELSE average_cost END
        WHERE id = l_cost.id;
     ELSE
-      -- الصادر: بالمتوسط المرجح، ومن الدفعات بالأقدم انتهاءً (لا تباع دفعة منتهية)
-      l_uc := CASE WHEN l_cost.average_cost > 0 THEN l_cost.average_cost ELSE avg_cost(p_m.item_id) END;
+      -- الصادر: بالمتوسط المرجح أو FIFO (الطبقات الأقدم أولاً)، ومن الدفعات بالأقدم انتهاءً (لا تباع دفعة منتهية)
+      IF l_fifo THEN
+        l_uc := ROUND(fifo_take(p_m.item_id, p_m.qty, l_cost) / p_m.qty, 6);
+      ELSE
+        l_uc := CASE WHEN l_cost.average_cost > 0 THEN l_cost.average_cost ELSE avg_cost(p_m.item_id) END;
+      END IF;
       SELECT CASE WHEN l_item.allow_negative = 'Y' OR w.allow_negative = 'Y' THEN 'Y' ELSE 'N' END INTO l_neg
         FROM inv_warehouse w WHERE w.id = p_wh;
       IF l_item.tracking_mode IN ('LOT', 'LOT_AND_SERIAL') THEN
@@ -797,7 +934,9 @@ CREATE OR REPLACE PACKAGE BODY NOONA_INV_PKG AS
       l_total := ROUND(p_m.qty * l_uc, 2);
       UPDATE inv_item_cost
          SET on_hand_qty = on_hand_qty - p_m.qty,
-             total_value = CASE WHEN on_hand_qty - p_m.qty <= 0 THEN 0 ELSE total_value - l_total END
+             total_value = CASE WHEN on_hand_qty - p_m.qty <= 0 THEN 0 ELSE total_value - l_total END,
+             average_cost = CASE WHEN l_fifo AND on_hand_qty - p_m.qty > 0
+                                 THEN ROUND((total_value - l_total) / (on_hand_qty - p_m.qty), 6) ELSE average_cost END
        WHERE id = l_cost.id;
     END IF;
     p_m.unit_cost := l_uc;

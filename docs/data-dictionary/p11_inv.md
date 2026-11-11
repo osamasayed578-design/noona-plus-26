@@ -668,7 +668,7 @@
 | 3 | `COMPANY_ID` | معرف | `NUMBER(19)` | ✔ |  | FK→ORG_COMPANY |  | Security Context |  | الشركة (الكيان القانوني) المالكة للسجل |
 | 4 | `ITEM_ID` | معرف | `NUMBER(19)` | ✔ |  | FK→INV_ITEM |  | إدخال المستخدم |  | الصنف |
 | 5 | `WAREHOUSE_ID` | معرف | `NUMBER(19)` |  |  | FK→INV_WAREHOUSE |  | إدخال المستخدم |  | المستودع (حسب مستوى التكلفة) |
-| 6 | `RECEIPT_TXN_LINE_ID` | معرف | `NUMBER(19)` | ✔ |  | FK→INV_TRANSACTION_LINE |  | إدخال المستخدم |  | حركة الاستلام المنشئة |
+| 6 | `RECEIPT_TXN_LINE_ID` | معرف | `NUMBER(19)` |  |  | FK→INV_TRANSACTION_LINE |  | إدخال المستخدم |  | حركة الاستلام المنشئة (فارغ لطبقة الرصيد القائم عند التحول إلى FIFO) |
 | 7 | `LAYER_DATE` | تاريخ | `DATE` | ✔ |  |  |  | إدخال المستخدم |  | تاريخ الطبقة |
 | 8 | `ORIGINAL_QTY` | كمية | `NUMBER(24,6)` | ✔ |  |  |  | إدخال المستخدم |  | الكمية الأصلية |
 | 9 | `REMAINING_QTY` | كمية | `NUMBER(24,6)` | ✔ |  |  |  | إدخال المستخدم |  | المتبقي |

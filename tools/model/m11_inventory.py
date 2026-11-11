@@ -217,7 +217,7 @@ OWNER_MEMBER_ID ID   >SEC_USER_MEMBERSHIP | صاحب الطلب
 table('INV_COST_LAYER', 'طبقات التكلفة FIFO', 'FIFO Cost Layers', scope='C', mix='status', status='OPEN EXHAUSTED', cols='''
 ITEM_ID         ID   NN >INV_ITEM | الصنف
 WAREHOUSE_ID    ID   >INV_WAREHOUSE | المستودع (حسب مستوى التكلفة)
-RECEIPT_TXN_LINE_ID ID NN >INV_TRANSACTION_LINE | حركة الاستلام المنشئة
+RECEIPT_TXN_LINE_ID ID >INV_TRANSACTION_LINE | حركة الاستلام المنشئة (فارغ لطبقة الرصيد القائم عند التحول إلى FIFO)
 LAYER_DATE      DATE NN          | تاريخ الطبقة
 ORIGINAL_QTY    QTY  NN          | الكمية الأصلية
 REMAINING_QTY   QTY  NN          | المتبقي
