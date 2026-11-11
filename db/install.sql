@@ -131,6 +131,7 @@ EXEC DBMS_UTILITY.COMPILE_SCHEMA(USER, FALSE)
 @@upgrade_parts/28_his_alert_job.sql
 @@upgrade_parts/52_account_job.sql
 @@upgrade_parts/33_api_job.sql
+@@upgrade_parts/57_trn_alerts.sql
 PROMPT ========== Invalid objects (should be none)
 SELECT object_type, object_name FROM user_objects WHERE status <> 'VALID';
 
