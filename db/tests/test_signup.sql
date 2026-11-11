@@ -110,6 +110,10 @@ BEGIN
   ok('chosen modules enabled', NOONA_PLATFORM_PKG.module_enabled('GL') = 'Y' AND NOONA_PLATFORM_PKG.module_enabled('INV') = 'Y'
      AND NOONA_PLATFORM_PKG.module_enabled('SAL') = 'Y');
   ok('other modules disabled', NOONA_PLATFORM_PKG.module_enabled('MFG') = 'N' AND NOONA_PLATFORM_PKG.module_enabled('HIS') = 'N');
+  -- الأنظمة الداخلية اشتراكات مستقلة: المبيعات لا تشمل المطعم، ولا تظهر الفنادق والعقارات والمشاريع دون اشتراكها
+  ok('restaurant, hotels, real estate and projects are separate subscriptions',
+     NOONA_PLATFORM_PKG.module_enabled('RST') = 'N' AND NOONA_PLATFORM_PKG.module_enabled('HSP') = 'N'
+     AND NOONA_PLATFORM_PKG.module_enabled('RE') = 'N' AND NOONA_PLATFORM_PKG.module_enabled('PRJ') = 'N');
   SELECT COUNT(*) INTO l_n FROM org_company WHERE legal_name_ar = 'مؤسسة الضياء ' || l_sfx;
   ok('company created', l_n = 1);
   SELECT COUNT(*) INTO l_n FROM org_legal_registration;

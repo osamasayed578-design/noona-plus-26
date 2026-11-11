@@ -321,7 +321,7 @@ def build(app, url, scheme):
         titled=True, rows=25)
 
     # القائمة
-    rs = app.nav_item('المطاعم والكافتريا', None, 'fa-cutlery', 35)
+    rs = app.nav_item('المطاعم والكافتريا', None, 'fa-cutlery', 35, scheme=scheme)
     app.nav_item('لوحة المطعم', 60, 'fa-dashboard', 351, parent=rs)
     app.nav_item('الصالة والطلبات', 61, 'fa-th-large', 352, parent=rs)
     app.nav_item('شاشة المطبخ', 62, 'fa-fire', 353, parent=rs)

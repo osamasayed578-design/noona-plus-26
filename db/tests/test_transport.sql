@@ -89,11 +89,25 @@ BEGIN
   -- ---------------------------------------------------------------- الأسطول والسائقون
   SELECT id INTO l_gen FROM trn_cargo_type WHERE code = 'GEN' AND company_id = NOONA_TRN_PKG.company;
   SELECT id INTO l_haz FROM trn_cargo_type WHERE code = 'HAZ' AND company_id = NOONA_TRN_PKG.company;
+  -- العربة المملوكة تضاف للأصول الثابتة: بدون تكلفة ترفض، وبتكلفة تنشئ أصلاً مرسملاً بقيد
+  rejects('owned vehicle needs a purchase cost (fixed asset)', 'NOONA-TRN-060',
+    'DECLARE x NUMBER; BEGIN x := NOONA_TRN_PKG.save_vehicle(''{"plate":"ل ك ' || l_sfx || '","capacityTons":10}''); END;');
   l_v := NOONA_TRN_PKG.save_vehicle('{"plate":"خ ط ' || l_sfx || '","type":"TRUCK","make":"Mercedes","model":"Actros","capacityTons":25,'
+        || '"ownership":"OWNED","purchaseCost":350000,"funding":"OPENING","openingAccum":50000,"vin":"WDB' || l_sfx || '",'
         || '"odometer":100000,"licenseExpiry":"' || TO_CHAR(SYSDATE + 200, 'YYYY-MM-DD') || '","insuranceExpiry":"' || TO_CHAR(SYSDATE + 100, 'YYYY-MM-DD') || '"}');
   rejects('plate is unique per company', 'NOONA-TRN-009',
     'DECLARE x NUMBER; BEGIN x := NOONA_TRN_PKG.save_vehicle(''{"plate":"خ ط ' || l_sfx || '","capacityTons":10}''); END;');
-  l_v2 := NOONA_TRN_PKG.save_vehicle('{"plate":"ق ر ' || l_sfx || '","type":"TRUCK","capacityTons":30,"insuranceExpiry":"'
+  SELECT COUNT(*) INTO l_n FROM trn_vehicle v JOIN fa_asset a ON a.id = v.asset_id
+   WHERE v.id = l_v AND a.original_cost = 350000 AND a.tag_no = v.plate_no AND a.status_code <> 'DRAFT'
+     AND a.category_id = (SELECT id FROM fa_category c WHERE c.company_id = v.company_id AND c.code = 'VEHICLES');
+  ok('owned truck registered as a capitalized fixed asset (VEHICLES)', l_n = 1);
+  SELECT COUNT(*) INTO l_n FROM fa_transaction t JOIN trn_vehicle v ON v.asset_id = t.asset_id
+   WHERE v.id = l_v AND t.txn_type = 'CAPITALIZATION' AND t.status_code = 'POSTED' AND t.accounting_event_id IS NOT NULL;
+  ok('acquisition journal posted for the truck', l_n = 1);
+  l_n := NOONA_TRN_PKG.save_vehicle('{"id":' || l_v || ',"plate":"خ ط ' || l_sfx || '","type":"TRUCK","capacityTons":26,"ownership":"OWNED"}');
+  SELECT COUNT(*) INTO l_n FROM trn_vehicle WHERE id = l_v AND asset_id IS NOT NULL AND capacity_tons = 26;
+  ok('editing the truck keeps its fixed asset link', l_n = 1);
+  l_v2 := NOONA_TRN_PKG.save_vehicle('{"plate":"ق ر ' || l_sfx || '","type":"TRUCK","capacityTons":30,"ownership":"RENTED","insuranceExpiry":"'
         || TO_CHAR(SYSDATE - 1, 'YYYY-MM-DD') || '"}');
   l_d := NOONA_TRN_PKG.save_driver('{"name":"أحمد السائق ' || l_sfx || '","licenseNo":"L' || l_sfx || '","licenseClass":"HEAVY","licenseExpiry":"'
         || TO_CHAR(SYSDATE + 300, 'YYYY-MM-DD') || '","phone":"0912345678"}');
@@ -158,7 +172,7 @@ BEGIN
   ok('shipment in transit', l_s = 'IN_TRANSIT');
   rejects('vehicle on an active trip cannot go to maintenance', 'NOONA-TRN-012',
     'BEGIN NOONA_TRN_PKG.set_vehicle_status(' || l_v || ', ''MAINTENANCE''); END;');
-  l_x := NOONA_TRN_PKG.save_vehicle('{"plate":"م ن ' || l_sfx || '","type":"TRUCK","capacityTons":15}');
+  l_x := NOONA_TRN_PKG.save_vehicle('{"plate":"م ن ' || l_sfx || '","type":"TRUCK","capacityTons":15,"ownership":"RENTED"}');
   rejects('the same driver cannot start another trip', 'NOONA-TRN-047',
     'DECLARE x NUMBER; BEGIN x := NOONA_TRN_PKG.create_trip(''{"vehicle":' || l_x || ',"driver":' || l_d || ',"route":' || l_r || '}''); END;');
 

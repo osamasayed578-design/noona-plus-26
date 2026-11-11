@@ -57,6 +57,7 @@ app.nav_item('تغيير كلمة المرور', 10, 'fa-key', 20)
 import signup_pages
 signup_pages.add(app)
 signup_pages.add_reset(app)
+signup_pages.add_site(app)
 
 app.finalize()
 signup_pages.login_link(os.path.join(ROOT, 'apex/NOONA_MASTER/f115'))

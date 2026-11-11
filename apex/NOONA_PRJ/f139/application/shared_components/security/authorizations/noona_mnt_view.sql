@@ -15,7 +15,7 @@ wwv_flow_imp_shared.create_security_scheme(
  p_id=>wwv_flow_imp.id(91820273000000011)
 ,p_name=>'NOONA - Maintenance'
 ,p_scheme_type=>'NATIVE_FUNCTION_BODY'
-,p_attribute_01=>'return noona_security_pkg.has_permission(''MNT_REQUEST.VIEW'', noona_mnt_pkg.company) = ''Y'';'
+,p_attribute_01=>'return noona_security_pkg.has_permission(''MNT_REQUEST.VIEW'', noona_mnt_pkg.company) = ''Y'' and (noona_platform_pkg.module_enabled(''MNT'') = ''Y'' or noona_platform_pkg.module_enabled(''HSP'') = ''Y'');'
 ,p_error_message=>'صفحات الصيانة تتطلب صلاحية عرض البلاغات / Maintenance access required'
 ,p_caching=>'BY_USER_BY_PAGE_VIEW'
 );

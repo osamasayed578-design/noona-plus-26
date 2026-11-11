@@ -38,6 +38,9 @@ CREATE OR REPLACE PACKAGE NOONA_SIGNUP_PKG AUTHID DEFINER AS
   FUNCTION quote_json(p_offerings IN VARCHAR2, p_users IN NUMBER, p_plan IN VARCHAR2) RETURN CLOB;
   FUNCTION quote_html(p_offerings IN VARCHAR2, p_users IN NUMBER, p_plan IN VARCHAR2) RETURN CLOB;
   FUNCTION offerings_html RETURN CLOB;
+  -- صفحة الموقع العامة: بطاقات الأنظمة بأسعارها، والباقات بخصوماتها (من جداول الأسعار مباشرة)
+  FUNCTION site_systems_html(p_signup_url IN VARCHAR2) RETURN CLOB;
+  FUNCTION site_plans_html(p_signup_url IN VARCHAR2) RETURN CLOB;
   -- يتحقق من الأنظمة ومتطلباتها؛ يعيد الرموز المعتمدة مفصولة بفاصلة
   FUNCTION validate_offerings(p_offerings IN VARCHAR2) RETURN VARCHAR2;
   FUNCTION bank_details RETURN VARCHAR2;
@@ -330,6 +333,42 @@ CREATE OR REPLACE PACKAGE BODY NOONA_SIGNUP_PKG AS
   BEGIN
     RETURN NVL(setting('SIGNUP.BANK_DETAILS'), 'يحدد مسؤول المنصة بيانات الحساب البنكي');
   END bank_details;
+
+  FUNCTION site_systems_html(p_signup_url IN VARCHAR2) RETURN CLOB IS
+    l_h CLOB := '<div class="nnw-grid nnw-sys">';
+  BEGIN
+    FOR o IN (SELECT * FROM plt_offering WHERE is_active = 'Y' ORDER BY sort_order) LOOP
+      l_h := l_h || ('<div class="nnw-card"><div class="nnw-ic"><span class="fa ' || esc(o.icon) || '"></span></div><h3>' || esc(o.name_ar)
+          || '</h3><p>' || esc(o.description) || '</p><div class="nnw-price">'
+          || CASE WHEN o.monthly_price = 0 THEN '<b>مشمول</b> مع كل اشتراك'
+                  ELSE '<b>' || TO_CHAR(o.monthly_price, 'FM999,990') || '</b> ريال / شهرياً' END || '</div></div>');
+    END LOOP;
+    RETURN l_h || ('</div>');
+  END site_systems_html;
+
+  FUNCTION site_plans_html(p_signup_url IN VARCHAR2) RETURN CLOB IS
+    l_h   CLOB := '<div class="nnw-grid nnw-plans">';
+    l_fin NUMBER;
+    l_up  NUMBER := NVL(TO_NUMBER(setting('SIGNUP.USER_PRICE')), 0);
+    l_fr  NUMBER := NVL(TO_NUMBER(setting('SIGNUP.FREE_USERS')), 0);
+  BEGIN
+    SELECT NVL(MAX(monthly_price), 0) INTO l_fin FROM plt_offering WHERE code = 'FIN' AND is_active = 'Y';
+    l_h := l_h || ('<div class="nnw-plan nnw-plan-trial"><h3>تجربة مجانية</h3><div class="nnw-amt"><b>0</b> ريال</div><small>14 يوماً</small><ul>'
+        || '<li>كل الأنظمة التي تختارها</li><li>بلا بطاقة ولا دفع</li><li>بياناتك تبقى عند الاشتراك</li></ul>'
+        || '<a class="nnw-btn nnw-btn-primary" href="' || p_signup_url || '">ابدأ مجاناً</a></div>');
+    FOR p IN (SELECT code, name_ar, discount_pct, billing_cycle FROM plt_plan
+               WHERE is_active = 'Y' AND self_service = 'Y' AND code <> 'TRIAL'
+               ORDER BY DECODE(code, 'MONTHLY', 1, 'QUARTERLY', 2, 'SEMI_ANNUAL', 3, 'ANNUAL', 4, 9)) LOOP
+      l_h := l_h || ('<div class="nnw-plan' || CASE WHEN p.code = 'ANNUAL' THEN ' nnw-plan-best' END || '">'
+          || CASE WHEN p.code = 'ANNUAL' THEN '<span class="nnw-tag">الأوفر</span>' END
+          || '<h3>' || esc(p.name_ar) || '</h3><div class="nnw-amt"><b>' || TO_CHAR(ROUND(l_fin * (1 - p.discount_pct / 100)), 'FM999,990')
+          || '</b> ريال / شهرياً</div><small>للمالية والمحاسبة' || CASE WHEN p.discount_pct > 0 THEN ' بعد خصم ' || p.discount_pct || '%' END
+          || '</small><ul><li>أضف ما تحتاج من الأنظمة</li><li>' || CASE WHEN l_fr > 0 THEN 'أول ' || l_fr || ' مستخدمين مجاناً، ثم ' END
+          || TO_CHAR(l_up, 'FM990') || ' ريال للمستخدم</li><li>تحديثات ودعم فني ونسخ احتياطي يومي</li></ul>'
+          || '<a class="nnw-btn' || CASE WHEN p.code = 'ANNUAL' THEN ' nnw-btn-primary' END || '" href="' || p_signup_url || '">اشترك الآن</a></div>');
+    END LOOP;
+    RETURN l_h || ('</div><p class="nnw-note">الأسعار بالريال السعودي قبل ضريبة القيمة المضافة 15%. السعر النهائي يظهر لك أثناء التسجيل حسب الأنظمة وعدد المستخدمين.</p>');
+  END site_plans_html;
 
   FUNCTION validate_offerings(p_offerings IN VARCHAR2) RETURN VARCHAR2 IS
     l_list  VARCHAR2(4000) := norm_list(p_offerings);

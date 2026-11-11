@@ -10,11 +10,12 @@ STEP = ':P20_STEP'
 def add(app):
     p = app.page(PAGE, 'Signup', 'SIGNUP', 'إنشاء حساب مؤسسة - نونا بلس', protection='C', public=True)
     p.process(5, 'BEFORE_HEADER', 'Step', ':P20_STEP := noona_signup_pkg.step(:P20_TOKEN);')
+    p.static('رأس الموقع', 1, hide_header=True, text=SITE_NAV)
     p.dynamic('الخطوات', 5, [
         'declare l_s number := nvl(:P20_STEP, 1); l_h varchar2(4000);',
         'begin',
-        "  l_h := '<div class=\"nn-sgn-hero\"><div><h1>نونا بلس</h1>'",
-        "      || '<p>نظام متكامل لإدارة مؤسستك: المالية والمخزون والمبيعات والموارد البشرية وغيرها. ابدأ بتجربة مجانية 14 يوماً.</p></div></div>'",
+        "  l_h := '<div class=\"nn-sgn-hero\"><div><h1>أنشئ حساب مؤسستك</h1>'",
+        "      || '<p>خمس خطوات وتبدأ تجربتك المجانية 14 يوماً بكل الأنظمة التي تختارها.</p></div></div>'",
         "      || '<ol class=\"nn-sgn-steps\">';",
         "  for i in 1 .. 5 loop",
         "    l_h := l_h || '<li class=\"' || case when i < l_s then 'is-done' when i = l_s then 'is-current' end || '\"><span>' || i || '</span>'",
@@ -125,6 +126,7 @@ def add(app):
 def add_reset(app):
     """«نسيت كلمة المرور»: رمز للبريد ثم كلمة مرور جديدة (NOONA_ACCOUNT_PKG)"""
     p = app.page(21, 'Reset Password', 'RESET-PASSWORD', 'استعادة كلمة المرور - نونا بلس', protection='C', public=True)
+    p.static('رأس الموقع', 1, hide_header=True, text=SITE_NAV)
     a = p.static('استعادة كلمة المرور', 10, condition=':P21_TOKEN is null', text=(
         '<p class="nn-hint">أدخل اسم الدخول أو البريد المسجل؛ نرسل رمزاً صالحاً 15 دقيقة إلى بريدك.</p>'))
     p.text('P21_LOGIN', a, 10, 'اسم الدخول أو البريد الإلكتروني', maxlen=320)
@@ -163,7 +165,7 @@ def login_link(out_dir):
 ,p_region_template_options=>'#DEFAULT#'
 ,p_plug_template=>4501440665235496320
 ,p_plug_display_sequence=>90
-,p_plug_source=>'<div class="nn-sgn-login-link"><a href="f?p=&APP_ID.:RESET-PASSWORD:0">نسيت كلمة المرور؟</a><br>ليس لديك حساب؟ <a href="f?p=&APP_ID.:SIGNUP:0">أنشئ حساب مؤسستك وجرّب مجاناً 14 يوماً</a></div>'
+,p_plug_source=>'<div class="nn-sgn-login-link"><a href="f?p=&APP_ID.:RESET-PASSWORD:0">نسيت كلمة المرور؟</a> · <a href="f?p=&APP_ID.:WELCOME:0">تعرّف على نونا بلس والأسعار</a><br>ليس لديك حساب؟ <a href="f?p=&APP_ID.:SIGNUP:0">أنشئ حساب مؤسستك وجرّب مجاناً 14 يوماً</a></div>'
 ,p_attributes=>wwv_flow_t_plugin_attributes(wwv_flow_t_varchar2(
   'expand_shortcuts', 'Y',
   'output_as', 'HTML')).to_clob
@@ -171,3 +173,75 @@ def login_link(out_dir):
 """
     i = s.rindex('wwv_flow_imp.component_end;')
     open(path, 'w', encoding='utf-8').write(s[:i] + region + s[i:])
+
+
+SITE_NAV = (
+    '<header class="nnw-top"><div class="nnw-wrap nnw-top-in">'
+    '<a class="nnw-logo" href="f?p=&APP_ID.:WELCOME:&SESSION."><img src="#APP_FILES#noona-logo.svg" alt="">نونا بلس</a>'
+    '<nav class="nnw-nav"><a href="f?p=&APP_ID.:WELCOME:&SESSION.#features">المزايا</a>'
+    '<a href="f?p=&APP_ID.:WELCOME:&SESSION.#systems">الأنظمة</a>'
+    '<a href="f?p=&APP_ID.:WELCOME:&SESSION.#pricing">الأسعار</a>'
+    '<a href="f?p=&APP_ID.:WELCOME:&SESSION.#faq">الأسئلة</a></nav>'
+    '<div class="nnw-act"><a class="nnw-link" href="f?p=&APP_ID.:1:&SESSION.">تسجيل الدخول</a>'
+    '<a class="nnw-btn nnw-btn-primary" href="f?p=&APP_ID.:SIGNUP:&SESSION.">ابدأ مجاناً</a></div></div></header>')
+
+FEATURES = [
+    ('fa-sitemap', 'مؤسسة وشركات وفروع', 'شركة قابضة وتابعاتها وفروع بعملات مختلفة، وقوائم مالية موحدة بضغطة.'),
+    ('fa-file-text-o', 'فاتورة إلكترونية', 'متوافقة مع متطلبات هيئة الزكاة والضريبة والدخل (فاتورة)، مع الإقرار الضريبي.'),
+    ('fa-magic', 'مساعد ذكي', '«اسأل نونا» يجيب من بياناتك بالعربية، وملخصات وتحليلات وتنبؤات.'),
+    ('fa-upload', 'انتقال سهل', 'استورد حساباتك وعملاءك وأصنافك وموظفيك وأرصدتك من ملفات Excel.'),
+    ('fa-shield', 'أمان وصلاحيات', 'عزل تام لبيانات كل مؤسسة، وأدوار وصلاحيات دقيقة، وسجل تدقيق لا يعدل.'),
+    ('fa-mobile', 'من أي جهاز', 'يعمل من المتصفح على الحاسب والجوال، عربي بالكامل من اليمين لليسار.'),
+]
+STEPS = [('أنشئ حسابك', 'بريدك وجوالك ورمز تحقق'), ('أدخل مؤسستك', 'الاسم والسجل والرقم الضريبي'),
+         ('اختر أنظمتك', 'وعدد المستخدمين، والسعر يظهر فوراً'), ('ابدأ العمل', 'تجربة 14 يوماً وانقل بياناتك من Excel')]
+FAQ = [
+    ('هل أحتاج بطاقة للتجربة؟', 'لا. التجربة المجانية 14 يوماً بلا أي دفع، وبكل الأنظمة التي تختارها.'),
+    ('ماذا يحدث لبياناتي بعد التجربة؟', 'تبقى كما هي. عند الاشتراك تستمر عليها، وإن لم تشترك تتحول المؤسسة للقراءة فقط دون حذف.'),
+    ('كيف أدفع؟', 'بالتحويل البنكي حالياً: تكتب مرجع التحويل، ونفعل اشتراكك ونرسل فاتورتك الضريبية بالبريد.'),
+    ('هل أستطيع إضافة أنظمة أو مستخدمين لاحقاً؟', 'نعم، من «إدارة المؤسسة ← اشتراكي» في أي وقت، بالسعر المعلن.'),
+    ('كيف أنقل بياناتي من نظامي الحالي؟', 'من «بدء التشغيل ونقل البيانات» بملفات Excel جاهزة النماذج، مع مطابقة الأرصدة الافتتاحية.'),
+]
+
+
+def add_site(app):
+    """صفحة الموقع العامة (WELCOME): الرأس والتنقل، البطل، المزايا، الأنظمة بأسعارها، الباقات، الخطوات، الأسئلة، التذييل"""
+    p = app.page(22, 'Welcome', 'WELCOME', 'نونا بلس - نظام إدارة المؤسسات', protection='C', public=True)
+    signup = 'f?p=&APP_ID.:SIGNUP:&SESSION.'
+    p.static('الرأس', 5, hide_header=True, text=SITE_NAV + (
+        '<section class="nnw-hero"><div class="nnw-wrap nnw-hero-in"><div class="nnw-hero-txt">'
+        '<span class="nnw-pill">نظام سحابي سعودي · عربي بالكامل</span>'
+        '<h1>أدر مؤسستك كلها من نظام واحد</h1>'
+        '<p>المالية والمخزون والمبيعات والموارد البشرية والعقارات والمقاولات والمستشفيات وغيرها، بفاتورة إلكترونية '
+        'ومساعد ذكي، وقوائم موحدة لمجموعتك.</p>'
+        f'<div class="nnw-cta"><a class="nnw-btn nnw-btn-primary nnw-btn-lg" href="{signup}">ابدأ تجربتك المجانية 14 يوماً</a>'
+        '<a class="nnw-btn nnw-btn-ghost nnw-btn-lg" href="f?p=&APP_ID.:WELCOME:&SESSION.#pricing">شاهد الأسعار</a></div>'
+        '<ul class="nnw-ticks"><li>بلا بطاقة</li><li>جاهز خلال دقائق</li><li>انقل بياناتك من Excel</li></ul></div>'
+        '<div class="nnw-hero-art"><img src="#APP_FILES#noona-logo-white.svg" alt=""><div class="nnw-kpi"><b>12</b><span>نظاماً متكاملاً</span></div>'
+        '<div class="nnw-kpi"><b>8</b><span>دول خليجية وعربية</span></div><div class="nnw-kpi"><b>14</b><span>يوماً مجاناً</span></div></div>'
+        '</div></section>'))
+    p.static('المزايا', 10, hide_header=True, text=(
+        '<section class="nnw-sec" id="features"><div class="nnw-wrap"><h2>لماذا نونا بلس؟</h2><p class="nnw-sub">صُمم لمؤسسات المنطقة: '
+        'لغتها وأنظمتها الضريبية وطريقة عملها.</p><div class="nnw-grid nnw-feat">'
+        + ''.join(f'<div class="nnw-card"><div class="nnw-ic"><span class="fa {i}"></span></div><h3>{t}</h3><p>{d}</p></div>' for i, t, d in FEATURES)
+        + '</div></div></section>'))
+    p.dynamic('الأنظمة', 20, [
+        "return '<section class=\"nnw-sec nnw-alt\" id=\"systems\"><div class=\"nnw-wrap\"><h2>اختر الأنظمة التي تحتاجها</h2>'",
+        "  || '<p class=\"nnw-sub\">ادفع فقط لما تستخدمه، وأضف غيره متى احتجت.</p>'",
+        "  || noona_signup_pkg.site_systems_html('f?p=' || :APP_ID || ':SIGNUP:' || :APP_SESSION) || '</div></section>';"], hide_header=True)
+    p.dynamic('الأسعار', 30, [
+        "return '<section class=\"nnw-sec\" id=\"pricing\"><div class=\"nnw-wrap\"><h2>أسعار واضحة</h2>'",
+        "  || '<p class=\"nnw-sub\">كلما طالت المدة زاد الخصم.</p>'",
+        "  || noona_signup_pkg.site_plans_html('f?p=' || :APP_ID || ':SIGNUP:' || :APP_SESSION) || '</div></section>';"], hide_header=True)
+    p.static('الخطوات والأسئلة', 40, hide_header=True, text=(
+        '<section class="nnw-sec nnw-alt"><div class="nnw-wrap"><h2>ابدأ في أربع خطوات</h2><ol class="nnw-steps">'
+        + ''.join(f'<li><span>{n}</span><b>{t}</b><small>{d}</small></li>' for n, (t, d) in enumerate(STEPS, 1))
+        + '</ol></div></section>'
+        '<section class="nnw-sec" id="faq"><div class="nnw-wrap nnw-narrow"><h2>أسئلة شائعة</h2>'
+        + ''.join(f'<details class="nnw-faq"><summary>{q}</summary><p>{a}</p></details>' for q, a in FAQ)
+        + '</div></section>'
+        f'<section class="nnw-final"><div class="nnw-wrap"><h2>جاهز تبدأ؟</h2><p>أنشئ مؤسستك الآن وجرّب كل شيء مجاناً.</p>'
+        f'<a class="nnw-btn nnw-btn-light nnw-btn-lg" href="{signup}">ابدأ مجاناً</a></div></section>'
+        '<footer class="nnw-foot"><div class="nnw-wrap nnw-foot-in"><span><img src="#APP_FILES#noona-logo-white.svg" alt=""> نونا بلس</span>'
+        '<span>© 2026 جميع الحقوق محفوظة</span><span><a href="f?p=&APP_ID.:1:&SESSION.">تسجيل الدخول</a> · '
+        f'<a href="{signup}">إنشاء حساب</a></span></div></footer>'))

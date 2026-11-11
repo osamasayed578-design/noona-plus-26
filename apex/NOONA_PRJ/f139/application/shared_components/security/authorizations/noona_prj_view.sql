@@ -15,7 +15,7 @@ wwv_flow_imp_shared.create_security_scheme(
  p_id=>wwv_flow_imp.id(91820273000000563)
 ,p_name=>'NOONA - Projects'
 ,p_scheme_type=>'NATIVE_FUNCTION_BODY'
-,p_attribute_01=>'return noona_security_pkg.has_permission(''PRJ_PROJECT.VIEW'', noona_prj_pkg.company) = ''Y'';'
+,p_attribute_01=>'return noona_security_pkg.has_permission(''PRJ_PROJECT.VIEW'', noona_prj_pkg.company) = ''Y'' and noona_platform_pkg.module_enabled(''PRJ'') = ''Y'';'
 ,p_error_message=>'صفحات المشروعات تتطلب صلاحية عرض المشروعات / Projects access required'
 ,p_caching=>'BY_USER_BY_PAGE_VIEW'
 );

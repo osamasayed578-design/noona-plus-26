@@ -32,10 +32,10 @@ YN_LOV = 'STATIC2:نعم;Y,لا;N'
 
 def build(app, url, link, get_url):
     RES = app.add_scheme('noona_res_view', app.id(), 'NOONA - Unit Sales',
-                         f"return noona_security_pkg.has_permission('RE_SALE_CONTRACT.VIEW', {CO}) = 'Y';",
+                         f"return noona_security_pkg.has_permission('RE_SALE_CONTRACT.VIEW', {CO}) = 'Y' and noona_platform_pkg.module_enabled('RE') = 'Y';",
                          'صفحات بيع الوحدات تتطلب صلاحية عرض عقود البيع / Unit sales access required')
     PRP = app.add_scheme('noona_prp_view', app.id(), 'NOONA - Leasing',
-                         f"return noona_security_pkg.has_permission('PRP_LEASE.VIEW', {CO}) = 'Y';",
+                         f"return noona_security_pkg.has_permission('PRP_LEASE.VIEW', {CO}) = 'Y' and noona_platform_pkg.module_enabled('PRP') = 'Y';",
                          'صفحات الإيجارات تتطلب صلاحية عرض عقود الإيجار / Leasing access required')
 
     # =========================================================== 30) لوحة المبيعات

@@ -233,7 +233,7 @@ wwv_flow_imp_page.create_page_plug(
 ,p_region_template_options=>'#DEFAULT#'
 ,p_plug_template=>4501440665235496320
 ,p_plug_display_sequence=>90
-,p_plug_source=>'<div class="nn-sgn-login-link"><a href="f?p=&APP_ID.:RESET-PASSWORD:0">نسيت كلمة المرور؟</a><br>ليس لديك حساب؟ <a href="f?p=&APP_ID.:SIGNUP:0">أنشئ حساب مؤسستك وجرّب مجاناً 14 يوماً</a></div>'
+,p_plug_source=>'<div class="nn-sgn-login-link"><a href="f?p=&APP_ID.:RESET-PASSWORD:0">نسيت كلمة المرور؟</a> · <a href="f?p=&APP_ID.:WELCOME:0">تعرّف على نونا بلس والأسعار</a><br>ليس لديك حساب؟ <a href="f?p=&APP_ID.:SIGNUP:0">أنشئ حساب مؤسستك وجرّب مجاناً 14 يوماً</a></div>'
 ,p_attributes=>wwv_flow_t_plugin_attributes(wwv_flow_t_varchar2(
   'expand_shortcuts', 'Y',
   'output_as', 'HTML')).to_clob

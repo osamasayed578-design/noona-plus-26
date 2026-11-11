@@ -22,7 +22,7 @@ wwv_flow_imp_page.create_page(
 ,p_protection_level=>'C'
 );
 wwv_flow_imp_page.create_page_plug(
- p_id=>wwv_flow_imp.id(91820290000000406)
+ p_id=>wwv_flow_imp.id(91820290000000420)
 ,p_plug_name=>'أنواع الشحنات'
 ,p_region_template_options=>'#DEFAULT#'
 ,p_component_template_options=>'#DEFAULT#'
@@ -36,7 +36,7 @@ wwv_flow_imp_page.create_page_plug(
 ,p_prn_page_header=>'أنواع الشحنات'
 );
 wwv_flow_imp_page.create_worksheet(
- p_id=>wwv_flow_imp.id(91820290000000407)
+ p_id=>wwv_flow_imp.id(91820290000000421)
 ,p_max_row_count=>'1000000'
 ,p_no_data_found_message=>'لا توجد بيانات'
 ,p_pagination_type=>'ROWS_X_TO_Y'
@@ -50,10 +50,10 @@ wwv_flow_imp_page.create_worksheet(
 ,p_detail_link=>'f?p=&APP_ID.:53:&SESSION.::&DEBUG.:RP:P53_ID:#ID#'
 ,p_detail_link_text=>'<span role="img" aria-label="تعديل" class="fa fa-edit" title="فتح"></span>'
 ,p_owner=>'NOONA'
-,p_internal_uid=>91820290000000407
+,p_internal_uid=>91820290000000421
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820290000000409)
+ p_id=>wwv_flow_imp.id(91820290000000423)
 ,p_db_column_name=>'ID'
 ,p_display_order=>10
 ,p_column_identifier=>'A'
@@ -64,7 +64,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820290000000410)
+ p_id=>wwv_flow_imp.id(91820290000000424)
 ,p_db_column_name=>'CODE'
 ,p_display_order=>20
 ,p_column_identifier=>'B'
@@ -74,7 +74,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820290000000411)
+ p_id=>wwv_flow_imp.id(91820290000000425)
 ,p_db_column_name=>'NAME_AR'
 ,p_display_order=>30
 ,p_column_identifier=>'C'
@@ -84,7 +84,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820290000000412)
+ p_id=>wwv_flow_imp.id(91820290000000426)
 ,p_db_column_name=>'CARGO_CATEGORY'
 ,p_display_order=>40
 ,p_column_identifier=>'D'
@@ -94,7 +94,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820290000000413)
+ p_id=>wwv_flow_imp.id(91820290000000427)
 ,p_db_column_name=>'UNIT'
 ,p_display_order=>50
 ,p_column_identifier=>'E'
@@ -104,7 +104,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820290000000414)
+ p_id=>wwv_flow_imp.id(91820290000000428)
 ,p_db_column_name=>'REQUIRED_VEHICLE_TYPE'
 ,p_display_order=>60
 ,p_column_identifier=>'F'
@@ -114,7 +114,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820290000000415)
+ p_id=>wwv_flow_imp.id(91820290000000429)
 ,p_db_column_name=>'HAZARD_CLASS'
 ,p_display_order=>70
 ,p_column_identifier=>'G'
@@ -124,7 +124,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820290000000416)
+ p_id=>wwv_flow_imp.id(91820290000000430)
 ,p_db_column_name=>'HANDLING_NOTES'
 ,p_display_order=>80
 ,p_column_identifier=>'H'
@@ -134,16 +134,16 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_rpt(
- p_id=>wwv_flow_imp.id(91820290000000408)
+ p_id=>wwv_flow_imp.id(91820290000000422)
 ,p_application_user=>'APXWS_DEFAULT'
 ,p_report_seq=>10
-,p_report_alias=>'408'
+,p_report_alias=>'422'
 ,p_status=>'PUBLIC'
 ,p_is_default=>'Y'
 ,p_report_columns=>'CODE:NAME_AR:CARGO_CATEGORY:UNIT:REQUIRED_VEHICLE_TYPE:HAZARD_CLASS:HANDLING_NOTES'
 );
 wwv_flow_imp_page.create_page_plug(
- p_id=>wwv_flow_imp.id(91820290000000417)
+ p_id=>wwv_flow_imp.id(91820290000000431)
 ,p_plug_name=>'إضافة / تعديل'
 ,p_region_template_options=>'#DEFAULT#'
 ,p_plug_template=>4072358936313175081
@@ -154,19 +154,19 @@ wwv_flow_imp_page.create_page_plug(
   'show_line_breaks', 'Y')).to_clob
 );
 wwv_flow_imp_page.create_page_item(
- p_id=>wwv_flow_imp.id(91820290000000418)
+ p_id=>wwv_flow_imp.id(91820290000000432)
 ,p_name=>'P53_ID'
 ,p_item_sequence=>1
-,p_item_plug_id=>wwv_flow_imp.id(91820290000000417)
+,p_item_plug_id=>wwv_flow_imp.id(91820290000000431)
 ,p_display_as=>'NATIVE_HIDDEN'
 ,p_attributes=>wwv_flow_t_plugin_attributes(wwv_flow_t_varchar2(
   'value_protected', 'Y')).to_clob
 );
 wwv_flow_imp_page.create_page_item(
- p_id=>wwv_flow_imp.id(91820290000000419)
+ p_id=>wwv_flow_imp.id(91820290000000433)
 ,p_name=>'P53_CODE'
 ,p_item_sequence=>10
-,p_item_plug_id=>wwv_flow_imp.id(91820290000000417)
+,p_item_plug_id=>wwv_flow_imp.id(91820290000000431)
 ,p_prompt=>'الرمز'
 ,p_display_as=>'NATIVE_TEXT_FIELD'
 ,p_cSize=>30
@@ -180,10 +180,10 @@ wwv_flow_imp_page.create_page_item(
   'trim_spaces', 'BOTH')).to_clob
 );
 wwv_flow_imp_page.create_page_item(
- p_id=>wwv_flow_imp.id(91820290000000420)
+ p_id=>wwv_flow_imp.id(91820290000000434)
 ,p_name=>'P53_NAME'
 ,p_item_sequence=>20
-,p_item_plug_id=>wwv_flow_imp.id(91820290000000417)
+,p_item_plug_id=>wwv_flow_imp.id(91820290000000431)
 ,p_prompt=>'الاسم'
 ,p_display_as=>'NATIVE_TEXT_FIELD'
 ,p_cSize=>30
@@ -198,10 +198,10 @@ wwv_flow_imp_page.create_page_item(
   'trim_spaces', 'BOTH')).to_clob
 );
 wwv_flow_imp_page.create_page_item(
- p_id=>wwv_flow_imp.id(91820290000000421)
+ p_id=>wwv_flow_imp.id(91820290000000435)
 ,p_name=>'P53_CAT'
 ,p_item_sequence=>30
-,p_item_plug_id=>wwv_flow_imp.id(91820290000000417)
+,p_item_plug_id=>wwv_flow_imp.id(91820290000000431)
 ,p_prompt=>'الفئة'
 ,p_display_as=>'NATIVE_SELECT_LIST'
 ,p_lov=>'STATIC2:عامة;GENERAL,سائبة;BULK,سائلة;LIQUID,مبردة;REFRIGERATED,خطرة;HAZARDOUS,حاويات;CONTAINER,مركبات;VEHICLES,مواشي;LIVESTOCK,قابلة للكسر;FRAGILE,بأبعاد استثنائية;OVERSIZED'
@@ -213,10 +213,10 @@ wwv_flow_imp_page.create_page_item(
   'page_action_on_selection', 'NONE')).to_clob
 );
 wwv_flow_imp_page.create_page_item(
- p_id=>wwv_flow_imp.id(91820290000000422)
+ p_id=>wwv_flow_imp.id(91820290000000436)
 ,p_name=>'P53_UNIT'
 ,p_item_sequence=>40
-,p_item_plug_id=>wwv_flow_imp.id(91820290000000417)
+,p_item_plug_id=>wwv_flow_imp.id(91820290000000431)
 ,p_prompt=>'الوحدة الافتراضية'
 ,p_display_as=>'NATIVE_SELECT_LIST'
 ,p_lov=>'STATIC2:طن متري;METRIC_TON,طن قصير (أمريكي);SHORT_TON,طن طويل (بريطاني);LONG_TON,كيلوجرام;KG,متر مكعب;M3,لتر;LITER,حاوية;CONTAINER,طبلية;PALLET,قطعة;PIECE,رحلة;TRIP'
@@ -229,10 +229,10 @@ wwv_flow_imp_page.create_page_item(
   'page_action_on_selection', 'NONE')).to_clob
 );
 wwv_flow_imp_page.create_page_item(
- p_id=>wwv_flow_imp.id(91820290000000423)
+ p_id=>wwv_flow_imp.id(91820290000000437)
 ,p_name=>'P53_VT'
 ,p_item_sequence=>50
-,p_item_plug_id=>wwv_flow_imp.id(91820290000000417)
+,p_item_plug_id=>wwv_flow_imp.id(91820290000000431)
 ,p_prompt=>'نوع العربة المطلوب'
 ,p_display_as=>'NATIVE_SELECT_LIST'
 ,p_lov=>'STATIC2:شاحنة;TRUCK,مقطورة;TRAILER,صهريج;TANKER,مبردة;REFRIGERATED,سطحة;FLATBED,ناقلة حاويات;CONTAINER_CARRIER,قلاب;TIPPER,لوبد (معدات ثقيلة);LOWBED,بيك أب;PICKUP,فان;VAN'
@@ -246,10 +246,10 @@ wwv_flow_imp_page.create_page_item(
   'page_action_on_selection', 'NONE')).to_clob
 );
 wwv_flow_imp_page.create_page_item(
- p_id=>wwv_flow_imp.id(91820290000000424)
+ p_id=>wwv_flow_imp.id(91820290000000438)
 ,p_name=>'P53_HAZ'
 ,p_item_sequence=>60
-,p_item_plug_id=>wwv_flow_imp.id(91820290000000417)
+,p_item_plug_id=>wwv_flow_imp.id(91820290000000431)
 ,p_prompt=>'فئة الخطورة (UN)'
 ,p_display_as=>'NATIVE_TEXT_FIELD'
 ,p_cSize=>30
@@ -264,10 +264,10 @@ wwv_flow_imp_page.create_page_item(
   'trim_spaces', 'BOTH')).to_clob
 );
 wwv_flow_imp_page.create_page_item(
- p_id=>wwv_flow_imp.id(91820290000000425)
+ p_id=>wwv_flow_imp.id(91820290000000439)
 ,p_name=>'P53_HND'
 ,p_item_sequence=>70
-,p_item_plug_id=>wwv_flow_imp.id(91820290000000417)
+,p_item_plug_id=>wwv_flow_imp.id(91820290000000431)
 ,p_prompt=>'تعليمات المناولة والتفريغ'
 ,p_display_as=>'NATIVE_TEXT_FIELD'
 ,p_cSize=>30
@@ -281,9 +281,9 @@ wwv_flow_imp_page.create_page_item(
   'trim_spaces', 'BOTH')).to_clob
 );
 wwv_flow_imp_page.create_page_button(
- p_id=>wwv_flow_imp.id(91820290000000426)
+ p_id=>wwv_flow_imp.id(91820290000000440)
 ,p_button_sequence=>10
-,p_button_plug_id=>wwv_flow_imp.id(91820290000000417)
+,p_button_plug_id=>wwv_flow_imp.id(91820290000000431)
 ,p_button_name=>'SAVE'
 ,p_button_action=>'SUBMIT'
 ,p_button_template_options=>'#DEFAULT#'
@@ -293,7 +293,7 @@ wwv_flow_imp_page.create_page_button(
 ,p_button_position=>'NEXT'
 );
 wwv_flow_imp_page.create_page_process(
- p_id=>wwv_flow_imp.id(91820290000000427)
+ p_id=>wwv_flow_imp.id(91820290000000441)
 ,p_process_sequence=>10
 ,p_process_point=>'AFTER_SUBMIT'
 ,p_process_type=>'NATIVE_PLSQL'
@@ -306,19 +306,19 @@ wwv_flow_imp_page.create_page_process(
 'end;'))
 ,p_process_clob_language=>'PLSQL'
 ,p_error_display_location=>'INLINE_IN_NOTIFICATION'
-,p_process_when_button_id=>wwv_flow_imp.id(91820290000000426)
+,p_process_when_button_id=>wwv_flow_imp.id(91820290000000440)
 ,p_process_success_message=>'تم الحفظ'
-,p_internal_uid=>91820290000000427
+,p_internal_uid=>91820290000000441
 );
 wwv_flow_imp_page.create_page_branch(
- p_id=>wwv_flow_imp.id(91820290000000428)
+ p_id=>wwv_flow_imp.id(91820290000000442)
 ,p_branch_action=>'f?p=&APP_ID.:53:&SESSION.::&DEBUG.:RP,53::&success_msg=#SUCCESS_MSG#'
 ,p_branch_point=>'AFTER_PROCESSING'
 ,p_branch_type=>'REDIRECT_URL'
 ,p_branch_sequence=>10
 );
 wwv_flow_imp_page.create_page_process(
- p_id=>wwv_flow_imp.id(91820290000000429)
+ p_id=>wwv_flow_imp.id(91820290000000443)
 ,p_process_sequence=>5
 ,p_process_point=>'BEFORE_HEADER'
 ,p_process_type=>'NATIVE_PLSQL'
@@ -332,7 +332,7 @@ wwv_flow_imp_page.create_page_process(
 'end;'))
 ,p_process_clob_language=>'PLSQL'
 ,p_error_display_location=>'INLINE_IN_NOTIFICATION'
-,p_internal_uid=>91820290000000429
+,p_internal_uid=>91820290000000443
 );
 
 wwv_flow_imp.component_end;
