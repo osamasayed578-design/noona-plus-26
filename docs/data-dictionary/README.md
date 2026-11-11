@@ -55,5 +55,5 @@
 | 32 | مراكز خدمة السيارات | Auto Service Centers | `NOONA_AUT_PKG` | 10 | [p32_aut](p32_aut.md) |
 | 33 | النقل والشحن والترحيل | Transport & Logistics | `NOONA_TRN_PKG` | 12 | [p33_trn](p33_trn.md) |
 
-**الإجمالي:** 667 جدول · 11860 عمود.
+**الإجمالي:** 667 جدول · 11861 عمود.
 

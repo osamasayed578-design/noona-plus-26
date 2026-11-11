@@ -379,6 +379,44 @@ CREATE OR REPLACE PACKAGE BODY NOONA_TRN_PKG AS
     RETURN l_id;
   END save_cargo_type;
 
+  -- العربة المملوكة تسجل أصلاً ثابتاً في فئة «السيارات ووسائل النقل» وترسمل بقيد الاقتناء (حسب مصدر التمويل)
+  FUNCTION vehicle_asset(p_o JSON_OBJECT_T, p_plate VARCHAR2, p_type VARCHAR2) RETURN NUMBER IS
+    l_cost NUMBER := jn(p_o, 'purchaseCost');
+    l_cat  NUMBER;
+    l_n    NUMBER;
+    l_d    JSON_OBJECT_T := JSON_OBJECT_T();
+  BEGIN
+    NOONA_CORE_PKG.assert(NVL(l_cost, 0) > 0, 'NOONA-TRN-060',
+      'العربة المملوكة تضاف للأصول الثابتة: أدخل تكلفة الشراء أو اختر أصلاً مسجلاً', 'Purchase cost required for an owned vehicle');
+    SELECT MIN(id) INTO l_cat FROM fa_category WHERE company_id = company AND code = 'VEHICLES' AND is_active = 'Y';
+    IF l_cat IS NULL THEN
+      l_n := NOONA_FA_PKG.quick_setup;
+      SELECT MIN(id) INTO l_cat FROM fa_category WHERE company_id = company AND code = 'VEHICLES' AND is_active = 'Y';
+    END IF;
+    NOONA_CORE_PKG.assert(l_cat IS NOT NULL, 'NOONA-TRN-061', 'فئة الأصول «السيارات ووسائل النقل» غير موجودة', 'VEHICLES asset category missing');
+    l_d.put('name_ar', CASE p_type WHEN 'TRAILER' THEN 'مقطورة' WHEN 'TANKER' THEN 'صهريج' WHEN 'PICKUP' THEN 'سيارة نقل خفيف'
+                         WHEN 'VAN' THEN 'سيارة فان' ELSE 'شاحنة' END || ' ' || p_plate
+                       || CASE WHEN js(p_o, 'make') IS NOT NULL THEN ' - ' || js(p_o, 'make') || ' ' || js(p_o, 'model') END);
+    l_d.put('category', l_cat);
+    l_d.put('cost', l_cost);
+    l_d.put('acquisition_date', TO_CHAR(NVL(jd(p_o, 'purchaseDate'), TRUNC(SYSDATE)), 'YYYY-MM-DD'));
+    l_d.put('funding', NVL(js(p_o, 'funding'), 'BANK'));
+    IF jn(p_o, 'bankAccount') IS NOT NULL THEN l_d.put('bank_account', jn(p_o, 'bankAccount')); END IF;
+    IF jn(p_o, 'cashBox') IS NOT NULL THEN l_d.put('cash_box', jn(p_o, 'cashBox')); END IF;
+    IF jn(p_o, 'supplier') IS NOT NULL THEN l_d.put('party', jn(p_o, 'supplier')); END IF;
+    IF jn(p_o, 'vat') IS NOT NULL THEN l_d.put('vat', jn(p_o, 'vat')); END IF;
+    IF jn(p_o, 'openingAccum') IS NOT NULL THEN l_d.put('opening_accum', jn(p_o, 'openingAccum')); END IF;
+    IF jn(p_o, 'branch') IS NOT NULL THEN l_d.put('branch', jn(p_o, 'branch')); END IF;
+    l_d.put('tag', p_plate);
+    l_d.put('serial', js(p_o, 'vin'));
+    l_d.put('manufacturer', js(p_o, 'make'));
+    l_d.put('model', js(p_o, 'model'));
+    l_d.put('reference', js(p_o, 'purchaseRef'));
+    l_d.put('location', 'أسطول النقل');
+    l_d.put('capitalize', 'Y');
+    RETURN NOONA_FA_PKG.create_asset(l_d.to_clob);
+  END vehicle_asset;
+
   FUNCTION save_vehicle(p_doc IN CLOB) RETURN NUMBER IS
     l_o  JSON_OBJECT_T := JSON_OBJECT_T.parse(p_doc);
     x_insuranceExpiry_jd DATE;
@@ -398,6 +436,7 @@ CREATE OR REPLACE PACKAGE BODY NOONA_TRN_PKG AS
     x_type_js VARCHAR2(4000);
     l_id NUMBER := jn(l_o, 'id');
     l_pl VARCHAR2(30) := UPPER(REGEXP_REPLACE(js(l_o, 'plate'), '\s+', ' '));
+    l_own VARCHAR2(30) := NVL(js(l_o, 'ownership'), 'OWNED');
     l_n  NUMBER;
   BEGIN
     guard(CASE WHEN l_id IS NULL THEN 'TRN_VEHICLE.CREATE' ELSE 'TRN_VEHICLE.UPDATE' END);
@@ -421,12 +460,15 @@ CREATE OR REPLACE PACKAGE BODY NOONA_TRN_PKG AS
       x_model_js := js(l_o, 'model');
       x_notes_js := js(l_o, 'notes');
       x_type_js := js(l_o, 'type');
+      IF l_own = 'OWNED' AND x_assetId_jn IS NULL THEN
+        x_assetId_jn := vehicle_asset(l_o, l_pl, NVL(x_type_js, 'TRUCK'));
+      END IF;
       INSERT INTO trn_vehicle (company_id, code, plate_no, vehicle_type, make, model, model_year, capacity_tons, capacity_m3, odometer_km,
-                               fuel_type, fuel_l_per_100km, license_expiry, insurance_expiry, asset_id, branch_id, status_code, notes)
+                               fuel_type, fuel_l_per_100km, license_expiry, insurance_expiry, asset_id, branch_id, status_code, notes, ownership)
       VALUES (company, NVL(UPPER(x_code_js), REPLACE(l_pl, ' ', '')), l_pl, NVL(x_type_js, 'TRUCK'), x_make_js, x_model_js,
               x_year_jn, x_capacityTons_jn, x_capacityM3_jn, NVL(x_odometer_jn, 0), NVL(x_fuel_js, 'DIESEL'),
               x_fuelPer100_jn, x_licenseExpiry_jd, x_insuranceExpiry_jd, x_assetId_jn,
-              NVL(x_branch_jn, NOONA_CTX_PKG.branch_id), 'AVAILABLE', x_notes_js)
+              NVL(x_branch_jn, NOONA_CTX_PKG.branch_id), 'AVAILABLE', x_notes_js, l_own)
       RETURNING id INTO l_id;
     ELSE
       x_insuranceExpiry_jd := jd(l_o, 'insuranceExpiry');
@@ -443,7 +485,14 @@ CREATE OR REPLACE PACKAGE BODY NOONA_TRN_PKG AS
       x_model_js := js(l_o, 'model');
       x_notes_js := js(l_o, 'notes');
       x_type_js := js(l_o, 'type');
-      UPDATE trn_vehicle SET plate_no = l_pl, vehicle_type = NVL(x_type_js, vehicle_type), make = x_make_js, model = x_model_js,
+      -- عربة مملوكة بلا أصل (مسجلة قبل الربط): تضاف للأصول عند إدخال تكلفة الشراء
+      IF l_own = 'OWNED' AND x_assetId_jn IS NULL THEN
+        SELECT MAX(asset_id) INTO x_assetId_jn FROM trn_vehicle WHERE id = l_id AND company_id = company;
+        IF x_assetId_jn IS NULL AND jn(l_o, 'purchaseCost') IS NOT NULL THEN
+          x_assetId_jn := vehicle_asset(l_o, l_pl, NVL(x_type_js, 'TRUCK'));
+        END IF;
+      END IF;
+      UPDATE trn_vehicle SET ownership = l_own, plate_no = l_pl, vehicle_type = NVL(x_type_js, vehicle_type), make = x_make_js, model = x_model_js,
              model_year = x_year_jn, capacity_tons = x_capacityTons_jn, capacity_m3 = x_capacityM3_jn,
              odometer_km = NVL(x_odometer_jn, odometer_km), fuel_type = NVL(x_fuel_js, fuel_type), fuel_l_per_100km = x_fuelPer100_jn,
              license_expiry = x_licenseExpiry_jd, insurance_expiry = x_insuranceExpiry_jd, asset_id = x_assetId_jn,

@@ -425,18 +425,35 @@ p = master(40, 'FLEET', 'العربات والشاحنات', [
     '       v.make, v.model, v.model_year, v.capacity_tons, v.capacity_m3, v.odometer_km, v.license_expiry, v.insurance_expiry,',
     "       noona_trn_pkg.badge(v.status_code) status_html,",
     "       (select count(*) from trn_trip t where t.vehicle_id = v.id and t.status_code = 'COMPLETED') trips,",
-    "       (select count(*) from trn_incident i where i.vehicle_id = v.id) incidents",
+    "       (select count(*) from trn_incident i where i.vehicle_id = v.id) incidents,",
+    "       decode(v.ownership, 'OWNED', 'مملوكة', 'RENTED', 'مستأجرة', 'LEASED', 'تأجير تمويلي') ownership,",
+    "       (select a.asset_no from fa_asset a where a.id = v.asset_id) asset_no",
     f'  from trn_vehicle v where v.company_id = {CO} order by v.plate_no'],
     [('ID', '#', {'hidden': True, 'type': 'NUMBER'}), ('PLATE_NO', 'اللوحة', {}), ('VEHICLE_TYPE', 'النوع', {}), ('MAKE', 'الصانع', {}),
      ('MODEL', 'الطراز', {}), ('MODEL_YEAR', 'السنة', {'type': 'NUMBER'}), ('CAPACITY_TONS', 'الحمولة (طن)', {'type': 'NUMBER'}),
      ('CAPACITY_M3', 'م³', {'type': 'NUMBER'}), ('ODOMETER_KM', 'العداد', {'type': 'NUMBER'}),
      ('LICENSE_EXPIRY', 'انتهاء الترخيص', {'type': 'DATE', 'format': 'YYYY-MM-DD'}), ('INSURANCE_EXPIRY', 'انتهاء التأمين', {'type': 'DATE', 'format': 'YYYY-MM-DD'}),
-     ('STATUS_HTML', 'الحالة', {'html': True}), ('TRIPS', 'الرحلات', {'type': 'NUMBER'}), ('INCIDENTS', 'البلاغات', {'type': 'NUMBER'})],
+     ('STATUS_HTML', 'الحالة', {'html': True}), ('TRIPS', 'الرحلات', {'type': 'NUMBER'}), ('INCIDENTS', 'البلاغات', {'type': 'NUMBER'}),
+     ('OWNERSHIP', 'الملكية', {}), ('ASSET_NO', 'رقم الأصل الثابت', {})],
     [('plate', 'PLATE', 'T', 'رقم اللوحة', 30), ('type', 'TYPE', 'S1', 'النوع', VTYPE), ('make', 'MAKE', 'T', 'الصانع', 100),
      ('model', 'MODEL', 'T', 'الطراز', 100), ('year', 'YEAR', 'N', 'سنة الصنع', None), ('capacityTons', 'CAP', 'N', 'الحمولة القصوى (طن متري)', None),
      ('capacityM3', 'M3', 'N', 'السعة (م³)', None), ('odometer', 'ODO', 'N', 'العداد (كم)', None), ('fuelPer100', 'FUEL', 'N', 'استهلاك الوقود لتر/100كم', None),
-     ('licenseExpiry', 'LIC', 'D', 'انتهاء الترخيص', None), ('insuranceExpiry', 'INS', 'D', 'انتهاء التأمين', None)],
+     ('licenseExpiry', 'LIC', 'D', 'انتهاء الترخيص', None), ('insuranceExpiry', 'INS', 'D', 'انتهاء التأمين', None),
+     # العربة المملوكة تضاف تلقائياً للأصول الثابتة (فئة السيارات ووسائل النقل) بقيد اقتناء حسب مصدر التمويل
+     ('ownership', 'OWN', 'S1', 'الملكية', 'STATIC2:مملوكة (تضاف للأصول الثابتة);OWNED,مستأجرة;RENTED,تأجير تمويلي;LEASED'),
+     ('vin', 'VIN', 'T', 'رقم الهيكل (الشاصي)', 50),
+     ('purchaseCost', 'PCOST', 'N', 'تكلفة الشراء دون الضريبة (للمملوكة)', None), ('purchaseDate', 'PDATE', 'D', 'تاريخ الشراء', None),
+     ('funding', 'FUND', 'S1', 'مصدر التمويل', 'STATIC2:تحويل بنكي;BANK,نقداً من الصندوق;CASH,آجل على مورد;PAYABLE,'
+      'رصيد افتتاحي (عربة قائمة قبل النظام);OPENING'),
+     ('bankAccount', 'BANK', 'S', 'الحساب البنكي', f"select code || ' - ' || name_ar d, id r from csh_bank_account where company_id = {CO} and status_code = 'ACTIVE' order by code"),
+     ('cashBox', 'BOX', 'S', 'الصندوق', f"select code || ' - ' || name_ar d, id r from csh_cash_box where company_id = {CO} and status_code = 'ACTIVE' order by code"),
+     ('supplier', 'SUPP', 'S', 'المورد (للشراء الآجل)', "select p.display_name_ar d, p.id r from pty_party p where exists (select 1 from ap_supplier s where s.party_id = p.id) order by 1"),
+     ('vat', 'VAT', 'N', 'ضريبة القيمة المضافة على الشراء', None), ('openingAccum', 'OPACC', 'N', 'مجمع الإهلاك المنقول (للرصيد الافتتاحي)', None),
+     ('purchaseRef', 'PREF', 'T', 'مرجع الشراء (فاتورة المورد)', 100)],
     'noona_trn_pkg.save_vehicle')
+p.process(4, 'BEFORE_HEADER', 'Defaults', ["if :P40_OWN is null then :P40_OWN := 'OWNED'; end if;",
+                                            "if :P40_FUND is null then :P40_FUND := 'BANK'; end if;",
+                                            "if :P40_PDATE is null then :P40_PDATE := to_char(sysdate, 'YYYY-MM-DD'); end if;"])
 f = p.static('حالة العربة', 30)
 p.select('P40_SET', f, 10, 'الحالة', lov_sql='STATIC2:متاحة;AVAILABLE,في الصيانة;MAINTENANCE,خارج الخدمة;OUT_OF_SERVICE,مباعة;SOLD', null_text=None)
 b = p.button(f, 10, 'SET_STATUS', 'تغيير حالة العربة المختارة')
@@ -445,6 +462,7 @@ p.process(5, 'BEFORE_HEADER', 'Load', ['begin', '  for v in (select * from trn_v
     '    :P40_PLATE := v.plate_no; :P40_TYPE := v.vehicle_type; :P40_MAKE := v.make; :P40_MODEL := v.model; :P40_YEAR := v.model_year;',
     '    :P40_CAP := v.capacity_tons; :P40_M3 := v.capacity_m3; :P40_ODO := v.odometer_km; :P40_FUEL := v.fuel_l_per_100km;',
     "    :P40_LIC := to_char(v.license_expiry, 'YYYY-MM-DD'); :P40_INS := to_char(v.insurance_expiry, 'YYYY-MM-DD'); :P40_SET := v.status_code;",
+    '    :P40_OWN := v.ownership;',
     '  end loop;', 'end;'])
 
 # 42) السائقون

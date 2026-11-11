@@ -20,13 +20,13 @@ app.wire_security()
 app.add_branding()
 TENANT = app.schemes['tenant']
 RE = app.add_scheme('noona_re_view', app.id(), 'NOONA - Real Estate',
-                    "return noona_security_pkg.has_permission('RE_PROPERTY.VIEW', noona_re_pkg.company) = 'Y';",
+                    "return noona_security_pkg.has_permission('RE_PROPERTY.VIEW', noona_re_pkg.company) = 'Y' and (noona_platform_pkg.module_enabled('RE') = 'Y' or noona_platform_pkg.module_enabled('HSP') = 'Y');",
                     'صفحات السجل العقاري تتطلب صلاحية عرض العقارات / Real estate access required')
 HSP = app.add_scheme('noona_hsp_view', app.id(), 'NOONA - Hospitality',
-                     "return noona_security_pkg.has_permission('HSP_RESERVATION.VIEW', noona_hsp_pkg.company) = 'Y';",
+                     "return noona_security_pkg.has_permission('HSP_RESERVATION.VIEW', noona_hsp_pkg.company) = 'Y' and noona_platform_pkg.module_enabled('HSP') = 'Y';",
                      'صفحات الضيافة تتطلب صلاحية عرض الحجوزات / Hospitality access required')
 MNT = app.add_scheme('noona_mnt_view', app.id(), 'NOONA - Maintenance',
-                     "return noona_security_pkg.has_permission('MNT_REQUEST.VIEW', noona_mnt_pkg.company) = 'Y';",
+                     "return noona_security_pkg.has_permission('MNT_REQUEST.VIEW', noona_mnt_pkg.company) = 'Y' and (noona_platform_pkg.module_enabled('MNT') = 'Y' or noona_platform_pkg.module_enabled('HSP') = 'Y');",
                      'صفحات الصيانة تتطلب صلاحية عرض البلاغات / Maintenance access required')
 
 
@@ -966,7 +966,7 @@ app.nav_item('الفرق والفنيون', 73, 'fa-users', 4, parent=mn, scheme
 app.nav_item('أنواع الأعطال', 74, 'fa-tags', 5, parent=mn, scheme=MNT)
 app.nav_item('أداء الصيانة', 75, 'fa-line-chart', 6, parent=mn, scheme=MNT)
 PRJ = app.add_scheme('noona_prj_view', app.id(), 'NOONA - Projects',
-                     "return noona_security_pkg.has_permission('PRJ_PROJECT.VIEW', noona_prj_pkg.company) = 'Y';",
+                     "return noona_security_pkg.has_permission('PRJ_PROJECT.VIEW', noona_prj_pkg.company) = 'Y' and noona_platform_pkg.module_enabled('PRJ') = 'Y';",
                      'صفحات المشروعات تتطلب صلاحية عرض المشروعات / Projects access required')
 import prj_pages
 prj_pages.build(app, url, link, PRJ)

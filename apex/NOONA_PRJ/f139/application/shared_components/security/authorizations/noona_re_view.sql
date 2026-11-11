@@ -15,7 +15,7 @@ wwv_flow_imp_shared.create_security_scheme(
  p_id=>wwv_flow_imp.id(91820273000000009)
 ,p_name=>'NOONA - Real Estate'
 ,p_scheme_type=>'NATIVE_FUNCTION_BODY'
-,p_attribute_01=>'return noona_security_pkg.has_permission(''RE_PROPERTY.VIEW'', noona_re_pkg.company) = ''Y'';'
+,p_attribute_01=>'return noona_security_pkg.has_permission(''RE_PROPERTY.VIEW'', noona_re_pkg.company) = ''Y'' and (noona_platform_pkg.module_enabled(''RE'') = ''Y'' or noona_platform_pkg.module_enabled(''HSP'') = ''Y'');'
 ,p_error_message=>'صفحات السجل العقاري تتطلب صلاحية عرض العقارات / Real estate access required'
 ,p_caching=>'BY_USER_BY_PAGE_VIEW'
 );

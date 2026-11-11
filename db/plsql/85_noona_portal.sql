@@ -278,7 +278,7 @@ SELECT app_alias, sort_order, app_name_ar, app_name_en, icon_class,
                'عروض الأسعار والفواتير ونقاط البيع' FROM dual UNION ALL
         SELECT 'NOONA_HR', 50, 'الموارد البشرية والرواتب', 'HR & Payroll', 'fa-users', 'HR,PAY',
                'الموظفون والحضور والرواتب' FROM dual UNION ALL
-        SELECT 'NOONA_PRJ', 60, 'العقارات والضيافة والمشروعات', 'Real Estate, Hospitality & Projects', 'fa-building', 'PRP,RE,MNT,PRJ',
+        SELECT 'NOONA_PRJ', 60, 'العقارات والضيافة والمشروعات', 'Real Estate, Hospitality & Projects', 'fa-building', 'PRP,RE,MNT,PRJ,HSP',
                'السجل العقاري والفنادق والشقق الفندقية والصيانة والمشروعات' FROM dual UNION ALL
         SELECT 'NOONA_HIS', 65, 'المستشفيات والمراكز الطبية', 'Hospital & Clinics', 'fa-hospital-o', 'HIS',
                'المواعيد والزيارات والمعامل والأشعة والتأمين' FROM dual UNION ALL

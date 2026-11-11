@@ -379,7 +379,11 @@ p.onload([
 
 # =============================================================== 60-66) المطاعم والكافتريا
 from rst_pages import build as rst_pages
-rst_pages(app, url, TENANT)
+# المطاعم والكافتيريا اشتراك مستقل (الوحدة RST) داخل تطبيق المبيعات
+RST = app.add_scheme('noona_rst_sub', app.id(), 'NOONA - Restaurant subscription',
+                     "return noona_portal_pkg.app_visible('NOONA_POS', 'SAL') = 'Y' and noona_platform_pkg.module_enabled('RST') = 'Y';",
+                     'المطاعم والكافتيريا غير مشمولة في اشتراك مؤسستك / Restaurant module not subscribed')
+rst_pages(app, url, RST)
 
 # =============================================================== 80-84) التسعير والعروض والباقات
 import prc_pages

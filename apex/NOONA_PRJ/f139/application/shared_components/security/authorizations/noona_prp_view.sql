@@ -15,7 +15,7 @@ wwv_flow_imp_shared.create_security_scheme(
  p_id=>wwv_flow_imp.id(91820273000000859)
 ,p_name=>'NOONA - Leasing'
 ,p_scheme_type=>'NATIVE_FUNCTION_BODY'
-,p_attribute_01=>'return noona_security_pkg.has_permission(''PRP_LEASE.VIEW'', noona_res_pkg.company) = ''Y'';'
+,p_attribute_01=>'return noona_security_pkg.has_permission(''PRP_LEASE.VIEW'', noona_res_pkg.company) = ''Y'' and noona_platform_pkg.module_enabled(''PRP'') = ''Y'';'
 ,p_error_message=>'صفحات الإيجارات تتطلب صلاحية عرض عقود الإيجار / Leasing access required'
 ,p_caching=>'BY_USER_BY_PAGE_VIEW'
 );

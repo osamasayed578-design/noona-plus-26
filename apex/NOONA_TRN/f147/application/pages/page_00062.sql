@@ -22,7 +22,7 @@ wwv_flow_imp_page.create_page(
 ,p_protection_level=>'N'
 );
 wwv_flow_imp_page.create_page_plug(
- p_id=>wwv_flow_imp.id(91820290000000498)
+ p_id=>wwv_flow_imp.id(91820290000000512)
 ,p_plug_name=>'استغلال الأسطول وربحية العربات'
 ,p_region_template_options=>'#DEFAULT#'
 ,p_component_template_options=>'#DEFAULT#'
@@ -41,7 +41,7 @@ wwv_flow_imp_page.create_page_plug(
 ,p_prn_page_header=>'استغلال الأسطول وربحية العربات'
 );
 wwv_flow_imp_page.create_worksheet(
- p_id=>wwv_flow_imp.id(91820290000000499)
+ p_id=>wwv_flow_imp.id(91820290000000513)
 ,p_max_row_count=>'1000000'
 ,p_no_data_found_message=>'لا توجد بيانات'
 ,p_pagination_type=>'ROWS_X_TO_Y'
@@ -53,10 +53,10 @@ wwv_flow_imp_page.create_worksheet(
 ,p_download_formats=>'CSV:HTML:XLSX:PDF'
 ,p_enable_mail_download=>'N'
 ,p_owner=>'NOONA'
-,p_internal_uid=>91820290000000499
+,p_internal_uid=>91820290000000513
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820290000000501)
+ p_id=>wwv_flow_imp.id(91820290000000515)
 ,p_db_column_name=>'PLATE_NO'
 ,p_display_order=>10
 ,p_column_identifier=>'A'
@@ -66,7 +66,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820290000000502)
+ p_id=>wwv_flow_imp.id(91820290000000516)
 ,p_db_column_name=>'VEHICLE_TYPE'
 ,p_display_order=>20
 ,p_column_identifier=>'B'
@@ -76,7 +76,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820290000000503)
+ p_id=>wwv_flow_imp.id(91820290000000517)
 ,p_db_column_name=>'CAPACITY_TONS'
 ,p_display_order=>30
 ,p_column_identifier=>'C'
@@ -86,7 +86,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820290000000504)
+ p_id=>wwv_flow_imp.id(91820290000000518)
 ,p_db_column_name=>'TRIPS'
 ,p_display_order=>40
 ,p_column_identifier=>'D'
@@ -96,7 +96,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820290000000505)
+ p_id=>wwv_flow_imp.id(91820290000000519)
 ,p_db_column_name=>'KM'
 ,p_display_order=>50
 ,p_column_identifier=>'E'
@@ -106,7 +106,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820290000000506)
+ p_id=>wwv_flow_imp.id(91820290000000520)
 ,p_db_column_name=>'TONS'
 ,p_display_order=>60
 ,p_column_identifier=>'F'
@@ -116,7 +116,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820290000000507)
+ p_id=>wwv_flow_imp.id(91820290000000521)
 ,p_db_column_name=>'AVG_LOAD_PCT'
 ,p_display_order=>70
 ,p_column_identifier=>'G'
@@ -126,7 +126,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820290000000508)
+ p_id=>wwv_flow_imp.id(91820290000000522)
 ,p_db_column_name=>'FUEL'
 ,p_display_order=>80
 ,p_column_identifier=>'H'
@@ -136,7 +136,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820290000000509)
+ p_id=>wwv_flow_imp.id(91820290000000523)
 ,p_db_column_name=>'L_PER_100'
 ,p_display_order=>90
 ,p_column_identifier=>'I'
@@ -146,7 +146,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820290000000510)
+ p_id=>wwv_flow_imp.id(91820290000000524)
 ,p_db_column_name=>'REVENUE'
 ,p_display_order=>100
 ,p_column_identifier=>'J'
@@ -156,7 +156,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820290000000511)
+ p_id=>wwv_flow_imp.id(91820290000000525)
 ,p_db_column_name=>'EXPENSE'
 ,p_display_order=>110
 ,p_column_identifier=>'K'
@@ -166,7 +166,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820290000000512)
+ p_id=>wwv_flow_imp.id(91820290000000526)
 ,p_db_column_name=>'NET_AMOUNT'
 ,p_display_order=>120
 ,p_column_identifier=>'L'
@@ -176,7 +176,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820290000000513)
+ p_id=>wwv_flow_imp.id(91820290000000527)
 ,p_db_column_name=>'INCIDENTS'
 ,p_display_order=>130
 ,p_column_identifier=>'M'
@@ -186,10 +186,10 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_rpt(
- p_id=>wwv_flow_imp.id(91820290000000500)
+ p_id=>wwv_flow_imp.id(91820290000000514)
 ,p_application_user=>'APXWS_DEFAULT'
 ,p_report_seq=>10
-,p_report_alias=>'500'
+,p_report_alias=>'514'
 ,p_status=>'PUBLIC'
 ,p_is_default=>'Y'
 ,p_report_columns=>'PLATE_NO:VEHICLE_TYPE:CAPACITY_TONS:TRIPS:KM:TONS:AVG_LOAD_PCT:FUEL:L_PER_100:REVENUE:EXPENSE:NET_AMOUNT:INCIDENTS'

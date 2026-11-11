@@ -48,6 +48,7 @@ FUEL_TYPE       CODE D='DIESEL' IN:DIESEL,GASOLINE,GAS,ELECTRIC | الوقود
 FUEL_L_PER_100KM NUM             | استهلاك الوقود (لتر/100 كم)
 LICENSE_EXPIRY  DATE             | انتهاء الترخيص
 INSURANCE_EXPIRY DATE            | انتهاء التأمين
+OWNERSHIP       CODE NN D='OWNED' IN:OWNED,RENTED,LEASED | الملكية (مملوكة تضاف للأصول الثابتة)
 ASSET_ID        ID   >FA_ASSET   | الأصل الثابت
 BRANCH_ID       ID   >ORG_BRANCH | الفرع
 ''', uk=[('TENANT_ID', 'COMPANY_ID', 'PLATE_NO')], chk=['CAPACITY_TONS > 0'], area='fleet')

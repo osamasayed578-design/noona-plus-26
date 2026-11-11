@@ -34,6 +34,7 @@ prompt --install
 @@application/shared_components/user_interface/lovs/noona_branches.sql
 @@application/shared_components/user_interface/lovs/noona_currencies.sql
 @@application/shared_components/user_interface/lovs/noona_countries.sql
+@@application/shared_components/security/authorizations/noona_rst_sub.sql
 @@application/shared_components/navigation/navigation_bar.sql
 @@application/shared_components/logic/application_settings.sql
 @@application/shared_components/navigation/tabs/standard.sql

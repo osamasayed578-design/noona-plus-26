@@ -10,13 +10,23 @@ DECLARE
 BEGIN
   NOONA_CORE_PKG.begin_system;
   SELECT COUNT(*) INTO l_ai FROM user_objects WHERE object_name = 'NOONA_AI_PKG' AND object_type = 'PACKAGE';
+  -- وحدات اشتراك مستقلة داخل تطبيقات قائمة: الفنادق والضيافة (في 139) والمطاعم والكافتيريا (في 133)
+  MERGE INTO plt_module m
+  USING (SELECT 'HSP' code, 34 no, 'NOONA_HSP_PKG' pkg, 'الفنادق والشقق الفندقية والضيافة' n, 'Hotels & Hospitality' e FROM dual
+         UNION ALL SELECT 'RST', 35, 'NOONA_RST_PKG', 'المطاعم والكافتيريا', 'Restaurants & Cafeterias' FROM dual) x
+     ON (m.module_code = x.code)
+   WHEN NOT MATCHED THEN INSERT (module_code, package_no, plsql_package, name_ar, name_en, is_core, sort_order)
+        VALUES (x.code, x.no, x.pkg, x.n, x.e, 'N', x.no);
   MERGE INTO plt_offering o
   USING (SELECT 'FIN' code, 'المالية والمحاسبة' n, 'Finance & Accounting' e, 'دليل الحسابات والقيود والسندات والعملاء والموردين والأصول والضريبة والتقارير' d,
                 'fa-calculator' i, 'GL,AR,AP,CSH,FA,BI' m, 299 p, NULL rq, 10 s FROM dual
          UNION ALL SELECT 'SCM', 'المخزون والمشتريات', 'Inventory & Purchasing', 'الأصناف والمستودعات وأوامر الشراء والاستلام وفواتير الموردين', 'fa-truck', 'INV,PUR', 199, 'FIN', 20 FROM dual
          UNION ALL SELECT 'POS', 'المبيعات ونقاط البيع', 'Sales & POS', 'عروض الأسعار وفواتير المبيعات والفاتورة الإلكترونية ونقاط البيع', 'fa-shopping-cart', 'SAL', 199, 'FIN,SCM', 30 FROM dual
          UNION ALL SELECT 'HR', 'الموارد البشرية والرواتب', 'HR & Payroll', 'ملفات الموظفين والعقود والإجازات ومسير الرواتب وحماية الأجور', 'fa-users', 'HR,PAY', 199, NULL, 40 FROM dual
-         UNION ALL SELECT 'PRJ', 'العقارات والضيافة والمقاولات', 'Real Estate, Hospitality & Projects', 'الوحدات والعقود والفنادق والصيانة والمشاريع والمستخلصات', 'fa-building', 'PRP,RE,MNT,PRJ', 349, 'FIN', 50 FROM dual
+         UNION ALL SELECT 'RST', 'المطاعم والكافتيريا', 'Restaurants & Cafeterias', 'الصالة والطاولات والطلبات وشاشة المطبخ والقائمة والعملاء الآجلون', 'fa-cutlery', 'RST', 149, 'FIN,SCM,POS', 35 FROM dual
+         UNION ALL SELECT 'RE', 'العقارات والإيجارات وبيع الوحدات', 'Real Estate & Leasing', 'السجل العقاري وعقود الإيجار والتحصيل وبيع الوحدات والأقساط والصيانة', 'fa-building', 'RE,PRP,MNT', 249, 'FIN', 50 FROM dual
+         UNION ALL SELECT 'HSP', 'الفنادق والشقق الفندقية', 'Hotels & Hospitality', 'لوحة الاستقبال والحجوزات والنزلاء والتدبير الفندقي والتدقيق الليلي والصيانة', 'fa-bed', 'HSP,MNT', 249, 'FIN', 52 FROM dual
+         UNION ALL SELECT 'PRJ', 'المشاريع والمقاولات', 'Projects & Contracting', 'المشاريع والميزانيات والمستخلصات ونسبة الإنجاز والضمانات والمعدات', 'fa-road', 'PRJ', 299, 'FIN', 55 FROM dual
          UNION ALL SELECT 'HIS', 'المستشفيات والمراكز الطبية', 'Hospital & Clinics', 'المواعيد والعيادات والتنويم والمختبر والصيدلية ومطالبات التأمين', 'fa-hospital-o', 'HIS', 599, 'FIN,SCM', 60 FROM dual
          UNION ALL SELECT 'AUTO', 'مراكز خدمة السيارات', 'Auto Service Centers', 'بطاقات العمل وقطع الغيار والفنيين ومطالبات التأمين', 'fa-car', 'AUT', 249, 'FIN,SCM,POS', 70 FROM dual
          UNION ALL SELECT 'TRN', 'النقل والشحن', 'Transport & Logistics', 'الأسطول والرحلات والشحنات والسائقين', 'fa-truck', 'TRN', 249, 'FIN', 80 FROM dual
