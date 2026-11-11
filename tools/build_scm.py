@@ -516,6 +516,34 @@ p.onload([
     '})();'])
 
 # =============================================================== القائمة
+# 15) طريقة تكلفة الأصناف (المتوسط المرجح أو FIFO) وطبقات FIFO
+p = app.page(15, 'Costing Method', 'COSTING-METHOD', 'طريقة تكلفة الأصناف (FIFO / المتوسط المرجح)', scheme=TENANT, protection='N')
+cm = p.static('طريقة التكلفة', 5, text=(
+    '<p class="nn-hint"><b>المتوسط المرجح</b> (الافتراضي): كل صرف بمتوسط تكلفة الرصيد. <b>FIFO - الوارد أولاً يصرف أولاً</b>: '
+    'كل استلام طبقة بسعرها، والصرف (مبيعات، نقاط بيع، تصنيع، صيانة، إتلاف، مرتجع مشتريات) يستهلك الأقدم فالأحدث. '
+    'عند التحول إلى FIFO يصبح الرصيد القائم أول طبقة بتكلفته الحالية. التحويل بين المستودعات لا يغير الطبقات. '
+    'LIFO غير مسموح في المعايير الدولية (IAS 2).</p>'))
+p.select('P15_CAT', cm, 10, 'فئة كاملة', lov_sql="select name_ar d, id r from inv_item_category order by name_ar")
+p.select('P15_ITEM', cm, 20, 'أو صنف محدد', lov_sql=(
+    "select item_no || ' - ' || name_ar d, id r from inv_item where item_type not in ('SERVICE', 'NON_STOCK') order by name_ar"))
+p.select('P15_METHOD', cm, 30, 'الطريقة', lov_sql='STATIC2:FIFO - الوارد أولاً يصرف أولاً;FIFO,المتوسط المرجح;WEIGHTED_AVERAGE', null_text=None)
+b15 = p.button(cm, 10, 'APPLY', 'تطبيق', hot=True)
+p.process(10, 'AFTER_SUBMIT', 'Apply', [
+    'declare n number; begin',
+    "  n := noona_inv_pkg.set_costing_method(to_number(:P15_ITEM), case when :P15_ITEM is null then to_number(:P15_CAT) end, :P15_METHOD);",
+    "  apex_application.g_print_success_message := 'تغيرت طريقة التكلفة لـ ' || n || ' صنف';", 'end;'], when_button=b15)
+p.ir('أصناف FIFO', 20, [
+    "select i.id, i.item_no, i.name_ar, cat.name_ar category, noona_inv_pkg.on_hand(i.id) on_hand, ic.average_cost,",
+    "       (select count(*) from inv_cost_layer l where l.item_id = i.id and l.company_id = c.company_id and l.status_code = 'OPEN') layers",
+    "  from inv_item_company c join inv_item i on i.id = c.item_id left join inv_item_category cat on cat.id = i.category_id",
+    "  left join inv_item_cost ic on ic.item_id = i.id and ic.company_id = c.company_id and ic.warehouse_id is null",
+    " where c.company_id = noona_inv_pkg.company and c.costing_method = 'FIFO' order by i.name_ar"],
+    [('ID', '#', {'hidden': True, 'type': 'NUMBER'}), ('ITEM_NO', 'رقم الصنف', {}), ('NAME_AR', 'الصنف', {}), ('CATEGORY', 'الفئة', {}),
+     ('ON_HAND', 'الرصيد', {'type': 'NUMBER'}), ('AVERAGE_COST', 'متوسط الطبقات', {'type': 'NUMBER'}), ('LAYERS', 'الطبقات المفتوحة', {'type': 'NUMBER'})],
+    link='f?p=&APP_ID.:15:&SESSION.::&DEBUG.::P15_SHOW:#ID#')
+p.hidden('P15_SHOW', cm, 90, protected=False)
+p.dynamic('طبقات FIFO للصنف المختار', 30, 'return noona_inv_pkg.fifo_layers_html(to_number(:P15_SHOW));', condition=':P15_SHOW is not null')
+
 app.nav_item('لوحة سلسلة الإمداد', 1, 'fa-truck', 10)
 it = app.nav_item('المخزون والأصناف', None, 'fa-cubes', 20)
 app.nav_item('الأصناف', 10, 'fa-cube', 21, parent=it)
@@ -525,6 +553,7 @@ app.nav_item('مستند مخزون جديد', 21, 'fa-file-o', 24, parent=it)
 app.nav_item('قائمة المواد والإنتاج', 13, 'fa-industry', 25, parent=it)
 app.nav_item('الفئات وحساباتها', 12, 'fa-tags', 26, parent=it)
 app.nav_item('المستودعات', 14, 'fa-building-o', 27, parent=it)
+app.nav_item('طريقة التكلفة (FIFO)', 15, 'fa-sort-amount-asc', 28, parent=it)
 pu = app.nav_item('المشتريات والموردون', None, 'fa-shopping-cart', 30)
 app.nav_item('فاتورة مشتريات جديدة', 35, 'fa-plus', 31, parent=pu)
 app.nav_item('فواتير المشتريات والمرتجعات', 34, 'fa-files-o', 32, parent=pu)

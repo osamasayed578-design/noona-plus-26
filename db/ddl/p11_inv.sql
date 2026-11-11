@@ -555,7 +555,7 @@ CREATE TABLE INV_COST_LAYER (
   COMPANY_ID                       NUMBER(19) NOT NULL,
   ITEM_ID                          NUMBER(19) NOT NULL,
   WAREHOUSE_ID                     NUMBER(19),
-  RECEIPT_TXN_LINE_ID              NUMBER(19) NOT NULL,
+  RECEIPT_TXN_LINE_ID              NUMBER(19),
   LAYER_DATE                       DATE NOT NULL,
   ORIGINAL_QTY                     NUMBER(24,6) NOT NULL,
   REMAINING_QTY                    NUMBER(24,6) NOT NULL,
@@ -1377,7 +1377,7 @@ COMMENT ON COLUMN INV_COST_LAYER.TENANT_ID IS 'المؤسسة المالكة؛ �
 COMMENT ON COLUMN INV_COST_LAYER.COMPANY_ID IS 'الشركة (الكيان القانوني) المالكة للسجل';
 COMMENT ON COLUMN INV_COST_LAYER.ITEM_ID IS 'الصنف';
 COMMENT ON COLUMN INV_COST_LAYER.WAREHOUSE_ID IS 'المستودع (حسب مستوى التكلفة)';
-COMMENT ON COLUMN INV_COST_LAYER.RECEIPT_TXN_LINE_ID IS 'حركة الاستلام المنشئة';
+COMMENT ON COLUMN INV_COST_LAYER.RECEIPT_TXN_LINE_ID IS 'حركة الاستلام المنشئة (فارغ لطبقة الرصيد القائم عند التحول إلى FIFO)';
 COMMENT ON COLUMN INV_COST_LAYER.LAYER_DATE IS 'تاريخ الطبقة';
 COMMENT ON COLUMN INV_COST_LAYER.ORIGINAL_QTY IS 'الكمية الأصلية';
 COMMENT ON COLUMN INV_COST_LAYER.REMAINING_QTY IS 'المتبقي';
