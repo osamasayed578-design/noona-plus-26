@@ -198,6 +198,7 @@ INCIDENT_ID     ID   >TRN_INCIDENT | البلاغ (العطل)
 MAINT_TYPE      CODE NN D='CORRECTIVE' IN:PREVENTIVE,CORRECTIVE,OVERHAUL,INSPECTION,ACCIDENT,TIRES,UPGRADE | النوع
 WORKSHOP        CODE NN D='INTERNAL' IN:INTERNAL,EXTERNAL | الورشة
 VENDOR_PARTY_ID ID   >PTY_PARTY  | الورشة الخارجية / المورد
+WAREHOUSE_ID    ID   >INV_WAREHOUSE | مستودع قطع الغيار والزيوت (للصرف من المخزون)
 DESCRIPTION     V2000 NN         | وصف العمل
 OPENED_AT       TS   NN          | دخول الصيانة
 COMPLETED_AT    TS               | الخروج من الصيانة
@@ -206,6 +207,7 @@ DOWNTIME_HOURS  NUM              | مدة التوقف (ساعة)
 PARTS_COST      AMT  NN D=0      | قطع الغيار
 LABOR_COST      AMT  NN D=0      | العمالة
 OTHER_COST      AMT  NN D=0      | أخرى
+STOCK_COST      AMT  NN D=0      | منها مصروف من المخزون
 VAT_AMOUNT      AMT  NN D=0      | الضريبة
 TOTAL_COST      AMT  NN D=0      | الإجمالي دون الضريبة
 TREATMENT       CODE NN D='EXPENSE' IN:EXPENSE,CAPITALIZE | المعالجة المحاسبية
@@ -222,4 +224,6 @@ ITEM_ID         ID   >INV_ITEM   | الصنف (قطعة الغيار)
 QUANTITY        QTY  NN D=1      | الكمية
 UNIT_COST       AMT  NN D=0      | تكلفة الوحدة
 AMOUNT          AMT  NN D=0      | المبلغ
+FROM_STOCK      YN   NN D='N'    | مصروف من المخزون
+INV_TXN_ID      ID   >INV_TRANSACTION | حركة الصرف المخزني
 ''', chk=['QUANTITY > 0', 'UNIT_COST >= 0'], area='fleet')

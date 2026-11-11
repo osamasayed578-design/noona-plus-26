@@ -150,12 +150,30 @@ wwv_flow_imp_page.create_page_item(
 );
 wwv_flow_imp_page.create_page_item(
  p_id=>wwv_flow_imp.id(91820290000000316)
+,p_name=>'P35_WH'
+,p_item_sequence=>65
+,p_item_plug_id=>wwv_flow_imp.id(91820290000000308)
+,p_prompt=>'مستودع قطع الغيار والزيوت (للورشة الداخلية)'
+,p_display_as=>'NATIVE_SELECT_LIST'
+,p_lov=>'select code || '' - '' || name_ar d, id r from inv_warehouse where company_id = noona_trn_pkg.company and status_code = ''ACTIVE'' order by code'
+,p_lov_display_null=>'YES'
+,p_lov_null_text=>'- اختر -'
+,p_cHeight=>1
+,p_lov_display_extra=>'NO'
+,p_field_template=>1609121967514267634
+,p_item_template_options=>'#DEFAULT#'
+,p_attributes=>wwv_flow_t_plugin_attributes(wwv_flow_t_varchar2(
+  'page_action_on_selection', 'NONE')).to_clob
+);
+wwv_flow_imp_page.create_page_item(
+ p_id=>wwv_flow_imp.id(91820290000000317)
 ,p_name=>'P35_ODO'
 ,p_item_sequence=>70
 ,p_item_plug_id=>wwv_flow_imp.id(91820290000000308)
 ,p_prompt=>'العداد عند الدخول (كم)'
 ,p_display_as=>'NATIVE_NUMBER_FIELD'
 ,p_cSize=>20
+,p_begin_on_new_line=>'N'
 ,p_field_template=>1609121967514267634
 ,p_item_template_options=>'#DEFAULT#'
 ,p_attributes=>wwv_flow_t_plugin_attributes(wwv_flow_t_varchar2(
@@ -163,7 +181,7 @@ wwv_flow_imp_page.create_page_item(
   'virtual_keyboard', 'decimal')).to_clob
 );
 wwv_flow_imp_page.create_page_item(
- p_id=>wwv_flow_imp.id(91820290000000317)
+ p_id=>wwv_flow_imp.id(91820290000000318)
 ,p_name=>'P35_DESC'
 ,p_item_sequence=>80
 ,p_item_plug_id=>wwv_flow_imp.id(91820290000000308)
@@ -181,18 +199,18 @@ wwv_flow_imp_page.create_page_item(
   'trim_spaces', 'BOTH')).to_clob
 );
 wwv_flow_imp_page.create_page_validation(
- p_id=>wwv_flow_imp.id(91820290000000319)
+ p_id=>wwv_flow_imp.id(91820290000000320)
 ,p_validation_name=>'P35_VEH required (OPEN)'
-,p_validation_sequence=>10
+,p_validation_sequence=>11
 ,p_validation=>'P35_VEH'
 ,p_validation_type=>'ITEM_NOT_NULL'
 ,p_error_message=>'#LABEL#: قيمة مطلوبة'
-,p_when_button_pressed=>wwv_flow_imp.id(91820290000000318)
+,p_when_button_pressed=>wwv_flow_imp.id(91820290000000319)
 ,p_associated_item=>wwv_flow_imp.id(91820290000000310)
 ,p_error_display_location=>'INLINE_WITH_FIELD_AND_NOTIFICATION'
 );
 wwv_flow_imp_page.create_page_button(
- p_id=>wwv_flow_imp.id(91820290000000318)
+ p_id=>wwv_flow_imp.id(91820290000000319)
 ,p_button_sequence=>10
 ,p_button_plug_id=>wwv_flow_imp.id(91820290000000308)
 ,p_button_name=>'OPEN'
@@ -204,7 +222,7 @@ wwv_flow_imp_page.create_page_button(
 ,p_button_position=>'NEXT'
 );
 wwv_flow_imp_page.create_page_process(
- p_id=>wwv_flow_imp.id(91820290000000320)
+ p_id=>wwv_flow_imp.id(91820290000000321)
 ,p_process_sequence=>4
 ,p_process_point=>'BEFORE_HEADER'
 ,p_process_type=>'NATIVE_PLSQL'
@@ -213,16 +231,17 @@ wwv_flow_imp_page.create_page_process(
 'begin',
 '  if :P35_TYPE is null then :P35_TYPE := ''CORRECTIVE''; end if;',
 '  if :P35_WS is null then :P35_WS := ''INTERNAL''; end if;',
+'  if :P35_ID is null and :P35_WH is null then :P35_WH := noona_inv_pkg.default_warehouse; end if;',
 '  if :P35_ID is null and :P35_INC is not null and :P35_VEH is null then',
 '    select max(vehicle_id) into :P35_VEH from trn_incident where id = :P35_INC and company_id = noona_trn_pkg.company;',
 '  end if;',
 'end;'))
 ,p_process_clob_language=>'PLSQL'
 ,p_error_display_location=>'INLINE_IN_NOTIFICATION'
-,p_internal_uid=>91820290000000320
+,p_internal_uid=>91820290000000321
 );
 wwv_flow_imp_page.create_page_process(
- p_id=>wwv_flow_imp.id(91820290000000321)
+ p_id=>wwv_flow_imp.id(91820290000000322)
 ,p_process_sequence=>10
 ,p_process_point=>'AFTER_SUBMIT'
 ,p_process_type=>'NATIVE_PLSQL'
@@ -232,17 +251,17 @@ wwv_flow_imp_page.create_page_process(
 'begin',
 '  select json_object(''vehicle'' value to_number(:P35_VEH), ''type'' value :P35_TYPE, ''plan'' value to_number(:P35_PLAN),',
 '         ''incident'' value to_number(:P35_INC), ''workshop'' value :P35_WS, ''vendor'' value to_number(:P35_VENDOR),',
-'         ''odometer'' value to_number(:P35_ODO), ''description'' value :P35_DESC absent on null) into l from dual;',
+'         ''warehouse'' value to_number(:P35_WH), ''odometer'' value to_number(:P35_ODO), ''description'' value :P35_DESC absent on null) into l from dual;',
 '  :P35_ID := noona_trn_pkg.open_maint(l);',
 'end;'))
 ,p_process_clob_language=>'PLSQL'
 ,p_error_display_location=>'INLINE_IN_NOTIFICATION'
-,p_process_when_button_id=>wwv_flow_imp.id(91820290000000318)
+,p_process_when_button_id=>wwv_flow_imp.id(91820290000000319)
 ,p_process_success_message=>'فتح الأمر؛ أضف قطع الغيار والعمالة ثم أقفله'
-,p_internal_uid=>91820290000000321
+,p_internal_uid=>91820290000000322
 );
 wwv_flow_imp_page.create_page_plug(
- p_id=>wwv_flow_imp.id(91820290000000322)
+ p_id=>wwv_flow_imp.id(91820290000000323)
 ,p_plug_name=>'أمر الصيانة'
 ,p_region_template_options=>'#DEFAULT#:t-Region--scrollBody'
 ,p_plug_template=>4072358936313175081
@@ -256,11 +275,13 @@ wwv_flow_imp_page.create_page_plug(
 ,p_plug_source_type=>'NATIVE_DYNAMIC_CONTENT'
 );
 wwv_flow_imp_page.create_page_plug(
- p_id=>wwv_flow_imp.id(91820290000000323)
+ p_id=>wwv_flow_imp.id(91820290000000324)
 ,p_plug_name=>'إضافة بند'
 ,p_region_template_options=>'#DEFAULT#'
 ,p_plug_template=>4072358936313175081
 ,p_plug_display_sequence=>20
+,p_plug_source=>wwv_flow_string.join(wwv_flow_t_varchar2(
+'<p class="nn-hint">قطع الغيار والزيوت والإطارات من مستودع الورشة: اختر الصنف والكمية فتصرف فوراً من المخزون بتكلفة المتوسط المرجح، وحذف البند يعيدها للمخزون. العمالة والخدمات الخارجية تدخل بالبيان والتكلفة.</p>'))
 ,p_plug_display_condition_type=>'EXPRESSION'
 ,p_plug_display_when_condition=>'noona_trn_pkg.maint_order_status(:P35_ID) in (''OPEN'',''IN_PROGRESS'')'
 ,p_plug_display_when_cond2=>'PLSQL'
@@ -270,13 +291,15 @@ wwv_flow_imp_page.create_page_plug(
   'show_line_breaks', 'Y')).to_clob
 );
 wwv_flow_imp_page.create_page_item(
- p_id=>wwv_flow_imp.id(91820290000000324)
-,p_name=>'P35_LTYPE'
-,p_item_sequence=>10
-,p_item_plug_id=>wwv_flow_imp.id(91820290000000323)
-,p_prompt=>'النوع'
+ p_id=>wwv_flow_imp.id(91820290000000325)
+,p_name=>'P35_LITEM'
+,p_item_sequence=>5
+,p_item_plug_id=>wwv_flow_imp.id(91820290000000324)
+,p_prompt=>'صنف من المخزون (قطعة غيار، زيت، إطار)'
 ,p_display_as=>'NATIVE_SELECT_LIST'
-,p_lov=>'STATIC2:قطع غيار;PART,عمالة;LABOR,زيوت وفلاتر;OIL,إطارات;TIRE,أخرى;OTHER'
+,p_lov=>'select i.item_no || '' - '' || i.name_ar || '' · الرصيد '' || noona_inv_pkg.on_hand(i.id, o.warehouse_id) d, i.id r from inv_item i cross join (select nvl(warehouse_id, noona_inv_pkg.default_warehouse) warehouse_id from trn_maint_order where id = :P35_ID) o where i.status_code = ''ACTIVE'' and i.item_type not in (''SERVICE'', ''NON_STOCK'') and noona_inv_pkg.on_hand(i.id, o.warehouse_id) > 0 order by i.name_ar'
+,p_lov_display_null=>'YES'
+,p_lov_null_text=>'- اختر -'
 ,p_cHeight=>1
 ,p_lov_display_extra=>'NO'
 ,p_field_template=>1609121967514267634
@@ -285,15 +308,30 @@ wwv_flow_imp_page.create_page_item(
   'page_action_on_selection', 'NONE')).to_clob
 );
 wwv_flow_imp_page.create_page_item(
- p_id=>wwv_flow_imp.id(91820290000000325)
+ p_id=>wwv_flow_imp.id(91820290000000326)
+,p_name=>'P35_LTYPE'
+,p_item_sequence=>10
+,p_item_plug_id=>wwv_flow_imp.id(91820290000000324)
+,p_prompt=>'النوع'
+,p_display_as=>'NATIVE_SELECT_LIST'
+,p_lov=>'STATIC2:قطع غيار;PART,عمالة;LABOR,زيوت وفلاتر;OIL,إطارات;TIRE,أخرى;OTHER'
+,p_cHeight=>1
+,p_lov_display_extra=>'NO'
+,p_begin_on_new_line=>'N'
+,p_field_template=>1609121967514267634
+,p_item_template_options=>'#DEFAULT#'
+,p_attributes=>wwv_flow_t_plugin_attributes(wwv_flow_t_varchar2(
+  'page_action_on_selection', 'NONE')).to_clob
+);
+wwv_flow_imp_page.create_page_item(
+ p_id=>wwv_flow_imp.id(91820290000000327)
 ,p_name=>'P35_LDESC'
 ,p_item_sequence=>20
-,p_item_plug_id=>wwv_flow_imp.id(91820290000000323)
+,p_item_plug_id=>wwv_flow_imp.id(91820290000000324)
 ,p_prompt=>'البيان'
 ,p_display_as=>'NATIVE_TEXT_FIELD'
 ,p_cSize=>30
 ,p_cMaxlength=>500
-,p_begin_on_new_line=>'N'
 ,p_field_template=>1609121967514267634
 ,p_item_template_options=>'#DEFAULT#'
 ,p_attributes=>wwv_flow_t_plugin_attributes(wwv_flow_t_varchar2(
@@ -303,25 +341,11 @@ wwv_flow_imp_page.create_page_item(
   'trim_spaces', 'BOTH')).to_clob
 );
 wwv_flow_imp_page.create_page_item(
- p_id=>wwv_flow_imp.id(91820290000000326)
+ p_id=>wwv_flow_imp.id(91820290000000328)
 ,p_name=>'P35_LQTY'
 ,p_item_sequence=>30
-,p_item_plug_id=>wwv_flow_imp.id(91820290000000323)
+,p_item_plug_id=>wwv_flow_imp.id(91820290000000324)
 ,p_prompt=>'الكمية'
-,p_display_as=>'NATIVE_NUMBER_FIELD'
-,p_cSize=>20
-,p_field_template=>1609121967514267634
-,p_item_template_options=>'#DEFAULT#'
-,p_attributes=>wwv_flow_t_plugin_attributes(wwv_flow_t_varchar2(
-  'number_alignment', 'left',
-  'virtual_keyboard', 'decimal')).to_clob
-);
-wwv_flow_imp_page.create_page_item(
- p_id=>wwv_flow_imp.id(91820290000000327)
-,p_name=>'P35_LCOST'
-,p_item_sequence=>40
-,p_item_plug_id=>wwv_flow_imp.id(91820290000000323)
-,p_prompt=>'تكلفة الوحدة'
 ,p_display_as=>'NATIVE_NUMBER_FIELD'
 ,p_cSize=>20
 ,p_begin_on_new_line=>'N'
@@ -332,11 +356,11 @@ wwv_flow_imp_page.create_page_item(
   'virtual_keyboard', 'decimal')).to_clob
 );
 wwv_flow_imp_page.create_page_item(
- p_id=>wwv_flow_imp.id(91820290000000328)
-,p_name=>'P35_LDEL'
-,p_item_sequence=>50
-,p_item_plug_id=>wwv_flow_imp.id(91820290000000323)
-,p_prompt=>'حذف البند رقم'
+ p_id=>wwv_flow_imp.id(91820290000000329)
+,p_name=>'P35_LCOST'
+,p_item_sequence=>40
+,p_item_plug_id=>wwv_flow_imp.id(91820290000000324)
+,p_prompt=>'تكلفة الوحدة'
 ,p_display_as=>'NATIVE_NUMBER_FIELD'
 ,p_cSize=>20
 ,p_field_template=>1609121967514267634
@@ -345,10 +369,25 @@ wwv_flow_imp_page.create_page_item(
   'number_alignment', 'left',
   'virtual_keyboard', 'decimal')).to_clob
 );
+wwv_flow_imp_page.create_page_item(
+ p_id=>wwv_flow_imp.id(91820290000000330)
+,p_name=>'P35_LDEL'
+,p_item_sequence=>50
+,p_item_plug_id=>wwv_flow_imp.id(91820290000000324)
+,p_prompt=>'حذف البند رقم'
+,p_display_as=>'NATIVE_NUMBER_FIELD'
+,p_cSize=>20
+,p_begin_on_new_line=>'N'
+,p_field_template=>1609121967514267634
+,p_item_template_options=>'#DEFAULT#'
+,p_attributes=>wwv_flow_t_plugin_attributes(wwv_flow_t_varchar2(
+  'number_alignment', 'left',
+  'virtual_keyboard', 'decimal')).to_clob
+);
 wwv_flow_imp_page.create_page_button(
- p_id=>wwv_flow_imp.id(91820290000000329)
+ p_id=>wwv_flow_imp.id(91820290000000331)
 ,p_button_sequence=>10
-,p_button_plug_id=>wwv_flow_imp.id(91820290000000323)
+,p_button_plug_id=>wwv_flow_imp.id(91820290000000324)
 ,p_button_name=>'ADD_LINE'
 ,p_button_action=>'SUBMIT'
 ,p_button_template_options=>'#DEFAULT#'
@@ -358,9 +397,9 @@ wwv_flow_imp_page.create_page_button(
 ,p_button_position=>'NEXT'
 );
 wwv_flow_imp_page.create_page_button(
- p_id=>wwv_flow_imp.id(91820290000000330)
+ p_id=>wwv_flow_imp.id(91820290000000332)
 ,p_button_sequence=>20
-,p_button_plug_id=>wwv_flow_imp.id(91820290000000323)
+,p_button_plug_id=>wwv_flow_imp.id(91820290000000324)
 ,p_button_name=>'DEL_LINE'
 ,p_button_action=>'SUBMIT'
 ,p_button_template_options=>'#DEFAULT#'
@@ -369,24 +408,24 @@ wwv_flow_imp_page.create_page_button(
 ,p_button_position=>'NEXT'
 );
 wwv_flow_imp_page.create_page_process(
- p_id=>wwv_flow_imp.id(91820290000000331)
+ p_id=>wwv_flow_imp.id(91820290000000333)
 ,p_process_sequence=>20
 ,p_process_point=>'AFTER_SUBMIT'
 ,p_process_type=>'NATIVE_PLSQL'
 ,p_process_name=>'Add line'
 ,p_process_sql_clob=>wwv_flow_string.join(wwv_flow_t_varchar2(
 'declare x number; begin',
-'  x := noona_trn_pkg.add_maint_line(:P35_ID, :P35_LTYPE, :P35_LDESC, nvl(to_number(:P35_LQTY), 1), to_number(:P35_LCOST));',
-'  :P35_LDESC := null; :P35_LQTY := null; :P35_LCOST := null;',
+'  x := noona_trn_pkg.add_maint_line(:P35_ID, :P35_LTYPE, :P35_LDESC, nvl(to_number(:P35_LQTY), 1), to_number(:P35_LCOST), to_number(:P35_LITEM));',
+'  :P35_LDESC := null; :P35_LQTY := null; :P35_LCOST := null; :P35_LITEM := null;',
 'end;'))
 ,p_process_clob_language=>'PLSQL'
 ,p_error_display_location=>'INLINE_IN_NOTIFICATION'
-,p_process_when_button_id=>wwv_flow_imp.id(91820290000000329)
-,p_process_success_message=>'أضيف البند'
-,p_internal_uid=>91820290000000331
+,p_process_when_button_id=>wwv_flow_imp.id(91820290000000331)
+,p_process_success_message=>'أضيف البند (الصنف المخزني صرف من المستودع)'
+,p_internal_uid=>91820290000000333
 );
 wwv_flow_imp_page.create_page_process(
- p_id=>wwv_flow_imp.id(91820290000000332)
+ p_id=>wwv_flow_imp.id(91820290000000334)
 ,p_process_sequence=>21
 ,p_process_point=>'AFTER_SUBMIT'
 ,p_process_type=>'NATIVE_PLSQL'
@@ -395,12 +434,12 @@ wwv_flow_imp_page.create_page_process(
 'noona_trn_pkg.remove_maint_line(to_number(:P35_LDEL)); :P35_LDEL := null;'))
 ,p_process_clob_language=>'PLSQL'
 ,p_error_display_location=>'INLINE_IN_NOTIFICATION'
-,p_process_when_button_id=>wwv_flow_imp.id(91820290000000330)
+,p_process_when_button_id=>wwv_flow_imp.id(91820290000000332)
 ,p_process_success_message=>'حذف البند'
-,p_internal_uid=>91820290000000332
+,p_internal_uid=>91820290000000334
 );
 wwv_flow_imp_page.create_page_plug(
- p_id=>wwv_flow_imp.id(91820290000000333)
+ p_id=>wwv_flow_imp.id(91820290000000335)
 ,p_plug_name=>'إقفال الأمر والترحيل'
 ,p_region_template_options=>'#DEFAULT#'
 ,p_plug_template=>4072358936313175081
@@ -416,10 +455,10 @@ wwv_flow_imp_page.create_page_plug(
   'show_line_breaks', 'Y')).to_clob
 );
 wwv_flow_imp_page.create_page_item(
- p_id=>wwv_flow_imp.id(91820290000000334)
+ p_id=>wwv_flow_imp.id(91820290000000336)
 ,p_name=>'P35_ODO_OUT'
 ,p_item_sequence=>10
-,p_item_plug_id=>wwv_flow_imp.id(91820290000000333)
+,p_item_plug_id=>wwv_flow_imp.id(91820290000000335)
 ,p_prompt=>'العداد عند الخروج (كم)'
 ,p_display_as=>'NATIVE_NUMBER_FIELD'
 ,p_cSize=>20
@@ -430,10 +469,10 @@ wwv_flow_imp_page.create_page_item(
   'virtual_keyboard', 'decimal')).to_clob
 );
 wwv_flow_imp_page.create_page_item(
- p_id=>wwv_flow_imp.id(91820290000000335)
+ p_id=>wwv_flow_imp.id(91820290000000337)
 ,p_name=>'P35_DOWN'
 ,p_item_sequence=>20
-,p_item_plug_id=>wwv_flow_imp.id(91820290000000333)
+,p_item_plug_id=>wwv_flow_imp.id(91820290000000335)
 ,p_prompt=>'مدة التوقف (ساعة) - تحسب تلقائياً إن تركت'
 ,p_display_as=>'NATIVE_NUMBER_FIELD'
 ,p_cSize=>20
@@ -445,10 +484,10 @@ wwv_flow_imp_page.create_page_item(
   'virtual_keyboard', 'decimal')).to_clob
 );
 wwv_flow_imp_page.create_page_item(
- p_id=>wwv_flow_imp.id(91820290000000336)
+ p_id=>wwv_flow_imp.id(91820290000000338)
 ,p_name=>'P35_TREAT'
 ,p_item_sequence=>30
-,p_item_plug_id=>wwv_flow_imp.id(91820290000000333)
+,p_item_plug_id=>wwv_flow_imp.id(91820290000000335)
 ,p_prompt=>'المعالجة المحاسبية'
 ,p_display_as=>'NATIVE_SELECT_LIST'
 ,p_lov=>'STATIC2:مصروف صيانة;EXPENSE,رأسمالية تضاف لأصل العربة;CAPITALIZE'
@@ -460,10 +499,10 @@ wwv_flow_imp_page.create_page_item(
   'page_action_on_selection', 'NONE')).to_clob
 );
 wwv_flow_imp_page.create_page_item(
- p_id=>wwv_flow_imp.id(91820290000000337)
+ p_id=>wwv_flow_imp.id(91820290000000339)
 ,p_name=>'P35_EXT'
 ,p_item_sequence=>40
-,p_item_plug_id=>wwv_flow_imp.id(91820290000000333)
+,p_item_plug_id=>wwv_flow_imp.id(91820290000000335)
 ,p_prompt=>'تمديد العمر الإنتاجي (شهر) - للرأسمالية'
 ,p_display_as=>'NATIVE_NUMBER_FIELD'
 ,p_cSize=>20
@@ -475,10 +514,10 @@ wwv_flow_imp_page.create_page_item(
   'virtual_keyboard', 'decimal')).to_clob
 );
 wwv_flow_imp_page.create_page_item(
- p_id=>wwv_flow_imp.id(91820290000000338)
+ p_id=>wwv_flow_imp.id(91820290000000340)
 ,p_name=>'P35_VAT'
 ,p_item_sequence=>50
-,p_item_plug_id=>wwv_flow_imp.id(91820290000000333)
+,p_item_plug_id=>wwv_flow_imp.id(91820290000000335)
 ,p_prompt=>'ضريبة القيمة المضافة'
 ,p_display_as=>'NATIVE_NUMBER_FIELD'
 ,p_cSize=>20
@@ -489,11 +528,11 @@ wwv_flow_imp_page.create_page_item(
   'virtual_keyboard', 'decimal')).to_clob
 );
 wwv_flow_imp_page.create_page_item(
- p_id=>wwv_flow_imp.id(91820290000000339)
+ p_id=>wwv_flow_imp.id(91820290000000341)
 ,p_name=>'P35_FUND'
 ,p_item_sequence=>60
-,p_item_plug_id=>wwv_flow_imp.id(91820290000000333)
-,p_prompt=>'السداد'
+,p_item_plug_id=>wwv_flow_imp.id(91820290000000335)
+,p_prompt=>'سداد الجزء الخارجي (غير المصروف من المخزون)'
 ,p_display_as=>'NATIVE_SELECT_LIST'
 ,p_lov=>'STATIC2:آجل على الورشة (المورد);PAYABLE,تحويل بنكي;BANK,نقداً من الصندوق;CASH'
 ,p_cHeight=>1
@@ -505,13 +544,13 @@ wwv_flow_imp_page.create_page_item(
   'page_action_on_selection', 'NONE')).to_clob
 );
 wwv_flow_imp_page.create_page_item(
- p_id=>wwv_flow_imp.id(91820290000000340)
-,p_name=>'P35_BANK'
-,p_item_sequence=>70
-,p_item_plug_id=>wwv_flow_imp.id(91820290000000333)
-,p_prompt=>'الحساب البنكي'
+ p_id=>wwv_flow_imp.id(91820290000000342)
+,p_name=>'P35_CVENDOR'
+,p_item_sequence=>65
+,p_item_plug_id=>wwv_flow_imp.id(91820290000000335)
+,p_prompt=>'المورد / الفني المتعاقد (للآجل في الورشة الداخلية)'
 ,p_display_as=>'NATIVE_SELECT_LIST'
-,p_lov=>'select code || '' - '' || name_ar d, id r from csh_bank_account where company_id = noona_trn_pkg.company and status_code = ''ACTIVE'' order by code'
+,p_lov=>'select p.display_name_ar d, p.id r from pty_party p where exists (select 1 from ap_supplier s where s.party_id = p.id) order by 1'
 ,p_lov_display_null=>'YES'
 ,p_lov_null_text=>'- اختر -'
 ,p_cHeight=>1
@@ -522,13 +561,13 @@ wwv_flow_imp_page.create_page_item(
   'page_action_on_selection', 'NONE')).to_clob
 );
 wwv_flow_imp_page.create_page_item(
- p_id=>wwv_flow_imp.id(91820290000000341)
-,p_name=>'P35_BOX'
-,p_item_sequence=>80
-,p_item_plug_id=>wwv_flow_imp.id(91820290000000333)
-,p_prompt=>'الصندوق'
+ p_id=>wwv_flow_imp.id(91820290000000343)
+,p_name=>'P35_BANK'
+,p_item_sequence=>70
+,p_item_plug_id=>wwv_flow_imp.id(91820290000000335)
+,p_prompt=>'الحساب البنكي'
 ,p_display_as=>'NATIVE_SELECT_LIST'
-,p_lov=>'select code || '' - '' || name_ar d, id r from csh_cash_box where company_id = noona_trn_pkg.company and status_code = ''ACTIVE'' order by code'
+,p_lov=>'select code || '' - '' || name_ar d, id r from csh_bank_account where company_id = noona_trn_pkg.company and status_code = ''ACTIVE'' order by code'
 ,p_lov_display_null=>'YES'
 ,p_lov_null_text=>'- اختر -'
 ,p_cHeight=>1
@@ -540,14 +579,32 @@ wwv_flow_imp_page.create_page_item(
   'page_action_on_selection', 'NONE')).to_clob
 );
 wwv_flow_imp_page.create_page_item(
- p_id=>wwv_flow_imp.id(91820290000000342)
+ p_id=>wwv_flow_imp.id(91820290000000344)
+,p_name=>'P35_BOX'
+,p_item_sequence=>80
+,p_item_plug_id=>wwv_flow_imp.id(91820290000000335)
+,p_prompt=>'الصندوق'
+,p_display_as=>'NATIVE_SELECT_LIST'
+,p_lov=>'select code || '' - '' || name_ar d, id r from csh_cash_box where company_id = noona_trn_pkg.company and status_code = ''ACTIVE'' order by code'
+,p_lov_display_null=>'YES'
+,p_lov_null_text=>'- اختر -'
+,p_cHeight=>1
+,p_lov_display_extra=>'NO'
+,p_field_template=>1609121967514267634
+,p_item_template_options=>'#DEFAULT#'
+,p_attributes=>wwv_flow_t_plugin_attributes(wwv_flow_t_varchar2(
+  'page_action_on_selection', 'NONE')).to_clob
+);
+wwv_flow_imp_page.create_page_item(
+ p_id=>wwv_flow_imp.id(91820290000000345)
 ,p_name=>'P35_REF'
 ,p_item_sequence=>90
-,p_item_plug_id=>wwv_flow_imp.id(91820290000000333)
+,p_item_plug_id=>wwv_flow_imp.id(91820290000000335)
 ,p_prompt=>'مرجع فاتورة الورشة'
 ,p_display_as=>'NATIVE_TEXT_FIELD'
 ,p_cSize=>20
 ,p_cMaxlength=>100
+,p_begin_on_new_line=>'N'
 ,p_field_template=>1609121967514267634
 ,p_item_template_options=>'#DEFAULT#'
 ,p_attributes=>wwv_flow_t_plugin_attributes(wwv_flow_t_varchar2(
@@ -557,9 +614,9 @@ wwv_flow_imp_page.create_page_item(
   'trim_spaces', 'BOTH')).to_clob
 );
 wwv_flow_imp_page.create_page_button(
- p_id=>wwv_flow_imp.id(91820290000000343)
+ p_id=>wwv_flow_imp.id(91820290000000346)
 ,p_button_sequence=>10
-,p_button_plug_id=>wwv_flow_imp.id(91820290000000333)
+,p_button_plug_id=>wwv_flow_imp.id(91820290000000335)
 ,p_button_name=>'COMPLETE'
 ,p_button_action=>'SUBMIT'
 ,p_button_template_options=>'#DEFAULT#'
@@ -569,15 +626,14 @@ wwv_flow_imp_page.create_page_button(
 ,p_button_position=>'NEXT'
 );
 wwv_flow_imp_page.create_page_item(
- p_id=>wwv_flow_imp.id(91820290000000344)
+ p_id=>wwv_flow_imp.id(91820290000000347)
 ,p_name=>'P35_REASON'
 ,p_item_sequence=>100
-,p_item_plug_id=>wwv_flow_imp.id(91820290000000333)
+,p_item_plug_id=>wwv_flow_imp.id(91820290000000335)
 ,p_prompt=>'سبب الإلغاء'
 ,p_display_as=>'NATIVE_TEXT_FIELD'
 ,p_cSize=>30
 ,p_cMaxlength=>400
-,p_begin_on_new_line=>'N'
 ,p_field_template=>1609121967514267634
 ,p_item_template_options=>'#DEFAULT#'
 ,p_attributes=>wwv_flow_t_plugin_attributes(wwv_flow_t_varchar2(
@@ -587,9 +643,9 @@ wwv_flow_imp_page.create_page_item(
   'trim_spaces', 'BOTH')).to_clob
 );
 wwv_flow_imp_page.create_page_button(
- p_id=>wwv_flow_imp.id(91820290000000345)
+ p_id=>wwv_flow_imp.id(91820290000000348)
 ,p_button_sequence=>20
-,p_button_plug_id=>wwv_flow_imp.id(91820290000000333)
+,p_button_plug_id=>wwv_flow_imp.id(91820290000000335)
 ,p_button_name=>'CANCEL_ORDER'
 ,p_button_action=>'SUBMIT'
 ,p_button_template_options=>'#DEFAULT#'
@@ -598,7 +654,7 @@ wwv_flow_imp_page.create_page_button(
 ,p_button_position=>'NEXT'
 );
 wwv_flow_imp_page.create_page_process(
- p_id=>wwv_flow_imp.id(91820290000000346)
+ p_id=>wwv_flow_imp.id(91820290000000349)
 ,p_process_sequence=>5
 ,p_process_point=>'BEFORE_HEADER'
 ,p_process_type=>'NATIVE_PLSQL'
@@ -612,10 +668,10 @@ wwv_flow_imp_page.create_page_process(
 'end;'))
 ,p_process_clob_language=>'PLSQL'
 ,p_error_display_location=>'INLINE_IN_NOTIFICATION'
-,p_internal_uid=>91820290000000346
+,p_internal_uid=>91820290000000349
 );
 wwv_flow_imp_page.create_page_process(
- p_id=>wwv_flow_imp.id(91820290000000347)
+ p_id=>wwv_flow_imp.id(91820290000000350)
 ,p_process_sequence=>30
 ,p_process_point=>'AFTER_SUBMIT'
 ,p_process_type=>'NATIVE_PLSQL'
@@ -625,17 +681,18 @@ wwv_flow_imp_page.create_page_process(
 'begin',
 '  select json_object(''odometer'' value to_number(:P35_ODO_OUT), ''downtimeHours'' value to_number(:P35_DOWN), ''treatment'' value :P35_TREAT,',
 '         ''lifeExtension'' value to_number(:P35_EXT), ''vat'' value to_number(:P35_VAT), ''funding'' value :P35_FUND,',
-'         ''bankAccount'' value to_number(:P35_BANK), ''cashBox'' value to_number(:P35_BOX), ''reference'' value :P35_REF absent on null) into l from dual;',
+'         ''bankAccount'' value to_number(:P35_BANK), ''cashBox'' value to_number(:P35_BOX), ''vendor'' value to_number(:P35_CVENDOR),',
+'         ''reference'' value :P35_REF absent on null) into l from dual;',
 '  noona_trn_pkg.complete_maint(:P35_ID, l);',
 'end;'))
 ,p_process_clob_language=>'PLSQL'
 ,p_error_display_location=>'INLINE_IN_NOTIFICATION'
-,p_process_when_button_id=>wwv_flow_imp.id(91820290000000343)
+,p_process_when_button_id=>wwv_flow_imp.id(91820290000000346)
 ,p_process_success_message=>'أقفل الأمر ورحلت التكلفة؛ عادت العربة متاحة'
-,p_internal_uid=>91820290000000347
+,p_internal_uid=>91820290000000350
 );
 wwv_flow_imp_page.create_page_process(
- p_id=>wwv_flow_imp.id(91820290000000348)
+ p_id=>wwv_flow_imp.id(91820290000000351)
 ,p_process_sequence=>31
 ,p_process_point=>'AFTER_SUBMIT'
 ,p_process_type=>'NATIVE_PLSQL'
@@ -644,12 +701,12 @@ wwv_flow_imp_page.create_page_process(
 'noona_trn_pkg.cancel_maint(:P35_ID, :P35_REASON);'))
 ,p_process_clob_language=>'PLSQL'
 ,p_error_display_location=>'INLINE_IN_NOTIFICATION'
-,p_process_when_button_id=>wwv_flow_imp.id(91820290000000345)
+,p_process_when_button_id=>wwv_flow_imp.id(91820290000000348)
 ,p_process_success_message=>'ألغي الأمر'
-,p_internal_uid=>91820290000000348
+,p_internal_uid=>91820290000000351
 );
 wwv_flow_imp_page.create_page_plug(
- p_id=>wwv_flow_imp.id(91820290000000349)
+ p_id=>wwv_flow_imp.id(91820290000000352)
 ,p_plug_name=>'رجوع'
 ,p_region_template_options=>'#DEFAULT#:t-Region--removeHeader js-removeLandmark'
 ,p_plug_template=>4072358936313175081
@@ -660,9 +717,9 @@ wwv_flow_imp_page.create_page_plug(
   'show_line_breaks', 'Y')).to_clob
 );
 wwv_flow_imp_page.create_page_button(
- p_id=>wwv_flow_imp.id(91820290000000350)
+ p_id=>wwv_flow_imp.id(91820290000000353)
 ,p_button_sequence=>10
-,p_button_plug_id=>wwv_flow_imp.id(91820290000000349)
+,p_button_plug_id=>wwv_flow_imp.id(91820290000000352)
 ,p_button_name=>'BACK'
 ,p_button_action=>'REDIRECT_URL'
 ,p_button_template_options=>'#DEFAULT#'
@@ -672,7 +729,7 @@ wwv_flow_imp_page.create_page_button(
 ,p_button_redirect_url=>'f?p=&APP_ID.:34:&SESSION.::&DEBUG.:::'
 );
 wwv_flow_imp_page.create_page_branch(
- p_id=>wwv_flow_imp.id(91820290000000351)
+ p_id=>wwv_flow_imp.id(91820290000000354)
 ,p_branch_action=>'f?p=&APP_ID.:35:&SESSION.::&DEBUG.::P35_ID:&P35_ID.&success_msg=#SUCCESS_MSG#'
 ,p_branch_point=>'AFTER_PROCESSING'
 ,p_branch_type=>'REDIRECT_URL'

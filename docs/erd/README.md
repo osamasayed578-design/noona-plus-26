@@ -186,6 +186,7 @@ flowchart LR
   SEC --> PLT
   SEC --> REF
   SEC --> WF
+  TRN --> INV
   WF --> REF
   WF --> SEC
 ```

@@ -68,6 +68,7 @@ CREATE OR REPLACE PACKAGE NOONA_FA_PKG AUTHID DEFINER AS
   --   treatment: EXPENSE (مصروف صيانة 5205) | CAPITALIZE (إضافة رأسمالية على تكلفة الأصل)، description, amount, vat,
   --   funding: BANK | CASH | PAYABLE | ACCOUNT ، bank_account, cash_box, party, account, expense_account, cost_center, branch,
   --   life_extension (أشهر تضاف للعمر الإنتاجي مع الرسملة)، plan (خطة دورية تتحدث)، reference, source_module, source_id
+  --   stock_amount + stock_account: جزء المبلغ من مواد صرفت من المخزون (يقيد دائناً على حساب الصيانة تحت التنفيذ)
   FUNCTION record_maintenance(p_doc IN CLOB) RETURN NUMBER;
   -- عكس قيد صيانة المصروف (الرأسمالية تعالج بحركة تعديل على الأصل)
   FUNCTION reverse_maintenance(p_id IN NUMBER, p_reason IN VARCHAR2) RETURN NUMBER;
@@ -1120,6 +1121,10 @@ CREATE OR REPLACE PACKAGE BODY NOONA_FA_PKG AS
     l_acct  NUMBER := jnum(l_o, 'account');
     l_ref   VARCHAR2(100) := SUBSTR(js(l_o, 'reference'), 1, 100);
     l_smod  VARCHAR2(30) := NVL(js(l_o, 'source_module'), 'FA');
+    l_stk   NUMBER := NVL(ROUND(jnum(l_o, 'stock_amount'), 2), 0);
+    l_stka  NUMBER := jnum(l_o, 'stock_account');
+    l_rest  NUMBER;
+    l_tx2   NUMBER;
     l_sid   NUMBER := jnum(l_o, 'source_id');
     l_exp   NUMBER;
     l_cc    NUMBER;
@@ -1139,6 +1144,11 @@ CREATE OR REPLACE PACKAGE BODY NOONA_FA_PKG AS
     NOONA_CORE_PKG.assert(l_treat IN ('EXPENSE', 'CAPITALIZE'), 'NOONA-FA-066', 'المعالجة: مصروف أو إضافة رأسمالية', 'Invalid treatment');
     NOONA_CORE_PKG.assert(l_fund IN ('BANK', 'CASH', 'PAYABLE', 'ACCOUNT'), 'NOONA-FA-014', 'مصدر السداد غير صحيح', 'Invalid funding');
     NOONA_CORE_PKG.assert(l_ext >= 0 AND l_ext = TRUNC(l_ext), 'NOONA-FA-060', 'أشهر التمديد عدد صحيح موجب', 'Invalid extension');
+    NOONA_CORE_PKG.assert(l_stk >= 0 AND l_stk <= l_amt AND (l_stk = 0 OR l_stka IS NOT NULL), 'NOONA-FA-073',
+      'المواد المصروفة من المخزون لا تتجاوز مبلغ الصيانة', 'Stock amount exceeds maintenance amount');
+    l_rest := l_amt - l_stk;
+    NOONA_CORE_PKG.assert(l_vat = 0 OR l_rest > 0, 'NOONA-FA-074',
+      'الضريبة تخص المشتريات والخدمات الخارجية؛ المواد المصروفة من المخزون بلا ضريبة', 'VAT applies to external costs only');
     IF l_asset IS NOT NULL THEN
       l_a := asset_row(l_asset, TRUE);
       assert_active(l_a);
@@ -1154,27 +1164,40 @@ CREATE OR REPLACE PACKAGE BODY NOONA_FA_PKG AS
     ensure_sequence('FA_MAINTENANCE', 'FAM-');
     l_no := next_no('FA_MAINTENANCE', l_date);
     INSERT INTO fa_maintenance (company_id, branch_id, doc_no, doc_date, asset_id, plan_id, maint_type, treatment, description,
-                                vendor_party_id, amount, vat_amount, funding, bank_account_id, cash_box_id, account_id,
+                                vendor_party_id, amount, vat_amount, stock_amount, funding, bank_account_id, cash_box_id, account_id,
                                 expense_account_id, cost_center_id, life_extension_months, source_module, source_id, reference_no, status_code)
-    VALUES (company, l_br, l_no, l_date, l_asset, l_plan, l_type, l_treat, l_desc, l_party, l_amt, l_vat, l_fund, l_bank, l_box, l_acct,
+    VALUES (company, l_br, l_no, l_date, l_asset, l_plan, l_type, l_treat, l_desc, l_party, l_amt, l_vat, l_stk, l_fund, l_bank, l_box, l_acct,
             CASE WHEN l_treat = 'EXPENSE' THEN l_exp END, l_cc, l_ext, l_smod, l_sid,
             l_ref, 'POSTED')
     RETURNING id INTO l_id;
     IF l_treat = 'CAPITALIZE' THEN
       -- العمرة والتجديد والتطوير: تضاف لتكلفة الأصل وتهلك على عمره (الممدد)
-      l_tx := add_cost(l_asset, l_amt, l_date, l_fund, l_bank, l_box, l_party, l_acct, l_vat,
-                       'صيانة رأسمالية ' || l_no || ' - ' || l_desc);
+      -- المواد المصروفة من المخزون تنقل من «صيانة تحت التنفيذ»، والباقي من مصدر السداد
+      IF l_stk > 0 THEN
+        l_tx := add_cost(l_asset, l_stk, l_date, 'ACCOUNT', NULL, NULL, NULL, l_stka, 0,
+                         'مواد مخزنية لصيانة رأسمالية ' || l_no || ' - ' || l_desc);
+      END IF;
+      IF l_rest > 0 THEN
+        l_tx2 := add_cost(l_asset, l_rest, l_date, l_fund, l_bank, l_box, l_party, l_acct, l_vat,
+                          'صيانة رأسمالية ' || l_no || ' - ' || l_desc);
+      END IF;
+      l_tx := NVL(l_tx2, l_tx);
       IF l_ext > 0 THEN
         l_x := extend_life(l_asset, l_ext, l_date, 'صيانة رأسمالية ' || l_no);
       END IF;
       UPDATE fa_maintenance SET fa_transaction_id = l_tx, posted_at = SYSTIMESTAMP, posted_by = NOONA_CTX_PKG.current_user_name WHERE id = l_id;
     ELSE
-      l_src := source_account(l_fund, l_bank, l_box, l_party, l_acct);
       add_line(l_lines, l_exp, l_amt, 0, l_cc, 'صيانة ' || NVL(l_a.asset_no, '') || ' - ' || SUBSTR(l_desc, 1, 200));
       IF l_vat > 0 THEN
         add_line(l_lines, need_acc('1107'), l_vat, 0, NULL, 'ضريبة مدخلات صيانة ' || l_no);
       END IF;
-      add_line(l_lines, l_src, 0, l_amt + l_vat, NULL, 'صيانة ' || l_no, CASE WHEN l_fund = 'PAYABLE' THEN l_party END);
+      IF l_stk > 0 THEN
+        add_line(l_lines, l_stka, 0, l_stk, NULL, 'مواد مصروفة من المخزون للصيانة ' || l_no);
+      END IF;
+      IF l_rest + l_vat > 0 THEN
+        l_src := source_account(l_fund, l_bank, l_box, l_party, l_acct);
+        add_line(l_lines, l_src, 0, l_rest + l_vat, NULL, 'صيانة ' || l_no, CASE WHEN l_fund = 'PAYABLE' THEN l_party END);
+      END IF;
       l_j := NOONA_ACE_PKG.post_source('FA_ASSET_ADJUSTED', 'ASSETS', 'FA_MAINTENANCE', l_id, l_date,
                'صيانة ' || CASE WHEN l_a.asset_no IS NOT NULL THEN 'الأصل ' || l_a.asset_no || ' - ' END || SUBSTR(l_desc, 1, 300),
                NOONA_GL_PKG.ledger_currency, 1, l_lines, NVL(l_ref, l_no), l_br, 'FA_ACQUISITION');

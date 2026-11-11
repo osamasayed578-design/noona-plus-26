@@ -433,6 +433,8 @@ p.select('P35_INC', f, 40, 'البلاغ / العطل', lov_sql=(
     f"join trn_vehicle v on v.id = i.vehicle_id where i.company_id = {CO} and i.status_code <> 'CLOSED' order by i.id desc"))
 p.select('P35_WS', f, 50, 'الورشة', lov_sql='STATIC2:ورشة داخلية;INTERNAL,ورشة خارجية;EXTERNAL', null_text=None)
 p.select('P35_VENDOR', f, 60, 'الورشة الخارجية / المورد', lov_sql=SUPP_LOV)
+p.select('P35_WH', f, 65, 'مستودع قطع الغيار والزيوت (للورشة الداخلية)', lov_sql=(
+    f"select code || ' - ' || name_ar d, id r from inv_warehouse where company_id = {CO} and status_code = 'ACTIVE' order by code"))
 p.number('P35_ODO', f, 70, 'العداد عند الدخول (كم)')
 p.textarea('P35_DESC', f, 80, 'وصف العمل (يؤخذ من البرنامج أو البلاغ إن ترك فارغاً)', rows=2)
 b_open = p.button(f, 10, 'OPEN', 'فتح الأمر وإدخال العربة الصيانة', hot=True)
@@ -440,6 +442,7 @@ p.process(4, 'BEFORE_HEADER', 'Defaults', [
     'begin',
     "  if :P35_TYPE is null then :P35_TYPE := 'CORRECTIVE'; end if;",
     "  if :P35_WS is null then :P35_WS := 'INTERNAL'; end if;",
+    "  if :P35_ID is null and :P35_WH is null then :P35_WH := noona_inv_pkg.default_warehouse; end if;",
     "  if :P35_ID is null and :P35_INC is not null and :P35_VEH is null then",
     f"    select max(vehicle_id) into :P35_VEH from trn_incident where id = :P35_INC and company_id = {CO};",
     "  end if;",
@@ -447,10 +450,17 @@ p.process(4, 'BEFORE_HEADER', 'Defaults', [
 p.process(10, 'AFTER_SUBMIT', 'Open', ['declare l clob;', 'begin',
     "  select json_object('vehicle' value to_number(:P35_VEH), 'type' value :P35_TYPE, 'plan' value to_number(:P35_PLAN),",
     "         'incident' value to_number(:P35_INC), 'workshop' value :P35_WS, 'vendor' value to_number(:P35_VENDOR),",
-    "         'odometer' value to_number(:P35_ODO), 'description' value :P35_DESC absent on null) into l from dual;",
+    "         'warehouse' value to_number(:P35_WH), 'odometer' value to_number(:P35_ODO), 'description' value :P35_DESC absent on null) into l from dual;",
     '  :P35_ID := noona_trn_pkg.open_maint(l);', 'end;'], when_button=b_open, success='فتح الأمر؛ أضف قطع الغيار والعمالة ثم أقفله')
 p.dynamic('أمر الصيانة', 15, 'return noona_trn_pkg.maint_order_html(:P35_ID);', condition=':P35_ID is not null')
-ln = p.static('إضافة بند', 20, condition=MS("'OPEN','IN_PROGRESS'"))
+ln = p.static('إضافة بند', 20, condition=MS("'OPEN','IN_PROGRESS'"), text=(
+    '<p class="nn-hint">قطع الغيار والزيوت والإطارات من مستودع الورشة: اختر الصنف والكمية فتصرف فوراً من المخزون بتكلفة المتوسط المرجح، '
+    'وحذف البند يعيدها للمخزون. العمالة والخدمات الخارجية تدخل بالبيان والتكلفة.</p>'))
+p.select('P35_LITEM', ln, 5, 'صنف من المخزون (قطعة غيار، زيت، إطار)', lov_sql=(
+    "select i.item_no || ' - ' || i.name_ar || ' · الرصيد ' || noona_inv_pkg.on_hand(i.id, o.warehouse_id) d, i.id r "
+    "from inv_item i cross join (select nvl(warehouse_id, noona_inv_pkg.default_warehouse) warehouse_id from trn_maint_order where id = :P35_ID) o "
+    "where i.status_code = 'ACTIVE' and i.item_type not in ('SERVICE', 'NON_STOCK') "
+    "and noona_inv_pkg.on_hand(i.id, o.warehouse_id) > 0 order by i.name_ar"))
 p.select('P35_LTYPE', ln, 10, 'النوع', lov_sql='STATIC2:قطع غيار;PART,عمالة;LABOR,زيوت وفلاتر;OIL,إطارات;TIRE,أخرى;OTHER', null_text=None)
 p.text('P35_LDESC', ln, 20, 'البيان', maxlen=500, width=30)
 p.number('P35_LQTY', ln, 30, 'الكمية')
@@ -460,8 +470,9 @@ b_add = p.button(ln, 10, 'ADD_LINE', 'إضافة البند', hot=True)
 b_del = p.button(ln, 20, 'DEL_LINE', 'حذف البند')
 p.process(20, 'AFTER_SUBMIT', 'Add line', [
     'declare x number; begin',
-    "  x := noona_trn_pkg.add_maint_line(:P35_ID, :P35_LTYPE, :P35_LDESC, nvl(to_number(:P35_LQTY), 1), to_number(:P35_LCOST));",
-    '  :P35_LDESC := null; :P35_LQTY := null; :P35_LCOST := null;', 'end;'], when_button=b_add, success='أضيف البند')
+    "  x := noona_trn_pkg.add_maint_line(:P35_ID, :P35_LTYPE, :P35_LDESC, nvl(to_number(:P35_LQTY), 1), to_number(:P35_LCOST), to_number(:P35_LITEM));",
+    '  :P35_LDESC := null; :P35_LQTY := null; :P35_LCOST := null; :P35_LITEM := null;', 'end;'], when_button=b_add,
+    success='أضيف البند (الصنف المخزني صرف من المستودع)')
 p.process(21, 'AFTER_SUBMIT', 'Delete line', 'noona_trn_pkg.remove_maint_line(to_number(:P35_LDEL)); :P35_LDEL := null;',
           when_button=b_del, success='حذف البند')
 c = p.static('إقفال الأمر والترحيل', 30, condition=MS("'OPEN','IN_PROGRESS'"), text=(
@@ -472,7 +483,8 @@ p.number('P35_DOWN', c, 20, 'مدة التوقف (ساعة) - تحسب تلقا�
 p.select('P35_TREAT', c, 30, 'المعالجة المحاسبية', lov_sql='STATIC2:مصروف صيانة;EXPENSE,رأسمالية تضاف لأصل العربة;CAPITALIZE', null_text=None)
 p.number('P35_EXT', c, 40, 'تمديد العمر الإنتاجي (شهر) - للرأسمالية')
 p.number('P35_VAT', c, 50, 'ضريبة القيمة المضافة')
-p.select('P35_FUND', c, 60, 'السداد', lov_sql='STATIC2:آجل على الورشة (المورد);PAYABLE,تحويل بنكي;BANK,نقداً من الصندوق;CASH', null_text=None)
+p.select('P35_FUND', c, 60, 'سداد الجزء الخارجي (غير المصروف من المخزون)', lov_sql='STATIC2:آجل على الورشة (المورد);PAYABLE,تحويل بنكي;BANK,نقداً من الصندوق;CASH', null_text=None)
+p.select('P35_CVENDOR', c, 65, 'المورد / الفني المتعاقد (للآجل في الورشة الداخلية)', lov_sql=SUPP_LOV)
 p.select('P35_BANK', c, 70, 'الحساب البنكي', lov_sql=f"select code || ' - ' || name_ar d, id r from csh_bank_account where company_id = {CO} and status_code = 'ACTIVE' order by code")
 p.select('P35_BOX', c, 80, 'الصندوق', lov_sql=f"select code || ' - ' || name_ar d, id r from csh_cash_box where company_id = {CO} and status_code = 'ACTIVE' order by code")
 p.text('P35_REF', c, 90, 'مرجع فاتورة الورشة', maxlen=100, width=20)
@@ -489,7 +501,8 @@ p.process(5, 'BEFORE_HEADER', 'Close defaults', [
 p.process(30, 'AFTER_SUBMIT', 'Complete', ['declare l clob;', 'begin',
     "  select json_object('odometer' value to_number(:P35_ODO_OUT), 'downtimeHours' value to_number(:P35_DOWN), 'treatment' value :P35_TREAT,",
     "         'lifeExtension' value to_number(:P35_EXT), 'vat' value to_number(:P35_VAT), 'funding' value :P35_FUND,",
-    "         'bankAccount' value to_number(:P35_BANK), 'cashBox' value to_number(:P35_BOX), 'reference' value :P35_REF absent on null) into l from dual;",
+    "         'bankAccount' value to_number(:P35_BANK), 'cashBox' value to_number(:P35_BOX), 'vendor' value to_number(:P35_CVENDOR),",
+    "         'reference' value :P35_REF absent on null) into l from dual;",
     '  noona_trn_pkg.complete_maint(:P35_ID, l);', 'end;'], when_button=b_done,
     success='أقفل الأمر ورحلت التكلفة؛ عادت العربة متاحة')
 p.process(31, 'AFTER_SUBMIT', 'Cancel', 'noona_trn_pkg.cancel_maint(:P35_ID, :P35_REASON);', when_button=b_can, success='ألغي الأمر')

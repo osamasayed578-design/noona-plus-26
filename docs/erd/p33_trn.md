@@ -4,7 +4,7 @@
 
 أسطول الشاحنات والعربات والسائقين، المدن والمواقع والمسارات والمسافات، أنواع الشحنات، تعرفة الترحيل بالطن المتري والطن القصير والطويل والكيلوجرام والمتر المكعب والكيلومتر والطن-كيلومتر والرحلة والحاوية، أوامر الشحن، الرحلات بمواعيدها وزمن الوصول المتوقع ونقاط التوقف، التسليم والتفريغ والعجز، مصروفات الرحلة، والأعطال والبلاغات وزمن الاستجابة، وفوترة الترحيل في المبيعات.
 
-الجداول الخارجية المرتبطة (من حزم أخرى): `AR_CUSTOMER_ACCOUNT`, `DMS_DOCUMENT`, `FA_ASSET`, `FA_MAINTENANCE`, `HR_EMPLOYEE`, `INV_ITEM`, `ORG_BRANCH`, `ORG_COMPANY`, `PTY_PARTY`, `REF_COUNTRY`, `SAL_INVOICE`
+الجداول الخارجية المرتبطة (من حزم أخرى): `AR_CUSTOMER_ACCOUNT`, `DMS_DOCUMENT`, `FA_ASSET`, `FA_MAINTENANCE`, `HR_EMPLOYEE`, `INV_ITEM`, `INV_TRANSACTION`, `INV_WAREHOUSE`, `ORG_BRANCH`, `ORG_COMPANY`, `PTY_PARTY`, `REF_COUNTRY`, `SAL_INVOICE`
 
 ```mermaid
 erDiagram
@@ -144,6 +144,7 @@ erDiagram
     NUMBER PLAN_ID FK
     NUMBER INCIDENT_ID FK
     NUMBER VENDOR_PARTY_ID FK
+    NUMBER WAREHOUSE_ID FK
     NUMBER FA_MAINTENANCE_ID FK
     VARCHAR2 STATUS_CODE
   }
@@ -153,6 +154,7 @@ erDiagram
     NUMBER COMPANY_ID FK
     NUMBER ORDER_ID FK
     NUMBER ITEM_ID FK
+    NUMBER INV_TXN_ID FK
   }
   ORG_COMPANY {
     NUMBER ID PK
@@ -181,10 +183,16 @@ erDiagram
   PTY_PARTY {
     NUMBER ID PK
   }
+  INV_WAREHOUSE {
+    NUMBER ID PK
+  }
   FA_MAINTENANCE {
     NUMBER ID PK
   }
   INV_ITEM {
+    NUMBER ID PK
+  }
+  INV_TRANSACTION {
     NUMBER ID PK
   }
   AR_CUSTOMER_ACCOUNT |o--o{ TRN_RATE : "CUSTOMER_ACCOUNT_ID"
@@ -194,6 +202,8 @@ erDiagram
   FA_MAINTENANCE |o--o{ TRN_MAINT_ORDER : "FA_MAINTENANCE_ID"
   HR_EMPLOYEE |o--o{ TRN_DRIVER : "EMPLOYEE_ID"
   INV_ITEM |o--o{ TRN_MAINT_LINE : "ITEM_ID"
+  INV_TRANSACTION |o--o{ TRN_MAINT_LINE : "INV_TXN_ID"
+  INV_WAREHOUSE |o--o{ TRN_MAINT_ORDER : "WAREHOUSE_ID"
   ORG_BRANCH |o--o{ TRN_DRIVER : "BRANCH_ID"
   ORG_BRANCH |o--o{ TRN_MAINT_ORDER : "BRANCH_ID"
   ORG_BRANCH |o--o{ TRN_ORDER : "BRANCH_ID"

@@ -19,7 +19,9 @@ BEGIN
          UNION ALL SELECT 'TRANSFER_OUT', 'تحويل صادر', 'Transfer out', 'TRANSFER_OUT', -1, 'N' FROM dual
          UNION ALL SELECT 'TRANSFER_IN', 'تحويل وارد', 'Transfer in', 'TRANSFER_IN', 1, 'N' FROM dual
          UNION ALL SELECT 'MFG_ISSUE', 'صرف خامات للإنتاج', 'Material issue to production', 'MFG_ISSUE', -1, 'N' FROM dual
-         UNION ALL SELECT 'MFG_RECEIPT', 'استلام إنتاج تام', 'Production receipt', 'MFG_RECEIPT', 1, 'N' FROM dual) x
+         UNION ALL SELECT 'MFG_RECEIPT', 'استلام إنتاج تام', 'Production receipt', 'MFG_RECEIPT', 1, 'N' FROM dual
+         UNION ALL SELECT 'MAINT_ISSUE', 'صرف قطع غيار وزيوت للصيانة', 'Issue to maintenance', 'ISSUE', -1, 'N' FROM dual
+         UNION ALL SELECT 'MAINT_RETURN', 'مرتجع من الصيانة', 'Return from maintenance', 'RETURN_IN', 1, 'N' FROM dual) x
      ON (t.tenant_id IS NULL AND t.code = x.code)
    WHEN MATCHED THEN UPDATE SET t.name_ar = x.name_ar, t.name_en = x.name_en
    WHEN NOT MATCHED THEN INSERT (tenant_id, code, name_ar, name_en, txn_class, qty_sign, requires_approval, default_reason_required,

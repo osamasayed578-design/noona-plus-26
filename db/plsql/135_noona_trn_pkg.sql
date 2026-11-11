@@ -84,15 +84,16 @@ CREATE OR REPLACE PACKAGE NOONA_TRN_PKG AUTHID DEFINER AS
   -- ---------------------------------------------------------- صيانة الأسطول
   -- برنامج دوري: JSON id, service, vehicle (فارغ = كل العربات)، vehicleType، everyKm، everyDays، cost، status، notes
   FUNCTION save_maint_plan(p_doc IN CLOB) RETURN NUMBER;
-  -- أمر صيانة: JSON vehicle, type, plan, incident, workshop (INTERNAL|EXTERNAL), vendor, description, odometer, notes
+  -- أمر صيانة: JSON vehicle, type, plan, incident, workshop (INTERNAL|EXTERNAL), vendor, warehouse (مستودع قطع الغيار)، description, odometer, notes
   --   تدخل العربة «في الصيانة» ولا تسند لرحلة حتى الإقفال
   FUNCTION open_maint(p_doc IN CLOB) RETURN NUMBER;
-  -- p_type: PART | LABOR | OIL | TIRE | OTHER
+  -- p_type: PART | LABOR | OIL | TIRE | OTHER ؛ الصنف المخزني يصرف فوراً من مستودع الأمر بالمتوسط المرجح
+  --   (قيد: صيانة تحت التنفيذ 1116 / المخزون)، وحذف بنده يعيده للمخزون
   FUNCTION add_maint_line(p_order_id IN NUMBER, p_type IN VARCHAR2, p_desc IN VARCHAR2, p_qty IN NUMBER, p_unit_cost IN NUMBER,
                           p_item_id IN NUMBER DEFAULT NULL) RETURN NUMBER;
   PROCEDURE remove_maint_line(p_line_id IN NUMBER);
   -- الإقفال: JSON date, odometer, downtimeHours, treatment (EXPENSE|CAPITALIZE)، lifeExtension (أشهر)، vat,
-  --   funding (BANK|CASH|PAYABLE|ACCOUNT)، bankAccount, cashBox, account, reference
+  --   funding (BANK|CASH|PAYABLE|ACCOUNT)، bankAccount, cashBox, account, vendor (للآجل في الورشة الداخلية)، reference
   --   يرحل التكلفة عبر صيانة الأصول: مصروف صيانة، أو إضافة رأسمالية على أصل العربة مع تمديد عمرها؛ تعود العربة متاحة
   PROCEDURE complete_maint(p_order_id IN NUMBER, p_doc IN CLOB);
   PROCEDURE cancel_maint(p_order_id IN NUMBER, p_reason IN VARCHAR2);
@@ -599,6 +600,7 @@ CREATE OR REPLACE PACKAGE BODY NOONA_TRN_PKG AS
     l_odo NUMBER := jn(l_o, 'odometer');
     l_at  TIMESTAMP := NVL(jts(l_o, 'openedAt'), SYSTIMESTAMP);
     l_nt  VARCHAR2(4000) := js(l_o, 'notes');
+    l_wh  NUMBER := jn(l_o, 'warehouse');
   BEGIN
     guard('TRN_MAINT_ORDER.CREATE');
     BEGIN
@@ -626,10 +628,13 @@ CREATE OR REPLACE PACKAGE BODY NOONA_TRN_PKG AS
     END IF;
     NOONA_CORE_PKG.assert(l_ds IS NOT NULL, 'NOONA-TRN-107', 'وصف العمل مطلوب', 'Description required');
     l_no := next_no('TRN_MAINT_ORDER', 'MNT-');
+    IF l_wh IS NULL AND l_ws = 'INTERNAL' THEN
+      l_wh := NOONA_INV_PKG.default_warehouse;
+    END IF;
     INSERT INTO trn_maint_order (company_id, branch_id, doc_no, doc_date, vehicle_id, plan_id, incident_id, maint_type, workshop,
-                                 vendor_party_id, description, opened_at, odometer_km, prev_status, status_code, notes)
+                                 vendor_party_id, warehouse_id, description, opened_at, odometer_km, prev_status, status_code, notes)
     VALUES (company, NVL(l_v.branch_id, NOONA_CTX_PKG.branch_id), l_no, TRUNC(SYSDATE), l_vid, l_pl, l_inc,
-            l_tp, l_ws, l_vnd, l_ds, l_at, GREATEST(NVL(l_odo, l_v.odometer_km), l_v.odometer_km), l_v.status_code, 'OPEN', l_nt)
+            l_tp, l_ws, l_vnd, l_wh, l_ds, l_at, GREATEST(NVL(l_odo, l_v.odometer_km), l_v.odometer_km), l_v.status_code, 'OPEN', l_nt)
     RETURNING id INTO l_id;
     UPDATE trn_vehicle SET status_code = 'MAINTENANCE' WHERE id = l_vid;
     RETURN l_id;
@@ -650,7 +655,8 @@ CREATE OR REPLACE PACKAGE BODY NOONA_TRN_PKG AS
       parts_cost = (SELECT NVL(SUM(amount), 0) FROM trn_maint_line l WHERE l.order_id = o.id AND l.line_type IN ('PART', 'OIL', 'TIRE')),
       labor_cost = (SELECT NVL(SUM(amount), 0) FROM trn_maint_line l WHERE l.order_id = o.id AND l.line_type = 'LABOR'),
       other_cost = (SELECT NVL(SUM(amount), 0) FROM trn_maint_line l WHERE l.order_id = o.id AND l.line_type = 'OTHER'),
-      total_cost = (SELECT NVL(SUM(amount), 0) FROM trn_maint_line l WHERE l.order_id = o.id)
+      total_cost = (SELECT NVL(SUM(amount), 0) FROM trn_maint_line l WHERE l.order_id = o.id),
+      stock_cost = (SELECT NVL(SUM(amount), 0) FROM trn_maint_line l WHERE l.order_id = o.id AND l.from_stock = 'Y')
      WHERE id = p_id;
   END recalc_maint;
 
@@ -659,6 +665,10 @@ CREATE OR REPLACE PACKAGE BODY NOONA_TRN_PKG AS
     l_m  trn_maint_order%ROWTYPE;
     l_id NUMBER;
     l_d  VARCHAR2(500) := SUBSTR(TRIM(p_desc), 1, 500);
+    l_wh NUMBER;
+    l_tx NUMBER;
+    l_tot NUMBER;
+    l_pl VARCHAR2(30);
   BEGIN
     guard('TRN_MAINT_ORDER.UPDATE');
     l_m := order_row(p_order_id);
@@ -674,6 +684,17 @@ CREATE OR REPLACE PACKAGE BODY NOONA_TRN_PKG AS
     VALUES (company, p_order_id, NVL(p_type, 'PART'), l_d, p_item_id, NVL(p_qty, 1), NVL(p_unit_cost, 0),
             ROUND(NVL(p_qty, 1) * NVL(p_unit_cost, 0), 2))
     RETURNING id INTO l_id;
+    -- قطع الغيار والزيوت المخزنية: صرف من مستودع الورشة بتكلفة المتوسط المرجح
+    IF p_item_id IS NOT NULL AND NOONA_INV_PKG.is_stocked(p_item_id) = 'Y' THEN
+      l_wh := NVL(l_m.warehouse_id, NOONA_INV_PKG.default_warehouse);
+      NOONA_CORE_PKG.assert(l_wh IS NOT NULL, 'NOONA-TRN-119', 'حدد مستودع قطع الغيار لأمر الصيانة', 'Warehouse required');
+      SELECT plate_no INTO l_pl FROM trn_vehicle WHERE id = l_m.vehicle_id;
+      l_tx := NOONA_INV_PKG.maint_stock('MAINT_ISSUE', l_wh, p_item_id, NVL(p_qty, 1), NULL, TRUNC(SYSDATE), p_order_id,
+                                        l_m.doc_no || ' - ' || l_pl || ': ' || l_d, l_tot);
+      UPDATE trn_maint_line SET from_stock = 'Y', inv_txn_id = l_tx, amount = l_tot, unit_cost = ROUND(l_tot / NVL(p_qty, 1), 6)
+       WHERE id = l_id;
+      UPDATE trn_maint_order SET warehouse_id = l_wh WHERE id = p_order_id AND warehouse_id IS NULL;
+    END IF;
     UPDATE trn_maint_order SET status_code = 'IN_PROGRESS' WHERE id = p_order_id AND status_code = 'OPEN';
     recalc_maint(p_order_id);
     RETURN l_id;
@@ -682,12 +703,21 @@ CREATE OR REPLACE PACKAGE BODY NOONA_TRN_PKG AS
   PROCEDURE remove_maint_line(p_line_id IN NUMBER) IS
     l_oid NUMBER;
     l_m   trn_maint_order%ROWTYPE;
+    l_ln  trn_maint_line%ROWTYPE;
+    l_tx  NUMBER;
+    l_tot NUMBER;
   BEGIN
     guard('TRN_MAINT_ORDER.UPDATE');
     SELECT MAX(order_id) INTO l_oid FROM trn_maint_line WHERE id = p_line_id AND company_id = company;
     NOONA_CORE_PKG.assert(l_oid IS NOT NULL, 'NOONA-TRN-114', 'البند غير موجود', 'Line not found');
     l_m := order_row(l_oid);
     NOONA_CORE_PKG.assert(l_m.status_code IN ('OPEN', 'IN_PROGRESS'), 'NOONA-TRN-110', 'أمر الصيانة مقفل', 'Order is closed');
+    SELECT * INTO l_ln FROM trn_maint_line WHERE id = p_line_id;
+    IF l_ln.from_stock = 'Y' AND l_ln.amount > 0 THEN
+      -- إرجاع القطعة غير المستخدمة للمخزون بتكلفة صرفها
+      l_tx := NOONA_INV_PKG.maint_stock('MAINT_RETURN', l_m.warehouse_id, l_ln.item_id, l_ln.quantity, l_ln.amount / l_ln.quantity,
+                                        TRUNC(SYSDATE), l_oid, l_m.doc_no || ': إرجاع ' || l_ln.description, l_tot);
+    END IF;
     DELETE FROM trn_maint_line WHERE id = p_line_id;
     recalc_maint(l_oid);
   END remove_maint_line;
@@ -725,12 +755,17 @@ CREATE OR REPLACE PACKAGE BODY NOONA_TRN_PKG AS
       l_d.put('treatment', l_tr);
       l_d.put('description', SUBSTR('صيانة العربة ' || l_v.plate_no || ' (' || l_m.doc_no || '): ' || l_m.description, 1, 1000));
       l_d.put('amount', l_m.total_cost);
+      IF l_m.stock_cost > 0 THEN
+        l_d.put('stock_amount', l_m.stock_cost);
+        l_d.put('stock_account', NOONA_INV_PKG.maint_wip_account);
+      END IF;
       l_d.put('vat', l_vat);
       l_d.put('funding', NVL(js(l_o, 'funding'), CASE WHEN l_m.workshop = 'EXTERNAL' THEN 'PAYABLE' ELSE 'CASH' END));
       IF jn(l_o, 'bankAccount') IS NOT NULL THEN l_d.put('bank_account', jn(l_o, 'bankAccount')); END IF;
       IF jn(l_o, 'cashBox') IS NOT NULL THEN l_d.put('cash_box', jn(l_o, 'cashBox')); END IF;
       IF jn(l_o, 'account') IS NOT NULL THEN l_d.put('account', jn(l_o, 'account')); END IF;
-      IF l_m.vendor_party_id IS NOT NULL THEN l_d.put('party', l_m.vendor_party_id); END IF;
+      -- المورد: ورشة الأمر الخارجية، أو من يستحق العمالة/الخدمة في الورشة الداخلية (vendor عند الإقفال)
+      IF NVL(jn(l_o, 'vendor'), l_m.vendor_party_id) IS NOT NULL THEN l_d.put('party', NVL(jn(l_o, 'vendor'), l_m.vendor_party_id)); END IF;
       IF l_ext > 0 THEN l_d.put('life_extension', l_ext); END IF;
       l_d.put('branch', l_m.branch_id);
       l_d.put('reference', NVL(js(l_o, 'reference'), l_m.doc_no));
@@ -755,6 +790,9 @@ CREATE OR REPLACE PACKAGE BODY NOONA_TRN_PKG AS
     l_m := order_row(p_order_id);
     NOONA_CORE_PKG.assert(l_m.status_code IN ('OPEN', 'IN_PROGRESS'), 'NOONA-TRN-110', 'أمر الصيانة مقفل', 'Order is closed');
     NOONA_CORE_PKG.assert(TRIM(p_reason) IS NOT NULL, 'NOONA-TRN-118', 'سبب الإلغاء مطلوب', 'Reason required');
+    FOR r IN (SELECT id FROM trn_maint_line WHERE order_id = p_order_id AND from_stock = 'Y') LOOP
+      remove_maint_line(r.id);       -- تعود القطع المصروفة للمخزون
+    END LOOP;
     UPDATE trn_maint_order SET status_code = 'CANCELLED', notes = SUBSTR(NVL2(notes, notes || ' | ', '') || 'إلغاء: ' || p_reason, 1, 4000)
      WHERE id = p_order_id;
     UPDATE trn_vehicle SET status_code = CASE WHEN l_m.prev_status IN ('AVAILABLE', 'OUT_OF_SERVICE') THEN l_m.prev_status ELSE 'AVAILABLE' END
@@ -820,6 +858,7 @@ CREATE OR REPLACE PACKAGE BODY NOONA_TRN_PKG AS
     SELECT plate_no INTO l_pl FROM trn_vehicle WHERE id = l_m.vehicle_id;
     FOR r IN (SELECT * FROM trn_maint_line WHERE order_id = p_order_id ORDER BY id) LOOP
       l_h := l_h || '<tr><td>' || r.id || '</td><td>' || esc(maint_type_label(r.line_type)) || '</td><td>' || esc(r.description)
+          || CASE WHEN r.from_stock = 'Y' THEN ' <span class="nn-badge is-info">من المخزون</span>' END
           || '</td><td class="u-tE">' || qf(r.quantity) || '</td><td class="u-tE">' || fmt(r.unit_cost) || '</td><td class="u-tE">'
           || fmt(r.amount) || '</td></tr>';
     END LOOP;
