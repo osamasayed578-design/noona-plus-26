@@ -239,14 +239,46 @@ BEGIN
   UPDATE trn_vehicle SET odometer_km = l_n + 9500 WHERE id = l_v;
   l_h := NOONA_TRN_PKG.maint_due_html;
   ok('oil due for replacement near its km life', DBMS_LOB.INSTR(l_h, 'زيت محرك ديزل 15W40 ' || l_sfx) > 0);
+  -- التنبيهات: إشعار لمسؤول الأسطول مرة واحدة لكل مستوى
+  l_x := NOONA_TRN_PKG.run_maint_alerts(NOONA_TRN_PKG.company);
+  SELECT COUNT(*) INTO l_n FROM ntf_notification
+   WHERE membership_id = TO_NUMBER(SYS_CONTEXT('NOONA_CTX', 'MEMBERSHIP_ID')) AND title LIKE 'اقترب موعد استبدال زيت محرك ديزل 15W40 ' || l_sfx || '%';
+  ok('alert sent to fleet manager when oil change approaches', l_x > 0 AND l_n = 1, l_x || '/' || l_n);
+  l_x := NOONA_TRN_PKG.run_maint_alerts(NOONA_TRN_PKG.company);
+  SELECT COUNT(*) INTO l_n FROM ntf_notification
+   WHERE membership_id = TO_NUMBER(SYS_CONTEXT('NOONA_CTX', 'MEMBERSHIP_ID')) AND title LIKE '%زيت محرك ديزل 15W40 ' || l_sfx || '%';
+  ok('same alert not repeated', l_n = 1, l_n);
+  UPDATE trn_vehicle SET odometer_km = odometer_km + 700 WHERE id = l_v;
+  l_x := NOONA_TRN_PKG.run_maint_alerts(NOONA_TRN_PKG.company);
+  SELECT COUNT(*) INTO l_n FROM ntf_notification
+   WHERE membership_id = TO_NUMBER(SYS_CONTEXT('NOONA_CTX', 'MEMBERSHIP_ID')) AND title LIKE 'تجاوز موعد استبدال زيت محرك ديزل 15W40 ' || l_sfx || '%';
+  ok('second alert when the change is overdue', l_n = 1, l_n);
+  -- البطارية بالمدة فقط: تنبيه عند اقتراب تاريخها
+  UPDATE trn_maint_line SET next_due_date = TRUNC(SYSDATE) + 3
+   WHERE order_id IN (SELECT id FROM trn_maint_order WHERE vehicle_id = l_v) AND description = 'بطارية 200 أمبير';
+  l_x := NOONA_TRN_PKG.run_maint_alerts(NOONA_TRN_PKG.company);
+  SELECT COUNT(*) INTO l_n FROM ntf_notification
+   WHERE membership_id = TO_NUMBER(SYS_CONTEXT('NOONA_CTX', 'MEMBERSHIP_ID')) AND title LIKE 'اقترب موعد استبدال بطارية 200 أمبير - العربة ص ي ' || l_sfx || '%';
+  ok('battery alert by time (3 days left)', l_n = 1, l_n);
+  ok('fleet board shows maintenance alert banner', DBMS_LOB.INSTR(NOONA_TRN_PKG.board_html, 'تنبيه صيانة') > 0);
+
   -- استبدال ثان: يظهر العمر الفعلي للقطعة السابقة
   l_o4 := NOONA_TRN_PKG.open_maint('{"vehicle":' || l_v || ',"workshop":"INTERNAL","warehouse":' || l_wh || ',"description":"تغيير زيت"}');
   l_x := NOONA_TRN_PKG.add_maint_line(l_o4, 'OIL', NULL, 30, NULL, l_oil);
   NOONA_TRN_PKG.complete_maint(l_o4, '{}');
   ok('replaced oil no longer due', DBMS_LOB.INSTR(NOONA_TRN_PKG.maint_due_html, 'زيت محرك ديزل 15W40 ' || l_sfx) = 0);
   l_h := NOONA_TRN_PKG.parts_report_html(TRUNC(SYSDATE) - 1, TRUNC(SYSDATE), l_v);
+  -- الإطار بالمسافة والمدة: يستحق بأيهما أقرب
+  l_o4 := NOONA_TRN_PKG.open_maint('{"vehicle":' || l_v || ',"workshop":"INTERNAL","description":"تركيب إطارات"}');
+  l_r := NOONA_TRN_PKG.add_maint_line(l_o4, 'TIRE', 'إطار أمامي 315/80R22.5', 2, 1400, NULL, 60000, 1095);
+  NOONA_TRN_PKG.complete_maint(l_o4, '{"funding":"PAYABLE","vendor":' || l_sup || '}');
+  SELECT next_due_km - (SELECT odometer_km FROM trn_vehicle WHERE id = l_v) || '/' || (next_due_date - TRUNC(SYSDATE)) INTO l_s
+    FROM trn_maint_line WHERE id = l_r;
+  ok('tire due after 60,000 km or 1,095 days', l_s = '60000/1095', l_s);
+  UPDATE trn_maint_line SET next_due_date = TRUNC(SYSDATE) + 5 WHERE id = l_r;     -- انقضاء المدة قبل المسافة
+  ok('tire due by time even with km remaining', DBMS_LOB.INSTR(NOONA_TRN_PKG.maint_due_html, 'إطار أمامي 315/80R22.5') > 0);
   ok('parts report lists vehicle spare parts with totals', DBMS_LOB.INSTR(l_h, 'زيت محرك ديزل') > 0 AND DBMS_LOB.INSTR(l_h, 'إجمالي ص ي ' || l_sfx) > 0);
-  ok('parts report shows actual life of previous part', DBMS_LOB.INSTR(l_h, '9400 كم') > 0 OR DBMS_LOB.INSTR(l_h, '9,400 كم') > 0);
+  ok('parts report shows actual life of previous part', DBMS_LOB.INSTR(l_h, '10,100 كم') > 0 OR DBMS_LOB.INSTR(l_h, '10100 كم') > 0);
   l_h := NOONA_TRN_PKG.vehicle_perf_html(TRUNC(SYSDATE) - 1, TRUNC(SYSDATE), l_v);
   ok('vehicle performance report', DBMS_LOB.INSTR(l_h, 'ص ي ' || l_sfx) > 0 AND DBMS_LOB.INSTR(l_h, 'التكلفة/كم') > 0);
   l_h := NOONA_TRN_PKG.driver_perf_html(ADD_MONTHS(TRUNC(SYSDATE), -12), TRUNC(SYSDATE));

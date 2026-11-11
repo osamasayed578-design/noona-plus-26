@@ -104,6 +104,10 @@ CREATE OR REPLACE PACKAGE NOONA_TRN_PKG AUTHID DEFINER AS
   FUNCTION maint_order_status(p_id IN NUMBER) RETURN VARCHAR2;
   -- عمر الاستبدال الافتراضي للصنف (زيت كل 10,000 كم، إطار كل 60,000 كم، بطارية كل 730 يوماً...)
   PROCEDURE set_part_life(p_item_id IN NUMBER, p_km IN NUMBER, p_days IN NUMBER);
+  -- تنبيهات الصيانة (مهمة يومية NOONA_TRN_MAINT_ALERTS): القطع التي اقترب أو حان موعد استبدالها بالمسافة أو بالمدة
+  --   (الإطارات بالأقرب منهما، البطاريات بالمدة) والصيانات الدورية المستحقة؛ إشعار داخل النظام لمسؤولي الأسطول
+  --   (مدير المؤسسة ومن له صلاحية أوامر الصيانة)، مرة عند الاقتراب ومرة عند التجاوز، وملخص بالبريد إن كان مفعلاً
+  FUNCTION run_maint_alerts(p_company_id IN NUMBER DEFAULT NULL) RETURN NUMBER;
   -- مصروفات قطع الغيار والزيوت والإطارات لكل عربة خلال فترة، والعمر الفعلي للقطعة بين استبدالين
   FUNCTION parts_report_html(p_from IN DATE, p_to IN DATE, p_vehicle_id IN NUMBER DEFAULT NULL) RETURN CLOB;
   -- أداء العربات: الرحلات والكيلومترات والوقود والأعطال وتكلفة الصيانة لكل كيلومتر
@@ -837,7 +841,7 @@ CREATE OR REPLACE PACKAGE BODY NOONA_TRN_PKG AS
           FROM trn_maint_plan p JOIN trn_vehicle v ON v.company_id = p.company_id
          WHERE p.company_id = company AND p.status_code = 'ACTIVE' AND v.status_code <> 'SOLD'
            AND (p.vehicle_id = v.id OR (p.vehicle_id IS NULL AND NVL(p.vehicle_type, v.vehicle_type) = v.vehicle_type)))
-      SELECT x.*, CASE WHEN every_km > 0 THEN NVL(last_km, 0) + every_km - odo END km_left,
+      SELECT x.*, CASE WHEN every_km > 0 AND last_dt IS NOT NULL THEN last_km + every_km - odo END km_left,
              CASE WHEN every_days > 0 AND last_dt IS NOT NULL THEN TRUNC(last_dt + every_days - SYSDATE) END days_left
         FROM x) LOOP
       IF r.last_km IS NULL AND r.last_dt IS NULL OR NVL(r.km_left, 1e9) <= r.every_km * 0.1 OR NVL(r.days_left, 1e9) <= 7 THEN
@@ -1019,6 +1023,113 @@ CREATE OR REPLACE PACKAGE BODY NOONA_TRN_PKG AS
              || 'غير المرتبطة ببلاغ سائق موزعة على السائقين بنسبة الكيلومترات التي قطعها كل منهم على العربة في الفترة. '
              || 'الصيانة الدورية والعمرات لا تنسب للسائق.</p>' END;
   END driver_perf_html;
+
+  FUNCTION run_maint_alerts(p_company_id IN NUMBER DEFAULT NULL) RETURN NUMBER IS
+    l_total NUMBER := 0;
+    l_new   PLS_INTEGER;
+    l_list  VARCHAR2(32767);
+    l_mails VARCHAR2(4000);
+    l_ev    NUMBER;
+    l_x     NUMBER;
+    PROCEDURE alert(p_tenant NUMBER, p_company NUMBER, p_event VARCHAR2, p_entity VARCHAR2, p_id NUMBER, p_key VARCHAR2,
+                    p_title VARCHAR2, p_due DATE) IS
+      l_any BOOLEAN := FALSE;
+    BEGIN
+      SELECT MIN(id) INTO l_ev FROM ntf_event_type WHERE code = p_event;
+      IF l_ev IS NULL THEN RETURN; END IF;
+      FOR m IN (SELECT um.id, LOWER(u.email) email
+                  FROM sec_user_membership um JOIN sec_user u ON u.id = um.user_id
+                 WHERE um.tenant_id = p_tenant AND um.status_code = 'ACTIVE' AND u.status_code = 'ACTIVE'
+                   AND (um.is_tenant_admin = 'Y' OR EXISTS (
+                        SELECT 1 FROM sec_role_grant g
+                          JOIN (SELECT CONNECT_BY_ROOT parent_role_id root_role_id, child_role_id role_id FROM sec_role_composite
+                                CONNECT BY NOCYCLE PRIOR child_role_id = parent_role_id
+                                UNION ALL SELECT id, id FROM sec_role) rc ON rc.root_role_id = g.role_id
+                          JOIN sec_role_permission rp ON rp.role_id = rc.role_id AND NVL(rp.effect, 'ALLOW') <> 'DENY'
+                          JOIN sec_permission pm ON pm.id = rp.permission_id AND pm.permission_code = 'TRN_MAINT_ORDER.CREATE'
+                         WHERE g.membership_id = um.id AND g.status_code = 'ACTIVE'
+                           AND TRUNC(SYSDATE) BETWEEN g.effective_from AND NVL(g.effective_to, DATE '9999-12-31')
+                           AND (NOT EXISTS (SELECT 1 FROM sec_data_scope ds WHERE ds.role_grant_id = g.id)
+                                OR EXISTS (SELECT 1 FROM sec_data_scope ds WHERE ds.role_grant_id = g.id
+                                              AND (ds.scope_type = 'ALL_TENANT' OR ds.company_id = p_company)))))) LOOP
+        BEGIN
+          INSERT INTO ntf_notification (tenant_id, event_type_id, membership_id, source_entity_type, source_entity_id, title, link_url,
+                                        idempotency_key, due_at, correlation_id, confidentiality_level)
+          VALUES (p_tenant, l_ev, m.id, p_entity, p_id, SUBSTR(p_title, 1, 500), 'f?p=NOONA_TRN:MAINTENANCE',
+                  SUBSTR('TRN:' || p_key || ':' || m.id, 1, 200), CAST(p_due AS TIMESTAMP), NOONA_CTX_PKG.correlation_id, 'INTERNAL');
+          l_total := l_total + 1;
+          l_any := TRUE;
+          IF m.email LIKE '%@%' AND INSTR(',' || l_mails || ',', ',' || m.email || ',') = 0 AND NVL(LENGTH(l_mails), 0) < 3800 THEN
+            l_mails := l_mails || CASE WHEN l_mails IS NOT NULL THEN ',' END || m.email;
+          END IF;
+        EXCEPTION WHEN DUP_VAL_ON_INDEX THEN NULL;         -- نبه سابقاً لنفس المستوى
+        END;
+      END LOOP;
+      IF l_any THEN
+        l_new := l_new + 1;
+        IF LENGTH(l_list) < 30000 OR l_list IS NULL THEN l_list := l_list || '<li>' || esc(p_title) || '</li>'; END IF;
+      END IF;
+    END alert;
+  BEGIN
+    NOONA_CORE_PKG.begin_system;
+    FOR c IN (SELECT DISTINCT tenant_id, company_id FROM trn_vehicle
+               WHERE status_code <> 'SOLD' AND (p_company_id IS NULL OR company_id = p_company_id)) LOOP
+      l_new := 0; l_list := NULL; l_mails := NULL;
+      -- القطع: آخر تركيب لكل (عربة، قطعة)؛ المستوى 1 عند الاقتراب (10% من العمر بالكيلومتر أو 7 أيام)، 2 عند التجاوز
+      FOR r IN (
+        SELECT x.*, CASE WHEN odo >= next_due_km OR next_due_date <= TRUNC(SYSDATE) THEN 2 ELSE 1 END lvl FROM (
+          SELECT ln.id, v.plate_no, v.odometer_km odo, ln.description, ln.next_due_km, ln.next_due_date, ln.life_km,
+                 ROW_NUMBER() OVER (PARTITION BY o.vehicle_id, NVL(TO_CHAR(ln.item_id), ln.description) ORDER BY o.completed_at DESC, ln.id DESC) rn
+            FROM trn_maint_line ln JOIN trn_maint_order o ON o.id = ln.order_id JOIN trn_vehicle v ON v.id = o.vehicle_id
+           WHERE o.company_id = c.company_id AND o.status_code = 'COMPLETED' AND v.status_code <> 'SOLD'
+             AND (ln.next_due_km IS NOT NULL OR ln.next_due_date IS NOT NULL)) x
+         WHERE rn = 1 AND (odo >= next_due_km - NVL(life_km, 0) * 0.1 OR next_due_date <= TRUNC(SYSDATE) + 7)) LOOP
+        alert(c.tenant_id, c.company_id, 'TRN_PART_DUE', 'TRN_MAINT_LINE', r.id, 'PART:' || r.id || ':' || r.lvl,
+              CASE r.lvl WHEN 2 THEN 'تجاوز موعد استبدال ' ELSE 'اقترب موعد استبدال ' END || r.description || ' - العربة ' || r.plate_no
+              || CASE WHEN r.next_due_km IS NOT NULL THEN ' (عند ' || qf(r.next_due_km) || ' كم، العداد ' || qf(r.odo) || ')' END
+              || CASE WHEN r.next_due_date IS NOT NULL THEN ' (بتاريخ ' || TO_CHAR(r.next_due_date, 'YYYY-MM-DD') || ')' END,
+              NVL(r.next_due_date, TRUNC(SYSDATE)));
+      END LOOP;
+      -- البرامج الدورية: آخر تنفيذ لكل (عربة، برنامج)
+      FOR r IN (
+        WITH x AS (
+          SELECT v.id vid, v.plate_no, v.odometer_km odo, p.id pid, p.service_name, p.every_km, p.every_days,
+                 (SELECT MAX(o.id) FROM trn_maint_order o WHERE o.vehicle_id = v.id AND o.plan_id = p.id AND o.status_code = 'COMPLETED') last_id,
+                 (SELECT MAX(o.odometer_km) KEEP (DENSE_RANK LAST ORDER BY o.completed_at) FROM trn_maint_order o
+                   WHERE o.vehicle_id = v.id AND o.plan_id = p.id AND o.status_code = 'COMPLETED') last_km,
+                 (SELECT MAX(CAST(o.completed_at AS DATE)) FROM trn_maint_order o
+                   WHERE o.vehicle_id = v.id AND o.plan_id = p.id AND o.status_code = 'COMPLETED') last_dt,
+                 (SELECT COUNT(*) FROM trn_maint_order o WHERE o.vehicle_id = v.id AND o.plan_id = p.id AND o.status_code IN ('OPEN', 'IN_PROGRESS')) open_n
+            FROM trn_maint_plan p JOIN trn_vehicle v ON v.company_id = p.company_id
+           WHERE p.company_id = c.company_id AND p.status_code = 'ACTIVE' AND v.status_code <> 'SOLD'
+             AND (p.vehicle_id = v.id OR (p.vehicle_id IS NULL AND NVL(p.vehicle_type, v.vehicle_type) = v.vehicle_type))),
+        y AS (SELECT x.*, CASE WHEN every_km > 0 AND last_dt IS NOT NULL THEN last_km + every_km - odo END km_left,
+                     CASE WHEN every_days > 0 AND last_dt IS NOT NULL THEN TRUNC(last_dt + every_days - SYSDATE) END days_left FROM x)
+        SELECT y.*, CASE WHEN last_dt IS NULL OR km_left < 0 OR days_left < 0 THEN 2 ELSE 1 END lvl FROM y
+         WHERE open_n = 0 AND (last_dt IS NULL OR NVL(km_left, 1e9) <= every_km * 0.1 OR NVL(days_left, 1e9) <= 7)) LOOP
+        alert(c.tenant_id, c.company_id, 'TRN_SERVICE_DUE', 'TRN_MAINT_PLAN', r.pid,
+              'PLAN:' || r.pid || ':' || r.vid || ':' || NVL(r.last_id, 0) || ':' || r.lvl,
+              CASE r.lvl WHEN 2 THEN 'صيانة دورية مستحقة: ' ELSE 'تقترب صيانة دورية: ' END || r.service_name || ' - العربة ' || r.plate_no
+              || CASE WHEN r.last_dt IS NULL THEN ' (لم تنفذ سابقاً لهذه العربة)' END
+              || CASE WHEN r.km_left IS NOT NULL THEN CASE WHEN r.km_left < 0 THEN ' (تجاوز ' || qf(-r.km_left) || ' كم)' ELSE ' (باقي ' || qf(r.km_left) || ' كم)' END END
+              || CASE WHEN r.days_left IS NOT NULL THEN CASE WHEN r.days_left < 0 THEN ' (متأخرة ' || -r.days_left || ' يوم)' ELSE ' (باقي ' || r.days_left || ' يوم)' END END,
+              TRUNC(SYSDATE) + NVL(GREATEST(r.days_left, 0), 0));
+      END LOOP;
+      IF l_new > 0 AND l_mails IS NOT NULL AND NOONA_MAIL_PKG.enabled = 'Y' THEN
+        BEGIN
+          l_x := NOONA_MAIL_PKG.send(l_mails, 'تنبيهات صيانة الأسطول: ' || l_new || ' بند',
+                   NOONA_MAIL_PKG.wrap('تنبيهات صيانة الأسطول', '<ul>' || l_list || '</ul>',
+                                       NOONA_MAIL_PKG.url('NOONA_TRN', 'maintenance'), 'فتح صيانة الأسطول'), p_now => FALSE);
+        EXCEPTION WHEN OTHERS THEN NULL;                   -- لا يمنع البريد التنبيهات داخل النظام
+        END;
+      END IF;
+    END LOOP;
+    NOONA_CORE_PKG.end_system;
+    RETURN l_total;
+  EXCEPTION WHEN OTHERS THEN
+    NOONA_CORE_PKG.end_system;
+    RAISE;
+  END run_maint_alerts;
 
   FUNCTION maint_order_status(p_id IN NUMBER) RETURN VARCHAR2 IS
     l VARCHAR2(30);
@@ -1930,7 +2041,14 @@ CREATE OR REPLACE PACKAGE BODY NOONA_TRN_PKG AS
     l_t VARCHAR2(30);
   BEGIN
     guard('TRN_TRIP.VIEW');
-    l := '<div class="nn-trn-kpis">';
+    l_n := maint_due_count;
+    IF l_n > 0 THEN
+      l := '<div class="nn-hint" style="border-color:#d97706;background:#fff7ed"><span class="fa fa-bell"></span> <b>تنبيه صيانة:</b> '
+        || l_n || ' بند (قطع حان استبدالها أو صيانات دورية مستحقة). <a href="f?p=' || v('APP_ID') || ':34:' || v('APP_SESSION')
+        || '">افتح صيانة الأسطول</a></div>';
+      l_n := 0;
+    END IF;
+    l := l || '<div class="nn-trn-kpis">';
     FOR k IN (SELECT 'في الطريق' t, COUNT(*) v, 'fa-truck' i FROM trn_trip WHERE company_id = company AND status_code IN ('DISPATCHED', 'IN_TRANSIT', 'ARRIVED')
               UNION ALL SELECT 'مجدولة', COUNT(*), 'fa-calendar' FROM trn_trip WHERE company_id = company AND status_code = 'PLANNED'
               UNION ALL SELECT 'شحنات بانتظار رحلة', COUNT(*), 'fa-cubes' FROM trn_order WHERE company_id = company AND status_code = 'CONFIRMED'
