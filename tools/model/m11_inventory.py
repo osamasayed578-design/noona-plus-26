@@ -40,6 +40,8 @@ BASE_UOM_ID     ID   NN >INV_UOM | الوحدة الأساسية
 TRACKING_MODE   CODE NN D='NONE' IN:NONE,LOT,SERIAL,LOT_AND_SERIAL | التتبع
 TRACK_EXPIRY    YN   NN D='N'    | تتبع الصلاحية
 SHELF_LIFE_DAYS INT              | مدة الصلاحية
+SERVICE_LIFE_KM NUM              | عمر الاستبدال بالكيلومتر (قطع الغيار والزيوت والإطارات)
+SERVICE_LIFE_DAYS INT            | عمر الاستبدال بالأيام
 OWNERSHIP_SCOPE CODE NN D='TENANT_SHARED' IN:TENANT_SHARED,GROUP_SHARED,COMPANY_OWNED | نطاق الملكية
 OWNER_COMPANY_ID ID  >ORG_COMPANY | الشركة المالكة
 IS_SELLABLE     YN   NN D='Y'    | قابل للبيع

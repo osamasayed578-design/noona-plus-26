@@ -221,6 +221,37 @@ BEGIN
   NOONA_TRN_PKG.cancel_maint(l_o4, 'أجلت');
   ok('cancel returns issued oil', NOONA_INV_PKG.on_hand(l_oil, l_wh) = 130, NOONA_INV_PKG.on_hand(l_oil, l_wh));
 
+  -- ---------------------------------------------------------------- عمر الاستبدال والتقارير
+  NOONA_TRN_PKG.set_part_life(l_oil, 10000, 180);
+  SELECT odometer_km INTO l_n FROM trn_vehicle WHERE id = l_v;
+  l_o4 := NOONA_TRN_PKG.open_maint('{"vehicle":' || l_v || ',"workshop":"INTERNAL","warehouse":' || l_wh || ',"description":"تغيير زيت دوري"}');
+  l_x := NOONA_TRN_PKG.add_maint_line(l_o4, 'OIL', NULL, 30, NULL, l_oil);
+  l_r := NOONA_TRN_PKG.add_maint_line(l_o4, 'TIRE', 'بطارية 200 أمبير', 1, 900, NULL, NULL, 730);
+  SELECT life_km || '/' || life_days INTO l_s FROM trn_maint_line WHERE id = l_x;
+  ok('oil line takes item replacement life (10000 km / 180 days)', l_s = '10000/180', l_s);
+  NOONA_TRN_PKG.complete_maint(l_o4, '{"odometer":' || (l_n + 100) || ',"funding":"PAYABLE","vendor":' || l_sup || '}');
+  SELECT next_due_km || '/' || TO_CHAR(next_due_date, 'YYYY-MM-DD') INTO l_s FROM trn_maint_line WHERE id = l_x;
+  ok('next oil change from exit odometer and date', l_s = (l_n + 10100) || '/' || TO_CHAR(TRUNC(SYSDATE) + 180, 'YYYY-MM-DD'), l_s);
+  SELECT TO_CHAR(next_due_date, 'YYYY-MM-DD') INTO l_s FROM trn_maint_line WHERE id = l_r;
+  ok('battery replacement date by life days (730)', l_s = TO_CHAR(TRUNC(SYSDATE) + 730, 'YYYY-MM-DD'), l_s);
+  l_h := NOONA_TRN_PKG.maint_due_html;
+  ok('fresh oil not due yet', DBMS_LOB.INSTR(l_h, 'قطع حان استبدالها') = 0 OR DBMS_LOB.INSTR(l_h, 'زيت محرك ديزل 15W40 ' || l_sfx) = 0);
+  UPDATE trn_vehicle SET odometer_km = l_n + 9500 WHERE id = l_v;
+  l_h := NOONA_TRN_PKG.maint_due_html;
+  ok('oil due for replacement near its km life', DBMS_LOB.INSTR(l_h, 'زيت محرك ديزل 15W40 ' || l_sfx) > 0);
+  -- استبدال ثان: يظهر العمر الفعلي للقطعة السابقة
+  l_o4 := NOONA_TRN_PKG.open_maint('{"vehicle":' || l_v || ',"workshop":"INTERNAL","warehouse":' || l_wh || ',"description":"تغيير زيت"}');
+  l_x := NOONA_TRN_PKG.add_maint_line(l_o4, 'OIL', NULL, 30, NULL, l_oil);
+  NOONA_TRN_PKG.complete_maint(l_o4, '{}');
+  ok('replaced oil no longer due', DBMS_LOB.INSTR(NOONA_TRN_PKG.maint_due_html, 'زيت محرك ديزل 15W40 ' || l_sfx) = 0);
+  l_h := NOONA_TRN_PKG.parts_report_html(TRUNC(SYSDATE) - 1, TRUNC(SYSDATE), l_v);
+  ok('parts report lists vehicle spare parts with totals', DBMS_LOB.INSTR(l_h, 'زيت محرك ديزل') > 0 AND DBMS_LOB.INSTR(l_h, 'إجمالي ص ي ' || l_sfx) > 0);
+  ok('parts report shows actual life of previous part', DBMS_LOB.INSTR(l_h, '9400 كم') > 0 OR DBMS_LOB.INSTR(l_h, '9,400 كم') > 0);
+  l_h := NOONA_TRN_PKG.vehicle_perf_html(TRUNC(SYSDATE) - 1, TRUNC(SYSDATE), l_v);
+  ok('vehicle performance report', DBMS_LOB.INSTR(l_h, 'ص ي ' || l_sfx) > 0 AND DBMS_LOB.INSTR(l_h, 'التكلفة/كم') > 0);
+  l_h := NOONA_TRN_PKG.driver_perf_html(ADD_MONTHS(TRUNC(SYSDATE), -12), TRUNC(SYSDATE));
+  ok('driver performance report renders', l_h IS NOT NULL);
+
   l_h := NOONA_TRN_PKG.maint_cost_html(TRUNC(SYSDATE) - 1);
   ok('fleet maintenance cost report', DBMS_LOB.INSTR(l_h, 'ص ي ' || l_sfx) > 0 AND DBMS_LOB.INSTR(l_h, 'التكلفة/كم') > 0);
   ok('order page renders', DBMS_LOB.INSTR(NOONA_TRN_PKG.maint_order_html(l_o2), 'رأسمالية') > 0);

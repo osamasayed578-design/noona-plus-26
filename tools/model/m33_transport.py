@@ -225,5 +225,9 @@ QUANTITY        QTY  NN D=1      | الكمية
 UNIT_COST       AMT  NN D=0      | تكلفة الوحدة
 AMOUNT          AMT  NN D=0      | المبلغ
 FROM_STOCK      YN   NN D='N'    | مصروف من المخزون
+LIFE_KM         NUM              | عمر الاستبدال (كم)
+LIFE_DAYS       INT              | عمر الاستبدال (يوم)
+NEXT_DUE_KM     NUM              | الاستبدال التالي عند العداد
+NEXT_DUE_DATE   DATE             | الاستبدال التالي بتاريخ
 INV_TXN_ID      ID   >INV_TRANSACTION | حركة الصرف المخزني
 ''', chk=['QUANTITY > 0', 'UNIT_COST >= 0'], area='fleet')

@@ -90,7 +90,7 @@ CREATE OR REPLACE PACKAGE NOONA_TRN_PKG AUTHID DEFINER AS
   -- p_type: PART | LABOR | OIL | TIRE | OTHER ؛ الصنف المخزني يصرف فوراً من مستودع الأمر بالمتوسط المرجح
   --   (قيد: صيانة تحت التنفيذ 1116 / المخزون)، وحذف بنده يعيده للمخزون
   FUNCTION add_maint_line(p_order_id IN NUMBER, p_type IN VARCHAR2, p_desc IN VARCHAR2, p_qty IN NUMBER, p_unit_cost IN NUMBER,
-                          p_item_id IN NUMBER DEFAULT NULL) RETURN NUMBER;
+                          p_item_id IN NUMBER DEFAULT NULL, p_life_km IN NUMBER DEFAULT NULL, p_life_days IN NUMBER DEFAULT NULL) RETURN NUMBER;
   PROCEDURE remove_maint_line(p_line_id IN NUMBER);
   -- الإقفال: JSON date, odometer, downtimeHours, treatment (EXPENSE|CAPITALIZE)، lifeExtension (أشهر)، vat,
   --   funding (BANK|CASH|PAYABLE|ACCOUNT)، bankAccount, cashBox, account, vendor (للآجل في الورشة الداخلية)، reference
@@ -102,6 +102,15 @@ CREATE OR REPLACE PACKAGE NOONA_TRN_PKG AUTHID DEFINER AS
   FUNCTION maint_due_html RETURN CLOB;
   FUNCTION maint_due_count RETURN NUMBER;
   FUNCTION maint_order_status(p_id IN NUMBER) RETURN VARCHAR2;
+  -- عمر الاستبدال الافتراضي للصنف (زيت كل 10,000 كم، إطار كل 60,000 كم، بطارية كل 730 يوماً...)
+  PROCEDURE set_part_life(p_item_id IN NUMBER, p_km IN NUMBER, p_days IN NUMBER);
+  -- مصروفات قطع الغيار والزيوت والإطارات لكل عربة خلال فترة، والعمر الفعلي للقطعة بين استبدالين
+  FUNCTION parts_report_html(p_from IN DATE, p_to IN DATE, p_vehicle_id IN NUMBER DEFAULT NULL) RETURN CLOB;
+  -- أداء العربات: الرحلات والكيلومترات والوقود والأعطال وتكلفة الصيانة لكل كيلومتر
+  FUNCTION vehicle_perf_html(p_from IN DATE, p_to IN DATE, p_vehicle_id IN NUMBER DEFAULT NULL) RETURN CLOB;
+  -- أداء السائقين: الرحلات والكيلومترات والوقود والحوادث والأعطال، وتكلفة الصيانة المنسوبة (مباشرة من بلاغاته،
+  --   وموزعة من إصلاح الأعطال حسب كيلومتراته على كل عربة)
+  FUNCTION driver_perf_html(p_from IN DATE, p_to IN DATE) RETURN CLOB;
   FUNCTION maint_order_html(p_order_id IN NUMBER) RETURN CLOB;
   -- تكلفة الصيانة لكل عربة: العدد والتكلفة والتوقف والتكلفة لكل كيلومتر (من تاريخ)
   FUNCTION maint_cost_html(p_from IN DATE DEFAULT NULL) RETURN CLOB;
@@ -661,7 +670,7 @@ CREATE OR REPLACE PACKAGE BODY NOONA_TRN_PKG AS
   END recalc_maint;
 
   FUNCTION add_maint_line(p_order_id IN NUMBER, p_type IN VARCHAR2, p_desc IN VARCHAR2, p_qty IN NUMBER, p_unit_cost IN NUMBER,
-                          p_item_id IN NUMBER DEFAULT NULL) RETURN NUMBER IS
+                          p_item_id IN NUMBER DEFAULT NULL, p_life_km IN NUMBER DEFAULT NULL, p_life_days IN NUMBER DEFAULT NULL) RETURN NUMBER IS
     l_m  trn_maint_order%ROWTYPE;
     l_id NUMBER;
     l_d  VARCHAR2(500) := SUBSTR(TRIM(p_desc), 1, 500);
@@ -669,6 +678,8 @@ CREATE OR REPLACE PACKAGE BODY NOONA_TRN_PKG AS
     l_tx NUMBER;
     l_tot NUMBER;
     l_pl VARCHAR2(30);
+    l_lkm NUMBER := p_life_km;
+    l_ldy NUMBER := p_life_days;
   BEGIN
     guard('TRN_MAINT_ORDER.UPDATE');
     l_m := order_row(p_order_id);
@@ -680,9 +691,15 @@ CREATE OR REPLACE PACKAGE BODY NOONA_TRN_PKG AS
       SELECT MAX(name_ar) INTO l_d FROM inv_item WHERE id = p_item_id;
     END IF;
     NOONA_CORE_PKG.assert(l_d IS NOT NULL, 'NOONA-TRN-113', 'بيان البند مطلوب', 'Description required');
-    INSERT INTO trn_maint_line (company_id, order_id, line_type, description, item_id, quantity, unit_cost, amount)
+    NOONA_CORE_PKG.assert(NVL(l_lkm, 0) >= 0 AND NVL(l_ldy, 0) >= 0, 'NOONA-TRN-120', 'عمر الاستبدال لا يكون سالباً', 'Invalid life');
+    IF p_item_id IS NOT NULL THEN
+      SELECT NVL(l_lkm, MAX(service_life_km)), NVL(l_ldy, MAX(service_life_days)) INTO l_lkm, l_ldy FROM inv_item WHERE id = p_item_id;
+    END IF;
+    INSERT INTO trn_maint_line (company_id, order_id, line_type, description, item_id, quantity, unit_cost, amount,
+                                life_km, life_days, next_due_km, next_due_date)
     VALUES (company, p_order_id, NVL(p_type, 'PART'), l_d, p_item_id, NVL(p_qty, 1), NVL(p_unit_cost, 0),
-            ROUND(NVL(p_qty, 1) * NVL(p_unit_cost, 0), 2))
+            ROUND(NVL(p_qty, 1) * NVL(p_unit_cost, 0), 2), NULLIF(l_lkm, 0), NULLIF(l_ldy, 0),
+            CASE WHEN l_lkm > 0 THEN l_m.odometer_km + l_lkm END, CASE WHEN l_ldy > 0 THEN TRUNC(SYSDATE) + l_ldy END)
     RETURNING id INTO l_id;
     -- قطع الغيار والزيوت المخزنية: صرف من مستودع الورشة بتكلفة المتوسط المرجح
     IF p_item_id IS NOT NULL AND NOONA_INV_PKG.is_stocked(p_item_id) = 'Y' THEN
@@ -778,6 +795,10 @@ CREATE OR REPLACE PACKAGE BODY NOONA_TRN_PKG AS
                                 ROUND((CAST(l_at AS DATE) - CAST(opened_at AS DATE)) * 24, 1)),
            vat_amount = l_vat, treatment = l_tr, life_extension_months = l_ext, fa_maintenance_id = l_fam
      WHERE id = p_order_id;
+    -- موعد الاستبدال التالي لكل قطعة لها عمر: من عداد الخروج وتاريخه
+    UPDATE trn_maint_line SET next_due_km = CASE WHEN life_km > 0 THEN NVL(l_odo, l_m.odometer_km) + life_km END,
+                              next_due_date = CASE WHEN life_days > 0 THEN TRUNC(CAST(l_at AS DATE)) + life_days END
+     WHERE order_id = p_order_id;
     UPDATE trn_vehicle SET status_code = CASE WHEN l_m.prev_status = 'OUT_OF_SERVICE' THEN 'OUT_OF_SERVICE' ELSE 'AVAILABLE' END,
            odometer_km = GREATEST(odometer_km, NVL(l_odo, 0))
      WHERE id = l_m.vehicle_id;
@@ -802,6 +823,7 @@ CREATE OR REPLACE PACKAGE BODY NOONA_TRN_PKG AS
   -- آخر تنفيذ لكل (عربة، برنامج) ومقدار المتبقي بالكيلومترات والأيام
   FUNCTION maint_due_html RETURN CLOB IS
     l_h CLOB;
+    l_p CLOB;
   BEGIN
     FOR r IN (
       WITH x AS (
@@ -830,10 +852,173 @@ CREATE OR REPLACE PACKAGE BODY NOONA_TRN_PKG AS
             || '</td><td class="u-tE">' || fmt(r.estimated_cost) || '</td></tr>';
       END IF;
     END LOOP;
+    -- قطع لها عمر استبدال: آخر تركيب لكل (عربة، صنف) اقترب أو تجاوز موعده بالكيلومتر أو التاريخ
+    FOR r IN (
+      SELECT * FROM (
+        SELECT v.plate_no, v.odometer_km odo, ln.description, ln.next_due_km, ln.next_due_date, ln.life_km, o.completed_at, o.odometer_km done_km,
+               ROW_NUMBER() OVER (PARTITION BY o.vehicle_id, NVL(TO_CHAR(ln.item_id), ln.description) ORDER BY o.completed_at DESC, ln.id DESC) rn
+          FROM trn_maint_line ln JOIN trn_maint_order o ON o.id = ln.order_id JOIN trn_vehicle v ON v.id = o.vehicle_id
+         WHERE o.company_id = company AND o.status_code = 'COMPLETED' AND v.status_code <> 'SOLD'
+           AND (ln.next_due_km IS NOT NULL OR ln.next_due_date IS NOT NULL))
+       WHERE rn = 1
+         AND (odo >= next_due_km - NVL(life_km, 0) * 0.1 OR next_due_date <= TRUNC(SYSDATE) + 7)
+       ORDER BY plate_no) LOOP
+      l_p := l_p || '<tr><td><b>' || esc(r.plate_no) || '</b></td><td>' || esc(r.description) || '</td><td>'
+          || TO_CHAR(r.completed_at, 'YYYY-MM-DD') || ' عند ' || qf(r.done_km) || ' كم</td><td class="u-tE">' || qf(r.odo) || '</td><td>'
+          || CASE WHEN r.next_due_km IS NOT NULL THEN CASE WHEN r.odo >= r.next_due_km
+                    THEN '<span class="nn-badge is-danger">تجاوز ' || qf(r.odo - r.next_due_km) || ' كم</span>'
+                    ELSE 'عند ' || qf(r.next_due_km) || ' كم (باقي ' || qf(r.next_due_km - r.odo) || ')' END END
+          || CASE WHEN r.next_due_date IS NOT NULL THEN ' ' || CASE WHEN r.next_due_date < TRUNC(SYSDATE)
+                    THEN '<span class="nn-badge is-danger">انتهى عمرها ' || TO_CHAR(r.next_due_date, 'YYYY-MM-DD') || '</span>'
+                    ELSE 'بتاريخ ' || TO_CHAR(r.next_due_date, 'YYYY-MM-DD') END END || '</td></tr>';
+    END LOOP;
     RETURN CASE WHEN l_h IS NULL THEN '<p class="nn-hint">لا توجد صيانات دورية مستحقة الآن.</p>'
            ELSE '<table class="nn-table"><thead><tr><th>العربة</th><th>الخدمة</th><th>آخر تنفيذ</th><th>العداد الحالي</th><th>الاستحقاق</th>'
-             || '<th>الوضع</th><th>التكلفة التقديرية</th></tr></thead><tbody>' || l_h || '</tbody></table>' END;
+             || '<th>الوضع</th><th>التكلفة التقديرية</th></tr></thead><tbody>' || l_h || '</tbody></table>' END
+        || CASE WHEN l_p IS NOT NULL THEN '<h4>قطع حان استبدالها (حسب عمر القطعة)</h4><table class="nn-table"><thead><tr><th>العربة</th>'
+             || '<th>القطعة</th><th>آخر تركيب</th><th>العداد الحالي</th><th>الاستبدال</th></tr></thead><tbody>' || l_p || '</tbody></table>' END;
   END maint_due_html;
+
+  PROCEDURE set_part_life(p_item_id IN NUMBER, p_km IN NUMBER, p_days IN NUMBER) IS
+  BEGIN
+    guard('TRN_MAINT_PLAN.UPDATE');
+    NOONA_CORE_PKG.assert(NVL(p_km, 0) >= 0 AND NVL(p_days, 0) >= 0, 'NOONA-TRN-120', 'عمر الاستبدال لا يكون سالباً', 'Invalid life');
+    UPDATE inv_item SET service_life_km = NULLIF(p_km, 0), service_life_days = NULLIF(p_days, 0) WHERE id = p_item_id;
+    NOONA_CORE_PKG.assert(SQL%ROWCOUNT = 1, 'NOONA-TRN-121', 'الصنف غير موجود', 'Item not found');
+  END set_part_life;
+
+  FUNCTION parts_report_html(p_from IN DATE, p_to IN DATE, p_vehicle_id IN NUMBER DEFAULT NULL) RETURN CLOB IS
+    l_h   CLOB;
+    l_veh VARCHAR2(30) := '#';
+    l_vt  NUMBER := 0;
+    l_gt  NUMBER := 0;
+    l_f   DATE := NVL(p_from, TRUNC(SYSDATE, 'YYYY'));
+    l_t   DATE := NVL(p_to, TRUNC(SYSDATE));
+    PROCEDURE sub IS
+    BEGIN
+      IF l_veh <> '#' THEN
+        l_h := l_h || '<tr class="nn-subtotal"><td colspan="7"><b>إجمالي ' || esc(l_veh) || '</b></td><td class="u-tE"><b>' || fmt(l_vt)
+            || '</b></td><td colspan="2"></td></tr>';
+      END IF;
+    END sub;
+  BEGIN
+    FOR r IN (
+      SELECT x.* FROM (
+        SELECT v.plate_no, o.doc_no, CAST(o.completed_at AS DATE) done, o.odometer_km, ln.line_type, ln.description, ln.quantity,
+               ln.unit_cost, ln.amount, ln.from_stock, o.vehicle_id,
+               o.odometer_km - LAG(o.odometer_km) OVER (PARTITION BY o.vehicle_id, NVL(TO_CHAR(ln.item_id), ln.description)
+                                                       ORDER BY o.completed_at, ln.id) km_used,
+               TRUNC(CAST(o.completed_at AS DATE)) - TRUNC(CAST(LAG(o.completed_at) OVER (PARTITION BY o.vehicle_id,
+                     NVL(TO_CHAR(ln.item_id), ln.description) ORDER BY o.completed_at, ln.id) AS DATE)) days_used
+          FROM trn_maint_line ln JOIN trn_maint_order o ON o.id = ln.order_id JOIN trn_vehicle v ON v.id = o.vehicle_id
+         WHERE o.company_id = company AND o.status_code = 'COMPLETED' AND ln.line_type IN ('PART', 'OIL', 'TIRE')
+           AND (p_vehicle_id IS NULL OR o.vehicle_id = p_vehicle_id)) x
+       WHERE x.done BETWEEN l_f AND l_t + 1 - 1/86400
+       ORDER BY x.plate_no, x.done, x.doc_no) LOOP
+      IF r.plate_no <> l_veh THEN sub; l_veh := r.plate_no; l_vt := 0; END IF;
+      l_vt := l_vt + r.amount; l_gt := l_gt + r.amount;
+      l_h := l_h || '<tr><td>' || esc(r.plate_no) || '</td><td>' || TO_CHAR(r.done, 'YYYY-MM-DD') || '</td><td>' || esc(r.doc_no)
+          || '</td><td>' || esc(maint_type_label(r.line_type)) || '</td><td>' || esc(r.description)
+          || CASE WHEN r.from_stock = 'Y' THEN ' <span class="nn-badge is-info">مخزون</span>' END
+          || '</td><td class="u-tE">' || qf(r.quantity) || '</td><td class="u-tE">' || fmt(r.unit_cost) || '</td><td class="u-tE">'
+          || fmt(r.amount) || '</td><td class="u-tE">' || qf(r.odometer_km) || '</td><td>'
+          || CASE WHEN r.km_used IS NOT NULL THEN qf(r.km_used) || ' كم / ' || r.days_used || ' يوم' ELSE 'أول تركيب' END || '</td></tr>';
+    END LOOP;
+    sub;
+    RETURN CASE WHEN l_h IS NULL THEN '<p class="nn-hint">لا مصروفات قطع غيار في الفترة.</p>'
+           ELSE '<table class="nn-table"><thead><tr><th>العربة</th><th>التاريخ</th><th>الأمر</th><th>النوع</th><th>القطعة</th><th>الكمية</th>'
+             || '<th>التكلفة</th><th>المبلغ</th><th>العداد</th><th>عمر القطعة السابقة</th></tr></thead><tbody>' || l_h
+             || '<tr class="nn-total"><td colspan="7"><b>إجمالي قطع الغيار والزيوت والإطارات</b></td><td class="u-tE"><b>' || fmt(l_gt)
+             || '</b></td><td colspan="2"></td></tr></tbody></table>' END;
+  END parts_report_html;
+
+  FUNCTION vehicle_perf_html(p_from IN DATE, p_to IN DATE, p_vehicle_id IN NUMBER DEFAULT NULL) RETURN CLOB IS
+    l_h CLOB;
+    l_f DATE := NVL(p_from, TRUNC(SYSDATE, 'YYYY'));
+    l_t DATE := NVL(p_to, TRUNC(SYSDATE)) + 1;
+  BEGIN
+    FOR r IN (
+      SELECT v.plate_no,
+             (SELECT COUNT(*) FROM trn_trip t WHERE t.vehicle_id = v.id AND t.status_code = 'COMPLETED' AND t.actual_departure >= l_f AND t.actual_departure < l_t) trips,
+             (SELECT NVL(SUM(t.actual_distance_km), 0) FROM trn_trip t WHERE t.vehicle_id = v.id AND t.status_code = 'COMPLETED' AND t.actual_departure >= l_f AND t.actual_departure < l_t) km,
+             (SELECT NVL(SUM(t.fuel_liters), 0) FROM trn_trip t WHERE t.vehicle_id = v.id AND t.status_code = 'COMPLETED' AND t.actual_departure >= l_f AND t.actual_departure < l_t) fuel,
+             (SELECT COUNT(*) FROM trn_incident i WHERE i.vehicle_id = v.id AND i.incident_type IN ('BREAKDOWN', 'TIRE', 'ACCIDENT') AND i.reported_at >= l_f AND i.reported_at < l_t) faults,
+             COUNT(o.id) orders,
+             SUM(CASE WHEN o.maint_type IN ('CORRECTIVE', 'ACCIDENT', 'TIRES') THEN 1 ELSE 0 END) repairs,
+             NVL(SUM(o.parts_cost), 0) parts, NVL(SUM(o.labor_cost + o.other_cost), 0) labor, NVL(SUM(o.total_cost), 0) total,
+             NVL(SUM(o.downtime_hours), 0) down
+        FROM trn_vehicle v
+        LEFT JOIN trn_maint_order o ON o.vehicle_id = v.id AND o.status_code = 'COMPLETED' AND o.completed_at >= l_f AND o.completed_at < l_t
+       WHERE v.company_id = company AND (p_vehicle_id IS NULL OR v.id = p_vehicle_id) AND v.status_code <> 'SOLD'
+       GROUP BY v.id, v.plate_no
+       ORDER BY NVL(SUM(o.total_cost), 0) DESC, v.plate_no) LOOP
+      l_h := l_h || '<tr><td><b>' || esc(r.plate_no) || '</b></td><td class="u-tE">' || r.trips || '</td><td class="u-tE">' || qf(r.km)
+          || '</td><td class="u-tE">' || CASE WHEN r.km > 0 AND r.fuel > 0 THEN TO_CHAR(ROUND(r.fuel * 100 / r.km, 1), 'FM9990.0') ELSE '-' END
+          || '</td><td class="u-tE">' || r.faults || '</td><td class="u-tE">' || r.orders || ' (' || r.repairs || ' إصلاح)</td><td class="u-tE">'
+          || fmt(r.parts) || '</td><td class="u-tE">' || fmt(r.labor) || '</td><td class="u-tE"><b>' || fmt(r.total) || '</b></td><td class="u-tE">'
+          || CASE WHEN r.km > 0 THEN TO_CHAR(ROUND(r.total / r.km, 3), 'FM999990.000') ELSE '-' END || '</td><td class="u-tE">' || qf(r.down) || '</td></tr>';
+    END LOOP;
+    RETURN CASE WHEN l_h IS NULL THEN '<p class="nn-hint">لا عربات.</p>'
+           ELSE '<table class="nn-table"><thead><tr><th>العربة</th><th>الرحلات</th><th>الكيلومترات</th><th>لتر/100كم</th><th>الأعطال والحوادث</th>'
+             || '<th>أوامر الصيانة</th><th>قطع الغيار</th><th>العمالة والأخرى</th><th>تكلفة الصيانة</th><th>التكلفة/كم</th><th>التوقف (س)</th>'
+             || '</tr></thead><tbody>' || l_h || '</tbody></table>' END;
+  END vehicle_perf_html;
+
+  FUNCTION driver_perf_html(p_from IN DATE, p_to IN DATE) RETURN CLOB IS
+    l_h CLOB;
+    l_f DATE := NVL(p_from, TRUNC(SYSDATE, 'YYYY'));
+    l_t DATE := NVL(p_to, TRUNC(SYSDATE)) + 1;
+  BEGIN
+    FOR r IN (
+      WITH trips AS (
+        SELECT t.driver_id, t.vehicle_id, COUNT(*) n, NVL(SUM(t.actual_distance_km), 0) km, NVL(SUM(t.fuel_liters), 0) fuel
+          FROM trn_trip t
+         WHERE t.company_id = company AND t.status_code = 'COMPLETED' AND t.actual_departure >= l_f AND t.actual_departure < l_t
+         GROUP BY t.driver_id, t.vehicle_id),
+      vkm AS (SELECT vehicle_id, SUM(km) km FROM trips GROUP BY vehicle_id),
+      -- إصلاح الأعطال غير المرتبط ببلاغ سائق: يوزع على السائقين بنسبة كيلومتراتهم على العربة
+      rep AS (SELECT o.vehicle_id, SUM(o.total_cost) cost FROM trn_maint_order o
+               WHERE o.company_id = company AND o.status_code = 'COMPLETED' AND o.completed_at >= l_f AND o.completed_at < l_t
+                 AND o.maint_type IN ('CORRECTIVE', 'ACCIDENT', 'TIRES')
+                 AND (o.incident_id IS NULL OR EXISTS (SELECT 1 FROM trn_incident i WHERE i.id = o.incident_id AND i.driver_id IS NULL))
+               GROUP BY o.vehicle_id),
+      alloc AS (SELECT tr.driver_id, SUM(CASE WHEN vk.km > 0 THEN rp.cost * tr.km / vk.km ELSE 0 END) cost
+                  FROM trips tr JOIN vkm vk ON vk.vehicle_id = tr.vehicle_id JOIN rep rp ON rp.vehicle_id = tr.vehicle_id
+                 GROUP BY tr.driver_id),
+      direct AS (SELECT i.driver_id, SUM(o.total_cost) cost FROM trn_maint_order o JOIN trn_incident i ON i.id = o.incident_id
+                  WHERE o.company_id = company AND o.status_code = 'COMPLETED' AND o.completed_at >= l_f AND o.completed_at < l_t
+                    AND i.driver_id IS NOT NULL GROUP BY i.driver_id),
+      inc AS (SELECT i.driver_id, COUNT(*) n, SUM(CASE WHEN i.incident_type = 'ACCIDENT' THEN 1 ELSE 0 END) acc,
+                     SUM(CASE WHEN i.incident_type IN ('BREAKDOWN', 'TIRE') THEN 1 ELSE 0 END) brk
+                FROM trn_incident i WHERE i.company_id = company AND i.driver_id IS NOT NULL AND i.reported_at >= l_f AND i.reported_at < l_t
+               GROUP BY i.driver_id)
+      SELECT d.full_name, NVL(SUM(tr.n), 0) trips, NVL(SUM(tr.km), 0) km, NVL(SUM(tr.fuel), 0) fuel,
+             MAX(NVL(ic.n, 0)) incs, MAX(NVL(ic.acc, 0)) acc, MAX(NVL(ic.brk, 0)) brk,
+             MAX(NVL(dr.cost, 0)) direct_cost, MAX(NVL(al.cost, 0)) alloc_cost
+        FROM trn_driver d
+        LEFT JOIN trips tr ON tr.driver_id = d.id
+        LEFT JOIN inc ic ON ic.driver_id = d.id
+        LEFT JOIN direct dr ON dr.driver_id = d.id
+        LEFT JOIN alloc al ON al.driver_id = d.id
+       WHERE d.company_id = company
+       GROUP BY d.id, d.full_name
+      HAVING NVL(SUM(tr.n), 0) > 0 OR MAX(NVL(ic.n, 0)) > 0
+       ORDER BY MAX(NVL(dr.cost, 0)) + MAX(NVL(al.cost, 0)) DESC) LOOP
+      l_h := l_h || '<tr><td><b>' || esc(r.full_name) || '</b></td><td class="u-tE">' || r.trips || '</td><td class="u-tE">' || qf(r.km)
+          || '</td><td class="u-tE">' || CASE WHEN r.km > 0 AND r.fuel > 0 THEN TO_CHAR(ROUND(r.fuel * 100 / r.km, 1), 'FM9990.0') ELSE '-' END
+          || '</td><td class="u-tE">' || r.incs || '</td><td class="u-tE">' || r.acc || '</td><td class="u-tE">' || r.brk
+          || '</td><td class="u-tE">' || fmt(r.direct_cost) || '</td><td class="u-tE">' || fmt(r.alloc_cost) || '</td><td class="u-tE"><b>'
+          || fmt(r.direct_cost + r.alloc_cost) || '</b></td><td class="u-tE">'
+          || CASE WHEN r.km > 0 THEN TO_CHAR(ROUND((r.direct_cost + r.alloc_cost) / r.km, 3), 'FM999990.000') ELSE '-' END || '</td></tr>';
+    END LOOP;
+    RETURN CASE WHEN l_h IS NULL THEN '<p class="nn-hint">لا رحلات أو بلاغات للسائقين في الفترة.</p>'
+           ELSE '<table class="nn-table"><thead><tr><th>السائق</th><th>الرحلات</th><th>الكيلومترات</th><th>لتر/100كم</th><th>البلاغات</th>'
+             || '<th>حوادث</th><th>أعطال</th><th>صيانة من بلاغاته</th><th>إصلاحات موزعة بالكيلومتر</th><th>تكلفة الصيانة المنسوبة</th>'
+             || '<th>التكلفة/كم</th></tr></thead><tbody>' || l_h || '</tbody></table>'
+             || '<p class="nn-hint">المنسوب للسائق: تكلفة أوامر الصيانة المفتوحة من بلاغاته مباشرة، وإصلاحات الأعطال والحوادث والإطارات '
+             || 'غير المرتبطة ببلاغ سائق موزعة على السائقين بنسبة الكيلومترات التي قطعها كل منهم على العربة في الفترة. '
+             || 'الصيانة الدورية والعمرات لا تنسب للسائق.</p>' END;
+  END driver_perf_html;
 
   FUNCTION maint_order_status(p_id IN NUMBER) RETURN VARCHAR2 IS
     l VARCHAR2(30);
