@@ -155,9 +155,21 @@ def build(app, url):
     # حركات
     t = p.static('حركة على الأصل', 30, condition=IN_SVC,
                  text='<p class="nn-hint">الإضافة الرأسمالية ترفع التكلفة، والانخفاض يرفع المجمع (مصروف 5218)، وتغيير العمر والقيمة المتبقية '
-                      'يطبق على العمر المتبقي من الآن (مستقبلياً)، والنقل لا يولد قيداً ويحمل الإهلاك القادم على مركز التكلفة الجديد.</p>')
+                      'يطبق على العمر المتبقي من الآن (مستقبلياً)، والنقل لا يولد قيداً ويحمل الإهلاك القادم على مركز التكلفة الجديد. '
+                      '<b>الصيانة</b>: الإصلاح والدورية مصروف (5205)، والعمرة أو التجديد الذي يطيل العمر رأسمالية تضاف لتكلفة الأصل مع تمديد عمره. '
+                      'البيان في حقل «السبب / البيان».</p>')
     p.select('P61_ACTION', t, 10, 'الحركة', null_text=None, submit=True, lov_sql=(
-        'STATIC2:إضافة رأسمالية;ADD,انخفاض في القيمة;IMPAIR,تغيير العمر والقيمة المتبقية;LIFE,نقل (فرع/مركز تكلفة/عهدة/موقع);TRANSFER'))
+        'STATIC2:صيانة (مصروف أو رأسمالية);MAINT,تمديد العمر الإنتاجي;EXTEND,إضافة رأسمالية;ADD,انخفاض في القيمة;IMPAIR,'
+        'تغيير العمر والقيمة المتبقية;LIFE,نقل (فرع/مركز تكلفة/عهدة/موقع);TRANSFER'))
+    p.select('P61_MT_TYPE', t, 22, 'نوع الصيانة', null_text=None, lov_sql=(
+        'STATIC2:إصلاح عطل;CORRECTIVE,وقائية دورية;PREVENTIVE,عمرة / تجديد;OVERHAUL,فحص;INSPECTION,إصلاح حادث;ACCIDENT,تطوير وتحسين;UPGRADE'))
+    p.select('P61_MT_TREAT', t, 24, 'المعالجة', null_text=None, lov_sql=(
+        'STATIC2:مصروف صيانة (5205);EXPENSE,رأسمالية تضاف لتكلفة الأصل;CAPITALIZE'))
+    p.select('P61_MT_PLAN', t, 26, 'خطة الصيانة الدورية', lov_sql=(
+        "select service_name || ' · ' || to_char(next_due_date, 'YYYY-MM-DD') d, id r from fa_maint_plan "
+        "where asset_id = :P61_ID and status_code = 'ACTIVE' order by next_due_date"))
+    p.number('P61_MT_EXT', t, 28, 'تمديد العمر (شهر)')
+    p.select('P61_MT_VENDOR', t, 29, 'الورشة / المورد', lov_sql=PARTY_LOV)
     p.date('P61_DATE', t, 20, 'التاريخ')
     p.number('P61_AMOUNT', t, 30, 'المبلغ (للإضافة أو الانخفاض)')
     p.select('P61_AC_FUND', t, 40, 'تمويل الإضافة', null_text=None, lov_sql='STATIC2:تحويل بنكي;BANK,نقداً;CASH,آجل على مورد;PAYABLE,حساب محدد;ACCOUNT')
@@ -175,7 +187,7 @@ def build(app, url):
     p.text('P61_REASON', t, 140, 'السبب / البيان', maxlen=500)
     b_act = p.button(t, 10, 'APPLY', 'تنفيذ الحركة', hot=True)
     p.process(30, 'AFTER_SUBMIT', 'Apply', [
-        'declare l_id number; l_d date := to_date(:P61_DATE, \'YYYY-MM-DD\');',
+        'declare l_id number; l_doc clob; l_d date := to_date(:P61_DATE, \'YYYY-MM-DD\');',
         'begin',
         "    case nvl(:P61_ACTION, 'ADD')",
         "        when 'ADD' then l_id := noona_fa_pkg.add_cost(:P61_ID, :P61_AMOUNT, l_d, :P61_AC_FUND, :P61_AC_BANK, :P61_AC_BOX,",
@@ -183,9 +195,19 @@ def build(app, url):
         "        when 'IMPAIR' then l_id := noona_fa_pkg.impair(:P61_ID, :P61_AMOUNT, l_d, :P61_REASON);",
         "        when 'LIFE' then l_id := noona_fa_pkg.change_life(:P61_ID, :P61_NEW_LIFE, :P61_NEW_RES, l_d, :P61_REASON);",
         "        when 'TRANSFER' then l_id := noona_fa_pkg.transfer(:P61_ID, l_d, :P61_TR_BRANCH, :P61_TR_CC, :P61_TR_CUST, :P61_TR_LOC, :P61_REASON);",
+        "        when 'EXTEND' then l_id := noona_fa_pkg.extend_life(:P61_ID, to_number(:P61_MT_EXT), l_d, :P61_REASON);",
+        "        when 'MAINT' then",
+        "            select json_object('asset' value to_number(:P61_ID), 'date' value :P61_DATE, 'maint_type' value :P61_MT_TYPE,",
+        "                   'treatment' value :P61_MT_TREAT, 'description' value :P61_REASON, 'amount' value to_number(:P61_AMOUNT),",
+        "                   'vat' value to_number(:P61_AC_VAT), 'funding' value :P61_AC_FUND, 'bank_account' value to_number(:P61_AC_BANK),",
+        "                   'cash_box' value to_number(:P61_AC_BOX), 'party' value to_number(nvl(:P61_AC_PARTY, :P61_MT_VENDOR)),",
+        "                   'account' value to_number(:P61_AC_ACCOUNT), 'life_extension' value to_number(:P61_MT_EXT),",
+        "                   'plan' value to_number(:P61_MT_PLAN) absent on null returning clob) into l_doc from dual;",
+        "            l_id := noona_fa_pkg.record_maintenance(l_doc);",
         '    end case;',
         "    apex_application.g_print_success_message := 'تم تنفيذ الحركة وتحديث الأصل';",
         'end;'], when_button=b_act)
+    p.dynamic('الصيانة وتكلفتها', 35, 'return noona_fa_pkg.maintenance_html(:P61_ID);', condition=':P61_ID is not null')
     p.dynamic('جدول الإهلاك المتوقع', 40, 'return noona_fa_pkg.schedule_html(:P61_ID);',
               condition=f"{st} in ('IN_SERVICE', 'CAPITALIZED')")
     # يظهر الحقول المناسبة للحركة المختارة فقط
@@ -194,23 +216,71 @@ def build(app, url):
   function show(n, on){ var el = document.getElementById(n + '_CONTAINER'); if (el) el.style.display = on ? '' : 'none'; }
   function sync(){
     var a = $v('P61_ACTION') || 'ADD', f = $v('P61_AC_FUND') || 'BANK';
-    show('P61_AMOUNT', a === 'ADD' || a === 'IMPAIR');
-    ['P61_AC_FUND', 'P61_AC_VAT'].forEach(function(n){ show(n, a === 'ADD'); });
-    show('P61_AC_BANK', a === 'ADD' && f === 'BANK'); show('P61_AC_BOX', a === 'ADD' && f === 'CASH');
-    show('P61_AC_PARTY', a === 'ADD' && f === 'PAYABLE'); show('P61_AC_ACCOUNT', a === 'ADD' && f === 'ACCOUNT');
+    var pay = a === 'ADD' || a === 'MAINT', m = a === 'MAINT';
+    show('P61_AMOUNT', pay || a === 'IMPAIR');
+    ['P61_AC_FUND', 'P61_AC_VAT'].forEach(function(n){ show(n, pay); });
+    show('P61_AC_BANK', pay && f === 'BANK'); show('P61_AC_BOX', pay && f === 'CASH');
+    show('P61_AC_PARTY', pay && f === 'PAYABLE'); show('P61_AC_ACCOUNT', pay && f === 'ACCOUNT');
+    ['P61_MT_TYPE', 'P61_MT_TREAT', 'P61_MT_PLAN'].forEach(function(n){ show(n, m); });
+    show('P61_MT_VENDOR', m && f !== 'PAYABLE');
+    show('P61_MT_EXT', a === 'EXTEND' || (m && $v('P61_MT_TREAT') === 'CAPITALIZE'));
     ['P61_NEW_LIFE', 'P61_NEW_RES'].forEach(function(n){ show(n, a === 'LIFE'); });
     ['P61_TR_BRANCH', 'P61_TR_CC', 'P61_TR_CUST', 'P61_TR_LOC'].forEach(function(n){ show(n, a === 'TRANSFER'); });
     var g = $v('P61_FUNDING') || 'BANK';
     show('P61_BANK', g === 'BANK'); show('P61_BOX', g === 'CASH'); show('P61_PARTY', g === 'PAYABLE');
     show('P61_ACCOUNT', g === 'ACCOUNT'); show('P61_OPEN_ACC', g === 'OPENING' || g === 'ACCOUNT'); show('P61_VAT', g !== 'OPENING');
   }
-  ['P61_ACTION', 'P61_AC_FUND', 'P61_FUNDING'].forEach(function(n){ $('#' + n).off('change.nnfa').on('change.nnfa', sync); });
+  ['P61_ACTION', 'P61_AC_FUND', 'P61_FUNDING', 'P61_MT_TREAT'].forEach(function(n){ $('#' + n).off('change.nnfa').on('change.nnfa', sync); });
   sync();
 })();
 """)
     p.branch(10, url(61, 'P61_ID', '&P61_ID.') + '&success_msg=#SUCCESS_MSG#')
 
     # =============================================================== 63) الإهلاك
+    # 62) صيانة الأصول: الخطط الدورية والمستحق وسجل الصيانات
+    p = app.page(62, 'Asset Maintenance', 'ASSET-MAINTENANCE', 'صيانة الأصول', scheme=FA)
+    p.dynamic('الصيانات الدورية المستحقة خلال 30 يوماً', 5, 'return noona_fa_pkg.due_maintenance_html(30);')
+    pl = p.static('خطة صيانة دورية', 10, text=(
+        '<p class="nn-hint">لكل أصل خطط صيانة دورية بالأشهر (فحص، معايرة، تغيير زيت مولد...). تسجيل الصيانة من بطاقة الأصل مع اختيار '
+        'الخطة يحدّث موعدها التالي تلقائياً. صيانة عربات النقل تدار من «صيانة الأسطول» في نظام النقل وترحل هنا.</p>'))
+    p.select('P62_ASSET', pl, 10, 'الأصل', lov_sql=ACTIVE_ASSETS, required=True)
+    p.text('P62_SVC', pl, 20, 'الصيانة', maxlen=200, width=30)
+    p.number('P62_EVERY', pl, 30, 'كل (شهر)')
+    p.date('P62_NEXT', pl, 40, 'الموعد التالي')
+    p.number('P62_COST', pl, 50, 'التكلفة التقديرية')
+    b_pl = p.button(pl, 10, 'SAVE_PLAN', 'حفظ الخطة', hot=True)
+    p.process(10, 'AFTER_SUBMIT', 'Plan', [
+        'declare x number; begin',
+        "  x := noona_fa_pkg.save_maint_plan(null, to_number(:P62_ASSET), :P62_SVC, to_number(:P62_EVERY), to_date(:P62_NEXT, 'YYYY-MM-DD'), to_number(:P62_COST));",
+        '  :P62_SVC := null; :P62_EVERY := null; :P62_NEXT := null; :P62_COST := null;', 'end;'], when_button=b_pl, success='حفظت الخطة')
+    p.ir('خطط الصيانة الدورية', 20, [
+        "select p.id, a.asset_no, a.name_ar, p.service_name, p.every_months, p.last_done_date, p.next_due_date, p.estimated_cost, p.status_code",
+        "  from fa_maint_plan p join fa_asset a on a.id = p.asset_id where p.company_id = noona_fa_pkg.company order by p.next_due_date"],
+        [('ID', '#', {'hidden': True, 'type': 'NUMBER'}), ('ASSET_NO', 'رقم الأصل', {}), ('NAME_AR', 'الأصل', {}), ('SERVICE_NAME', 'الصيانة', {}),
+         ('EVERY_MONTHS', 'كل (شهر)', {'type': 'NUMBER'}), ('LAST_DONE_DATE', 'آخر تنفيذ', {'type': 'DATE', 'format': 'YYYY-MM-DD'}),
+         ('NEXT_DUE_DATE', 'الموعد التالي', {'type': 'DATE', 'format': 'YYYY-MM-DD'}), ('ESTIMATED_COST', 'التكلفة التقديرية', {'type': 'NUMBER'}),
+         ('STATUS_CODE', 'الحالة', {})])
+    p.ir('سجل صيانة الأصول', 30, [
+        "select m.id, m.doc_no, m.doc_date, a.asset_no, nvl(a.name_ar, 'بدون أصل (عربة مستأجرة)') asset_name,",
+        "       noona_fa_pkg.maint_type_label(m.maint_type) maint_type, decode(m.treatment, 'CAPITALIZE', 'رأسمالية', 'مصروف') treatment,",
+        "       m.description, pt.display_name_ar vendor, m.amount, m.vat_amount, m.life_extension_months,",
+        "       decode(m.source_module, 'TRN', 'صيانة الأسطول', 'الأصول') source_name, decode(m.status_code, 'REVERSED', 'معكوسة', 'مرحلة') status_name",
+        "  from fa_maintenance m left join fa_asset a on a.id = m.asset_id left join pty_party pt on pt.id = m.vendor_party_id",
+        " where m.company_id = noona_fa_pkg.company order by m.id desc"],
+        [('ID', '#', {'hidden': True, 'type': 'NUMBER'}), ('DOC_NO', 'الرقم', {}), ('DOC_DATE', 'التاريخ', {'type': 'DATE', 'format': 'YYYY-MM-DD'}),
+         ('ASSET_NO', 'رقم الأصل', {}), ('ASSET_NAME', 'الأصل', {}), ('MAINT_TYPE', 'النوع', {}), ('TREATMENT', 'المعالجة', {}),
+         ('DESCRIPTION', 'الوصف', {}), ('VENDOR', 'الورشة', {}), ('AMOUNT', 'المبلغ', {'type': 'NUMBER', 'fmt': '999G999G990D00'}),
+         ('VAT_AMOUNT', 'الضريبة', {'type': 'NUMBER'}), ('LIFE_EXTENSION_MONTHS', 'تمديد العمر', {'type': 'NUMBER'}),
+         ('SOURCE_NAME', 'المصدر', {}), ('STATUS_NAME', 'الحالة', {})])
+    rv = p.static('عكس صيانة مصروف', 40)
+    p.select('P62_MAINT', rv, 10, 'الصيانة', lov_sql=(
+        "select doc_no || ' · ' || substr(description, 1, 60) || ' · ' || amount d, id r from fa_maintenance "
+        "where company_id = noona_fa_pkg.company and status_code = 'POSTED' and treatment = 'EXPENSE' order by id desc"))
+    p.text('P62_REASON', rv, 20, 'سبب العكس', maxlen=400, width=30)
+    b_rv = p.button(rv, 10, 'REVERSE', 'عكس القيد')
+    p.process(20, 'AFTER_SUBMIT', 'Reverse', 'declare x number; begin x := noona_fa_pkg.reverse_maintenance(to_number(:P62_MAINT), :P62_REASON); :P62_MAINT := null; :P62_REASON := null; end;',
+              when_button=b_rv, success='عكس قيد الصيانة')
+
     p = app.page(63, 'Depreciation', 'DEPRECIATION', 'إهلاك الأصول', scheme=FA)
     f = p.static('تشغيل الإهلاك الشهري', 5, condition=READY,
                  text='<p class="nn-hint">يحسب إهلاك كل الأصول في الخدمة حتى نهاية الفترة (مع لحاق الأشهر الفائتة) ويرحل قيداً واحداً: '
@@ -417,6 +487,7 @@ def build(app, url):
     app.nav_item('سجل الأصول', 60, 'fa-cubes', 1, parent=fa, scheme=FA)
     app.nav_item('أصل جديد', url(61, clear='RP,61'), 'fa-plus', 2, parent=fa, scheme=FA)
     app.nav_item('إهلاك الأصول', 63, 'fa-line-chart', 3, parent=fa, scheme=FA)
+    app.nav_item('صيانة الأصول', 62, 'fa-wrench', 3, parent=fa, scheme=FA)
     app.nav_item('بيع وتخريد الأصول', url(65, clear='RP,65'), 'fa-recycle', 4, parent=fa, scheme=FA)
     app.nav_item('تقارير الأصول', 66, 'fa-bar-chart', 5, parent=fa, scheme=FA)
     app.nav_item('فئات الأصول', 67, 'fa-tags', 6, parent=fa, scheme=FA)

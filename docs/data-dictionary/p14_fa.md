@@ -19,6 +19,8 @@
 | [`FA_DISPOSAL`](#fa_disposal) | استبعاد الأصول | Asset Disposals | C | INTERNAL |
 | [`FA_COUNT`](#fa_count) | جرد الأصول | Asset Physical Counts | C | INTERNAL |
 | [`FA_COUNT_LINE`](#fa_count_line) | أسطر جرد الأصول | Asset Count Lines | C | INTERNAL |
+| [`FA_MAINT_PLAN`](#fa_maint_plan) | خطط الصيانة الدورية للأصول | Asset Preventive Maintenance Plans | C | INTERNAL |
+| [`FA_MAINTENANCE`](#fa_maintenance) | صيانة الأصول | Asset Maintenance | C | INTERNAL |
 
 ## FA_BOOK
 
@@ -185,14 +187,14 @@
 | نطاق الملكية | `C` — مملوك للشركة Company-Owned |
 | الحساسية | INTERNAL |
 | النمط | قابل للتعديل وفق دورة الحياة |
-| مفاتيح فريدة | UK1: (TENANT_ID, COMPANY_ID, DOC_NO) |
+| مفاتيح فريدة | UK2: (TENANT_ID, COMPANY_ID, DOC_NO) |
 
 | # | العمود | النوع المنطقي | Oracle Type | إلزامي | افتراضي | مفاتيح | القيم المقبولة | المصدر | PII | الوصف |
 |---:|---|---|---|:---:|---|---|---|---|:---:|---|
 | 1 | `ID` | معرف | `NUMBER(19)` | ✔ |  | PK |  | النظام/الحزمة |  | المفتاح الداخلي الثابت (Identity) - لا يعاد استخدامه |
-| 2 | `TENANT_ID` | معرف | `NUMBER(19)` | ✔ |  | FK→PLT_TENANT UK1 |  | Security Context |  | المؤسسة المالكة؛ يملأ من Security Context الموثوق لا من مدخلات المستخدم |
-| 3 | `COMPANY_ID` | معرف | `NUMBER(19)` | ✔ |  | FK→ORG_COMPANY UK1 |  | Security Context |  | الشركة (الكيان القانوني) المالكة للسجل |
-| 4 | `DOC_NO` | نص | `VARCHAR2(50 CHAR)` | ✔ |  | UK1 |  | النظام/الحزمة |  | رقم المستند من تسلسل REF_DOC_SEQUENCE (فريد ضمن الشركة) |
+| 2 | `TENANT_ID` | معرف | `NUMBER(19)` | ✔ |  | FK→PLT_TENANT UK2 |  | Security Context |  | المؤسسة المالكة؛ يملأ من Security Context الموثوق لا من مدخلات المستخدم |
+| 3 | `COMPANY_ID` | معرف | `NUMBER(19)` | ✔ |  | FK→ORG_COMPANY UK2 |  | Security Context |  | الشركة (الكيان القانوني) المالكة للسجل |
+| 4 | `DOC_NO` | نص | `VARCHAR2(50 CHAR)` | ✔ |  | UK2 |  | النظام/الحزمة |  | رقم المستند من تسلسل REF_DOC_SEQUENCE (فريد ضمن الشركة) |
 | 5 | `DOC_DATE` | تاريخ | `DATE` | ✔ | TRUNC(SYSDATE) |  |  | إدخال المستخدم |  | تاريخ المستند (تاريخ الأعمال) |
 | 6 | `ASSET_ID` | معرف | `NUMBER(19)` | ✔ |  | FK→FA_ASSET |  | إدخال المستخدم |  | الأصل |
 | 7 | `BOOK_ID` | معرف | `NUMBER(19)` | ✔ |  | FK→FA_BOOK |  | إدخال المستخدم |  | الدفتر |
@@ -407,4 +409,86 @@
 | 12 | `CREATED_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` | ✔ | SYSTIMESTAMP |  |  | Trigger |  | وقت الإنشاء |
 | 13 | `UPDATED_BY` | اسم مستخدم | `VARCHAR2(128 CHAR)` |  |  |  |  | Trigger |  | آخر من عدل السجل |
 | 14 | `UPDATED_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` |  |  |  |  | Trigger |  | وقت آخر تعديل |
+
+## FA_MAINT_PLAN
+
+| البند | القيمة |
+|---|---|
+| الاسم العربي | خطط الصيانة الدورية للأصول |
+| English | Asset Preventive Maintenance Plans |
+| الحزمة المالكة | 14 — `NOONA_ASSETS_PKG` |
+| نطاق الملكية | `C` — مملوك للشركة Company-Owned |
+| الحساسية | INTERNAL |
+| النمط | قابل للتعديل وفق دورة الحياة |
+| قيود أعمال | EVERY_MONTHS > 0 |
+
+| # | العمود | النوع المنطقي | Oracle Type | إلزامي | افتراضي | مفاتيح | القيم المقبولة | المصدر | PII | الوصف |
+|---:|---|---|---|:---:|---|---|---|---|:---:|---|
+| 1 | `ID` | معرف | `NUMBER(19)` | ✔ |  | PK |  | النظام/الحزمة |  | المفتاح الداخلي الثابت (Identity) - لا يعاد استخدامه |
+| 2 | `TENANT_ID` | معرف | `NUMBER(19)` | ✔ |  | FK→PLT_TENANT |  | Security Context |  | المؤسسة المالكة؛ يملأ من Security Context الموثوق لا من مدخلات المستخدم |
+| 3 | `COMPANY_ID` | معرف | `NUMBER(19)` | ✔ |  | FK→ORG_COMPANY |  | Security Context |  | الشركة (الكيان القانوني) المالكة للسجل |
+| 4 | `ASSET_ID` | معرف | `NUMBER(19)` | ✔ |  | FK→FA_ASSET |  | إدخال المستخدم |  | الأصل |
+| 5 | `SERVICE_NAME` | نص | `VARCHAR2(200 CHAR)` | ✔ |  |  |  | إدخال المستخدم |  | الصيانة (فحص، تغيير زيت، معايرة...) |
+| 6 | `EVERY_MONTHS` | عدد صحيح | `NUMBER(10)` | ✔ |  |  |  | إدخال المستخدم |  | التكرار بالأشهر |
+| 7 | `LAST_DONE_DATE` | تاريخ | `DATE` |  |  |  |  | إدخال المستخدم |  | آخر تنفيذ |
+| 8 | `NEXT_DUE_DATE` | تاريخ | `DATE` | ✔ |  |  |  | إدخال المستخدم |  | الاستحقاق التالي |
+| 9 | `ESTIMATED_COST` | مبلغ | `NUMBER(24,6)` |  |  |  |  | إدخال المستخدم |  | التكلفة التقديرية |
+| 10 | `STATUS_CODE` | رمز | `VARCHAR2(30 CHAR)` | ✔ | 'ACTIVE' |  | ACTIVE, PAUSED, CLOSED | النظام/الحزمة |  | الحالة ضمن دورة الحياة المعتمدة |
+| 11 | `NOTES` | نص | `VARCHAR2(4000 CHAR)` |  |  |  |  | إدخال المستخدم |  | ملاحظات |
+| 12 | `ROW_VERSION` | عدد صحيح | `NUMBER(10)` | ✔ | 1 |  |  | Trigger |  | رقم الإصدار للتحكم في التزامن المتفائل |
+| 13 | `CREATED_BY` | اسم مستخدم | `VARCHAR2(128 CHAR)` | ✔ |  |  |  | Trigger |  | منشئ السجل |
+| 14 | `CREATED_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` | ✔ | SYSTIMESTAMP |  |  | Trigger |  | وقت الإنشاء |
+| 15 | `UPDATED_BY` | اسم مستخدم | `VARCHAR2(128 CHAR)` |  |  |  |  | Trigger |  | آخر من عدل السجل |
+| 16 | `UPDATED_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` |  |  |  |  | Trigger |  | وقت آخر تعديل |
+
+## FA_MAINTENANCE
+
+| البند | القيمة |
+|---|---|
+| الاسم العربي | صيانة الأصول |
+| English | Asset Maintenance |
+| الحزمة المالكة | 14 — `NOONA_ASSETS_PKG` |
+| نطاق الملكية | `C` — مملوك للشركة Company-Owned |
+| الحساسية | INTERNAL |
+| النمط | قابل للتعديل وفق دورة الحياة |
+| مفاتيح فريدة | UK2: (TENANT_ID, COMPANY_ID, DOC_NO) |
+| قيود أعمال | AMOUNT > 0<br>VAT_AMOUNT >= 0<br>LIFE_EXTENSION_MONTHS >= 0 |
+
+| # | العمود | النوع المنطقي | Oracle Type | إلزامي | افتراضي | مفاتيح | القيم المقبولة | المصدر | PII | الوصف |
+|---:|---|---|---|:---:|---|---|---|---|:---:|---|
+| 1 | `ID` | معرف | `NUMBER(19)` | ✔ |  | PK |  | النظام/الحزمة |  | المفتاح الداخلي الثابت (Identity) - لا يعاد استخدامه |
+| 2 | `TENANT_ID` | معرف | `NUMBER(19)` | ✔ |  | FK→PLT_TENANT UK2 |  | Security Context |  | المؤسسة المالكة؛ يملأ من Security Context الموثوق لا من مدخلات المستخدم |
+| 3 | `COMPANY_ID` | معرف | `NUMBER(19)` | ✔ |  | FK→ORG_COMPANY UK2 |  | Security Context |  | الشركة (الكيان القانوني) المالكة للسجل |
+| 4 | `BRANCH_ID` | معرف | `NUMBER(19)` |  |  | FK→ORG_BRANCH |  | إدخال المستخدم |  | الفرع |
+| 5 | `DOC_NO` | نص | `VARCHAR2(50 CHAR)` | ✔ |  | UK2 |  | النظام/الحزمة |  | رقم المستند من تسلسل REF_DOC_SEQUENCE (فريد ضمن الشركة) |
+| 6 | `DOC_DATE` | تاريخ | `DATE` | ✔ | TRUNC(SYSDATE) |  |  | إدخال المستخدم |  | تاريخ المستند (تاريخ الأعمال) |
+| 7 | `ASSET_ID` | معرف | `NUMBER(19)` |  |  | FK→FA_ASSET |  | إدخال المستخدم |  | الأصل (فارغ لعربة مستأجرة أو أصل غير مسجل) |
+| 8 | `PLAN_ID` | معرف | `NUMBER(19)` |  |  | FK→FA_MAINT_PLAN |  | إدخال المستخدم |  | خطة الصيانة الدورية |
+| 9 | `MAINT_TYPE` | رمز | `VARCHAR2(30 CHAR)` | ✔ | 'CORRECTIVE' |  | PREVENTIVE, CORRECTIVE, OVERHAUL, INSPECTION, ACCIDENT, UPGRADE | إدخال المستخدم |  | النوع |
+| 10 | `TREATMENT` | رمز | `VARCHAR2(30 CHAR)` | ✔ | 'EXPENSE' |  | EXPENSE, CAPITALIZE | إدخال المستخدم |  | المعالجة (مصروف أو إضافة رأسمالية) |
+| 11 | `DESCRIPTION` | نص | `VARCHAR2(1000 CHAR)` | ✔ |  |  |  | إدخال المستخدم |  | الوصف |
+| 12 | `VENDOR_PARTY_ID` | معرف | `NUMBER(19)` |  |  | FK→PTY_PARTY |  | إدخال المستخدم |  | الورشة / المورد |
+| 13 | `AMOUNT` | مبلغ | `NUMBER(24,6)` | ✔ |  |  |  | إدخال المستخدم |  | المبلغ دون الضريبة |
+| 14 | `VAT_AMOUNT` | مبلغ | `NUMBER(24,6)` | ✔ | 0 |  |  | إدخال المستخدم |  | ضريبة المدخلات |
+| 15 | `FUNDING` | رمز | `VARCHAR2(30 CHAR)` | ✔ | 'BANK' |  | BANK, CASH, PAYABLE, ACCOUNT | إدخال المستخدم |  | السداد |
+| 16 | `BANK_ACCOUNT_ID` | معرف | `NUMBER(19)` |  |  | FK→CSH_BANK_ACCOUNT |  | إدخال المستخدم |  | الحساب البنكي |
+| 17 | `CASH_BOX_ID` | معرف | `NUMBER(19)` |  |  | FK→CSH_CASH_BOX |  | إدخال المستخدم |  | الصندوق |
+| 18 | `ACCOUNT_ID` | معرف | `NUMBER(19)` |  |  | FK→GL_ACCOUNT |  | إدخال المستخدم |  | الحساب المقابل |
+| 19 | `EXPENSE_ACCOUNT_ID` | معرف | `NUMBER(19)` |  |  | FK→GL_ACCOUNT |  | إدخال المستخدم |  | حساب المصروف (افتراضياً 5205 الصيانة والإصلاح) |
+| 20 | `COST_CENTER_ID` | معرف | `NUMBER(19)` |  |  | FK→GL_COST_CENTER |  | إدخال المستخدم |  | مركز التكلفة |
+| 21 | `LIFE_EXTENSION_MONTHS` | عدد صحيح | `NUMBER(10)` | ✔ | 0 |  |  | إدخال المستخدم |  | تمديد العمر الإنتاجي (شهر) |
+| 22 | `FA_TRANSACTION_ID` | معرف | `NUMBER(19)` |  |  | FK→FA_TRANSACTION |  | إدخال المستخدم |  | حركة الإضافة الرأسمالية |
+| 23 | `SOURCE_MODULE` | رمز | `VARCHAR2(30 CHAR)` | ✔ | 'FA' |  | FA, TRN | إدخال المستخدم |  | المصدر |
+| 24 | `SOURCE_ID` | معرف | `NUMBER(19)` |  |  |  |  | إدخال المستخدم |  | رقم المستند في المصدر (أمر صيانة العربة) |
+| 25 | `REFERENCE_NO` | نص | `VARCHAR2(100 CHAR)` |  |  |  |  | إدخال المستخدم |  | المرجع (فاتورة الورشة) |
+| 26 | `STATUS_CODE` | رمز | `VARCHAR2(30 CHAR)` | ✔ | 'POSTED' |  | POSTED, REVERSED | النظام/الحزمة |  | الحالة ضمن دورة الحياة المعتمدة |
+| 27 | `ACCOUNTING_EVENT_ID` | معرف | `NUMBER(19)` |  |  | FK→ACE_ACCOUNTING_EVENT |  | النظام/الحزمة |  | الحدث المحاسبي المولد |
+| 28 | `POSTED_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` |  |  |  |  | النظام/الحزمة |  | وقت الترحيل؛ يملؤه محرك الترحيل فقط |
+| 29 | `POSTED_BY` | اسم مستخدم | `VARCHAR2(128 CHAR)` |  |  |  |  | النظام/الحزمة |  | منفذ الترحيل |
+| 30 | `NOTES` | نص | `VARCHAR2(4000 CHAR)` |  |  |  |  | إدخال المستخدم |  | ملاحظات |
+| 31 | `ROW_VERSION` | عدد صحيح | `NUMBER(10)` | ✔ | 1 |  |  | Trigger |  | رقم الإصدار للتحكم في التزامن المتفائل |
+| 32 | `CREATED_BY` | اسم مستخدم | `VARCHAR2(128 CHAR)` | ✔ |  |  |  | Trigger |  | منشئ السجل |
+| 33 | `CREATED_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` | ✔ | SYSTIMESTAMP |  |  | Trigger |  | وقت الإنشاء |
+| 34 | `UPDATED_BY` | اسم مستخدم | `VARCHAR2(128 CHAR)` |  |  |  |  | Trigger |  | آخر من عدل السجل |
+| 35 | `UPDATED_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` |  |  |  |  | Trigger |  | وقت آخر تعديل |
 

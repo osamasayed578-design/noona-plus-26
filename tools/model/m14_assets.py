@@ -136,3 +136,38 @@ FOUND_STATUS    CODE NN IN:FOUND,NOT_FOUND,FOUND_ELSEWHERE,UNREGISTERED,DAMAGED,
 OBSERVED_LOCATION V500           | الموقع الفعلي
 NOTES           V1000            | ملاحظات
 ''', area='count')
+
+# ---------------------------------------------------------------- صيانة الأصول وتمديد العمر
+table('FA_MAINT_PLAN', 'خطط الصيانة الدورية للأصول', 'Asset Preventive Maintenance Plans', scope='C', mix='notes status',
+      status='ACTIVE PAUSED CLOSED', cols='''
+ASSET_ID        ID   NN >FA_ASSET | الأصل
+SERVICE_NAME    V200 NN          | الصيانة (فحص، تغيير زيت، معايرة...)
+EVERY_MONTHS    INT  NN          | التكرار بالأشهر
+LAST_DONE_DATE  DATE             | آخر تنفيذ
+NEXT_DUE_DATE   DATE NN          | الاستحقاق التالي
+ESTIMATED_COST  AMT              | التكلفة التقديرية
+''', chk=['EVERY_MONTHS > 0'], ix=[('TENANT_ID', 'COMPANY_ID', 'NEXT_DUE_DATE')], area='transaction')
+
+table('FA_MAINTENANCE', 'صيانة الأصول', 'Asset Maintenance', scope='C', mix='doc branch posted status notes',
+      status='POSTED REVERSED', cols='''
+ASSET_ID        ID   >FA_ASSET   | الأصل (فارغ لعربة مستأجرة أو أصل غير مسجل)
+PLAN_ID         ID   >FA_MAINT_PLAN | خطة الصيانة الدورية
+MAINT_TYPE      CODE NN D='CORRECTIVE' IN:PREVENTIVE,CORRECTIVE,OVERHAUL,INSPECTION,ACCIDENT,UPGRADE | النوع
+TREATMENT       CODE NN D='EXPENSE' IN:EXPENSE,CAPITALIZE | المعالجة (مصروف أو إضافة رأسمالية)
+DESCRIPTION     V1000 NN         | الوصف
+VENDOR_PARTY_ID ID   >PTY_PARTY  | الورشة / المورد
+AMOUNT          AMT  NN          | المبلغ دون الضريبة
+VAT_AMOUNT      AMT  NN D=0      | ضريبة المدخلات
+FUNDING         CODE NN D='BANK' IN:BANK,CASH,PAYABLE,ACCOUNT | السداد
+BANK_ACCOUNT_ID ID   >CSH_BANK_ACCOUNT | الحساب البنكي
+CASH_BOX_ID     ID   >CSH_CASH_BOX | الصندوق
+ACCOUNT_ID      ID   >GL_ACCOUNT | الحساب المقابل
+EXPENSE_ACCOUNT_ID ID >GL_ACCOUNT | حساب المصروف (افتراضياً 5205 الصيانة والإصلاح)
+COST_CENTER_ID  ID   >GL_COST_CENTER | مركز التكلفة
+LIFE_EXTENSION_MONTHS INT NN D=0 | تمديد العمر الإنتاجي (شهر)
+FA_TRANSACTION_ID ID >FA_TRANSACTION | حركة الإضافة الرأسمالية
+SOURCE_MODULE   CODE NN D='FA' IN:FA,TRN | المصدر
+SOURCE_ID       ID               | رقم المستند في المصدر (أمر صيانة العربة)
+REFERENCE_NO    V100             | المرجع (فاتورة الورشة)
+''', chk=['AMOUNT > 0', 'VAT_AMOUNT >= 0', 'LIFE_EXTENSION_MONTHS >= 0'],
+      ix=[('TENANT_ID', 'ASSET_ID'), ('TENANT_ID', 'COMPANY_ID', 'DOC_DATE')], area='transaction')

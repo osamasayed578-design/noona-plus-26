@@ -20,6 +20,9 @@
 | [`TRN_TRIP_STOP`](#trn_trip_stop) | نقاط التوقف | Trip Stops | C | INTERNAL |
 | [`TRN_TRIP_EXPENSE`](#trn_trip_expense) | مصروفات الرحلة | Trip Expenses | C | INTERNAL |
 | [`TRN_INCIDENT`](#trn_incident) | الأعطال والبلاغات | Road Incidents & Reports | C | INTERNAL |
+| [`TRN_MAINT_PLAN`](#trn_maint_plan) | برامج الصيانة الدورية للأسطول | Fleet Service Programs | C | INTERNAL |
+| [`TRN_MAINT_ORDER`](#trn_maint_order) | أوامر صيانة العربات | Vehicle Maintenance Orders | C | INTERNAL |
+| [`TRN_MAINT_LINE`](#trn_maint_line) | بنود أمر الصيانة | Maintenance Order Lines | C | INTERNAL |
 
 ## TRN_LOCATION
 
@@ -442,15 +445,15 @@
 | نطاق الملكية | `C` — مملوك للشركة Company-Owned |
 | الحساسية | INTERNAL |
 | النمط | قابل للتعديل وفق دورة الحياة |
-| مفاتيح فريدة | UK1: (TENANT_ID, COMPANY_ID, DOC_NO)<br>UK2: (PUBLIC_ID) |
+| مفاتيح فريدة | UK2: (TENANT_ID, COMPANY_ID, DOC_NO)<br>UK3: (PUBLIC_ID) |
 
 | # | العمود | النوع المنطقي | Oracle Type | إلزامي | افتراضي | مفاتيح | القيم المقبولة | المصدر | PII | الوصف |
 |---:|---|---|---|:---:|---|---|---|---|:---:|---|
 | 1 | `ID` | معرف | `NUMBER(19)` | ✔ |  | PK |  | النظام/الحزمة |  | المفتاح الداخلي الثابت (Identity) - لا يعاد استخدامه |
-| 2 | `PUBLIC_ID` | GUID | `RAW(16)` | ✔ | SYS_GUID() | UK2 |  | النظام/الحزمة |  | معرف عام عشوائي للروابط الخارجية وواجهات API بدل المفتاح الداخلي |
-| 3 | `TENANT_ID` | معرف | `NUMBER(19)` | ✔ |  | FK→PLT_TENANT UK1 |  | Security Context |  | المؤسسة المالكة؛ يملأ من Security Context الموثوق لا من مدخلات المستخدم |
-| 4 | `COMPANY_ID` | معرف | `NUMBER(19)` | ✔ |  | FK→ORG_COMPANY UK1 |  | Security Context |  | الشركة (الكيان القانوني) المالكة للسجل |
-| 5 | `DOC_NO` | نص | `VARCHAR2(50 CHAR)` | ✔ |  | UK1 |  | النظام/الحزمة |  | رقم المستند من تسلسل REF_DOC_SEQUENCE (فريد ضمن الشركة) |
+| 2 | `PUBLIC_ID` | GUID | `RAW(16)` | ✔ | SYS_GUID() | UK3 |  | النظام/الحزمة |  | معرف عام عشوائي للروابط الخارجية وواجهات API بدل المفتاح الداخلي |
+| 3 | `TENANT_ID` | معرف | `NUMBER(19)` | ✔ |  | FK→PLT_TENANT UK2 |  | Security Context |  | المؤسسة المالكة؛ يملأ من Security Context الموثوق لا من مدخلات المستخدم |
+| 4 | `COMPANY_ID` | معرف | `NUMBER(19)` | ✔ |  | FK→ORG_COMPANY UK2 |  | Security Context |  | الشركة (الكيان القانوني) المالكة للسجل |
+| 5 | `DOC_NO` | نص | `VARCHAR2(50 CHAR)` | ✔ |  | UK2 |  | النظام/الحزمة |  | رقم المستند من تسلسل REF_DOC_SEQUENCE (فريد ضمن الشركة) |
 | 6 | `DOC_DATE` | تاريخ | `DATE` | ✔ | TRUNC(SYSDATE) |  |  | إدخال المستخدم |  | تاريخ المستند (تاريخ الأعمال) |
 | 7 | `TRIP_ID` | معرف | `NUMBER(19)` |  |  | FK→TRN_TRIP |  | إدخال المستخدم |  | الرحلة |
 | 8 | `VEHICLE_ID` | معرف | `NUMBER(19)` | ✔ |  | FK→TRN_VEHICLE |  | إدخال المستخدم |  | العربة |
@@ -476,4 +479,114 @@
 | 28 | `CREATED_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` | ✔ | SYSTIMESTAMP |  |  | Trigger |  | وقت الإنشاء |
 | 29 | `UPDATED_BY` | اسم مستخدم | `VARCHAR2(128 CHAR)` |  |  |  |  | Trigger |  | آخر من عدل السجل |
 | 30 | `UPDATED_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` |  |  |  |  | Trigger |  | وقت آخر تعديل |
+
+## TRN_MAINT_PLAN
+
+| البند | القيمة |
+|---|---|
+| الاسم العربي | برامج الصيانة الدورية للأسطول |
+| English | Fleet Service Programs |
+| الحزمة المالكة | 33 — `NOONA_TRN_PKG` |
+| نطاق الملكية | `C` — مملوك للشركة Company-Owned |
+| الحساسية | INTERNAL |
+| النمط | قابل للتعديل وفق دورة الحياة |
+| قيود أعمال | EVERY_KM > 0 OR EVERY_DAYS > 0 |
+
+| # | العمود | النوع المنطقي | Oracle Type | إلزامي | افتراضي | مفاتيح | القيم المقبولة | المصدر | PII | الوصف |
+|---:|---|---|---|:---:|---|---|---|---|:---:|---|
+| 1 | `ID` | معرف | `NUMBER(19)` | ✔ |  | PK |  | النظام/الحزمة |  | المفتاح الداخلي الثابت (Identity) - لا يعاد استخدامه |
+| 2 | `TENANT_ID` | معرف | `NUMBER(19)` | ✔ |  | FK→PLT_TENANT |  | Security Context |  | المؤسسة المالكة؛ يملأ من Security Context الموثوق لا من مدخلات المستخدم |
+| 3 | `COMPANY_ID` | معرف | `NUMBER(19)` | ✔ |  | FK→ORG_COMPANY |  | Security Context |  | الشركة (الكيان القانوني) المالكة للسجل |
+| 4 | `SERVICE_NAME` | نص | `VARCHAR2(200 CHAR)` | ✔ |  |  |  | إدخال المستخدم |  | الخدمة (تغيير زيت، إطارات، فرامل، فحص دوري...) |
+| 5 | `VEHICLE_ID` | معرف | `NUMBER(19)` |  |  | FK→TRN_VEHICLE |  | إدخال المستخدم |  | العربة (فارغ = كل عربات النوع) |
+| 6 | `VEHICLE_TYPE` | رمز | `VARCHAR2(30 CHAR)` |  |  |  |  | إدخال المستخدم |  | نوع العربات (فارغ = كل الأنواع) |
+| 7 | `EVERY_KM` | رقم | `NUMBER` |  |  |  |  | إدخال المستخدم |  | كل (كم) |
+| 8 | `EVERY_DAYS` | عدد صحيح | `NUMBER(10)` |  |  |  |  | إدخال المستخدم |  | كل (يوم) |
+| 9 | `ESTIMATED_COST` | مبلغ | `NUMBER(24,6)` |  |  |  |  | إدخال المستخدم |  | التكلفة التقديرية |
+| 10 | `STATUS_CODE` | رمز | `VARCHAR2(30 CHAR)` | ✔ | 'ACTIVE' |  | ACTIVE, PAUSED | النظام/الحزمة |  | الحالة ضمن دورة الحياة المعتمدة |
+| 11 | `NOTES` | نص | `VARCHAR2(4000 CHAR)` |  |  |  |  | إدخال المستخدم |  | ملاحظات |
+| 12 | `ROW_VERSION` | عدد صحيح | `NUMBER(10)` | ✔ | 1 |  |  | Trigger |  | رقم الإصدار للتحكم في التزامن المتفائل |
+| 13 | `CREATED_BY` | اسم مستخدم | `VARCHAR2(128 CHAR)` | ✔ |  |  |  | Trigger |  | منشئ السجل |
+| 14 | `CREATED_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` | ✔ | SYSTIMESTAMP |  |  | Trigger |  | وقت الإنشاء |
+| 15 | `UPDATED_BY` | اسم مستخدم | `VARCHAR2(128 CHAR)` |  |  |  |  | Trigger |  | آخر من عدل السجل |
+| 16 | `UPDATED_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` |  |  |  |  | Trigger |  | وقت آخر تعديل |
+
+## TRN_MAINT_ORDER
+
+| البند | القيمة |
+|---|---|
+| الاسم العربي | أوامر صيانة العربات |
+| English | Vehicle Maintenance Orders |
+| الحزمة المالكة | 33 — `NOONA_TRN_PKG` |
+| نطاق الملكية | `C` — مملوك للشركة Company-Owned |
+| الحساسية | INTERNAL |
+| النمط | قابل للتعديل وفق دورة الحياة |
+| مفاتيح فريدة | UK2: (TENANT_ID, COMPANY_ID, DOC_NO)<br>UK3: (PUBLIC_ID) |
+
+| # | العمود | النوع المنطقي | Oracle Type | إلزامي | افتراضي | مفاتيح | القيم المقبولة | المصدر | PII | الوصف |
+|---:|---|---|---|:---:|---|---|---|---|:---:|---|
+| 1 | `ID` | معرف | `NUMBER(19)` | ✔ |  | PK |  | النظام/الحزمة |  | المفتاح الداخلي الثابت (Identity) - لا يعاد استخدامه |
+| 2 | `PUBLIC_ID` | GUID | `RAW(16)` | ✔ | SYS_GUID() | UK3 |  | النظام/الحزمة |  | معرف عام عشوائي للروابط الخارجية وواجهات API بدل المفتاح الداخلي |
+| 3 | `TENANT_ID` | معرف | `NUMBER(19)` | ✔ |  | FK→PLT_TENANT UK2 |  | Security Context |  | المؤسسة المالكة؛ يملأ من Security Context الموثوق لا من مدخلات المستخدم |
+| 4 | `COMPANY_ID` | معرف | `NUMBER(19)` | ✔ |  | FK→ORG_COMPANY UK2 |  | Security Context |  | الشركة (الكيان القانوني) المالكة للسجل |
+| 5 | `BRANCH_ID` | معرف | `NUMBER(19)` |  |  | FK→ORG_BRANCH |  | إدخال المستخدم |  | الفرع |
+| 6 | `DOC_NO` | نص | `VARCHAR2(50 CHAR)` | ✔ |  | UK2 |  | النظام/الحزمة |  | رقم المستند من تسلسل REF_DOC_SEQUENCE (فريد ضمن الشركة) |
+| 7 | `DOC_DATE` | تاريخ | `DATE` | ✔ | TRUNC(SYSDATE) |  |  | إدخال المستخدم |  | تاريخ المستند (تاريخ الأعمال) |
+| 8 | `VEHICLE_ID` | معرف | `NUMBER(19)` | ✔ |  | FK→TRN_VEHICLE |  | إدخال المستخدم |  | العربة |
+| 9 | `PLAN_ID` | معرف | `NUMBER(19)` |  |  | FK→TRN_MAINT_PLAN |  | إدخال المستخدم |  | البرنامج الدوري |
+| 10 | `INCIDENT_ID` | معرف | `NUMBER(19)` |  |  | FK→TRN_INCIDENT |  | إدخال المستخدم |  | البلاغ (العطل) |
+| 11 | `MAINT_TYPE` | رمز | `VARCHAR2(30 CHAR)` | ✔ | 'CORRECTIVE' |  | PREVENTIVE, CORRECTIVE, OVERHAUL, INSPECTION, ACCIDENT, TIRES, UPGRADE | إدخال المستخدم |  | النوع |
+| 12 | `WORKSHOP` | رمز | `VARCHAR2(30 CHAR)` | ✔ | 'INTERNAL' |  | INTERNAL, EXTERNAL | إدخال المستخدم |  | الورشة |
+| 13 | `VENDOR_PARTY_ID` | معرف | `NUMBER(19)` |  |  | FK→PTY_PARTY |  | إدخال المستخدم |  | الورشة الخارجية / المورد |
+| 14 | `DESCRIPTION` | نص | `VARCHAR2(2000 CHAR)` | ✔ |  |  |  | إدخال المستخدم |  | وصف العمل |
+| 15 | `OPENED_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` | ✔ |  |  |  | إدخال المستخدم |  | دخول الصيانة |
+| 16 | `COMPLETED_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` |  |  |  |  | إدخال المستخدم |  | الخروج من الصيانة |
+| 17 | `ODOMETER_KM` | رقم | `NUMBER` |  |  |  |  | إدخال المستخدم |  | العداد عند الصيانة |
+| 18 | `DOWNTIME_HOURS` | رقم | `NUMBER` |  |  |  |  | إدخال المستخدم |  | مدة التوقف (ساعة) |
+| 19 | `PARTS_COST` | مبلغ | `NUMBER(24,6)` | ✔ | 0 |  |  | إدخال المستخدم |  | قطع الغيار |
+| 20 | `LABOR_COST` | مبلغ | `NUMBER(24,6)` | ✔ | 0 |  |  | إدخال المستخدم |  | العمالة |
+| 21 | `OTHER_COST` | مبلغ | `NUMBER(24,6)` | ✔ | 0 |  |  | إدخال المستخدم |  | أخرى |
+| 22 | `VAT_AMOUNT` | مبلغ | `NUMBER(24,6)` | ✔ | 0 |  |  | إدخال المستخدم |  | الضريبة |
+| 23 | `TOTAL_COST` | مبلغ | `NUMBER(24,6)` | ✔ | 0 |  |  | إدخال المستخدم |  | الإجمالي دون الضريبة |
+| 24 | `TREATMENT` | رمز | `VARCHAR2(30 CHAR)` | ✔ | 'EXPENSE' |  | EXPENSE, CAPITALIZE | إدخال المستخدم |  | المعالجة المحاسبية |
+| 25 | `LIFE_EXTENSION_MONTHS` | عدد صحيح | `NUMBER(10)` | ✔ | 0 |  |  | إدخال المستخدم |  | تمديد عمر العربة (شهر) |
+| 26 | `PREV_STATUS` | رمز | `VARCHAR2(30 CHAR)` |  |  |  |  | إدخال المستخدم |  | حالة العربة قبل الصيانة |
+| 27 | `FA_MAINTENANCE_ID` | معرف | `NUMBER(19)` |  |  | FK→FA_MAINTENANCE |  | إدخال المستخدم |  | قيد الصيانة في الأصول |
+| 28 | `STATUS_CODE` | رمز | `VARCHAR2(30 CHAR)` | ✔ | 'OPEN' |  | OPEN, IN_PROGRESS, COMPLETED, CANCELLED | النظام/الحزمة |  | الحالة ضمن دورة الحياة المعتمدة |
+| 29 | `NOTES` | نص | `VARCHAR2(4000 CHAR)` |  |  |  |  | إدخال المستخدم |  | ملاحظات |
+| 30 | `ROW_VERSION` | عدد صحيح | `NUMBER(10)` | ✔ | 1 |  |  | Trigger |  | رقم الإصدار للتحكم في التزامن المتفائل |
+| 31 | `CREATED_BY` | اسم مستخدم | `VARCHAR2(128 CHAR)` | ✔ |  |  |  | Trigger |  | منشئ السجل |
+| 32 | `CREATED_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` | ✔ | SYSTIMESTAMP |  |  | Trigger |  | وقت الإنشاء |
+| 33 | `UPDATED_BY` | اسم مستخدم | `VARCHAR2(128 CHAR)` |  |  |  |  | Trigger |  | آخر من عدل السجل |
+| 34 | `UPDATED_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` |  |  |  |  | Trigger |  | وقت آخر تعديل |
+
+## TRN_MAINT_LINE
+
+| البند | القيمة |
+|---|---|
+| الاسم العربي | بنود أمر الصيانة |
+| English | Maintenance Order Lines |
+| الحزمة المالكة | 33 — `NOONA_TRN_PKG` |
+| نطاق الملكية | `C` — مملوك للشركة Company-Owned |
+| الحساسية | INTERNAL |
+| النمط | قابل للتعديل وفق دورة الحياة |
+| قيود أعمال | QUANTITY > 0<br>UNIT_COST >= 0 |
+
+| # | العمود | النوع المنطقي | Oracle Type | إلزامي | افتراضي | مفاتيح | القيم المقبولة | المصدر | PII | الوصف |
+|---:|---|---|---|:---:|---|---|---|---|:---:|---|
+| 1 | `ID` | معرف | `NUMBER(19)` | ✔ |  | PK |  | النظام/الحزمة |  | المفتاح الداخلي الثابت (Identity) - لا يعاد استخدامه |
+| 2 | `TENANT_ID` | معرف | `NUMBER(19)` | ✔ |  | FK→PLT_TENANT |  | Security Context |  | المؤسسة المالكة؛ يملأ من Security Context الموثوق لا من مدخلات المستخدم |
+| 3 | `COMPANY_ID` | معرف | `NUMBER(19)` | ✔ |  | FK→ORG_COMPANY |  | Security Context |  | الشركة (الكيان القانوني) المالكة للسجل |
+| 4 | `ORDER_ID` | معرف | `NUMBER(19)` | ✔ |  | FK→TRN_MAINT_ORDER |  | إدخال المستخدم |  | أمر الصيانة |
+| 5 | `LINE_TYPE` | رمز | `VARCHAR2(30 CHAR)` | ✔ | 'PART' |  | PART, LABOR, OIL, TIRE, OTHER | إدخال المستخدم |  | النوع |
+| 6 | `DESCRIPTION` | نص | `VARCHAR2(500 CHAR)` | ✔ |  |  |  | إدخال المستخدم |  | البيان |
+| 7 | `ITEM_ID` | معرف | `NUMBER(19)` |  |  | FK→INV_ITEM |  | إدخال المستخدم |  | الصنف (قطعة الغيار) |
+| 8 | `QUANTITY` | كمية | `NUMBER(24,6)` | ✔ | 1 |  |  | إدخال المستخدم |  | الكمية |
+| 9 | `UNIT_COST` | مبلغ | `NUMBER(24,6)` | ✔ | 0 |  |  | إدخال المستخدم |  | تكلفة الوحدة |
+| 10 | `AMOUNT` | مبلغ | `NUMBER(24,6)` | ✔ | 0 |  |  | إدخال المستخدم |  | المبلغ |
+| 11 | `ROW_VERSION` | عدد صحيح | `NUMBER(10)` | ✔ | 1 |  |  | Trigger |  | رقم الإصدار للتحكم في التزامن المتفائل |
+| 12 | `CREATED_BY` | اسم مستخدم | `VARCHAR2(128 CHAR)` | ✔ |  |  |  | Trigger |  | منشئ السجل |
+| 13 | `CREATED_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` | ✔ | SYSTIMESTAMP |  |  | Trigger |  | وقت الإنشاء |
+| 14 | `UPDATED_BY` | اسم مستخدم | `VARCHAR2(128 CHAR)` |  |  |  |  | Trigger |  | آخر من عدل السجل |
+| 15 | `UPDATED_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` |  |  |  |  | Trigger |  | وقت آخر تعديل |
 

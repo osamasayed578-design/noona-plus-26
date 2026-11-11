@@ -29,14 +29,17 @@ BEGIN
   l_r2 := NOONA_TRN_PKG.save_route('{"from":' || l_jip || ',"to":' || l_ruh || ',"distance":960,"hours":11,"roadType":"HIGHWAY"}');
   l_r3 := NOONA_TRN_PKG.save_route('{"from":' || l_jed || ',"to":' || l_med || ',"distance":420,"hours":5}');
   l_v1 := NOONA_TRN_PKG.save_vehicle('{"plate":"أ ب ج 1234","type":"TRUCK","make":"Mercedes-Benz","model":"Actros 2645","year":2023,"capacityTons":25,'
-          || '"ownership":"OWNED","purchaseCost":420000,"funding":"OPENING","openingAccum":95000,"purchaseDate":"' || TO_CHAR(ADD_MONTHS(TRUNC(SYSDATE, 'YYYY'), -12), 'YYYY-MM-DD') || '",''
+          || '"ownership":"OWNED","purchaseCost":420000,"funding":"OPENING","openingAccum":95000,"purchaseDate":"' || TO_CHAR(TRUNC(SYSDATE, 'YYYY'), 'YYYY-MM-DD') || '",'
           || '"odometer":182400,"fuelPer100":34,"licenseExpiry":"' || TO_CHAR(SYSDATE + 280, 'YYYY-MM-DD') || '","insuranceExpiry":"' || TO_CHAR(SYSDATE + 150, 'YYYY-MM-DD') || '"}');
   l_v2 := NOONA_TRN_PKG.save_vehicle('{"plate":"د هـ و 5678","type":"CONTAINER_CARRIER","make":"Volvo","model":"FH 500","year":2022,"capacityTons":30,'
-          || '"ownership":"OWNED","purchaseCost":465000,"funding":"OPENING","openingAccum":160000,"purchaseDate":"' || TO_CHAR(ADD_MONTHS(TRUNC(SYSDATE, 'YYYY'), -12), 'YYYY-MM-DD') || '",''
+          || '"ownership":"OWNED","purchaseCost":465000,"funding":"OPENING","openingAccum":160000,"purchaseDate":"' || TO_CHAR(TRUNC(SYSDATE, 'YYYY'), 'YYYY-MM-DD') || '",'
           || '"odometer":240100,"fuelPer100":36,"licenseExpiry":"' || TO_CHAR(SYSDATE + 90, 'YYYY-MM-DD') || '","insuranceExpiry":"' || TO_CHAR(SYSDATE + 40, 'YYYY-MM-DD') || '"}');
   l_v3 := NOONA_TRN_PKG.save_vehicle('{"plate":"ر س ص 9012","type":"TIPPER","make":"MAN","model":"TGS 41.440","year":2021,"capacityTons":35,'
-          || '"ownership":"OWNED","purchaseCost":510000,"funding":"OPENING","openingAccum":245000,"purchaseDate":"' || TO_CHAR(ADD_MONTHS(TRUNC(SYSDATE, 'YYYY'), -12), 'YYYY-MM-DD') || '",''
+          || '"ownership":"OWNED","purchaseCost":510000,"funding":"OPENING","openingAccum":245000,"purchaseDate":"' || TO_CHAR(TRUNC(SYSDATE, 'YYYY'), 'YYYY-MM-DD') || '",'
           || '"odometer":310500,"fuelPer100":40,"licenseExpiry":"' || TO_CHAR(SYSDATE + 200, 'YYYY-MM-DD') || '"}');
+  -- برامج الصيانة الدورية للأسطول (تظهر المستحقة في «صيانة الأسطول»)
+  l_x := NOONA_TRN_PKG.save_maint_plan('{"service":"تغيير زيت المحرك والفلاتر","vehicleType":"TRUCK","everyKm":10000,"everyDays":90,"cost":950}');
+  l_x := NOONA_TRN_PKG.save_maint_plan('{"service":"فحص الفرامل والإطارات","everyKm":20000,"everyDays":120,"cost":600}');
   l_d1 := NOONA_TRN_PKG.save_driver('{"name":"عبدالله القحطاني","phone":"0551234567","licenseNo":"HV-102030","licenseClass":"ثقيل","licenseExpiry":"'
           || TO_CHAR(SYSDATE + 500, 'YYYY-MM-DD') || '","hazmat":"Y","allowance":250}');
   l_d2 := NOONA_TRN_PKG.save_driver('{"name":"محمد العتيبي","phone":"0559876543","licenseNo":"HV-405060","licenseClass":"ثقيل","licenseExpiry":"'

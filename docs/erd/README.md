@@ -19,7 +19,7 @@
 | 11 | المخزون والبيانات السلعية | Inventory & Item Master | 25 | [p11_inv](p11_inv.md) |
 | 12 | المشتريات | Procurement | 17 | [p12_pur](p12_pur.md) |
 | 13 | المبيعات ونقاط البيع | Sales & Point of Sale | 34 | [p13_sal](p13_sal.md) |
-| 14 | الأصول الثابتة | Fixed Assets | 11 | [p14_fa](p14_fa.md) |
+| 14 | الأصول الثابتة | Fixed Assets | 13 | [p14_fa](p14_fa.md) |
 | 15 | المشروعات والمقاولات والإنشاءات | Projects, Contracting & Construction | 18 | [p15_prj](p15_prj.md) |
 | 16 | التطوير العقاري وبيع الوحدات | Real Estate Development & Unit Sales | 17 | [p16_re](p16_re.md) |
 | 17 | إدارة الأملاك والإيجارات والضيافة | Property Management, Leasing & Hospitality | 25 | [p17_prp](p17_prp.md) |
@@ -38,9 +38,9 @@
 | 30 | التشغيل والدعم والتطوير المستمر | Operations, Support & Continuous Improvement | 12 | [p30_ops](p30_ops.md) |
 | 31 | المستشفيات والمراكز الطبية | Hospital & Clinics | 40 | [p31_his](p31_his.md) |
 | 32 | مراكز خدمة السيارات | Auto Service Centers | 10 | [p32_aut](p32_aut.md) |
-| 33 | النقل والشحن والترحيل | Transport & Logistics | 12 | [p33_trn](p33_trn.md) |
+| 33 | النقل والشحن والترحيل | Transport & Logistics | 15 | [p33_trn](p33_trn.md) |
 
-**الإجمالي: 667 جدول.**
+**الإجمالي: 672 جدول.**
 
 ## خريطة اعتماديات الحزم
 
