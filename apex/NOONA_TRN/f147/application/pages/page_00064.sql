@@ -22,7 +22,7 @@ wwv_flow_imp_page.create_page(
 ,p_protection_level=>'N'
 );
 wwv_flow_imp_page.create_page_plug(
- p_id=>wwv_flow_imp.id(91820290000000632)
+ p_id=>wwv_flow_imp.id(91820290000000635)
 ,p_plug_name=>'الأعطال والبلاغات وزمن الاستجابة'
 ,p_region_template_options=>'#DEFAULT#'
 ,p_component_template_options=>'#DEFAULT#'
@@ -41,7 +41,7 @@ wwv_flow_imp_page.create_page_plug(
 ,p_prn_page_header=>'الأعطال والبلاغات وزمن الاستجابة'
 );
 wwv_flow_imp_page.create_worksheet(
- p_id=>wwv_flow_imp.id(91820290000000633)
+ p_id=>wwv_flow_imp.id(91820290000000636)
 ,p_max_row_count=>'1000000'
 ,p_no_data_found_message=>'لا توجد بيانات'
 ,p_pagination_type=>'ROWS_X_TO_Y'
@@ -53,10 +53,10 @@ wwv_flow_imp_page.create_worksheet(
 ,p_download_formats=>'CSV:HTML:XLSX:PDF'
 ,p_enable_mail_download=>'N'
 ,p_owner=>'NOONA'
-,p_internal_uid=>91820290000000633
+,p_internal_uid=>91820290000000636
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820290000000635)
+ p_id=>wwv_flow_imp.id(91820290000000638)
 ,p_db_column_name=>'INCIDENT_TYPE'
 ,p_display_order=>10
 ,p_column_identifier=>'A'
@@ -66,7 +66,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820290000000636)
+ p_id=>wwv_flow_imp.id(91820290000000639)
 ,p_db_column_name=>'SEVERITY'
 ,p_display_order=>20
 ,p_column_identifier=>'B'
@@ -76,7 +76,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820290000000637)
+ p_id=>wwv_flow_imp.id(91820290000000640)
 ,p_db_column_name=>'INCIDENTS'
 ,p_display_order=>30
 ,p_column_identifier=>'C'
@@ -86,7 +86,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820290000000638)
+ p_id=>wwv_flow_imp.id(91820290000000641)
 ,p_db_column_name=>'AVG_ACK_MIN'
 ,p_display_order=>40
 ,p_column_identifier=>'D'
@@ -96,7 +96,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820290000000639)
+ p_id=>wwv_flow_imp.id(91820290000000642)
 ,p_db_column_name=>'AVG_RESPONSE_MIN'
 ,p_display_order=>50
 ,p_column_identifier=>'E'
@@ -106,7 +106,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820290000000640)
+ p_id=>wwv_flow_imp.id(91820290000000643)
 ,p_db_column_name=>'AVG_RESOLVE_MIN'
 ,p_display_order=>60
 ,p_column_identifier=>'F'
@@ -116,7 +116,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820290000000641)
+ p_id=>wwv_flow_imp.id(91820290000000644)
 ,p_db_column_name=>'OPEN_COUNT'
 ,p_display_order=>70
 ,p_column_identifier=>'G'
@@ -126,7 +126,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820290000000642)
+ p_id=>wwv_flow_imp.id(91820290000000645)
 ,p_db_column_name=>'DOWNTIME'
 ,p_display_order=>80
 ,p_column_identifier=>'H'
@@ -136,7 +136,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820290000000643)
+ p_id=>wwv_flow_imp.id(91820290000000646)
 ,p_db_column_name=>'COST'
 ,p_display_order=>90
 ,p_column_identifier=>'I'
@@ -146,10 +146,10 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_rpt(
- p_id=>wwv_flow_imp.id(91820290000000634)
+ p_id=>wwv_flow_imp.id(91820290000000637)
 ,p_application_user=>'APXWS_DEFAULT'
 ,p_report_seq=>10
-,p_report_alias=>'634'
+,p_report_alias=>'637'
 ,p_status=>'PUBLIC'
 ,p_is_default=>'Y'
 ,p_report_columns=>'INCIDENT_TYPE:SEVERITY:INCIDENTS:AVG_ACK_MIN:AVG_RESPONSE_MIN:AVG_RESOLVE_MIN:OPEN_COUNT:DOWNTIME:COST'

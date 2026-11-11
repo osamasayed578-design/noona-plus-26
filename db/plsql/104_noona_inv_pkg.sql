@@ -61,6 +61,13 @@ CREATE OR REPLACE PACKAGE NOONA_INV_PKG AUTHID DEFINER AS
   FUNCTION move(p_type_code IN VARCHAR2, p_warehouse_id IN NUMBER, p_date IN DATE, p_source_type IN VARCHAR2,
                 p_source_id IN NUMBER, p_lines IN OUT NOCOPY t_moves, p_reference IN VARCHAR2 DEFAULT NULL) RETURN NUMBER
     ACCESSIBLE BY (PACKAGE NOONA_PUR_PKG, PACKAGE NOONA_SAL_PKG, PACKAGE NOONA_POS_PKG, PACKAGE NOONA_MFG_PKG);
+  -- صرف قطع الغيار والزيوت لورشة الصيانة الداخلية (MAINT_ISSUE بالمتوسط المرجح) أو إرجاعها (MAINT_RETURN بتكلفة الصرف)
+  --   القيد: مدين «صيانة تحت التنفيذ» 1116 / دائن المخزون (والعكس للإرجاع)؛ يعيد رقم الحركة وتكلفتها في p_total
+  FUNCTION maint_stock(p_type IN VARCHAR2, p_warehouse_id IN NUMBER, p_item_id IN NUMBER, p_qty IN NUMBER, p_unit_cost IN NUMBER,
+                       p_date IN DATE, p_source_id IN NUMBER, p_desc IN VARCHAR2, p_total OUT NUMBER) RETURN NUMBER
+    ACCESSIBLE BY (PACKAGE NOONA_TRN_PKG);
+  -- حساب «صيانة تحت التنفيذ» 1116
+  FUNCTION maint_wip_account RETURN NUMBER;
 
   -- ---------------------------------------------------------- مستندات المخزون المباشرة
   -- الأنواع: OPENING رصيد افتتاحي، ADJ_IN تسوية بالزيادة، ADJ_OUT عجز، SCRAP إتلاف، CONSUMPTION صرف لمركز تكلفة،
@@ -836,7 +843,8 @@ CREATE OR REPLACE PACKAGE BODY NOONA_INV_PKG AS
     l_id := new_txn(l_t, p_warehouse_id, NULL, p_date, p_source_type, p_source_id, p_reference, 'POSTED');
     FOR i IN 1 .. p_lines.COUNT LOOP
       IF is_stocked(p_lines(i).item_id) = 'Y' THEN
-        l_x := apply_line(l_id, l_no, l_t.qty_sign, p_warehouse_id, l_t.txn_class, p_lines(i), p_type_code IN ('SALES_ISSUE', 'POS_ISSUE', 'MFG_ISSUE'));
+        l_x := apply_line(l_id, l_no, l_t.qty_sign, p_warehouse_id, l_t.txn_class, p_lines(i),
+                          p_type_code IN ('SALES_ISSUE', 'POS_ISSUE', 'MFG_ISSUE', 'MAINT_ISSUE'));
       ELSE
         p_lines(i).total_cost := 0;
       END IF;
@@ -844,6 +852,60 @@ CREATE OR REPLACE PACKAGE BODY NOONA_INV_PKG AS
     number_txn(l_id, p_date);
     RETURN l_id;
   END move;
+
+  FUNCTION maint_wip_account RETURN NUMBER IS
+    l NUMBER := acc_id('1116');
+  BEGIN
+    IF l IS NULL THEN
+      l := ensure_account('1116', 'صيانة تحت التنفيذ (مواد مصروفة للورش)', '11', 'ASSET');
+    END IF;
+    RETURN l;
+  END maint_wip_account;
+
+  FUNCTION maint_stock(p_type IN VARCHAR2, p_warehouse_id IN NUMBER, p_item_id IN NUMBER, p_qty IN NUMBER, p_unit_cost IN NUMBER,
+                       p_date IN DATE, p_source_id IN NUMBER, p_desc IN VARCHAR2, p_total OUT NUMBER) RETURN NUMBER
+    ACCESSIBLE BY (PACKAGE NOONA_TRN_PKG) IS
+    l_moves t_moves := t_moves();
+    l_txn   NUMBER;
+    l_wip   NUMBER;
+    l_inv   NUMBER;
+    l_no    VARCHAR2(100);
+    l_j     NUMBER;
+    l_lines NOONA_GL_PKG.t_lines := NOONA_GL_PKG.t_lines();
+    l_date  DATE := NVL(p_date, TRUNC(SYSDATE));
+    PROCEDURE add(p_acc NUMBER, p_dr NUMBER, p_cr NUMBER) IS
+    BEGIN
+      l_lines.EXTEND;
+      l_lines(l_lines.COUNT).account_id := p_acc;
+      l_lines(l_lines.COUNT).debit := p_dr;
+      l_lines(l_lines.COUNT).credit := p_cr;
+      l_lines(l_lines.COUNT).description := SUBSTR(p_desc, 1, 240);
+    END add;
+  BEGIN
+    NOONA_CORE_PKG.assert(p_type IN ('MAINT_ISSUE', 'MAINT_RETURN'), 'NOONA-INV-090', 'نوع حركة الصيانة غير صحيح', 'Invalid maintenance movement');
+    NOONA_CORE_PKG.assert(NVL(p_qty, 0) > 0, 'NOONA-INV-021', 'الكمية يجب أن تكون موجبة', 'Quantity must be positive');
+    NOONA_CORE_PKG.assert(is_stocked(p_item_id) = 'Y', 'NOONA-INV-091',
+      'الصنف ليس مخزنياً (خدمة أو غير مخزني)؛ أدخله بنداً بتكلفته', 'Item is not stocked');
+    l_wip := maint_wip_account;
+    l_moves.EXTEND;
+    l_moves(1).item_id := p_item_id;
+    l_moves(1).qty := p_qty;
+    l_moves(1).unit_cost := p_unit_cost;
+    l_moves(1).line_ref := TO_CHAR(p_source_id);
+    l_txn := move(p_type, p_warehouse_id, l_date, 'TRN_MAINT_ORDER', p_source_id, l_moves, SUBSTR(p_desc, 1, 100));
+    p_total := ROUND(ABS(NVL(l_moves(1).total_cost, 0)), 2);
+    IF p_total > 0 THEN
+      l_inv := account_for(p_item_id, 'INVENTORY');
+      IF p_type = 'MAINT_ISSUE' THEN add(l_wip, p_total, 0); add(l_inv, 0, p_total);
+      ELSE add(l_inv, p_total, 0); add(l_wip, 0, p_total); END IF;
+      SELECT doc_no INTO l_no FROM inv_transaction WHERE id = l_txn;
+      l_j := NOONA_ACE_PKG.post_source('INV_TXN_POSTED', 'INVENTORY', c_entity, l_txn, l_date,
+               txn_type_label(p_type) || ' ' || l_no || ': ' || SUBSTR(p_desc, 1, 200), NOONA_GL_PKG.ledger_currency, 1, l_lines,
+               l_no, NULL, 'INVENTORY');
+      UPDATE inv_transaction SET accounting_event_id = (SELECT accounting_event_id FROM gl_journal WHERE id = l_j) WHERE id = l_txn;
+    END IF;
+    RETURN l_txn;
+  END maint_stock;
 
   -- ================================================================ مستندات المخزون المباشرة
   FUNCTION save_stock_doc(p_doc IN CLOB) RETURN NUMBER IS

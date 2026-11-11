@@ -158,6 +158,7 @@ DESCRIPTION     V1000 NN         | الوصف
 VENDOR_PARTY_ID ID   >PTY_PARTY  | الورشة / المورد
 AMOUNT          AMT  NN          | المبلغ دون الضريبة
 VAT_AMOUNT      AMT  NN D=0      | ضريبة المدخلات
+STOCK_AMOUNT    AMT  NN D=0      | منها مواد مصروفة من المخزون (من حساب الصيانة تحت التنفيذ)
 FUNDING         CODE NN D='BANK' IN:BANK,CASH,PAYABLE,ACCOUNT | السداد
 BANK_ACCOUNT_ID ID   >CSH_BANK_ACCOUNT | الحساب البنكي
 CASH_BOX_ID     ID   >CSH_CASH_BOX | الصندوق

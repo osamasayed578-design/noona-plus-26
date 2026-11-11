@@ -25,6 +25,7 @@ DECLARE
   l_v NUMBER; l_r NUMBER; l_asset NUMBER; l_m NUMBER; l_m2 NUMBER; l_pl NUMBER; l_fp NUMBER;
   l_o NUMBER; l_o2 NUMBER; l_o3 NUMBER; l_x NUMBER; l_n NUMBER; l_sup NUMBER; l_box NUMBER;
   l_cost NUMBER; l_life NUMBER; l_s VARCHAR2(4000); l_h CLOB;
+  l_wh NUMBER; l_oil NUMBER; l_flt NUMBER; l_o4 NUMBER; l_wip NUMBER; l_b1 NUMBER; l_b2 NUMBER;
   PROCEDURE ok(p_name VARCHAR2, p_cond BOOLEAN, p_info VARCHAR2 DEFAULT NULL) IS
   BEGIN
     IF p_cond THEN g_pass := g_pass + 1; DBMS_OUTPUT.PUT_LINE('PASS  ' || p_name);
@@ -164,6 +165,61 @@ BEGIN
   NOONA_TRN_PKG.cancel_maint(l_o3, 'لم تحتج');
   SELECT status_code INTO l_s FROM trn_vehicle WHERE id = l_r;
   ok('cancel returns vehicle to available', l_s = 'AVAILABLE');
+
+  -- ---------------------------------------------------------------- ورشة داخلية تصرف من المخزون
+  l_n := NOONA_INV_PKG.quick_setup;
+  l_wh := NOONA_INV_PKG.create_warehouse('WS' || l_sfx, 'مستودع الورشة ' || l_sfx, 'MAIN');
+  l_oil := NOONA_INV_PKG.save_item('{"name":"زيت محرك ديزل 15W40 ' || l_sfx || '","code":"MO' || l_sfx || '","price":30}');
+  l_flt := NOONA_INV_PKG.save_item('{"name":"فلتر زيت شاحنة ' || l_sfx || '","code":"MF' || l_sfx || '","price":90}');
+  l_n := NOONA_INV_PKG.save_stock_doc('{"id":null,"type":"OPENING","date":"' || TO_CHAR(SYSDATE, 'YYYY-MM-DD') || '","wh":' || l_wh
+        || ',"action":"POST","lines":[{"i":' || l_oil || ',"q":200,"c":22},{"i":' || l_flt || ',"q":20,"c":60}]}');
+  ok('workshop stock ready', NOONA_INV_PKG.on_hand(l_oil, l_wh) = 200 AND NOONA_INV_PKG.on_hand(l_flt, l_wh) = 20);
+  l_wip := NOONA_INV_PKG.maint_wip_account;
+  ok('maintenance WIP account 1116 exists', l_wip IS NOT NULL);
+  SELECT NVL(SUM(debit_amount - credit_amount), 0) INTO l_b1 FROM gl_journal_line WHERE account_id = l_wip;
+
+  l_o4 := NOONA_TRN_PKG.open_maint('{"vehicle":' || l_v || ',"type":"PREVENTIVE","workshop":"INTERNAL","warehouse":' || l_wh
+        || ',"description":"تغيير زيت وفلتر بالورشة الداخلية"}');
+  l_x := NOONA_TRN_PKG.add_maint_line(l_o4, 'OIL', NULL, 30, NULL, l_oil);
+  l_x := NOONA_TRN_PKG.add_maint_line(l_o4, 'PART', NULL, 2, NULL, l_flt);
+  l_r := NOONA_TRN_PKG.add_maint_line(l_o4, 'PART', NULL, 1, NULL, l_flt);
+  ok('oil issued from workshop stock', NOONA_INV_PKG.on_hand(l_oil, l_wh) = 170);
+  ok('filters issued from workshop stock', NOONA_INV_PKG.on_hand(l_flt, l_wh) = 17);
+  SELECT COUNT(*) INTO l_n FROM trn_maint_line WHERE order_id = l_o4 AND from_stock = 'Y' AND inv_txn_id IS NOT NULL;
+  ok('stock lines linked to inventory movements', l_n = 3);
+  SELECT amount INTO l_x FROM trn_maint_line WHERE order_id = l_o4 AND item_id = l_oil;
+  ok('oil costed at weighted average (30 x 22 = 660)', l_x = 660, l_x);
+  SELECT NVL(SUM(debit_amount - credit_amount), 0) INTO l_b2 FROM gl_journal_line WHERE account_id = l_wip;
+  ok('issue posted to maintenance WIP (660 + 180)', l_b2 - l_b1 = 840, l_b2 - l_b1);
+  NOONA_TRN_PKG.remove_maint_line(l_r);
+  ok('unused filter returned to stock', NOONA_INV_PKG.on_hand(l_flt, l_wh) = 18);
+  SELECT NVL(SUM(debit_amount - credit_amount), 0) INTO l_b2 FROM gl_journal_line WHERE account_id = l_wip;
+  ok('return reverses WIP', l_b2 - l_b1 = 780, l_b2 - l_b1);
+  SELECT stock_cost || '/' || total_cost INTO l_s FROM trn_maint_order WHERE id = l_o4;
+  ok('order stock cost 780 of total 780', l_s = '780/780', l_s);
+  NOONA_TRN_PKG.complete_maint(l_o4, '{}');
+  SELECT NVL(SUM(debit_amount - credit_amount), 0) INTO l_b2 FROM gl_journal_line WHERE account_id = l_wip;
+  ok('completion clears maintenance WIP', l_b2 = l_b1, l_b2 - l_b1);
+  SELECT m.stock_amount || '/' || m.amount || '/' || m.treatment INTO l_s FROM trn_maint_order o JOIN fa_maintenance m ON m.id = o.fa_maintenance_id WHERE o.id = l_o4;
+  ok('posted as maintenance expense from stock', l_s = '780/780/EXPENSE', l_s);
+
+  -- عمرة داخلية رأسمالية بمواد من المخزون + عمالة خارجية
+  SELECT cost INTO l_cost FROM fa_asset_book WHERE asset_id = l_asset;
+  l_o4 := NOONA_TRN_PKG.open_maint('{"vehicle":' || l_v || ',"type":"OVERHAUL","workshop":"INTERNAL","warehouse":' || l_wh
+        || ',"description":"عمرة بالورشة الداخلية"}');
+  l_x := NOONA_TRN_PKG.add_maint_line(l_o4, 'OIL', NULL, 40, NULL, l_oil);
+  l_x := NOONA_TRN_PKG.add_maint_line(l_o4, 'LABOR', 'فني عمرة متعاقد', 1, 3000);
+  NOONA_TRN_PKG.complete_maint(l_o4, '{"treatment":"CAPITALIZE","lifeExtension":12,"funding":"PAYABLE","vat":450,"vendor":' || l_sup || '}');
+  SELECT cost INTO l_x FROM fa_asset_book WHERE asset_id = l_asset;
+  ok('capitalized: stock 880 + labor 3000 added to asset', l_x = l_cost + 3880, l_x - l_cost);
+  SELECT NVL(SUM(debit_amount - credit_amount), 0) INTO l_b2 FROM gl_journal_line WHERE account_id = l_wip;
+  ok('WIP cleared after capitalization', l_b2 = l_b1, l_b2 - l_b1);
+
+  -- إلغاء أمر يعيد القطع للمخزون
+  l_o4 := NOONA_TRN_PKG.open_maint('{"vehicle":' || l_v || ',"workshop":"INTERNAL","warehouse":' || l_wh || ',"description":"فحص"}');
+  l_x := NOONA_TRN_PKG.add_maint_line(l_o4, 'OIL', NULL, 5, NULL, l_oil);
+  NOONA_TRN_PKG.cancel_maint(l_o4, 'أجلت');
+  ok('cancel returns issued oil', NOONA_INV_PKG.on_hand(l_oil, l_wh) = 130, NOONA_INV_PKG.on_hand(l_oil, l_wh));
 
   l_h := NOONA_TRN_PKG.maint_cost_html(TRUNC(SYSDATE) - 1);
   ok('fleet maintenance cost report', DBMS_LOB.INSTR(l_h, 'ص ي ' || l_sfx) > 0 AND DBMS_LOB.INSTR(l_h, 'التكلفة/كم') > 0);
