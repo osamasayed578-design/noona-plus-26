@@ -124,6 +124,8 @@ CREATE OR REPLACE PACKAGE NOONA_TRN_PKG AUTHID DEFINER AS
   FUNCTION uom_label(p_code IN VARCHAR2) RETURN VARCHAR2;
   FUNCTION basis_label(p_code IN VARCHAR2) RETURN VARCHAR2;
   FUNCTION board_html RETURN CLOB;
+  -- عملاء شحنات الرحلة (أسماء مختصرة مفصولة بفاصلة)
+  FUNCTION trip_customers(p_trip_id IN NUMBER) RETURN VARCHAR2;
   FUNCTION trip_html(p_trip_id IN NUMBER) RETURN CLOB;
   FUNCTION order_label(p_order_id IN NUMBER) RETURN VARCHAR2;
   -- حالة المستند للشاشات (شروط العرض)
@@ -2035,6 +2037,14 @@ CREATE OR REPLACE PACKAGE BODY NOONA_TRN_PKG AS
   END invoice_orders;
 
   -- ================================================================ الواجهة
+  FUNCTION trip_customers(p_trip_id IN NUMBER) RETURN VARCHAR2 IS
+    l VARCHAR2(4000);
+  BEGIN
+    SELECT SUBSTR(LISTAGG(DISTINCT NOONA_SAL_PKG.customer_label(o.customer_account_id), '، ') WITHIN GROUP (ORDER BY o.id), 1, 1000)
+      INTO l FROM trn_trip_order x JOIN trn_order o ON o.id = x.order_id WHERE x.trip_id = p_trip_id;
+    RETURN l;
+  END trip_customers;
+
   FUNCTION board_html RETURN CLOB IS
     l   CLOB;
     l_n PLS_INTEGER := 0;
@@ -2075,6 +2085,8 @@ CREATE OR REPLACE PACKAGE BODY NOONA_TRN_PKG AS
           || '<span class="nn-trn-meta"><span class="fa fa-truck" aria-hidden="true"></span> ' || esc(t.plate_no)
           || ' · <span class="fa fa-user" aria-hidden="true"></span> ' || esc(t.full_name)
           || ' · الحمولة ' || qf(t.load_kg / 1000) || ' / ' || qf(t.capacity_tons) || ' طن</span>'
+          || CASE WHEN trip_customers(t.id) IS NOT NULL THEN '<span class="nn-trn-meta"><span class="fa fa-building-o" aria-hidden="true"></span> العميل: '
+                  || esc(trip_customers(t.id)) || '</span>' END
           || '<span class="nn-trn-eta">' || CASE WHEN t.actual_departure IS NULL THEN 'التحرك المخطط: ' || ts(t.planned_departure)
                                                 ELSE 'الوصول المتوقع: <b>' || ts(t.eta) || '</b>' END
           || CASE WHEN t.delay_minutes > 0 THEN ' · تأخير ' || ROUND(t.delay_minutes / 60, 1) || ' ساعة' END || '</span></a>';

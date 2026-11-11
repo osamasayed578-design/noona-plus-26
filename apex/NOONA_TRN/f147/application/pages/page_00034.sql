@@ -22,7 +22,7 @@ wwv_flow_imp_page.create_page(
 ,p_protection_level=>'C'
 );
 wwv_flow_imp_page.create_page_plug(
- p_id=>wwv_flow_imp.id(91820290000000283)
+ p_id=>wwv_flow_imp.id(91820290000000284)
 ,p_plug_name=>'أمر صيانة'
 ,p_region_template_options=>'#DEFAULT#'
 ,p_plug_template=>4072358936313175081
@@ -33,9 +33,9 @@ wwv_flow_imp_page.create_page_plug(
   'show_line_breaks', 'Y')).to_clob
 );
 wwv_flow_imp_page.create_page_button(
- p_id=>wwv_flow_imp.id(91820290000000284)
+ p_id=>wwv_flow_imp.id(91820290000000285)
 ,p_button_sequence=>10
-,p_button_plug_id=>wwv_flow_imp.id(91820290000000283)
+,p_button_plug_id=>wwv_flow_imp.id(91820290000000284)
 ,p_button_name=>'NEW'
 ,p_button_action=>'REDIRECT_URL'
 ,p_button_template_options=>'#DEFAULT#'
@@ -46,9 +46,9 @@ wwv_flow_imp_page.create_page_button(
 ,p_button_redirect_url=>'f?p=&APP_ID.:35:&SESSION.::&DEBUG.:RP,35::'
 );
 wwv_flow_imp_page.create_page_button(
- p_id=>wwv_flow_imp.id(91820290000000285)
+ p_id=>wwv_flow_imp.id(91820290000000286)
 ,p_button_sequence=>20
-,p_button_plug_id=>wwv_flow_imp.id(91820290000000283)
+,p_button_plug_id=>wwv_flow_imp.id(91820290000000284)
 ,p_button_name=>'PLANS'
 ,p_button_action=>'REDIRECT_URL'
 ,p_button_template_options=>'#DEFAULT#'
@@ -58,7 +58,7 @@ wwv_flow_imp_page.create_page_button(
 ,p_button_redirect_url=>'f?p=&APP_ID.:36:&SESSION.::&DEBUG.:::'
 );
 wwv_flow_imp_page.create_page_plug(
- p_id=>wwv_flow_imp.id(91820290000000286)
+ p_id=>wwv_flow_imp.id(91820290000000287)
 ,p_plug_name=>'الصيانات الدورية المستحقة (بالكيلومتر أو الأيام)'
 ,p_region_template_options=>'#DEFAULT#:t-Region--scrollBody'
 ,p_plug_template=>4072358936313175081
@@ -69,7 +69,7 @@ wwv_flow_imp_page.create_page_plug(
 ,p_plug_source_type=>'NATIVE_DYNAMIC_CONTENT'
 );
 wwv_flow_imp_page.create_page_plug(
- p_id=>wwv_flow_imp.id(91820290000000287)
+ p_id=>wwv_flow_imp.id(91820290000000288)
 ,p_plug_name=>'أوامر الصيانة'
 ,p_region_template_options=>'#DEFAULT#'
 ,p_component_template_options=>'#DEFAULT#'
@@ -87,7 +87,7 @@ wwv_flow_imp_page.create_page_plug(
 ,p_prn_page_header=>'أوامر الصيانة'
 );
 wwv_flow_imp_page.create_worksheet(
- p_id=>wwv_flow_imp.id(91820290000000288)
+ p_id=>wwv_flow_imp.id(91820290000000289)
 ,p_max_row_count=>'1000000'
 ,p_no_data_found_message=>'لا توجد بيانات'
 ,p_pagination_type=>'ROWS_X_TO_Y'
@@ -101,10 +101,10 @@ wwv_flow_imp_page.create_worksheet(
 ,p_detail_link=>'f?p=&APP_ID.:35:&SESSION.::&DEBUG.:RP,35:P35_ID:#ID#'
 ,p_detail_link_text=>'<span role="img" aria-label="تعديل" class="fa fa-edit" title="فتح"></span>'
 ,p_owner=>'NOONA'
-,p_internal_uid=>91820290000000288
+,p_internal_uid=>91820290000000289
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820290000000290)
+ p_id=>wwv_flow_imp.id(91820290000000291)
 ,p_db_column_name=>'ID'
 ,p_display_order=>10
 ,p_column_identifier=>'A'
@@ -115,7 +115,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820290000000291)
+ p_id=>wwv_flow_imp.id(91820290000000292)
 ,p_db_column_name=>'DOC_NO'
 ,p_display_order=>20
 ,p_column_identifier=>'B'
@@ -125,7 +125,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820290000000292)
+ p_id=>wwv_flow_imp.id(91820290000000293)
 ,p_db_column_name=>'OPENED_AT'
 ,p_display_order=>30
 ,p_column_identifier=>'C'
@@ -135,7 +135,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820290000000293)
+ p_id=>wwv_flow_imp.id(91820290000000294)
 ,p_db_column_name=>'PLATE_NO'
 ,p_display_order=>40
 ,p_column_identifier=>'D'
@@ -145,7 +145,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820290000000294)
+ p_id=>wwv_flow_imp.id(91820290000000295)
 ,p_db_column_name=>'MAINT_TYPE'
 ,p_display_order=>50
 ,p_column_identifier=>'E'
@@ -155,7 +155,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820290000000295)
+ p_id=>wwv_flow_imp.id(91820290000000296)
 ,p_db_column_name=>'WORKSHOP'
 ,p_display_order=>60
 ,p_column_identifier=>'F'
@@ -165,7 +165,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820290000000296)
+ p_id=>wwv_flow_imp.id(91820290000000297)
 ,p_db_column_name=>'VENDOR'
 ,p_display_order=>70
 ,p_column_identifier=>'G'
@@ -175,7 +175,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820290000000297)
+ p_id=>wwv_flow_imp.id(91820290000000298)
 ,p_db_column_name=>'DESCRIPTION'
 ,p_display_order=>80
 ,p_column_identifier=>'H'
@@ -185,7 +185,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820290000000298)
+ p_id=>wwv_flow_imp.id(91820290000000299)
 ,p_db_column_name=>'ODOMETER_KM'
 ,p_display_order=>90
 ,p_column_identifier=>'I'
@@ -195,7 +195,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820290000000299)
+ p_id=>wwv_flow_imp.id(91820290000000300)
 ,p_db_column_name=>'PARTS_COST'
 ,p_display_order=>100
 ,p_column_identifier=>'J'
@@ -205,7 +205,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820290000000300)
+ p_id=>wwv_flow_imp.id(91820290000000301)
 ,p_db_column_name=>'LABOR_COST'
 ,p_display_order=>110
 ,p_column_identifier=>'K'
@@ -215,7 +215,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820290000000301)
+ p_id=>wwv_flow_imp.id(91820290000000302)
 ,p_db_column_name=>'TOTAL_COST'
 ,p_display_order=>120
 ,p_column_identifier=>'L'
@@ -225,7 +225,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820290000000302)
+ p_id=>wwv_flow_imp.id(91820290000000303)
 ,p_db_column_name=>'TREATMENT'
 ,p_display_order=>130
 ,p_column_identifier=>'M'
@@ -235,7 +235,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820290000000303)
+ p_id=>wwv_flow_imp.id(91820290000000304)
 ,p_db_column_name=>'LIFE_EXTENSION_MONTHS'
 ,p_display_order=>140
 ,p_column_identifier=>'N'
@@ -245,7 +245,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820290000000304)
+ p_id=>wwv_flow_imp.id(91820290000000305)
 ,p_db_column_name=>'DOWNTIME_HOURS'
 ,p_display_order=>150
 ,p_column_identifier=>'O'
@@ -255,7 +255,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820290000000305)
+ p_id=>wwv_flow_imp.id(91820290000000306)
 ,p_db_column_name=>'COMPLETED_AT'
 ,p_display_order=>160
 ,p_column_identifier=>'P'
@@ -265,7 +265,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820290000000306)
+ p_id=>wwv_flow_imp.id(91820290000000307)
 ,p_db_column_name=>'STATUS_HTML'
 ,p_display_order=>170
 ,p_column_identifier=>'Q'
@@ -276,16 +276,16 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_rpt(
- p_id=>wwv_flow_imp.id(91820290000000289)
+ p_id=>wwv_flow_imp.id(91820290000000290)
 ,p_application_user=>'APXWS_DEFAULT'
 ,p_report_seq=>10
-,p_report_alias=>'289'
+,p_report_alias=>'290'
 ,p_status=>'PUBLIC'
 ,p_is_default=>'Y'
 ,p_report_columns=>'DOC_NO:OPENED_AT:PLATE_NO:MAINT_TYPE:WORKSHOP:VENDOR:DESCRIPTION:ODOMETER_KM:PARTS_COST:LABOR_COST:TOTAL_COST:TREATMENT:LIFE_EXTENSION_MONTHS:DOWNTIME_HOURS:COMPLETED_AT:STATUS_HTML'
 );
 wwv_flow_imp_page.create_page_plug(
- p_id=>wwv_flow_imp.id(91820290000000307)
+ p_id=>wwv_flow_imp.id(91820290000000308)
 ,p_plug_name=>'تكلفة الصيانة لكل عربة منذ بداية السنة'
 ,p_region_template_options=>'#DEFAULT#:t-Region--scrollBody'
 ,p_plug_template=>4072358936313175081
