@@ -235,6 +235,16 @@ BEGIN
   ok('tonnage metric counts delivered tons', NOONA_ANL_PKG.kpi('TRN_TONNAGE', TRUNC(SYSDATE) - 1, TRUNC(SYSDATE) + 1) >= 19.5);
   ok('incidents metric', NOONA_ANL_PKG.kpi('TRN_INCIDENTS', TRUNC(SYSDATE) - 1, TRUNC(SYSDATE) + 1) >= 1);
   ok('board renders', DBMS_LOB.GETLENGTH(NOONA_TRN_PKG.board_html) > 100);
+  -- صيانة العطل من بلاغ السائق تنسب له في تقرير أداء السائقين
+  l_x := NOONA_TRN_PKG.open_maint('{"vehicle":' || l_v || ',"incident":' || l_inc || ',"workshop":"INTERNAL"}');
+  l_n := NOONA_TRN_PKG.add_maint_line(l_x, 'PART', 'مروحة تبريد المحرك', 1, 1200);
+  SELECT MIN(party_id) INTO l_n FROM ap_supplier;
+  NOONA_TRN_PKG.complete_maint(l_x, '{"funding":"PAYABLE","vendor":' || l_n || '}');
+  l_s := NOONA_TRN_PKG.driver_perf_html(TRUNC(SYSDATE) - 1, TRUNC(SYSDATE));
+  ok('driver report: trip km and maintenance from his incident', INSTR(l_s, 'أحمد السائق ' || l_sfx) > 0 AND INSTR(l_s, '1,200.00') > 0,
+     SUBSTR(l_s, 1, 200));
+  l_s := NOONA_TRN_PKG.vehicle_perf_html(TRUNC(SYSDATE) - 1, TRUNC(SYSDATE), l_v);
+  ok('vehicle report: trip, fault and repair cost', INSTR(l_s, '1,200.00') > 0 AND INSTR(l_s, '(1 إصلاح)') > 0, SUBSTR(l_s, 1, 300));
   ok('trip page renders', DBMS_LOB.INSTR(NOONA_TRN_PKG.trip_html(l_t), 'صافي الرحلة') > 0);
 
   ROLLBACK;

@@ -509,6 +509,10 @@ CREATE TABLE TRN_MAINT_LINE (
   UNIT_COST                        NUMBER(24,6) DEFAULT ON NULL 0 NOT NULL,
   AMOUNT                           NUMBER(24,6) DEFAULT ON NULL 0 NOT NULL,
   FROM_STOCK                       CHAR(1 CHAR) DEFAULT ON NULL 'N' NOT NULL,
+  LIFE_KM                          NUMBER,
+  LIFE_DAYS                        NUMBER(10),
+  NEXT_DUE_KM                      NUMBER,
+  NEXT_DUE_DATE                    DATE,
   INV_TXN_ID                       NUMBER(19),
   ROW_VERSION                      NUMBER(10) DEFAULT ON NULL 1 NOT NULL,
   CREATED_BY                       VARCHAR2(128 CHAR) NOT NULL,
@@ -1027,6 +1031,10 @@ COMMENT ON COLUMN TRN_MAINT_LINE.QUANTITY IS 'الكمية';
 COMMENT ON COLUMN TRN_MAINT_LINE.UNIT_COST IS 'تكلفة الوحدة';
 COMMENT ON COLUMN TRN_MAINT_LINE.AMOUNT IS 'المبلغ';
 COMMENT ON COLUMN TRN_MAINT_LINE.FROM_STOCK IS 'مصروف من المخزون';
+COMMENT ON COLUMN TRN_MAINT_LINE.LIFE_KM IS 'عمر الاستبدال (كم)';
+COMMENT ON COLUMN TRN_MAINT_LINE.LIFE_DAYS IS 'عمر الاستبدال (يوم)';
+COMMENT ON COLUMN TRN_MAINT_LINE.NEXT_DUE_KM IS 'الاستبدال التالي عند العداد';
+COMMENT ON COLUMN TRN_MAINT_LINE.NEXT_DUE_DATE IS 'الاستبدال التالي بتاريخ';
 COMMENT ON COLUMN TRN_MAINT_LINE.INV_TXN_ID IS 'حركة الصرف المخزني';
 COMMENT ON COLUMN TRN_MAINT_LINE.ROW_VERSION IS 'رقم الإصدار للتحكم في التزامن المتفائل';
 COMMENT ON COLUMN TRN_MAINT_LINE.CREATED_BY IS 'منشئ السجل';

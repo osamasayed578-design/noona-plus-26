@@ -181,32 +181,34 @@
 | 11 | `TRACKING_MODE` | رمز | `VARCHAR2(30 CHAR)` | ✔ | 'NONE' |  | NONE, LOT, SERIAL, LOT_AND_SERIAL | إدخال المستخدم |  | التتبع |
 | 12 | `TRACK_EXPIRY` | منطقي Y/N | `CHAR(1 CHAR)` | ✔ | 'N' |  | Y, N | إدخال المستخدم |  | تتبع الصلاحية |
 | 13 | `SHELF_LIFE_DAYS` | عدد صحيح | `NUMBER(10)` |  |  |  |  | إدخال المستخدم |  | مدة الصلاحية |
-| 14 | `OWNERSHIP_SCOPE` | رمز | `VARCHAR2(30 CHAR)` | ✔ | 'TENANT_SHARED' |  | TENANT_SHARED, GROUP_SHARED, COMPANY_OWNED | إدخال المستخدم |  | نطاق الملكية |
-| 15 | `OWNER_COMPANY_ID` | معرف | `NUMBER(19)` |  |  | FK→ORG_COMPANY |  | إدخال المستخدم |  | الشركة المالكة |
-| 16 | `IS_SELLABLE` | منطقي Y/N | `CHAR(1 CHAR)` | ✔ | 'Y' |  | Y, N | إدخال المستخدم |  | قابل للبيع |
-| 17 | `IS_PURCHASABLE` | منطقي Y/N | `CHAR(1 CHAR)` | ✔ | 'Y' |  | Y, N | إدخال المستخدم |  | قابل للشراء |
-| 18 | `IS_MANUFACTURED` | منطقي Y/N | `CHAR(1 CHAR)` | ✔ | 'N' |  | Y, N | إدخال المستخدم |  | مصنع داخلياً |
-| 19 | `ALLOW_NEGATIVE` | منطقي Y/N | `CHAR(1 CHAR)` | ✔ | 'N' |  | Y, N | إدخال المستخدم |  | يسمح بالرصيد السالب (ممنوع افتراضياً) |
-| 20 | `WEIGHT_KG` | كمية | `NUMBER(24,6)` |  |  |  |  | إدخال المستخدم |  | الوزن |
-| 21 | `TAX_CATEGORY` | رمز | `VARCHAR2(30 CHAR)` |  |  |  |  | إدخال المستخدم |  | الفئة الضريبية |
-| 22 | `STORAGE_REQUIREMENTS` | نص | `VARCHAR2(500 CHAR)` |  |  |  |  | إدخال المستخدم |  | متطلبات التخزين (حرارة، جودة) |
-| 23 | `ATTRIBUTES` | JSON | `CLOB` |  |  |  | JSON صالح | إدخال المستخدم |  | خصائص إضافية |
-| 24 | `ITEM_CODE` | نص | `VARCHAR2(50 CHAR)` |  |  | NUK1 |  | إدخال المستخدم |  | الكود المختصر (داخلي/SKU) |
-| 25 | `PRODUCT_PROFILE` | رمز | `VARCHAR2(30 CHAR)` | ✔ | 'GENERAL' |  | GENERAL, AUTO_PART, PHARMA, FOOD, ELECTRONICS, APPAREL, RAW_MATERIAL | إدخال المستخدم |  | ملف الصنف (يحدد الحقول الخاصة) |
-| 26 | `BRAND` | نص | `VARCHAR2(100 CHAR)` |  |  |  |  | إدخال المستخدم |  | العلامة التجارية |
-| 27 | `MANUFACTURER` | نص | `VARCHAR2(200 CHAR)` |  |  |  |  | إدخال المستخدم |  | الشركة المصنعة |
-| 28 | `MANUFACTURER_PART_NO` | نص | `VARCHAR2(100 CHAR)` |  |  |  |  | إدخال المستخدم |  | رقم القطعة لدى المصنع (OEM) |
-| 29 | `GENERIC_NAME` | نص | `VARCHAR2(200 CHAR)` |  |  |  |  | إدخال المستخدم |  | المادة الفعالة / الاسم العلمي |
-| 30 | `STRENGTH` | نص | `VARCHAR2(100 CHAR)` |  |  |  |  | إدخال المستخدم |  | التركيز |
-| 31 | `DOSAGE_FORM` | نص | `VARCHAR2(100 CHAR)` |  |  |  |  | إدخال المستخدم |  | الشكل الصيدلاني |
-| 32 | `REQUIRES_PRESCRIPTION` | منطقي Y/N | `CHAR(1 CHAR)` | ✔ | 'N' |  | Y, N | إدخال المستخدم |  | يصرف بوصفة طبية |
-| 33 | `REGULATORY_REG_NO` | نص | `VARCHAR2(100 CHAR)` |  |  |  |  | إدخال المستخدم |  | رقم التسجيل لدى الجهة الرقابية |
-| 34 | `STATUS_CODE` | رمز | `VARCHAR2(30 CHAR)` | ✔ | 'DRAFT' |  | DRAFT, ACTIVE, INACTIVE, OBSOLETE, BLOCKED | النظام/الحزمة |  | الحالة ضمن دورة الحياة المعتمدة |
-| 35 | `ROW_VERSION` | عدد صحيح | `NUMBER(10)` | ✔ | 1 |  |  | Trigger |  | رقم الإصدار للتحكم في التزامن المتفائل |
-| 36 | `CREATED_BY` | اسم مستخدم | `VARCHAR2(128 CHAR)` | ✔ |  |  |  | Trigger |  | منشئ السجل |
-| 37 | `CREATED_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` | ✔ | SYSTIMESTAMP |  |  | Trigger |  | وقت الإنشاء |
-| 38 | `UPDATED_BY` | اسم مستخدم | `VARCHAR2(128 CHAR)` |  |  |  |  | Trigger |  | آخر من عدل السجل |
-| 39 | `UPDATED_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` |  |  |  |  | Trigger |  | وقت آخر تعديل |
+| 14 | `SERVICE_LIFE_KM` | رقم | `NUMBER` |  |  |  |  | إدخال المستخدم |  | عمر الاستبدال بالكيلومتر (قطع الغيار والزيوت والإطارات) |
+| 15 | `SERVICE_LIFE_DAYS` | عدد صحيح | `NUMBER(10)` |  |  |  |  | إدخال المستخدم |  | عمر الاستبدال بالأيام |
+| 16 | `OWNERSHIP_SCOPE` | رمز | `VARCHAR2(30 CHAR)` | ✔ | 'TENANT_SHARED' |  | TENANT_SHARED, GROUP_SHARED, COMPANY_OWNED | إدخال المستخدم |  | نطاق الملكية |
+| 17 | `OWNER_COMPANY_ID` | معرف | `NUMBER(19)` |  |  | FK→ORG_COMPANY |  | إدخال المستخدم |  | الشركة المالكة |
+| 18 | `IS_SELLABLE` | منطقي Y/N | `CHAR(1 CHAR)` | ✔ | 'Y' |  | Y, N | إدخال المستخدم |  | قابل للبيع |
+| 19 | `IS_PURCHASABLE` | منطقي Y/N | `CHAR(1 CHAR)` | ✔ | 'Y' |  | Y, N | إدخال المستخدم |  | قابل للشراء |
+| 20 | `IS_MANUFACTURED` | منطقي Y/N | `CHAR(1 CHAR)` | ✔ | 'N' |  | Y, N | إدخال المستخدم |  | مصنع داخلياً |
+| 21 | `ALLOW_NEGATIVE` | منطقي Y/N | `CHAR(1 CHAR)` | ✔ | 'N' |  | Y, N | إدخال المستخدم |  | يسمح بالرصيد السالب (ممنوع افتراضياً) |
+| 22 | `WEIGHT_KG` | كمية | `NUMBER(24,6)` |  |  |  |  | إدخال المستخدم |  | الوزن |
+| 23 | `TAX_CATEGORY` | رمز | `VARCHAR2(30 CHAR)` |  |  |  |  | إدخال المستخدم |  | الفئة الضريبية |
+| 24 | `STORAGE_REQUIREMENTS` | نص | `VARCHAR2(500 CHAR)` |  |  |  |  | إدخال المستخدم |  | متطلبات التخزين (حرارة، جودة) |
+| 25 | `ATTRIBUTES` | JSON | `CLOB` |  |  |  | JSON صالح | إدخال المستخدم |  | خصائص إضافية |
+| 26 | `ITEM_CODE` | نص | `VARCHAR2(50 CHAR)` |  |  | NUK1 |  | إدخال المستخدم |  | الكود المختصر (داخلي/SKU) |
+| 27 | `PRODUCT_PROFILE` | رمز | `VARCHAR2(30 CHAR)` | ✔ | 'GENERAL' |  | GENERAL, AUTO_PART, PHARMA, FOOD, ELECTRONICS, APPAREL, RAW_MATERIAL | إدخال المستخدم |  | ملف الصنف (يحدد الحقول الخاصة) |
+| 28 | `BRAND` | نص | `VARCHAR2(100 CHAR)` |  |  |  |  | إدخال المستخدم |  | العلامة التجارية |
+| 29 | `MANUFACTURER` | نص | `VARCHAR2(200 CHAR)` |  |  |  |  | إدخال المستخدم |  | الشركة المصنعة |
+| 30 | `MANUFACTURER_PART_NO` | نص | `VARCHAR2(100 CHAR)` |  |  |  |  | إدخال المستخدم |  | رقم القطعة لدى المصنع (OEM) |
+| 31 | `GENERIC_NAME` | نص | `VARCHAR2(200 CHAR)` |  |  |  |  | إدخال المستخدم |  | المادة الفعالة / الاسم العلمي |
+| 32 | `STRENGTH` | نص | `VARCHAR2(100 CHAR)` |  |  |  |  | إدخال المستخدم |  | التركيز |
+| 33 | `DOSAGE_FORM` | نص | `VARCHAR2(100 CHAR)` |  |  |  |  | إدخال المستخدم |  | الشكل الصيدلاني |
+| 34 | `REQUIRES_PRESCRIPTION` | منطقي Y/N | `CHAR(1 CHAR)` | ✔ | 'N' |  | Y, N | إدخال المستخدم |  | يصرف بوصفة طبية |
+| 35 | `REGULATORY_REG_NO` | نص | `VARCHAR2(100 CHAR)` |  |  |  |  | إدخال المستخدم |  | رقم التسجيل لدى الجهة الرقابية |
+| 36 | `STATUS_CODE` | رمز | `VARCHAR2(30 CHAR)` | ✔ | 'DRAFT' |  | DRAFT, ACTIVE, INACTIVE, OBSOLETE, BLOCKED | النظام/الحزمة |  | الحالة ضمن دورة الحياة المعتمدة |
+| 37 | `ROW_VERSION` | عدد صحيح | `NUMBER(10)` | ✔ | 1 |  |  | Trigger |  | رقم الإصدار للتحكم في التزامن المتفائل |
+| 38 | `CREATED_BY` | اسم مستخدم | `VARCHAR2(128 CHAR)` | ✔ |  |  |  | Trigger |  | منشئ السجل |
+| 39 | `CREATED_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` | ✔ | SYSTIMESTAMP |  |  | Trigger |  | وقت الإنشاء |
+| 40 | `UPDATED_BY` | اسم مستخدم | `VARCHAR2(128 CHAR)` |  |  |  |  | Trigger |  | آخر من عدل السجل |
+| 41 | `UPDATED_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` |  |  |  |  | Trigger |  | وقت آخر تعديل |
 
 ## INV_ITEM_FITMENT
 

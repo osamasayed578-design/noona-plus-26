@@ -22,7 +22,7 @@ wwv_flow_imp_page.create_page(
 ,p_protection_level=>'C'
 );
 wwv_flow_imp_page.create_page_plug(
- p_id=>wwv_flow_imp.id(91820290000000490)
+ p_id=>wwv_flow_imp.id(91820290000000531)
 ,p_plug_name=>'المسارات والمسافات'
 ,p_region_template_options=>'#DEFAULT#'
 ,p_component_template_options=>'#DEFAULT#'
@@ -37,7 +37,7 @@ wwv_flow_imp_page.create_page_plug(
 ,p_prn_page_header=>'المسارات والمسافات'
 );
 wwv_flow_imp_page.create_worksheet(
- p_id=>wwv_flow_imp.id(91820290000000491)
+ p_id=>wwv_flow_imp.id(91820290000000532)
 ,p_max_row_count=>'1000000'
 ,p_no_data_found_message=>'لا توجد بيانات'
 ,p_pagination_type=>'ROWS_X_TO_Y'
@@ -51,10 +51,10 @@ wwv_flow_imp_page.create_worksheet(
 ,p_detail_link=>'f?p=&APP_ID.:52:&SESSION.::&DEBUG.:RP:P52_ID:#ID#'
 ,p_detail_link_text=>'<span role="img" aria-label="تعديل" class="fa fa-edit" title="فتح"></span>'
 ,p_owner=>'NOONA'
-,p_internal_uid=>91820290000000491
+,p_internal_uid=>91820290000000532
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820290000000493)
+ p_id=>wwv_flow_imp.id(91820290000000534)
 ,p_db_column_name=>'ID'
 ,p_display_order=>10
 ,p_column_identifier=>'A'
@@ -65,7 +65,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820290000000494)
+ p_id=>wwv_flow_imp.id(91820290000000535)
 ,p_db_column_name=>'CODE'
 ,p_display_order=>20
 ,p_column_identifier=>'B'
@@ -75,7 +75,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820290000000495)
+ p_id=>wwv_flow_imp.id(91820290000000536)
 ,p_db_column_name=>'NAME_AR'
 ,p_display_order=>30
 ,p_column_identifier=>'C'
@@ -85,7 +85,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820290000000496)
+ p_id=>wwv_flow_imp.id(91820290000000537)
 ,p_db_column_name=>'FROM_LOC'
 ,p_display_order=>40
 ,p_column_identifier=>'D'
@@ -95,7 +95,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820290000000497)
+ p_id=>wwv_flow_imp.id(91820290000000538)
 ,p_db_column_name=>'TO_LOC'
 ,p_display_order=>50
 ,p_column_identifier=>'E'
@@ -105,7 +105,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820290000000498)
+ p_id=>wwv_flow_imp.id(91820290000000539)
 ,p_db_column_name=>'DISTANCE_KM'
 ,p_display_order=>60
 ,p_column_identifier=>'F'
@@ -115,7 +115,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820290000000499)
+ p_id=>wwv_flow_imp.id(91820290000000540)
 ,p_db_column_name=>'STANDARD_HOURS'
 ,p_display_order=>70
 ,p_column_identifier=>'G'
@@ -125,7 +125,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820290000000500)
+ p_id=>wwv_flow_imp.id(91820290000000541)
 ,p_db_column_name=>'AVG_SPEED'
 ,p_display_order=>80
 ,p_column_identifier=>'H'
@@ -135,7 +135,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820290000000501)
+ p_id=>wwv_flow_imp.id(91820290000000542)
 ,p_db_column_name=>'TOLL_AMOUNT'
 ,p_display_order=>90
 ,p_column_identifier=>'I'
@@ -145,7 +145,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820290000000502)
+ p_id=>wwv_flow_imp.id(91820290000000543)
 ,p_db_column_name=>'ROAD_TYPE'
 ,p_display_order=>100
 ,p_column_identifier=>'J'
@@ -155,16 +155,16 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_rpt(
- p_id=>wwv_flow_imp.id(91820290000000492)
+ p_id=>wwv_flow_imp.id(91820290000000533)
 ,p_application_user=>'APXWS_DEFAULT'
 ,p_report_seq=>10
-,p_report_alias=>'492'
+,p_report_alias=>'533'
 ,p_status=>'PUBLIC'
 ,p_is_default=>'Y'
 ,p_report_columns=>'CODE:NAME_AR:FROM_LOC:TO_LOC:DISTANCE_KM:STANDARD_HOURS:AVG_SPEED:TOLL_AMOUNT:ROAD_TYPE'
 );
 wwv_flow_imp_page.create_page_plug(
- p_id=>wwv_flow_imp.id(91820290000000503)
+ p_id=>wwv_flow_imp.id(91820290000000544)
 ,p_plug_name=>'إضافة / تعديل'
 ,p_region_template_options=>'#DEFAULT#'
 ,p_plug_template=>4072358936313175081
@@ -175,19 +175,19 @@ wwv_flow_imp_page.create_page_plug(
   'show_line_breaks', 'Y')).to_clob
 );
 wwv_flow_imp_page.create_page_item(
- p_id=>wwv_flow_imp.id(91820290000000504)
+ p_id=>wwv_flow_imp.id(91820290000000545)
 ,p_name=>'P52_ID'
 ,p_item_sequence=>1
-,p_item_plug_id=>wwv_flow_imp.id(91820290000000503)
+,p_item_plug_id=>wwv_flow_imp.id(91820290000000544)
 ,p_display_as=>'NATIVE_HIDDEN'
 ,p_attributes=>wwv_flow_t_plugin_attributes(wwv_flow_t_varchar2(
   'value_protected', 'Y')).to_clob
 );
 wwv_flow_imp_page.create_page_item(
- p_id=>wwv_flow_imp.id(91820290000000505)
+ p_id=>wwv_flow_imp.id(91820290000000546)
 ,p_name=>'P52_FROM'
 ,p_item_sequence=>10
-,p_item_plug_id=>wwv_flow_imp.id(91820290000000503)
+,p_item_plug_id=>wwv_flow_imp.id(91820290000000544)
 ,p_prompt=>'من'
 ,p_display_as=>'NATIVE_SELECT_LIST'
 ,p_lov=>'select name_ar || '' ('' || code || '')'' d, id r from trn_location where company_id = noona_trn_pkg.company and is_active = ''Y'' order by name_ar'
@@ -201,10 +201,10 @@ wwv_flow_imp_page.create_page_item(
   'page_action_on_selection', 'NONE')).to_clob
 );
 wwv_flow_imp_page.create_page_item(
- p_id=>wwv_flow_imp.id(91820290000000506)
+ p_id=>wwv_flow_imp.id(91820290000000547)
 ,p_name=>'P52_TO'
 ,p_item_sequence=>20
-,p_item_plug_id=>wwv_flow_imp.id(91820290000000503)
+,p_item_plug_id=>wwv_flow_imp.id(91820290000000544)
 ,p_prompt=>'إلى'
 ,p_display_as=>'NATIVE_SELECT_LIST'
 ,p_lov=>'select name_ar || '' ('' || code || '')'' d, id r from trn_location where company_id = noona_trn_pkg.company and is_active = ''Y'' order by name_ar'
@@ -219,10 +219,10 @@ wwv_flow_imp_page.create_page_item(
   'page_action_on_selection', 'NONE')).to_clob
 );
 wwv_flow_imp_page.create_page_item(
- p_id=>wwv_flow_imp.id(91820290000000507)
+ p_id=>wwv_flow_imp.id(91820290000000548)
 ,p_name=>'P52_DIST'
 ,p_item_sequence=>30
-,p_item_plug_id=>wwv_flow_imp.id(91820290000000503)
+,p_item_plug_id=>wwv_flow_imp.id(91820290000000544)
 ,p_prompt=>'المسافة (كم)'
 ,p_display_as=>'NATIVE_NUMBER_FIELD'
 ,p_cSize=>20
@@ -233,10 +233,10 @@ wwv_flow_imp_page.create_page_item(
   'virtual_keyboard', 'decimal')).to_clob
 );
 wwv_flow_imp_page.create_page_item(
- p_id=>wwv_flow_imp.id(91820290000000508)
+ p_id=>wwv_flow_imp.id(91820290000000549)
 ,p_name=>'P52_HRS'
 ,p_item_sequence=>40
-,p_item_plug_id=>wwv_flow_imp.id(91820290000000503)
+,p_item_plug_id=>wwv_flow_imp.id(91820290000000544)
 ,p_prompt=>'الزمن القياسي بالساعات (فارغ = بسرعة 70 كم/س)'
 ,p_display_as=>'NATIVE_NUMBER_FIELD'
 ,p_cSize=>20
@@ -248,10 +248,10 @@ wwv_flow_imp_page.create_page_item(
   'virtual_keyboard', 'decimal')).to_clob
 );
 wwv_flow_imp_page.create_page_item(
- p_id=>wwv_flow_imp.id(91820290000000509)
+ p_id=>wwv_flow_imp.id(91820290000000550)
 ,p_name=>'P52_TOLL'
 ,p_item_sequence=>50
-,p_item_plug_id=>wwv_flow_imp.id(91820290000000503)
+,p_item_plug_id=>wwv_flow_imp.id(91820290000000544)
 ,p_prompt=>'رسوم الطرق'
 ,p_display_as=>'NATIVE_NUMBER_FIELD'
 ,p_cSize=>20
@@ -262,10 +262,10 @@ wwv_flow_imp_page.create_page_item(
   'virtual_keyboard', 'decimal')).to_clob
 );
 wwv_flow_imp_page.create_page_item(
- p_id=>wwv_flow_imp.id(91820290000000510)
+ p_id=>wwv_flow_imp.id(91820290000000551)
 ,p_name=>'P52_ROAD'
 ,p_item_sequence=>60
-,p_item_plug_id=>wwv_flow_imp.id(91820290000000503)
+,p_item_plug_id=>wwv_flow_imp.id(91820290000000544)
 ,p_prompt=>'نوع الطريق'
 ,p_display_as=>'NATIVE_SELECT_LIST'
 ,p_lov=>'STATIC2:سريع;HIGHWAY,معبد;PAVED,غير معبد;UNPAVED,مختلط;MIXED'
@@ -278,10 +278,10 @@ wwv_flow_imp_page.create_page_item(
   'page_action_on_selection', 'NONE')).to_clob
 );
 wwv_flow_imp_page.create_page_item(
- p_id=>wwv_flow_imp.id(91820290000000511)
+ p_id=>wwv_flow_imp.id(91820290000000552)
 ,p_name=>'P52_NAME'
 ,p_item_sequence=>70
-,p_item_plug_id=>wwv_flow_imp.id(91820290000000503)
+,p_item_plug_id=>wwv_flow_imp.id(91820290000000544)
 ,p_prompt=>'اسم المسار (اختياري)'
 ,p_display_as=>'NATIVE_TEXT_FIELD'
 ,p_cSize=>30
@@ -295,9 +295,9 @@ wwv_flow_imp_page.create_page_item(
   'trim_spaces', 'BOTH')).to_clob
 );
 wwv_flow_imp_page.create_page_button(
- p_id=>wwv_flow_imp.id(91820290000000512)
+ p_id=>wwv_flow_imp.id(91820290000000553)
 ,p_button_sequence=>10
-,p_button_plug_id=>wwv_flow_imp.id(91820290000000503)
+,p_button_plug_id=>wwv_flow_imp.id(91820290000000544)
 ,p_button_name=>'SAVE'
 ,p_button_action=>'SUBMIT'
 ,p_button_template_options=>'#DEFAULT#'
@@ -307,7 +307,7 @@ wwv_flow_imp_page.create_page_button(
 ,p_button_position=>'NEXT'
 );
 wwv_flow_imp_page.create_page_process(
- p_id=>wwv_flow_imp.id(91820290000000513)
+ p_id=>wwv_flow_imp.id(91820290000000554)
 ,p_process_sequence=>10
 ,p_process_point=>'AFTER_SUBMIT'
 ,p_process_type=>'NATIVE_PLSQL'
@@ -320,19 +320,19 @@ wwv_flow_imp_page.create_page_process(
 'end;'))
 ,p_process_clob_language=>'PLSQL'
 ,p_error_display_location=>'INLINE_IN_NOTIFICATION'
-,p_process_when_button_id=>wwv_flow_imp.id(91820290000000512)
+,p_process_when_button_id=>wwv_flow_imp.id(91820290000000553)
 ,p_process_success_message=>'تم الحفظ'
-,p_internal_uid=>91820290000000513
+,p_internal_uid=>91820290000000554
 );
 wwv_flow_imp_page.create_page_branch(
- p_id=>wwv_flow_imp.id(91820290000000514)
+ p_id=>wwv_flow_imp.id(91820290000000555)
 ,p_branch_action=>'f?p=&APP_ID.:52:&SESSION.::&DEBUG.:RP,52::&success_msg=#SUCCESS_MSG#'
 ,p_branch_point=>'AFTER_PROCESSING'
 ,p_branch_type=>'REDIRECT_URL'
 ,p_branch_sequence=>10
 );
 wwv_flow_imp_page.create_page_process(
- p_id=>wwv_flow_imp.id(91820290000000515)
+ p_id=>wwv_flow_imp.id(91820290000000556)
 ,p_process_sequence=>5
 ,p_process_point=>'BEFORE_HEADER'
 ,p_process_type=>'NATIVE_PLSQL'
@@ -346,7 +346,7 @@ wwv_flow_imp_page.create_page_process(
 'end;'))
 ,p_process_clob_language=>'PLSQL'
 ,p_error_display_location=>'INLINE_IN_NOTIFICATION'
-,p_internal_uid=>91820290000000515
+,p_internal_uid=>91820290000000556
 );
 
 wwv_flow_imp.component_end;

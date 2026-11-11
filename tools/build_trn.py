@@ -465,13 +465,16 @@ p.select('P35_LTYPE', ln, 10, 'النوع', lov_sql='STATIC2:قطع غيار;PAR
 p.text('P35_LDESC', ln, 20, 'البيان', maxlen=500, width=30)
 p.number('P35_LQTY', ln, 30, 'الكمية')
 p.number('P35_LCOST', ln, 40, 'تكلفة الوحدة')
+p.number('P35_LKM', ln, 42, 'عمر الاستبدال (كم) - من الصنف إن ترك')
+p.number('P35_LDAYS', ln, 44, 'عمر الاستبدال (يوم) - من الصنف إن ترك')
 p.number('P35_LDEL', ln, 50, 'حذف البند رقم')
 b_add = p.button(ln, 10, 'ADD_LINE', 'إضافة البند', hot=True)
 b_del = p.button(ln, 20, 'DEL_LINE', 'حذف البند')
 p.process(20, 'AFTER_SUBMIT', 'Add line', [
     'declare x number; begin',
-    "  x := noona_trn_pkg.add_maint_line(:P35_ID, :P35_LTYPE, :P35_LDESC, nvl(to_number(:P35_LQTY), 1), to_number(:P35_LCOST), to_number(:P35_LITEM));",
-    '  :P35_LDESC := null; :P35_LQTY := null; :P35_LCOST := null; :P35_LITEM := null;', 'end;'], when_button=b_add,
+    "  x := noona_trn_pkg.add_maint_line(:P35_ID, :P35_LTYPE, :P35_LDESC, nvl(to_number(:P35_LQTY), 1), to_number(:P35_LCOST), to_number(:P35_LITEM),",
+    "                                    to_number(:P35_LKM), to_number(:P35_LDAYS));",
+    '  :P35_LDESC := null; :P35_LQTY := null; :P35_LCOST := null; :P35_LITEM := null; :P35_LKM := null; :P35_LDAYS := null;', 'end;'], when_button=b_add,
     success='أضيف البند (الصنف المخزني صرف من المستودع)')
 p.process(21, 'AFTER_SUBMIT', 'Delete line', 'noona_trn_pkg.remove_maint_line(to_number(:P35_LDEL)); :P35_LDEL := null;',
           when_button=b_del, success='حذف البند')
@@ -538,6 +541,53 @@ def master(pid, alias, title, ir_sql, cols, form, save_call, nav_scheme=SETUP):
     p.branch(10, f'f?p=&APP_ID.:{pid}:&SESSION.::&DEBUG.:RP,{pid}::&success_msg=#SUCCESS_MSG#')
     return p
 
+
+# 37) تقارير صيانة الأسطول والأداء
+p = app.page(37, 'Fleet Performance', 'FLEET-PERFORMANCE', 'مصروفات قطع الغيار وأداء العربات والسائقين', scheme=TRN, protection='N')
+fl = p.static('الفترة', 5)
+p.date('P37_FROM', fl, 10, 'من')
+p.date('P37_TO', fl, 20, 'إلى')
+p.select('P37_VEH', fl, 30, 'العربة (الكل إن تركت)', lov_sql=f"select plate_no d, id r from trn_vehicle where company_id = {CO} order by plate_no")
+p.button(fl, 10, 'SHOW', 'عرض', hot=True)
+p.process(5, 'BEFORE_HEADER', 'Defaults', [
+    "if :P37_FROM is null then :P37_FROM := to_char(trunc(sysdate, 'YYYY'), 'YYYY-MM-DD'); end if;",
+    "if :P37_TO is null then :P37_TO := to_char(sysdate, 'YYYY-MM-DD'); end if;"])
+D = "to_date(:P37_FROM, 'YYYY-MM-DD'), to_date(:P37_TO, 'YYYY-MM-DD')"
+p.dynamic('أداء العربات', 10, f'return noona_trn_pkg.vehicle_perf_html({D}, to_number(:P37_VEH));')
+p.dynamic('أداء السائقين', 20, f'return noona_trn_pkg.driver_perf_html({D});')
+p.dynamic('مصروفات قطع الغيار والزيوت والإطارات لكل عربة', 30, f'return noona_trn_pkg.parts_report_html({D}, to_number(:P37_VEH));')
+p.ir('بنود الصيانة (للتصدير إلى Excel)', 40, [
+    "select v.plate_no, o.doc_no, cast(o.completed_at as date) done_date, noona_trn_pkg.maint_type_label(o.maint_type) maint_type,",
+    "       noona_trn_pkg.maint_type_label(l.line_type) line_type, l.description, l.quantity, l.unit_cost, l.amount,",
+    "       decode(l.from_stock, 'Y', 'المخزون', 'خارجي') source, o.odometer_km, l.next_due_km, l.next_due_date",
+    "  from trn_maint_line l join trn_maint_order o on o.id = l.order_id join trn_vehicle v on v.id = o.vehicle_id",
+    f" where o.company_id = {CO} and o.status_code = 'COMPLETED'",
+    "   and o.completed_at >= to_date(:P37_FROM, 'YYYY-MM-DD') and o.completed_at < to_date(:P37_TO, 'YYYY-MM-DD') + 1",
+    "   and (:P37_VEH is null or o.vehicle_id = to_number(:P37_VEH))",
+    " order by v.plate_no, o.completed_at"],
+    [('PLATE_NO', 'العربة', {}), ('DOC_NO', 'الأمر', {}), ('DONE_DATE', 'التاريخ', {'type': 'DATE', 'format': 'YYYY-MM-DD'}),
+     ('MAINT_TYPE', 'نوع الصيانة', {}), ('LINE_TYPE', 'البند', {}), ('DESCRIPTION', 'البيان', {}), ('QUANTITY', 'الكمية', {'type': 'NUMBER'}),
+     ('UNIT_COST', 'التكلفة', {'type': 'NUMBER'}), ('AMOUNT', 'المبلغ', {'type': 'NUMBER', 'fmt': '999G999G990D00'}), ('SOURCE', 'المصدر', {}),
+     ('ODOMETER_KM', 'العداد', {'type': 'NUMBER'}), ('NEXT_DUE_KM', 'الاستبدال عند (كم)', {'type': 'NUMBER'}),
+     ('NEXT_DUE_DATE', 'الاستبدال بتاريخ', {'type': 'DATE', 'format': 'YYYY-MM-DD'})])
+
+# 38) أعمار قطع الغيار
+p = app.page(38, 'Part Service Life', 'PART-LIFE', 'أعمار استبدال قطع الغيار', scheme=TRN)
+lf = p.static('عمر الاستبدال', 5, text=(
+    '<p class="nn-hint">عمر كل قطعة غيار أو زيت أو إطار بالكيلومتر أو بالأيام: عند صرفها في أمر صيانة يحدد النظام موعد استبدالها التالي '
+    'من عداد العربة وتاريخ الإقفال، وتظهر في «صيانة الأسطول» عند اقتراب موعدها.</p>'))
+p.select('P38_ITEM', lf, 10, 'الصنف', required=True, lov_sql=(
+    "select item_no || ' - ' || name_ar d, id r from inv_item where status_code = 'ACTIVE' and item_type not in ('SERVICE', 'NON_STOCK') order by name_ar"))
+p.number('P38_KM', lf, 20, 'كل (كم)')
+p.number('P38_DAYS', lf, 30, 'أو كل (يوم)')
+b38 = p.button(lf, 10, 'SAVE', 'حفظ', hot=True)
+p.process(10, 'AFTER_SUBMIT', 'Save', 'noona_trn_pkg.set_part_life(to_number(:P38_ITEM), to_number(:P38_KM), to_number(:P38_DAYS)); :P38_ITEM := null; :P38_KM := null; :P38_DAYS := null;',
+          when_button=b38, success='حفظ عمر الاستبدال')
+p.ir('الأصناف ذات عمر استبدال', 20, [
+    "select item_no, name_ar, service_life_km, service_life_days from inv_item",
+    " where service_life_km is not null or service_life_days is not null order by name_ar"],
+    [('ITEM_NO', 'رقم الصنف', {}), ('NAME_AR', 'الصنف', {}), ('SERVICE_LIFE_KM', 'كل (كم)', {'type': 'NUMBER'}),
+     ('SERVICE_LIFE_DAYS', 'كل (يوم)', {'type': 'NUMBER'})])
 
 # 36) برامج الصيانة الدورية
 p = master(36, 'MAINT-PLANS', 'برامج الصيانة الدورية', [
@@ -798,6 +848,8 @@ app.nav_item('العربات والشاحنات', 40, 'fa-truck', 31, parent=fl,
 app.nav_item('السائقون', 42, 'fa-id-card', 32, parent=fl, scheme=SETUP)
 app.nav_item('صيانة الأسطول', 34, 'fa-wrench', 33, parent=fl)
 app.nav_item('برامج الصيانة الدورية', 36, 'fa-calendar-check-o', 34, parent=fl)
+app.nav_item('أعمار استبدال قطع الغيار', 38, 'fa-hourglass-half', 35, parent=fl)
+app.nav_item('قطع الغيار وأداء العربات والسائقين', 37, 'fa-line-chart', 36, parent=fl)
 st = app.nav_item('الإعداد', None, 'fa-cogs', 40, scheme=SETUP)
 app.nav_item('المدن والمواقع', 50, 'fa-map-marker', 41, parent=st, scheme=SETUP)
 app.nav_item('المسارات والمسافات', 52, 'fa-map', 42, parent=st, scheme=SETUP)
