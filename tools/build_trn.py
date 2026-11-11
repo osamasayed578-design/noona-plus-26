@@ -164,14 +164,14 @@ p = app.page(20, 'Trips', 'TRIPS', 'الرحلات', scheme=TRN)
 r = p.static('رحلة جديدة', 5)
 p.button(r, 10, 'NEW', 'رحلة جديدة', hot=True, redirect=url(22, clear='RP,22'))
 p.ir('الرحلات', 10, [
-    'select t.id, t.doc_no, v.plate_no, d.full_name driver, f.name_ar from_loc, tl.name_ar to_loc, t.planned_departure, t.actual_departure, t.eta,',
+    'select t.id, t.doc_no, noona_trn_pkg.trip_customers(t.id) customers, v.plate_no, d.full_name driver, f.name_ar from_loc, tl.name_ar to_loc, t.planned_departure, t.actual_departure, t.eta,',
     '       t.actual_arrival, t.delay_minutes, round(t.load_kg / 1000, 2) tons, t.actual_distance_km, t.revenue_amount, t.expense_amount,',
     '       t.revenue_amount - t.expense_amount net_amount, noona_trn_pkg.badge(t.status_code) status_html,',
     '       noona_trn_pkg.badge(noona_trn_pkg.timeliness(t.id)) time_html',
     '  from trn_trip t join trn_vehicle v on v.id = t.vehicle_id join trn_driver d on d.id = t.driver_id',
     '  join trn_location f on f.id = t.from_location_id join trn_location tl on tl.id = t.to_location_id',
     f' where t.company_id = {CO} order by t.id desc'],
-    [('ID', '#', {'hidden': True, 'type': 'NUMBER'}), ('DOC_NO', 'الرحلة', {}), ('PLATE_NO', 'العربة', {}), ('DRIVER', 'السائق', {}),
+    [('ID', '#', {'hidden': True, 'type': 'NUMBER'}), ('DOC_NO', 'الرحلة', {}), ('CUSTOMERS', 'العميل', {}), ('PLATE_NO', 'العربة', {}), ('DRIVER', 'السائق', {}),
      ('FROM_LOC', 'من', {}), ('TO_LOC', 'إلى', {}), ('PLANNED_DEPARTURE', 'التحرك المخطط', {}), ('ACTUAL_DEPARTURE', 'التحرك الفعلي', {}),
      ('ETA', 'الوصول المتوقع', {}), ('ACTUAL_ARRIVAL', 'الوصول الفعلي', {}), ('DELAY_MINUTES', 'التأخير (د)', {'type': 'NUMBER'}),
      ('TONS', 'الحمولة (طن)', {'type': 'NUMBER'}), ('ACTUAL_DISTANCE_KM', 'المسافة (كم)', {'type': 'NUMBER'}),

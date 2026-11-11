@@ -54,7 +54,7 @@ wwv_flow_imp_page.create_page_plug(
 ,p_plug_display_sequence=>10
 ,p_query_type=>'SQL'
 ,p_plug_source=>wwv_flow_string.join(wwv_flow_t_varchar2(
-'select t.id, t.doc_no, v.plate_no, d.full_name driver, f.name_ar from_loc, tl.name_ar to_loc, t.planned_departure, t.actual_departure, t.eta,',
+'select t.id, t.doc_no, noona_trn_pkg.trip_customers(t.id) customers, v.plate_no, d.full_name driver, f.name_ar from_loc, tl.name_ar to_loc, t.planned_departure, t.actual_departure, t.eta,',
 '       t.actual_arrival, t.delay_minutes, round(t.load_kg / 1000, 2) tons, t.actual_distance_km, t.revenue_amount, t.expense_amount,',
 '       t.revenue_amount - t.expense_amount net_amount, noona_trn_pkg.badge(t.status_code) status_html,',
 '       noona_trn_pkg.badge(noona_trn_pkg.timeliness(t.id)) time_html',
@@ -104,149 +104,159 @@ wwv_flow_imp_page.create_worksheet_column(
 );
 wwv_flow_imp_page.create_worksheet_column(
  p_id=>wwv_flow_imp.id(91820290000000093)
-,p_db_column_name=>'PLATE_NO'
+,p_db_column_name=>'CUSTOMERS'
 ,p_display_order=>30
 ,p_column_identifier=>'C'
-,p_column_label=>'العربة'
+,p_column_label=>'العميل'
 ,p_column_type=>'STRING'
 ,p_heading_alignment=>'CENTER'
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
  p_id=>wwv_flow_imp.id(91820290000000094)
-,p_db_column_name=>'DRIVER'
+,p_db_column_name=>'PLATE_NO'
 ,p_display_order=>40
 ,p_column_identifier=>'D'
-,p_column_label=>'السائق'
+,p_column_label=>'العربة'
 ,p_column_type=>'STRING'
 ,p_heading_alignment=>'CENTER'
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
  p_id=>wwv_flow_imp.id(91820290000000095)
-,p_db_column_name=>'FROM_LOC'
+,p_db_column_name=>'DRIVER'
 ,p_display_order=>50
 ,p_column_identifier=>'E'
-,p_column_label=>'من'
+,p_column_label=>'السائق'
 ,p_column_type=>'STRING'
 ,p_heading_alignment=>'CENTER'
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
  p_id=>wwv_flow_imp.id(91820290000000096)
-,p_db_column_name=>'TO_LOC'
+,p_db_column_name=>'FROM_LOC'
 ,p_display_order=>60
 ,p_column_identifier=>'F'
-,p_column_label=>'إلى'
+,p_column_label=>'من'
 ,p_column_type=>'STRING'
 ,p_heading_alignment=>'CENTER'
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
  p_id=>wwv_flow_imp.id(91820290000000097)
-,p_db_column_name=>'PLANNED_DEPARTURE'
+,p_db_column_name=>'TO_LOC'
 ,p_display_order=>70
 ,p_column_identifier=>'G'
-,p_column_label=>'التحرك المخطط'
+,p_column_label=>'إلى'
 ,p_column_type=>'STRING'
 ,p_heading_alignment=>'CENTER'
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
  p_id=>wwv_flow_imp.id(91820290000000098)
-,p_db_column_name=>'ACTUAL_DEPARTURE'
+,p_db_column_name=>'PLANNED_DEPARTURE'
 ,p_display_order=>80
 ,p_column_identifier=>'H'
-,p_column_label=>'التحرك الفعلي'
+,p_column_label=>'التحرك المخطط'
 ,p_column_type=>'STRING'
 ,p_heading_alignment=>'CENTER'
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
  p_id=>wwv_flow_imp.id(91820290000000099)
-,p_db_column_name=>'ETA'
+,p_db_column_name=>'ACTUAL_DEPARTURE'
 ,p_display_order=>90
 ,p_column_identifier=>'I'
-,p_column_label=>'الوصول المتوقع'
+,p_column_label=>'التحرك الفعلي'
 ,p_column_type=>'STRING'
 ,p_heading_alignment=>'CENTER'
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
  p_id=>wwv_flow_imp.id(91820290000000100)
-,p_db_column_name=>'ACTUAL_ARRIVAL'
+,p_db_column_name=>'ETA'
 ,p_display_order=>100
 ,p_column_identifier=>'J'
-,p_column_label=>'الوصول الفعلي'
+,p_column_label=>'الوصول المتوقع'
 ,p_column_type=>'STRING'
 ,p_heading_alignment=>'CENTER'
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
  p_id=>wwv_flow_imp.id(91820290000000101)
-,p_db_column_name=>'DELAY_MINUTES'
+,p_db_column_name=>'ACTUAL_ARRIVAL'
 ,p_display_order=>110
 ,p_column_identifier=>'K'
+,p_column_label=>'الوصول الفعلي'
+,p_column_type=>'STRING'
+,p_heading_alignment=>'CENTER'
+,p_use_as_row_header=>'N'
+);
+wwv_flow_imp_page.create_worksheet_column(
+ p_id=>wwv_flow_imp.id(91820290000000102)
+,p_db_column_name=>'DELAY_MINUTES'
+,p_display_order=>120
+,p_column_identifier=>'L'
 ,p_column_label=>'التأخير (د)'
 ,p_column_type=>'NUMBER'
 ,p_heading_alignment=>'CENTER'
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820290000000102)
+ p_id=>wwv_flow_imp.id(91820290000000103)
 ,p_db_column_name=>'TONS'
-,p_display_order=>120
-,p_column_identifier=>'L'
+,p_display_order=>130
+,p_column_identifier=>'M'
 ,p_column_label=>'الحمولة (طن)'
 ,p_column_type=>'NUMBER'
 ,p_heading_alignment=>'CENTER'
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820290000000103)
+ p_id=>wwv_flow_imp.id(91820290000000104)
 ,p_db_column_name=>'ACTUAL_DISTANCE_KM'
-,p_display_order=>130
-,p_column_identifier=>'M'
+,p_display_order=>140
+,p_column_identifier=>'N'
 ,p_column_label=>'المسافة (كم)'
 ,p_column_type=>'NUMBER'
 ,p_heading_alignment=>'CENTER'
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820290000000104)
+ p_id=>wwv_flow_imp.id(91820290000000105)
 ,p_db_column_name=>'REVENUE_AMOUNT'
-,p_display_order=>140
-,p_column_identifier=>'N'
+,p_display_order=>150
+,p_column_identifier=>'O'
 ,p_column_label=>'الإيراد'
 ,p_column_type=>'NUMBER'
 ,p_heading_alignment=>'CENTER'
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820290000000105)
+ p_id=>wwv_flow_imp.id(91820290000000106)
 ,p_db_column_name=>'EXPENSE_AMOUNT'
-,p_display_order=>150
-,p_column_identifier=>'O'
+,p_display_order=>160
+,p_column_identifier=>'P'
 ,p_column_label=>'المصروف'
 ,p_column_type=>'NUMBER'
 ,p_heading_alignment=>'CENTER'
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820290000000106)
+ p_id=>wwv_flow_imp.id(91820290000000107)
 ,p_db_column_name=>'NET_AMOUNT'
-,p_display_order=>160
-,p_column_identifier=>'P'
+,p_display_order=>170
+,p_column_identifier=>'Q'
 ,p_column_label=>'الصافي'
 ,p_column_type=>'NUMBER'
 ,p_heading_alignment=>'CENTER'
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820290000000107)
+ p_id=>wwv_flow_imp.id(91820290000000108)
 ,p_db_column_name=>'STATUS_HTML'
-,p_display_order=>170
-,p_column_identifier=>'Q'
+,p_display_order=>180
+,p_column_identifier=>'R'
 ,p_column_label=>'الحالة'
 ,p_column_type=>'STRING'
 ,p_display_text_as=>'WITHOUT_MODIFICATION'
@@ -254,10 +264,10 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820290000000108)
+ p_id=>wwv_flow_imp.id(91820290000000109)
 ,p_db_column_name=>'TIME_HTML'
-,p_display_order=>180
-,p_column_identifier=>'R'
+,p_display_order=>190
+,p_column_identifier=>'S'
 ,p_column_label=>'المواعيد'
 ,p_column_type=>'STRING'
 ,p_display_text_as=>'WITHOUT_MODIFICATION'
@@ -271,7 +281,7 @@ wwv_flow_imp_page.create_worksheet_rpt(
 ,p_report_alias=>'90'
 ,p_status=>'PUBLIC'
 ,p_is_default=>'Y'
-,p_report_columns=>'DOC_NO:PLATE_NO:DRIVER:FROM_LOC:TO_LOC:PLANNED_DEPARTURE:ACTUAL_DEPARTURE:ETA:ACTUAL_ARRIVAL:DELAY_MINUTES:TONS:ACTUAL_DISTANCE_KM:REVENUE_AMOUNT:EXPENSE_AMOUNT:NET_AMOUNT:STATUS_HTML:TIME_HTML'
+,p_report_columns=>'DOC_NO:CUSTOMERS:PLATE_NO:DRIVER:FROM_LOC:TO_LOC:PLANNED_DEPARTURE:ACTUAL_DEPARTURE:ETA:ACTUAL_ARRIVAL:DELAY_MINUTES:TONS:ACTUAL_DISTANCE_KM:REVENUE_AMOUNT:EXPENSE_AMOUNT:NET_AMOUNT:STATUS_HTML:TIME_HTML'
 );
 
 wwv_flow_imp.component_end;
