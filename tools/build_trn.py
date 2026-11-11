@@ -386,7 +386,115 @@ p.process(31, 'AFTER_SUBMIT', 'Respond', 'noona_trn_pkg.respond_incident(:P31_ID
 p.process(32, 'AFTER_SUBMIT', 'Resolve', 'noona_trn_pkg.resolve_incident(:P31_ID, :P31_ACTION, to_number(:P31_DOWN), to_number(:P31_COST));',
           when_button=b_res, success='تم الحل؛ أضيف التوقف لتأخير الرحلة والتكلفة لمصروفاتها')
 p.process(33, 'AFTER_SUBMIT', 'Close', 'noona_trn_pkg.close_incident(:P31_ID);', when_button=b_cls, success='أغلق البلاغ')
+p.button(w, 50, 'TO_MAINT', 'فتح أمر صيانة للعطل', redirect=url(35, 'P35_INC,P35_TYPE', '&P31_ID.,CORRECTIVE', 'RP,35'))
 p.branch(10, url(31, 'P31_ID', '&P31_ID.') + '&success_msg=#SUCCESS_MSG#')
+
+
+# =============================================================== 34-36) صيانة الأسطول
+MTYPE = ('STATIC2:وقائية دورية;PREVENTIVE,إصلاح عطل;CORRECTIVE,عمرة;OVERHAUL,فحص;INSPECTION,إصلاح حادث;ACCIDENT,إطارات;TIRES,'
+         'تطوير وتحسين;UPGRADE')
+SUPP_LOV = "select p.display_name_ar d, p.id r from pty_party p where exists (select 1 from ap_supplier s where s.party_id = p.id) order by 1"
+MS = lambda st: f"noona_trn_pkg.maint_order_status(:P35_ID) in ({st})"
+p = app.page(34, 'Fleet Maintenance', 'MAINTENANCE', 'صيانة الأسطول', scheme=TRN)
+r = p.static('أمر صيانة', 5)
+p.button(r, 10, 'NEW', 'فتح أمر صيانة لعربة', hot=True, redirect=url(35, clear='RP,35'))
+p.button(r, 20, 'PLANS', 'برامج الصيانة الدورية', redirect=url(36))
+p.dynamic('الصيانات الدورية المستحقة (بالكيلومتر أو الأيام)', 8, 'return noona_trn_pkg.maint_due_html;')
+p.ir('أوامر الصيانة', 10, [
+    "select o.id, o.doc_no, o.opened_at, v.plate_no, noona_trn_pkg.maint_type_label(o.maint_type) maint_type,",
+    "       noona_trn_pkg.maint_type_label(o.workshop) workshop, pt.display_name_ar vendor, o.description, o.odometer_km,",
+    "       o.parts_cost, o.labor_cost, o.total_cost, noona_trn_pkg.maint_type_label(o.treatment) treatment, o.life_extension_months,",
+    "       o.downtime_hours, o.completed_at, noona_trn_pkg.badge(o.status_code) status_html",
+    "  from trn_maint_order o join trn_vehicle v on v.id = o.vehicle_id left join pty_party pt on pt.id = o.vendor_party_id",
+    f" where o.company_id = {CO} order by o.id desc"],
+    [('ID', '#', {'hidden': True, 'type': 'NUMBER'}), ('DOC_NO', 'الأمر', {}), ('OPENED_AT', 'الدخول', {}), ('PLATE_NO', 'العربة', {}),
+     ('MAINT_TYPE', 'النوع', {}), ('WORKSHOP', 'الورشة', {}), ('VENDOR', 'المورد', {}), ('DESCRIPTION', 'العمل', {}),
+     ('ODOMETER_KM', 'العداد', {'type': 'NUMBER'}), ('PARTS_COST', 'القطع', {'type': 'NUMBER', 'fmt': '999G999G990D00'}),
+     ('LABOR_COST', 'العمالة', {'type': 'NUMBER', 'fmt': '999G999G990D00'}), ('TOTAL_COST', 'الإجمالي', {'type': 'NUMBER', 'fmt': '999G999G990D00'}),
+     ('TREATMENT', 'المعالجة', {}), ('LIFE_EXTENSION_MONTHS', 'تمديد العمر (شهر)', {'type': 'NUMBER'}),
+     ('DOWNTIME_HOURS', 'التوقف (س)', {'type': 'NUMBER'}), ('COMPLETED_AT', 'الخروج', {}), ('STATUS_HTML', 'الحالة', {'html': True})],
+    link=link(35, 'P35_ID'))
+p.dynamic('تكلفة الصيانة لكل عربة منذ بداية السنة', 20, 'return noona_trn_pkg.maint_cost_html;')
+
+p = app.page(35, 'Maintenance Order', 'MAINT-ORDER', 'أمر صيانة عربة', scheme=TRN, protection='N')
+f = p.static('فتح أمر صيانة', 10, condition=':P35_ID is null', text=(
+    '<p class="nn-hint">تدخل العربة «في الصيانة» ولا تسند لرحلة حتى إقفال الأمر. اختر البرنامج الدوري للصيانة الوقائية، '
+    'أو البلاغ إذا كانت الصيانة لعطل مسجل.</p>'))
+p.hidden('P35_ID', f, 1, protected=False)
+p.select('P35_VEH', f, 10, 'العربة', lov_sql=(
+    "select v.plate_no || ' · ' || noona_trn_pkg.status_label(v.status_code) || ' · ' || v.odometer_km || ' كم' d, v.id r "
+    f"from trn_vehicle v where v.company_id = {CO} and v.status_code <> 'SOLD' order by v.plate_no"), required=True)
+p.select('P35_TYPE', f, 20, 'النوع', lov_sql=MTYPE, null_text=None)
+p.select('P35_PLAN', f, 30, 'البرنامج الدوري', lov_sql=(
+    f"select service_name || nvl2(every_km, ' · كل ' || every_km || ' كم', '') || nvl2(every_days, ' · كل ' || every_days || ' يوم', '') d, id r "
+    f"from trn_maint_plan where company_id = {CO} and status_code = 'ACTIVE' order by service_name"))
+p.select('P35_INC', f, 40, 'البلاغ / العطل', lov_sql=(
+    "select i.doc_no || ' · ' || v.plate_no || ' · ' || substr(i.description, 1, 60) d, i.id r from trn_incident i "
+    f"join trn_vehicle v on v.id = i.vehicle_id where i.company_id = {CO} and i.status_code <> 'CLOSED' order by i.id desc"))
+p.select('P35_WS', f, 50, 'الورشة', lov_sql='STATIC2:ورشة داخلية;INTERNAL,ورشة خارجية;EXTERNAL', null_text=None)
+p.select('P35_VENDOR', f, 60, 'الورشة الخارجية / المورد', lov_sql=SUPP_LOV)
+p.number('P35_ODO', f, 70, 'العداد عند الدخول (كم)')
+p.textarea('P35_DESC', f, 80, 'وصف العمل (يؤخذ من البرنامج أو البلاغ إن ترك فارغاً)', rows=2)
+b_open = p.button(f, 10, 'OPEN', 'فتح الأمر وإدخال العربة الصيانة', hot=True)
+p.process(4, 'BEFORE_HEADER', 'Defaults', [
+    'begin',
+    "  if :P35_TYPE is null then :P35_TYPE := 'CORRECTIVE'; end if;",
+    "  if :P35_WS is null then :P35_WS := 'INTERNAL'; end if;",
+    "  if :P35_ID is null and :P35_INC is not null and :P35_VEH is null then",
+    f"    select max(vehicle_id) into :P35_VEH from trn_incident where id = :P35_INC and company_id = {CO};",
+    "  end if;",
+    'end;'])
+p.process(10, 'AFTER_SUBMIT', 'Open', ['declare l clob;', 'begin',
+    "  select json_object('vehicle' value to_number(:P35_VEH), 'type' value :P35_TYPE, 'plan' value to_number(:P35_PLAN),",
+    "         'incident' value to_number(:P35_INC), 'workshop' value :P35_WS, 'vendor' value to_number(:P35_VENDOR),",
+    "         'odometer' value to_number(:P35_ODO), 'description' value :P35_DESC absent on null) into l from dual;",
+    '  :P35_ID := noona_trn_pkg.open_maint(l);', 'end;'], when_button=b_open, success='فتح الأمر؛ أضف قطع الغيار والعمالة ثم أقفله')
+p.dynamic('أمر الصيانة', 15, 'return noona_trn_pkg.maint_order_html(:P35_ID);', condition=':P35_ID is not null')
+ln = p.static('إضافة بند', 20, condition=MS("'OPEN','IN_PROGRESS'"))
+p.select('P35_LTYPE', ln, 10, 'النوع', lov_sql='STATIC2:قطع غيار;PART,عمالة;LABOR,زيوت وفلاتر;OIL,إطارات;TIRE,أخرى;OTHER', null_text=None)
+p.text('P35_LDESC', ln, 20, 'البيان', maxlen=500, width=30)
+p.number('P35_LQTY', ln, 30, 'الكمية')
+p.number('P35_LCOST', ln, 40, 'تكلفة الوحدة')
+p.number('P35_LDEL', ln, 50, 'حذف البند رقم')
+b_add = p.button(ln, 10, 'ADD_LINE', 'إضافة البند', hot=True)
+b_del = p.button(ln, 20, 'DEL_LINE', 'حذف البند')
+p.process(20, 'AFTER_SUBMIT', 'Add line', [
+    'declare x number; begin',
+    "  x := noona_trn_pkg.add_maint_line(:P35_ID, :P35_LTYPE, :P35_LDESC, nvl(to_number(:P35_LQTY), 1), to_number(:P35_LCOST));",
+    '  :P35_LDESC := null; :P35_LQTY := null; :P35_LCOST := null;', 'end;'], when_button=b_add, success='أضيف البند')
+p.process(21, 'AFTER_SUBMIT', 'Delete line', 'noona_trn_pkg.remove_maint_line(to_number(:P35_LDEL)); :P35_LDEL := null;',
+          when_button=b_del, success='حذف البند')
+c = p.static('إقفال الأمر والترحيل', 30, condition=MS("'OPEN','IN_PROGRESS'"), text=(
+    '<p class="nn-hint"><b>مصروف صيانة</b> للإصلاح والصيانة الدورية (يرحل على حساب الصيانة والإصلاح). <b>رأسمالية</b> للعمرة أو التجديد '
+    'أو التطوير الذي يطيل عمر العربة أو يرفع كفاءتها: تضاف لتكلفة أصل العربة وتهلك على عمرها، ويمكن تمديد العمر الإنتاجي بالأشهر.</p>'))
+p.number('P35_ODO_OUT', c, 10, 'العداد عند الخروج (كم)')
+p.number('P35_DOWN', c, 20, 'مدة التوقف (ساعة) - تحسب تلقائياً إن تركت')
+p.select('P35_TREAT', c, 30, 'المعالجة المحاسبية', lov_sql='STATIC2:مصروف صيانة;EXPENSE,رأسمالية تضاف لأصل العربة;CAPITALIZE', null_text=None)
+p.number('P35_EXT', c, 40, 'تمديد العمر الإنتاجي (شهر) - للرأسمالية')
+p.number('P35_VAT', c, 50, 'ضريبة القيمة المضافة')
+p.select('P35_FUND', c, 60, 'السداد', lov_sql='STATIC2:آجل على الورشة (المورد);PAYABLE,تحويل بنكي;BANK,نقداً من الصندوق;CASH', null_text=None)
+p.select('P35_BANK', c, 70, 'الحساب البنكي', lov_sql=f"select code || ' - ' || name_ar d, id r from csh_bank_account where company_id = {CO} and status_code = 'ACTIVE' order by code")
+p.select('P35_BOX', c, 80, 'الصندوق', lov_sql=f"select code || ' - ' || name_ar d, id r from csh_cash_box where company_id = {CO} and status_code = 'ACTIVE' order by code")
+p.text('P35_REF', c, 90, 'مرجع فاتورة الورشة', maxlen=100, width=20)
+b_done = p.button(c, 10, 'COMPLETE', 'إقفال الأمر وترحيل التكلفة', hot=True)
+p.text('P35_REASON', c, 100, 'سبب الإلغاء', maxlen=400, width=30)
+b_can = p.button(c, 20, 'CANCEL_ORDER', 'إلغاء الأمر')
+p.process(5, 'BEFORE_HEADER', 'Close defaults', [
+    'begin',
+    "  if :P35_TREAT is null then :P35_TREAT := 'EXPENSE'; end if;",
+    "  if :P35_FUND is null then",
+    f"    select case max(workshop) when 'EXTERNAL' then 'PAYABLE' else 'CASH' end into :P35_FUND from trn_maint_order where id = :P35_ID;",
+    "  end if;",
+    'end;'])
+p.process(30, 'AFTER_SUBMIT', 'Complete', ['declare l clob;', 'begin',
+    "  select json_object('odometer' value to_number(:P35_ODO_OUT), 'downtimeHours' value to_number(:P35_DOWN), 'treatment' value :P35_TREAT,",
+    "         'lifeExtension' value to_number(:P35_EXT), 'vat' value to_number(:P35_VAT), 'funding' value :P35_FUND,",
+    "         'bankAccount' value to_number(:P35_BANK), 'cashBox' value to_number(:P35_BOX), 'reference' value :P35_REF absent on null) into l from dual;",
+    '  noona_trn_pkg.complete_maint(:P35_ID, l);', 'end;'], when_button=b_done,
+    success='أقفل الأمر ورحلت التكلفة؛ عادت العربة متاحة')
+p.process(31, 'AFTER_SUBMIT', 'Cancel', 'noona_trn_pkg.cancel_maint(:P35_ID, :P35_REASON);', when_button=b_can, success='ألغي الأمر')
+p.button(p.static('رجوع', 40, hide_header=True), 10, 'BACK', 'صيانة الأسطول', redirect=url(34))
+p.branch(10, url(35, 'P35_ID', '&P35_ID.') + '&success_msg=#SUCCESS_MSG#')
 
 
 # =============================================================== صفحات الإعداد: قائمة + نموذج على نفس الصفحة
@@ -417,6 +525,25 @@ def master(pid, alias, title, ir_sql, cols, form, save_call, nav_scheme=SETUP):
     p.branch(10, f'f?p=&APP_ID.:{pid}:&SESSION.::&DEBUG.:RP,{pid}::&success_msg=#SUCCESS_MSG#')
     return p
 
+
+# 36) برامج الصيانة الدورية
+p = master(36, 'MAINT-PLANS', 'برامج الصيانة الدورية', [
+    "select p.id, p.service_name, nvl(v.plate_no, 'كل العربات' || nvl2(p.vehicle_type, ' (' || p.vehicle_type || ')', '')) applies_to,",
+    "       p.every_km, p.every_days, p.estimated_cost, noona_trn_pkg.badge(p.status_code) status_html",
+    f"  from trn_maint_plan p left join trn_vehicle v on v.id = p.vehicle_id where p.company_id = {CO} order by p.service_name"],
+    [('ID', '#', {'hidden': True, 'type': 'NUMBER'}), ('SERVICE_NAME', 'الخدمة', {}), ('APPLIES_TO', 'تنطبق على', {}),
+     ('EVERY_KM', 'كل (كم)', {'type': 'NUMBER'}), ('EVERY_DAYS', 'كل (يوم)', {'type': 'NUMBER'}),
+     ('ESTIMATED_COST', 'التكلفة التقديرية', {'type': 'NUMBER'}), ('STATUS_HTML', 'الحالة', {'html': True})],
+    [('service', 'SVC', 'T', 'الخدمة (تغيير زيت، فرامل، إطارات، فحص دوري...)', 200),
+     ('vehicle', 'VEH', 'S', 'عربة محددة (أو اتركها لكل العربات)', f"select plate_no d, id r from trn_vehicle where company_id = {CO} and status_code <> 'SOLD' order by plate_no"),
+     ('vehicleType', 'VTYPE', 'S', 'أو نوع العربات', VTYPE), ('everyKm', 'KM', 'N', 'كل (كيلومتر)', None), ('everyDays', 'DAYS', 'N', 'أو كل (يوم)', None),
+     ('cost', 'COST', 'N', 'التكلفة التقديرية', None), ('status', 'ST', 'S1', 'الحالة', 'STATIC2:نشط;ACTIVE,متوقف مؤقتاً;PAUSED')],
+    'noona_trn_pkg.save_maint_plan', nav_scheme=TRN)
+p.process(5, 'BEFORE_HEADER', 'Load', ['begin',
+    f'  for r in (select * from trn_maint_plan where id = :P36_ID and company_id = {CO}) loop',
+    '    :P36_SVC := r.service_name; :P36_VEH := r.vehicle_id; :P36_VTYPE := r.vehicle_type; :P36_KM := r.every_km;',
+    '    :P36_DAYS := r.every_days; :P36_COST := r.estimated_cost; :P36_ST := r.status_code;',
+    '  end loop;', 'end;'])
 
 # 40) الأسطول
 p = master(40, 'FLEET', 'العربات والشاحنات', [
@@ -656,6 +783,8 @@ app.nav_item('فوترة الترحيل', 55, 'fa-file-text-o', 25, parent=op)
 fl = app.nav_item('الأسطول', None, 'fa-bus', 30, scheme=SETUP)
 app.nav_item('العربات والشاحنات', 40, 'fa-truck', 31, parent=fl, scheme=SETUP)
 app.nav_item('السائقون', 42, 'fa-id-card', 32, parent=fl, scheme=SETUP)
+app.nav_item('صيانة الأسطول', 34, 'fa-wrench', 33, parent=fl)
+app.nav_item('برامج الصيانة الدورية', 36, 'fa-calendar-check-o', 34, parent=fl)
 st = app.nav_item('الإعداد', None, 'fa-cogs', 40, scheme=SETUP)
 app.nav_item('المدن والمواقع', 50, 'fa-map-marker', 41, parent=st, scheme=SETUP)
 app.nav_item('المسارات والمسافات', 52, 'fa-map', 42, parent=st, scheme=SETUP)

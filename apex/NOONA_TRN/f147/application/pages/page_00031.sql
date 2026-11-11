@@ -444,8 +444,20 @@ wwv_flow_imp_page.create_page_process(
 ,p_process_success_message=>'أغلق البلاغ'
 ,p_internal_uid=>91820290000000280
 );
-wwv_flow_imp_page.create_page_branch(
+wwv_flow_imp_page.create_page_button(
  p_id=>wwv_flow_imp.id(91820290000000281)
+,p_button_sequence=>50
+,p_button_plug_id=>wwv_flow_imp.id(91820290000000268)
+,p_button_name=>'TO_MAINT'
+,p_button_action=>'REDIRECT_URL'
+,p_button_template_options=>'#DEFAULT#'
+,p_button_template_id=>4072362960822175091
+,p_button_image_alt=>'فتح أمر صيانة للعطل'
+,p_button_position=>'NEXT'
+,p_button_redirect_url=>'f?p=&APP_ID.:35:&SESSION.::&DEBUG.:RP,35:P35_INC,P35_TYPE:&P31_ID.,CORRECTIVE'
+);
+wwv_flow_imp_page.create_page_branch(
+ p_id=>wwv_flow_imp.id(91820290000000282)
 ,p_branch_action=>'f?p=&APP_ID.:31:&SESSION.::&DEBUG.::P31_ID:&P31_ID.&success_msg=#SUCCESS_MSG#'
 ,p_branch_point=>'AFTER_PROCESSING'
 ,p_branch_type=>'REDIRECT_URL'

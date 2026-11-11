@@ -18,11 +18,11 @@ wwv_flow_imp_page.create_page(
 ,p_step_title=>'السجل الضريبي'
 ,p_autocomplete_on_off=>'OFF'
 ,p_page_template_options=>'#DEFAULT#'
-,p_required_role=>wwv_flow_imp.id(91820266000000747)
+,p_required_role=>wwv_flow_imp.id(91820266000000798)
 ,p_protection_level=>'N'
 );
 wwv_flow_imp_page.create_page_plug(
- p_id=>wwv_flow_imp.id(91820266000000820)
+ p_id=>wwv_flow_imp.id(91820266000000871)
 ,p_plug_name=>'التصفية'
 ,p_region_template_options=>'#DEFAULT#:t-Region--removeHeader js-removeLandmark'
 ,p_plug_template=>4072358936313175081
@@ -33,10 +33,10 @@ wwv_flow_imp_page.create_page_plug(
   'show_line_breaks', 'Y')).to_clob
 );
 wwv_flow_imp_page.create_page_item(
- p_id=>wwv_flow_imp.id(91820266000000821)
+ p_id=>wwv_flow_imp.id(91820266000000872)
 ,p_name=>'P74_FROM'
 ,p_item_sequence=>10
-,p_item_plug_id=>wwv_flow_imp.id(91820266000000820)
+,p_item_plug_id=>wwv_flow_imp.id(91820266000000871)
 ,p_prompt=>'من'
 ,p_display_as=>'NATIVE_DATE_PICKER_APEX'
 ,p_cSize=>20
@@ -52,10 +52,10 @@ wwv_flow_imp_page.create_page_item(
   'use_defaults', 'Y')).to_clob
 );
 wwv_flow_imp_page.create_page_item(
- p_id=>wwv_flow_imp.id(91820266000000822)
+ p_id=>wwv_flow_imp.id(91820266000000873)
 ,p_name=>'P74_TO'
 ,p_item_sequence=>20
-,p_item_plug_id=>wwv_flow_imp.id(91820266000000820)
+,p_item_plug_id=>wwv_flow_imp.id(91820266000000871)
 ,p_prompt=>'إلى'
 ,p_display_as=>'NATIVE_DATE_PICKER_APEX'
 ,p_cSize=>20
@@ -72,10 +72,10 @@ wwv_flow_imp_page.create_page_item(
   'use_defaults', 'Y')).to_clob
 );
 wwv_flow_imp_page.create_page_item(
- p_id=>wwv_flow_imp.id(91820266000000823)
+ p_id=>wwv_flow_imp.id(91820266000000874)
 ,p_name=>'P74_DIR'
 ,p_item_sequence=>30
-,p_item_plug_id=>wwv_flow_imp.id(91820266000000820)
+,p_item_plug_id=>wwv_flow_imp.id(91820266000000871)
 ,p_prompt=>'النوع'
 ,p_display_as=>'NATIVE_SELECT_LIST'
 ,p_lov=>'STATIC2:مخرجات (مبيعات);SALE,مدخلات (مشتريات);PURCHASE'
@@ -89,10 +89,10 @@ wwv_flow_imp_page.create_page_item(
   'page_action_on_selection', 'NONE')).to_clob
 );
 wwv_flow_imp_page.create_page_item(
- p_id=>wwv_flow_imp.id(91820266000000824)
+ p_id=>wwv_flow_imp.id(91820266000000875)
 ,p_name=>'P74_NATURE'
 ,p_item_sequence=>40
-,p_item_plug_id=>wwv_flow_imp.id(91820266000000820)
+,p_item_plug_id=>wwv_flow_imp.id(91820266000000871)
 ,p_prompt=>'الطبيعة'
 ,p_display_as=>'NATIVE_SELECT_LIST'
 ,p_lov=>'STATIC2:خاضعة بالنسبة الأساسية;STANDARD,نسبة صفرية;ZERO_RATED,صادرات;EXPORT,معفاة;EXEMPT,خارج النطاق;OUT_OF_SCOPE,احتساب عكسي;REVERSE_CHARGE,صحة/تعليم خاص للمواطنين;CITIZEN'
@@ -107,9 +107,9 @@ wwv_flow_imp_page.create_page_item(
   'page_action_on_selection', 'NONE')).to_clob
 );
 wwv_flow_imp_page.create_page_button(
- p_id=>wwv_flow_imp.id(91820266000000825)
+ p_id=>wwv_flow_imp.id(91820266000000876)
 ,p_button_sequence=>10
-,p_button_plug_id=>wwv_flow_imp.id(91820266000000820)
+,p_button_plug_id=>wwv_flow_imp.id(91820266000000871)
 ,p_button_name=>'GO'
 ,p_button_action=>'SUBMIT'
 ,p_button_template_options=>'#DEFAULT#'
@@ -119,7 +119,7 @@ wwv_flow_imp_page.create_page_button(
 ,p_button_position=>'NEXT'
 );
 wwv_flow_imp_page.create_page_process(
- p_id=>wwv_flow_imp.id(91820266000000826)
+ p_id=>wwv_flow_imp.id(91820266000000877)
 ,p_process_sequence=>5
 ,p_process_point=>'BEFORE_HEADER'
 ,p_process_type=>'NATIVE_PLSQL'
@@ -131,10 +131,10 @@ wwv_flow_imp_page.create_page_process(
 'end;'))
 ,p_process_clob_language=>'PLSQL'
 ,p_error_display_location=>'INLINE_IN_NOTIFICATION'
-,p_internal_uid=>91820266000000826
+,p_internal_uid=>91820266000000877
 );
 wwv_flow_imp_page.create_page_plug(
- p_id=>wwv_flow_imp.id(91820266000000827)
+ p_id=>wwv_flow_imp.id(91820266000000878)
 ,p_plug_name=>'المستندات الضريبية'
 ,p_region_template_options=>'#DEFAULT#:t-Region--scrollBody:nn-print-area'
 ,p_plug_template=>4072358936313175081

@@ -81,6 +81,30 @@ CREATE OR REPLACE PACKAGE NOONA_TRN_PKG AUTHID DEFINER AS
   FUNCTION invoice_orders(p_order_ids IN VARCHAR2) RETURN NUMBER;
 
   -- الواجهة
+  -- ---------------------------------------------------------- صيانة الأسطول
+  -- برنامج دوري: JSON id, service, vehicle (فارغ = كل العربات)، vehicleType، everyKm، everyDays، cost، status، notes
+  FUNCTION save_maint_plan(p_doc IN CLOB) RETURN NUMBER;
+  -- أمر صيانة: JSON vehicle, type, plan, incident, workshop (INTERNAL|EXTERNAL), vendor, description, odometer, notes
+  --   تدخل العربة «في الصيانة» ولا تسند لرحلة حتى الإقفال
+  FUNCTION open_maint(p_doc IN CLOB) RETURN NUMBER;
+  -- p_type: PART | LABOR | OIL | TIRE | OTHER
+  FUNCTION add_maint_line(p_order_id IN NUMBER, p_type IN VARCHAR2, p_desc IN VARCHAR2, p_qty IN NUMBER, p_unit_cost IN NUMBER,
+                          p_item_id IN NUMBER DEFAULT NULL) RETURN NUMBER;
+  PROCEDURE remove_maint_line(p_line_id IN NUMBER);
+  -- الإقفال: JSON date, odometer, downtimeHours, treatment (EXPENSE|CAPITALIZE)، lifeExtension (أشهر)، vat,
+  --   funding (BANK|CASH|PAYABLE|ACCOUNT)، bankAccount, cashBox, account, reference
+  --   يرحل التكلفة عبر صيانة الأصول: مصروف صيانة، أو إضافة رأسمالية على أصل العربة مع تمديد عمرها؛ تعود العربة متاحة
+  PROCEDURE complete_maint(p_order_id IN NUMBER, p_doc IN CLOB);
+  PROCEDURE cancel_maint(p_order_id IN NUMBER, p_reason IN VARCHAR2);
+  FUNCTION maint_type_label(p_code IN VARCHAR2) RETURN VARCHAR2;
+  -- الصيانات الدورية المستحقة حسب الكيلومترات أو الأيام لكل عربة
+  FUNCTION maint_due_html RETURN CLOB;
+  FUNCTION maint_due_count RETURN NUMBER;
+  FUNCTION maint_order_status(p_id IN NUMBER) RETURN VARCHAR2;
+  FUNCTION maint_order_html(p_order_id IN NUMBER) RETURN CLOB;
+  -- تكلفة الصيانة لكل عربة: العدد والتكلفة والتوقف والتكلفة لكل كيلومتر (من تاريخ)
+  FUNCTION maint_cost_html(p_from IN DATE DEFAULT NULL) RETURN CLOB;
+
   FUNCTION status_label(p_code IN VARCHAR2) RETURN VARCHAR2;
   FUNCTION badge(p_code IN VARCHAR2) RETURN VARCHAR2;
   FUNCTION uom_label(p_code IN VARCHAR2) RETURN VARCHAR2;
@@ -171,6 +195,7 @@ CREATE OR REPLACE PACKAGE BODY NOONA_TRN_PKG AS
       WHEN 'REPORTED' THEN 'مُبلّغ' WHEN 'ACKNOWLEDGED' THEN 'مستلم' WHEN 'IN_PROGRESS' THEN 'قيد المعالجة' WHEN 'RESOLVED' THEN 'تم الحل'
       WHEN 'CLOSED' THEN 'مغلق' WHEN 'ON_TIME' THEN 'في الموعد' WHEN 'LATE' THEN 'متأخرة' WHEN 'EARLY' THEN 'مبكرة'
       WHEN 'AT_RISK' THEN 'تجاوزت الموعد' WHEN 'ACTIVE' THEN 'نشطة' WHEN 'INACTIVE' THEN 'موقوفة'
+      WHEN 'OPEN' THEN 'مفتوح' WHEN 'PAUSED' THEN 'متوقف مؤقتاً'
       ELSE p_code END;
   END status_label;
 
@@ -178,8 +203,8 @@ CREATE OR REPLACE PACKAGE BODY NOONA_TRN_PKG AS
   BEGIN
     RETURN '<span class="nn-badge ' || CASE
              WHEN p_code IN ('DELIVERED', 'COMPLETED', 'AVAILABLE', 'RESOLVED', 'CLOSED', 'ON_TIME', 'EARLY', 'INVOICED', 'ACTIVE') THEN 'is-success'
-             WHEN p_code IN ('IN_TRANSIT', 'DISPATCHED', 'ON_TRIP', 'CONFIRMED', 'PLANNED', 'ACKNOWLEDGED', 'IN_PROGRESS', 'ARRIVED') THEN 'is-info'
-             WHEN p_code IN ('MAINTENANCE', 'REPORTED', 'LATE', 'OFF_DUTY', 'DRAFT') THEN 'is-warning'
+             WHEN p_code IN ('IN_TRANSIT', 'DISPATCHED', 'ON_TRIP', 'CONFIRMED', 'PLANNED', 'ACKNOWLEDGED', 'IN_PROGRESS', 'ARRIVED', 'OPEN') THEN 'is-info'
+             WHEN p_code IN ('MAINTENANCE', 'REPORTED', 'LATE', 'OFF_DUTY', 'DRAFT', 'PAUSED') THEN 'is-warning'
              WHEN p_code IN ('CANCELLED', 'OUT_OF_SERVICE', 'SUSPENDED', 'AT_RISK', 'LEFT', 'SOLD', 'INACTIVE') THEN 'is-danger' ELSE 'is-muted' END
         || '">' || esc(status_label(p_code)) || '</span>';
   END badge;
@@ -513,6 +538,332 @@ CREATE OR REPLACE PACKAGE BODY NOONA_TRN_PKG AS
     UPDATE trn_vehicle SET status_code = p_status WHERE id = p_id AND company_id = company;
     NOONA_CORE_PKG.assert(SQL%ROWCOUNT = 1, 'NOONA-TRN-010', 'العربة غير موجودة', 'Vehicle not found');
   END set_vehicle_status;
+
+  -- ================================================================ صيانة الأسطول
+  FUNCTION maint_type_label(p_code IN VARCHAR2) RETURN VARCHAR2 IS
+  BEGIN
+    RETURN CASE p_code WHEN 'PREVENTIVE' THEN 'وقائية دورية' WHEN 'CORRECTIVE' THEN 'إصلاح عطل' WHEN 'OVERHAUL' THEN 'عمرة'
+      WHEN 'INSPECTION' THEN 'فحص' WHEN 'ACCIDENT' THEN 'إصلاح حادث' WHEN 'TIRES' THEN 'إطارات' WHEN 'UPGRADE' THEN 'تطوير وتحسين'
+      WHEN 'PART' THEN 'قطع غيار' WHEN 'LABOR' THEN 'عمالة' WHEN 'OIL' THEN 'زيوت وفلاتر' WHEN 'TIRE' THEN 'إطارات' WHEN 'OTHER' THEN 'أخرى'
+      WHEN 'INTERNAL' THEN 'ورشة داخلية' WHEN 'EXTERNAL' THEN 'ورشة خارجية' WHEN 'EXPENSE' THEN 'مصروف صيانة'
+      WHEN 'CAPITALIZE' THEN 'رأسمالية (تضاف للأصل)' ELSE p_code END;
+  END maint_type_label;
+
+  FUNCTION save_maint_plan(p_doc IN CLOB) RETURN NUMBER IS
+    l_o  JSON_OBJECT_T := JSON_OBJECT_T.parse(p_doc);
+    l_id NUMBER := jn(l_o, 'id');
+    l_sv VARCHAR2(200) := SUBSTR(js(l_o, 'service'), 1, 200);
+    l_v  NUMBER := jn(l_o, 'vehicle');
+    l_vt VARCHAR2(30) := js(l_o, 'vehicleType');
+    l_km NUMBER := jn(l_o, 'everyKm');
+    l_dy NUMBER := jn(l_o, 'everyDays');
+    l_c  NUMBER := jn(l_o, 'cost');
+    l_st VARCHAR2(30) := NVL(js(l_o, 'status'), 'ACTIVE');
+    l_nt VARCHAR2(4000) := js(l_o, 'notes');
+    l_n  NUMBER;
+  BEGIN
+    guard(CASE WHEN l_id IS NULL THEN 'TRN_MAINT_PLAN.CREATE' ELSE 'TRN_MAINT_PLAN.UPDATE' END);
+    NOONA_CORE_PKG.assert(l_sv IS NOT NULL, 'NOONA-TRN-100', 'اسم الخدمة مطلوب', 'Service name required');
+    NOONA_CORE_PKG.assert(NVL(l_km, 0) > 0 OR NVL(l_dy, 0) > 0, 'NOONA-TRN-101',
+      'حدد التكرار بالكيلومترات أو بالأيام', 'Set a km or days interval');
+    IF l_v IS NOT NULL THEN
+      SELECT COUNT(*) INTO l_n FROM trn_vehicle WHERE id = l_v AND company_id = company;
+      NOONA_CORE_PKG.assert(l_n = 1, 'NOONA-TRN-010', 'العربة غير موجودة', 'Vehicle not found');
+    END IF;
+    IF l_id IS NULL THEN
+      INSERT INTO trn_maint_plan (company_id, service_name, vehicle_id, vehicle_type, every_km, every_days, estimated_cost, status_code, notes)
+      VALUES (company, l_sv, l_v, CASE WHEN l_v IS NULL THEN l_vt END, l_km, l_dy, l_c, l_st, l_nt)
+      RETURNING id INTO l_id;
+    ELSE
+      UPDATE trn_maint_plan SET service_name = l_sv, vehicle_id = l_v, vehicle_type = CASE WHEN l_v IS NULL THEN l_vt END,
+             every_km = l_km, every_days = l_dy, estimated_cost = l_c, status_code = l_st, notes = l_nt
+       WHERE id = l_id AND company_id = company;
+      NOONA_CORE_PKG.assert(SQL%ROWCOUNT = 1, 'NOONA-TRN-102', 'البرنامج غير موجود', 'Program not found');
+    END IF;
+    RETURN l_id;
+  END save_maint_plan;
+
+  FUNCTION open_maint(p_doc IN CLOB) RETURN NUMBER IS
+    l_o   JSON_OBJECT_T := JSON_OBJECT_T.parse(p_doc);
+    l_vid NUMBER := jn(l_o, 'vehicle');
+    l_v   trn_vehicle%ROWTYPE;
+    l_pl  NUMBER := jn(l_o, 'plan');
+    l_inc NUMBER := jn(l_o, 'incident');
+    l_ws  VARCHAR2(30) := NVL(js(l_o, 'workshop'), 'INTERNAL');
+    l_tp  VARCHAR2(30) := NVL(js(l_o, 'type'), CASE WHEN jn(l_o, 'plan') IS NOT NULL THEN 'PREVENTIVE' ELSE 'CORRECTIVE' END);
+    l_ds  VARCHAR2(2000) := SUBSTR(js(l_o, 'description'), 1, 2000);
+    l_n   NUMBER;
+    l_id  NUMBER;
+    l_no  VARCHAR2(50);
+    l_vnd NUMBER := jn(l_o, 'vendor');
+    l_odo NUMBER := jn(l_o, 'odometer');
+    l_at  TIMESTAMP := NVL(jts(l_o, 'openedAt'), SYSTIMESTAMP);
+    l_nt  VARCHAR2(4000) := js(l_o, 'notes');
+  BEGIN
+    guard('TRN_MAINT_ORDER.CREATE');
+    BEGIN
+      SELECT * INTO l_v FROM trn_vehicle WHERE id = l_vid AND company_id = company FOR UPDATE;
+    EXCEPTION WHEN NO_DATA_FOUND THEN
+      NOONA_CORE_PKG.raise_error('NOONA-TRN-010', 'العربة غير موجودة', 'Vehicle not found');
+    END;
+    NOONA_CORE_PKG.assert(l_v.status_code <> 'SOLD', 'NOONA-TRN-103', 'العربة مباعة', 'Vehicle sold');
+    NOONA_CORE_PKG.assert(l_ws = 'INTERNAL' OR l_vnd IS NOT NULL, 'NOONA-TRN-108',
+      'حدد الورشة الخارجية (المورد)', 'External workshop vendor required');
+    SELECT COUNT(*) INTO l_n FROM trn_trip WHERE vehicle_id = l_vid AND status_code IN ('DISPATCHED', 'IN_TRANSIT', 'ARRIVED');
+    NOONA_CORE_PKG.assert(l_n = 0, 'NOONA-TRN-012', 'العربة في رحلة جارية؛ أكمل الرحلة أولاً', 'Vehicle is on an active trip');
+    SELECT COUNT(*) INTO l_n FROM trn_maint_order WHERE vehicle_id = l_vid AND status_code IN ('OPEN', 'IN_PROGRESS');
+    NOONA_CORE_PKG.assert(l_n = 0, 'NOONA-TRN-104', 'للعربة أمر صيانة مفتوح؛ أضف عليه أو أقفله', 'Vehicle already has an open order');
+    IF l_pl IS NOT NULL THEN
+      SELECT COUNT(*) INTO l_n FROM trn_maint_plan WHERE id = l_pl AND company_id = company
+         AND (vehicle_id = l_vid OR (vehicle_id IS NULL AND NVL(vehicle_type, l_v.vehicle_type) = l_v.vehicle_type));
+      NOONA_CORE_PKG.assert(l_n = 1, 'NOONA-TRN-105', 'البرنامج الدوري لا ينطبق على هذه العربة', 'Program does not apply to the vehicle');
+      IF l_ds IS NULL THEN SELECT service_name INTO l_ds FROM trn_maint_plan WHERE id = l_pl; END IF;
+    END IF;
+    IF l_inc IS NOT NULL THEN
+      SELECT COUNT(*) INTO l_n FROM trn_incident WHERE id = l_inc AND company_id = company AND vehicle_id = l_vid;
+      NOONA_CORE_PKG.assert(l_n = 1, 'NOONA-TRN-106', 'البلاغ لا يخص هذه العربة', 'Incident does not belong to the vehicle');
+      IF l_ds IS NULL THEN SELECT SUBSTR(description, 1, 2000) INTO l_ds FROM trn_incident WHERE id = l_inc; END IF;
+    END IF;
+    NOONA_CORE_PKG.assert(l_ds IS NOT NULL, 'NOONA-TRN-107', 'وصف العمل مطلوب', 'Description required');
+    l_no := next_no('TRN_MAINT_ORDER', 'MNT-');
+    INSERT INTO trn_maint_order (company_id, branch_id, doc_no, doc_date, vehicle_id, plan_id, incident_id, maint_type, workshop,
+                                 vendor_party_id, description, opened_at, odometer_km, prev_status, status_code, notes)
+    VALUES (company, NVL(l_v.branch_id, NOONA_CTX_PKG.branch_id), l_no, TRUNC(SYSDATE), l_vid, l_pl, l_inc,
+            l_tp, l_ws, l_vnd, l_ds, l_at, GREATEST(NVL(l_odo, l_v.odometer_km), l_v.odometer_km), l_v.status_code, 'OPEN', l_nt)
+    RETURNING id INTO l_id;
+    UPDATE trn_vehicle SET status_code = 'MAINTENANCE' WHERE id = l_vid;
+    RETURN l_id;
+  END open_maint;
+
+  FUNCTION order_row(p_id NUMBER) RETURN trn_maint_order%ROWTYPE IS
+    l trn_maint_order%ROWTYPE;
+  BEGIN
+    SELECT * INTO l FROM trn_maint_order WHERE id = p_id AND company_id = company FOR UPDATE;
+    RETURN l;
+  EXCEPTION WHEN NO_DATA_FOUND THEN
+    NOONA_CORE_PKG.raise_error('NOONA-TRN-109', 'أمر الصيانة غير موجود', 'Maintenance order not found');
+  END order_row;
+
+  PROCEDURE recalc_maint(p_id NUMBER) IS
+  BEGIN
+    UPDATE trn_maint_order o SET
+      parts_cost = (SELECT NVL(SUM(amount), 0) FROM trn_maint_line l WHERE l.order_id = o.id AND l.line_type IN ('PART', 'OIL', 'TIRE')),
+      labor_cost = (SELECT NVL(SUM(amount), 0) FROM trn_maint_line l WHERE l.order_id = o.id AND l.line_type = 'LABOR'),
+      other_cost = (SELECT NVL(SUM(amount), 0) FROM trn_maint_line l WHERE l.order_id = o.id AND l.line_type = 'OTHER'),
+      total_cost = (SELECT NVL(SUM(amount), 0) FROM trn_maint_line l WHERE l.order_id = o.id)
+     WHERE id = p_id;
+  END recalc_maint;
+
+  FUNCTION add_maint_line(p_order_id IN NUMBER, p_type IN VARCHAR2, p_desc IN VARCHAR2, p_qty IN NUMBER, p_unit_cost IN NUMBER,
+                          p_item_id IN NUMBER DEFAULT NULL) RETURN NUMBER IS
+    l_m  trn_maint_order%ROWTYPE;
+    l_id NUMBER;
+    l_d  VARCHAR2(500) := SUBSTR(TRIM(p_desc), 1, 500);
+  BEGIN
+    guard('TRN_MAINT_ORDER.UPDATE');
+    l_m := order_row(p_order_id);
+    NOONA_CORE_PKG.assert(l_m.status_code IN ('OPEN', 'IN_PROGRESS'), 'NOONA-TRN-110', 'أمر الصيانة مقفل', 'Order is closed');
+    NOONA_CORE_PKG.assert(NVL(p_type, 'PART') IN ('PART', 'LABOR', 'OIL', 'TIRE', 'OTHER'), 'NOONA-TRN-111', 'نوع البند غير صحيح', 'Invalid line type');
+    NOONA_CORE_PKG.assert(NVL(p_qty, 1) > 0 AND NVL(p_unit_cost, 0) >= 0, 'NOONA-TRN-112',
+      'الكمية موجبة والتكلفة لا تكون سالبة', 'Invalid quantity or cost');
+    IF l_d IS NULL AND p_item_id IS NOT NULL THEN
+      SELECT MAX(name_ar) INTO l_d FROM inv_item WHERE id = p_item_id;
+    END IF;
+    NOONA_CORE_PKG.assert(l_d IS NOT NULL, 'NOONA-TRN-113', 'بيان البند مطلوب', 'Description required');
+    INSERT INTO trn_maint_line (company_id, order_id, line_type, description, item_id, quantity, unit_cost, amount)
+    VALUES (company, p_order_id, NVL(p_type, 'PART'), l_d, p_item_id, NVL(p_qty, 1), NVL(p_unit_cost, 0),
+            ROUND(NVL(p_qty, 1) * NVL(p_unit_cost, 0), 2))
+    RETURNING id INTO l_id;
+    UPDATE trn_maint_order SET status_code = 'IN_PROGRESS' WHERE id = p_order_id AND status_code = 'OPEN';
+    recalc_maint(p_order_id);
+    RETURN l_id;
+  END add_maint_line;
+
+  PROCEDURE remove_maint_line(p_line_id IN NUMBER) IS
+    l_oid NUMBER;
+    l_m   trn_maint_order%ROWTYPE;
+  BEGIN
+    guard('TRN_MAINT_ORDER.UPDATE');
+    SELECT MAX(order_id) INTO l_oid FROM trn_maint_line WHERE id = p_line_id AND company_id = company;
+    NOONA_CORE_PKG.assert(l_oid IS NOT NULL, 'NOONA-TRN-114', 'البند غير موجود', 'Line not found');
+    l_m := order_row(l_oid);
+    NOONA_CORE_PKG.assert(l_m.status_code IN ('OPEN', 'IN_PROGRESS'), 'NOONA-TRN-110', 'أمر الصيانة مقفل', 'Order is closed');
+    DELETE FROM trn_maint_line WHERE id = p_line_id;
+    recalc_maint(l_oid);
+  END remove_maint_line;
+
+  PROCEDURE complete_maint(p_order_id IN NUMBER, p_doc IN CLOB) IS
+    l_o    JSON_OBJECT_T := JSON_OBJECT_T.parse(NVL(p_doc, '{}'));
+    l_m    trn_maint_order%ROWTYPE;
+    l_v    trn_vehicle%ROWTYPE;
+    l_tr   VARCHAR2(30) := NVL(js(l_o, 'treatment'), 'EXPENSE');
+    l_ext  NUMBER := NVL(jn(l_o, 'lifeExtension'), 0);
+    l_vat  NUMBER := NVL(jn(l_o, 'vat'), 0);
+    l_odo  NUMBER := jn(l_o, 'odometer');
+    l_at   TIMESTAMP := NVL(jts(l_o, 'completedAt'), SYSTIMESTAMP);
+    l_fam  NUMBER;
+    l_down NUMBER := jn(l_o, 'downtimeHours');
+    l_d    JSON_OBJECT_T := JSON_OBJECT_T();
+  BEGIN
+    guard('TRN_MAINT_ORDER.UPDATE');
+    l_m := order_row(p_order_id);
+    NOONA_CORE_PKG.assert(l_m.status_code IN ('OPEN', 'IN_PROGRESS'), 'NOONA-TRN-110', 'أمر الصيانة مقفل', 'Order is closed');
+    SELECT * INTO l_v FROM trn_vehicle WHERE id = l_m.vehicle_id FOR UPDATE;
+    recalc_maint(p_order_id);
+    SELECT * INTO l_m FROM trn_maint_order WHERE id = p_order_id;
+    NOONA_CORE_PKG.assert(l_odo IS NULL OR l_odo >= l_m.odometer_km, 'NOONA-TRN-115',
+      'عداد الخروج أقل من عداد الدخول (' || qf(l_m.odometer_km) || ')', 'Odometer below entry reading');
+    NOONA_CORE_PKG.assert(l_m.total_cost > 0 OR (l_vat = 0 AND l_tr = 'EXPENSE' AND l_ext = 0), 'NOONA-TRN-116',
+      'أضف بنود التكلفة قبل الترحيل', 'Add cost lines first');
+    NOONA_CORE_PKG.assert(l_tr = 'EXPENSE' OR l_v.asset_id IS NOT NULL, 'NOONA-TRN-117',
+      'العربة غير مسجلة في الأصول الثابتة (مستأجرة أو قديمة)؛ الصيانة الرأسمالية تتطلب أصلاً — سجل تكلفة شرائها أولاً',
+      'Capitalized maintenance requires the vehicle fixed asset');
+    IF l_m.total_cost > 0 THEN
+      IF l_v.asset_id IS NOT NULL THEN l_d.put('asset', l_v.asset_id); END IF;
+      l_d.put('date', TO_CHAR(CAST(l_at AS DATE), 'YYYY-MM-DD'));
+      l_d.put('maint_type', CASE l_m.maint_type WHEN 'TIRES' THEN 'CORRECTIVE' ELSE l_m.maint_type END);
+      l_d.put('treatment', l_tr);
+      l_d.put('description', SUBSTR('صيانة العربة ' || l_v.plate_no || ' (' || l_m.doc_no || '): ' || l_m.description, 1, 1000));
+      l_d.put('amount', l_m.total_cost);
+      l_d.put('vat', l_vat);
+      l_d.put('funding', NVL(js(l_o, 'funding'), CASE WHEN l_m.workshop = 'EXTERNAL' THEN 'PAYABLE' ELSE 'CASH' END));
+      IF jn(l_o, 'bankAccount') IS NOT NULL THEN l_d.put('bank_account', jn(l_o, 'bankAccount')); END IF;
+      IF jn(l_o, 'cashBox') IS NOT NULL THEN l_d.put('cash_box', jn(l_o, 'cashBox')); END IF;
+      IF jn(l_o, 'account') IS NOT NULL THEN l_d.put('account', jn(l_o, 'account')); END IF;
+      IF l_m.vendor_party_id IS NOT NULL THEN l_d.put('party', l_m.vendor_party_id); END IF;
+      IF l_ext > 0 THEN l_d.put('life_extension', l_ext); END IF;
+      l_d.put('branch', l_m.branch_id);
+      l_d.put('reference', NVL(js(l_o, 'reference'), l_m.doc_no));
+      l_d.put('source_module', 'TRN');
+      l_d.put('source_id', p_order_id);
+      l_fam := NOONA_FA_PKG.record_maintenance(l_d.to_clob);
+    END IF;
+    UPDATE trn_maint_order SET status_code = 'COMPLETED', completed_at = l_at, odometer_km = NVL(l_odo, odometer_km),
+           downtime_hours = NVL(l_down,
+                                ROUND((CAST(l_at AS DATE) - CAST(opened_at AS DATE)) * 24, 1)),
+           vat_amount = l_vat, treatment = l_tr, life_extension_months = l_ext, fa_maintenance_id = l_fam
+     WHERE id = p_order_id;
+    UPDATE trn_vehicle SET status_code = CASE WHEN l_m.prev_status = 'OUT_OF_SERVICE' THEN 'OUT_OF_SERVICE' ELSE 'AVAILABLE' END,
+           odometer_km = GREATEST(odometer_km, NVL(l_odo, 0))
+     WHERE id = l_m.vehicle_id;
+  END complete_maint;
+
+  PROCEDURE cancel_maint(p_order_id IN NUMBER, p_reason IN VARCHAR2) IS
+    l_m trn_maint_order%ROWTYPE;
+  BEGIN
+    guard('TRN_MAINT_ORDER.UPDATE');
+    l_m := order_row(p_order_id);
+    NOONA_CORE_PKG.assert(l_m.status_code IN ('OPEN', 'IN_PROGRESS'), 'NOONA-TRN-110', 'أمر الصيانة مقفل', 'Order is closed');
+    NOONA_CORE_PKG.assert(TRIM(p_reason) IS NOT NULL, 'NOONA-TRN-118', 'سبب الإلغاء مطلوب', 'Reason required');
+    UPDATE trn_maint_order SET status_code = 'CANCELLED', notes = SUBSTR(NVL2(notes, notes || ' | ', '') || 'إلغاء: ' || p_reason, 1, 4000)
+     WHERE id = p_order_id;
+    UPDATE trn_vehicle SET status_code = CASE WHEN l_m.prev_status IN ('AVAILABLE', 'OUT_OF_SERVICE') THEN l_m.prev_status ELSE 'AVAILABLE' END
+     WHERE id = l_m.vehicle_id AND status_code = 'MAINTENANCE';
+  END cancel_maint;
+
+  -- آخر تنفيذ لكل (عربة، برنامج) ومقدار المتبقي بالكيلومترات والأيام
+  FUNCTION maint_due_html RETURN CLOB IS
+    l_h CLOB;
+  BEGIN
+    FOR r IN (
+      WITH x AS (
+        SELECT v.id vid, v.plate_no, v.odometer_km odo, v.status_code vst, p.id pid, p.service_name, p.every_km, p.every_days, p.estimated_cost,
+               (SELECT MAX(o.odometer_km) KEEP (DENSE_RANK LAST ORDER BY o.completed_at) FROM trn_maint_order o
+                 WHERE o.vehicle_id = v.id AND o.plan_id = p.id AND o.status_code = 'COMPLETED') last_km,
+               (SELECT MAX(CAST(o.completed_at AS DATE)) FROM trn_maint_order o
+                 WHERE o.vehicle_id = v.id AND o.plan_id = p.id AND o.status_code = 'COMPLETED') last_dt,
+               (SELECT COUNT(*) FROM trn_maint_order o WHERE o.vehicle_id = v.id AND o.plan_id = p.id
+                   AND o.status_code IN ('OPEN', 'IN_PROGRESS')) open_n
+          FROM trn_maint_plan p JOIN trn_vehicle v ON v.company_id = p.company_id
+         WHERE p.company_id = company AND p.status_code = 'ACTIVE' AND v.status_code <> 'SOLD'
+           AND (p.vehicle_id = v.id OR (p.vehicle_id IS NULL AND NVL(p.vehicle_type, v.vehicle_type) = v.vehicle_type)))
+      SELECT x.*, CASE WHEN every_km > 0 THEN NVL(last_km, 0) + every_km - odo END km_left,
+             CASE WHEN every_days > 0 AND last_dt IS NOT NULL THEN TRUNC(last_dt + every_days - SYSDATE) END days_left
+        FROM x) LOOP
+      IF r.last_km IS NULL AND r.last_dt IS NULL OR NVL(r.km_left, 1e9) <= r.every_km * 0.1 OR NVL(r.days_left, 1e9) <= 7 THEN
+        l_h := l_h || '<tr><td><b>' || esc(r.plate_no) || '</b></td><td>' || esc(r.service_name) || '</td><td>'
+            || CASE WHEN r.last_dt IS NULL THEN 'لم تنفذ سابقاً' ELSE TO_CHAR(r.last_dt, 'YYYY-MM-DD') || ' عند ' || qf(r.last_km) || ' كم' END
+            || '</td><td class="u-tE">' || qf(r.odo) || '</td><td>'
+            || CASE WHEN r.km_left IS NOT NULL THEN CASE WHEN r.km_left < 0 THEN '<span class="nn-badge is-danger">تجاوز ' || qf(-r.km_left) || ' كم</span>'
+                                                     ELSE 'باقي ' || qf(r.km_left) || ' كم' END END
+            || CASE WHEN r.days_left IS NOT NULL THEN ' ' || CASE WHEN r.days_left < 0 THEN '<span class="nn-badge is-danger">متأخرة ' || -r.days_left || ' يوم</span>'
+                                                     ELSE 'باقي ' || r.days_left || ' يوم' END END
+            || '</td><td>' || CASE WHEN r.open_n > 0 THEN badge('IN_PROGRESS') WHEN r.vst = 'ON_TRIP' THEN badge('ON_TRIP') ELSE badge('MAINTENANCE') END
+            || '</td><td class="u-tE">' || fmt(r.estimated_cost) || '</td></tr>';
+      END IF;
+    END LOOP;
+    RETURN CASE WHEN l_h IS NULL THEN '<p class="nn-hint">لا توجد صيانات دورية مستحقة الآن.</p>'
+           ELSE '<table class="nn-table"><thead><tr><th>العربة</th><th>الخدمة</th><th>آخر تنفيذ</th><th>العداد الحالي</th><th>الاستحقاق</th>'
+             || '<th>الوضع</th><th>التكلفة التقديرية</th></tr></thead><tbody>' || l_h || '</tbody></table>' END;
+  END maint_due_html;
+
+  FUNCTION maint_order_status(p_id IN NUMBER) RETURN VARCHAR2 IS
+    l VARCHAR2(30);
+  BEGIN
+    SELECT MAX(status_code) INTO l FROM trn_maint_order WHERE id = p_id AND company_id = company;
+    RETURN l;
+  END maint_order_status;
+
+  FUNCTION maint_due_count RETURN NUMBER IS
+    l_h CLOB := maint_due_html;
+  BEGIN
+    RETURN (LENGTH(l_h) - LENGTH(REPLACE(l_h, '<tr><td><b>', ''))) / LENGTH('<tr><td><b>');
+  END maint_due_count;
+
+  FUNCTION maint_order_html(p_order_id IN NUMBER) RETURN CLOB IS
+    l_m trn_maint_order%ROWTYPE;
+    l_h CLOB;
+    l_pl VARCHAR2(30);
+  BEGIN
+    IF p_order_id IS NULL THEN RETURN NULL; END IF;
+    SELECT * INTO l_m FROM trn_maint_order WHERE id = p_order_id AND company_id = company;
+    SELECT plate_no INTO l_pl FROM trn_vehicle WHERE id = l_m.vehicle_id;
+    FOR r IN (SELECT * FROM trn_maint_line WHERE order_id = p_order_id ORDER BY id) LOOP
+      l_h := l_h || '<tr><td>' || r.id || '</td><td>' || esc(maint_type_label(r.line_type)) || '</td><td>' || esc(r.description)
+          || '</td><td class="u-tE">' || qf(r.quantity) || '</td><td class="u-tE">' || fmt(r.unit_cost) || '</td><td class="u-tE">'
+          || fmt(r.amount) || '</td></tr>';
+    END LOOP;
+    RETURN '<div class="nn-kpis"><div class="nn-kpi"><span>' || esc(l_m.doc_no) || ' - ' || esc(l_pl) || '</span><b>' || badge(l_m.status_code)
+        || '</b></div><div class="nn-kpi"><span>قطع الغيار والزيوت والإطارات</span><b>' || fmt(l_m.parts_cost) || '</b></div>'
+        || '<div class="nn-kpi"><span>العمالة</span><b>' || fmt(l_m.labor_cost) || '</b></div>'
+        || '<div class="nn-kpi"><span>الإجمالي دون الضريبة</span><b>' || fmt(l_m.total_cost) || '</b></div>'
+        || CASE WHEN l_m.status_code = 'COMPLETED' THEN '<div class="nn-kpi"><span>المعالجة</span><b>' || esc(maint_type_label(l_m.treatment))
+             || CASE WHEN l_m.life_extension_months > 0 THEN ' +' || l_m.life_extension_months || ' شهر' END || '</b></div>'
+             || '<div class="nn-kpi"><span>التوقف</span><b>' || qf(l_m.downtime_hours) || ' ساعة</b></div>' END || '</div>'
+        || '<p>' || esc(maint_type_label(l_m.maint_type)) || ' - ' || esc(maint_type_label(l_m.workshop)) || ': ' || esc(l_m.description) || '</p>'
+        || CASE WHEN l_h IS NULL THEN '<p class="nn-hint">لا بنود بعد: أضف قطع الغيار والعمالة أدناه.</p>'
+           ELSE '<table class="nn-table"><thead><tr><th>رقم البند</th><th>النوع</th><th>البيان</th><th>الكمية</th><th>التكلفة</th><th>المبلغ</th>'
+             || '</tr></thead><tbody>' || l_h || '</tbody></table>' END;
+  EXCEPTION WHEN NO_DATA_FOUND THEN
+    RETURN NULL;
+  END maint_order_html;
+
+  FUNCTION maint_cost_html(p_from IN DATE DEFAULT NULL) RETURN CLOB IS
+    l_h CLOB;
+    l_from DATE := NVL(p_from, TRUNC(SYSDATE, 'YYYY'));
+    l_t NUMBER := 0;
+  BEGIN
+    FOR r IN (SELECT v.plate_no, v.ownership,
+                     COUNT(o.id) n, NVL(SUM(o.total_cost), 0) cost, NVL(SUM(o.downtime_hours), 0) down,
+                     NVL(SUM(CASE WHEN o.treatment = 'CAPITALIZE' THEN o.total_cost END), 0) cap,
+                     (SELECT NVL(SUM(t.actual_distance_km), 0) FROM trn_trip t WHERE t.vehicle_id = v.id AND t.status_code = 'COMPLETED'
+                         AND t.actual_departure >= l_from) km
+                FROM trn_vehicle v
+                LEFT JOIN trn_maint_order o ON o.vehicle_id = v.id AND o.status_code = 'COMPLETED' AND o.completed_at >= l_from
+               WHERE v.company_id = company
+               GROUP BY v.id, v.plate_no, v.ownership
+              HAVING COUNT(o.id) > 0
+               ORDER BY 4 DESC) LOOP
+      l_t := l_t + r.cost;
+      l_h := l_h || '<tr><td><b>' || esc(r.plate_no) || '</b></td><td class="u-tE">' || r.n || '</td><td class="u-tE">' || fmt(r.cost)
+          || '</td><td class="u-tE">' || fmt(r.cap) || '</td><td class="u-tE">' || qf(r.down) || '</td><td class="u-tE">' || qf(r.km)
+          || '</td><td class="u-tE">' || CASE WHEN r.km > 0 THEN TO_CHAR(ROUND(r.cost / r.km, 3), 'FM999990.000') ELSE '-' END || '</td></tr>';
+    END LOOP;
+    RETURN CASE WHEN l_h IS NULL THEN '<p class="nn-hint">لا صيانات مقفلة منذ ' || TO_CHAR(l_from, 'YYYY-MM-DD') || '.</p>'
+           ELSE '<table class="nn-table"><thead><tr><th>العربة</th><th>الأوامر</th><th>التكلفة</th><th>منها رأسمالية</th><th>التوقف (ساعة)</th>'
+             || '<th>الكيلومترات</th><th>التكلفة/كم</th></tr></thead><tbody>' || l_h
+             || '<tr><td><b>الإجمالي</b></td><td></td><td class="u-tE"><b>' || fmt(l_t) || '</b></td><td colspan="4"></td></tr></tbody></table>' END;
+  END maint_cost_html;
 
   FUNCTION save_driver(p_doc IN CLOB) RETURN NUMBER IS
     l_o  JSON_OBJECT_T := JSON_OBJECT_T.parse(p_doc);

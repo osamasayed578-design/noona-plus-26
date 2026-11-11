@@ -177,6 +177,8 @@ BEGIN
   NOONA_VPD_PKG.add_tenant_policy('FA_DEPRECIATION_LINE');
   NOONA_VPD_PKG.add_tenant_policy('FA_DEPRECIATION_RUN');
   NOONA_VPD_PKG.add_tenant_policy('FA_DISPOSAL');
+  NOONA_VPD_PKG.add_tenant_policy('FA_MAINTENANCE');
+  NOONA_VPD_PKG.add_tenant_policy('FA_MAINT_PLAN');
   NOONA_VPD_PKG.add_tenant_policy('FA_TRANSACTION');
   NOONA_VPD_PKG.add_tenant_policy('FA_TRANSFER');
   NOONA_VPD_PKG.add_tenant_policy('GL_ACCOUNT');
@@ -586,6 +588,9 @@ BEGIN
   NOONA_VPD_PKG.add_tenant_policy('TRN_DRIVER');
   NOONA_VPD_PKG.add_tenant_policy('TRN_INCIDENT');
   NOONA_VPD_PKG.add_tenant_policy('TRN_LOCATION');
+  NOONA_VPD_PKG.add_tenant_policy('TRN_MAINT_LINE');
+  NOONA_VPD_PKG.add_tenant_policy('TRN_MAINT_ORDER');
+  NOONA_VPD_PKG.add_tenant_policy('TRN_MAINT_PLAN');
   NOONA_VPD_PKG.add_tenant_policy('TRN_ORDER');
   NOONA_VPD_PKG.add_tenant_policy('TRN_RATE');
   NOONA_VPD_PKG.add_tenant_policy('TRN_ROUTE');

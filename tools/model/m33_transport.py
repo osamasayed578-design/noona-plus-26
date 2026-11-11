@@ -178,3 +178,48 @@ RESPONSE_ACTION V2000            | إجراء الاستجابة
 DOWNTIME_MINUTES INT             | مدة التوقف (دقيقة)
 COST_AMOUNT     AMT              | التكلفة
 ''', ix=[('TENANT_ID', 'COMPANY_ID', 'STATUS_CODE'), ('TENANT_ID', 'TRIP_ID')], area='operations')
+
+# ---------------------------------------------------------------- صيانة الأسطول
+table('TRN_MAINT_PLAN', 'برامج الصيانة الدورية للأسطول', 'Fleet Service Programs', scope='C', mix='notes status',
+      status='ACTIVE PAUSED', cols='''
+SERVICE_NAME    V200 NN          | الخدمة (تغيير زيت، إطارات، فرامل، فحص دوري...)
+VEHICLE_ID      ID   >TRN_VEHICLE | العربة (فارغ = كل عربات النوع)
+VEHICLE_TYPE    CODE             | نوع العربات (فارغ = كل الأنواع)
+EVERY_KM        NUM              | كل (كم)
+EVERY_DAYS      INT              | كل (يوم)
+ESTIMATED_COST  AMT              | التكلفة التقديرية
+''', chk=['EVERY_KM > 0 OR EVERY_DAYS > 0'], area='fleet')
+
+table('TRN_MAINT_ORDER', 'أوامر صيانة العربات', 'Vehicle Maintenance Orders', scope='C', mix='pub doc branch status notes',
+      status='OPEN IN_PROGRESS COMPLETED CANCELLED', cols='''
+VEHICLE_ID      ID   NN >TRN_VEHICLE | العربة
+PLAN_ID         ID   >TRN_MAINT_PLAN | البرنامج الدوري
+INCIDENT_ID     ID   >TRN_INCIDENT | البلاغ (العطل)
+MAINT_TYPE      CODE NN D='CORRECTIVE' IN:PREVENTIVE,CORRECTIVE,OVERHAUL,INSPECTION,ACCIDENT,TIRES,UPGRADE | النوع
+WORKSHOP        CODE NN D='INTERNAL' IN:INTERNAL,EXTERNAL | الورشة
+VENDOR_PARTY_ID ID   >PTY_PARTY  | الورشة الخارجية / المورد
+DESCRIPTION     V2000 NN         | وصف العمل
+OPENED_AT       TS   NN          | دخول الصيانة
+COMPLETED_AT    TS               | الخروج من الصيانة
+ODOMETER_KM     NUM              | العداد عند الصيانة
+DOWNTIME_HOURS  NUM              | مدة التوقف (ساعة)
+PARTS_COST      AMT  NN D=0      | قطع الغيار
+LABOR_COST      AMT  NN D=0      | العمالة
+OTHER_COST      AMT  NN D=0      | أخرى
+VAT_AMOUNT      AMT  NN D=0      | الضريبة
+TOTAL_COST      AMT  NN D=0      | الإجمالي دون الضريبة
+TREATMENT       CODE NN D='EXPENSE' IN:EXPENSE,CAPITALIZE | المعالجة المحاسبية
+LIFE_EXTENSION_MONTHS INT NN D=0 | تمديد عمر العربة (شهر)
+PREV_STATUS     CODE             | حالة العربة قبل الصيانة
+FA_MAINTENANCE_ID ID >FA_MAINTENANCE | قيد الصيانة في الأصول
+''', ix=[('TENANT_ID', 'COMPANY_ID', 'STATUS_CODE'), ('TENANT_ID', 'VEHICLE_ID')], area='fleet')
+
+table('TRN_MAINT_LINE', 'بنود أمر الصيانة', 'Maintenance Order Lines', scope='C', cols='''
+ORDER_ID        ID   NN >TRN_MAINT_ORDER | أمر الصيانة
+LINE_TYPE       CODE NN D='PART' IN:PART,LABOR,OIL,TIRE,OTHER | النوع
+DESCRIPTION     V500 NN          | البيان
+ITEM_ID         ID   >INV_ITEM   | الصنف (قطعة الغيار)
+QUANTITY        QTY  NN D=1      | الكمية
+UNIT_COST       AMT  NN D=0      | تكلفة الوحدة
+AMOUNT          AMT  NN D=0      | المبلغ
+''', chk=['QUANTITY > 0', 'UNIT_COST >= 0'], area='fleet')

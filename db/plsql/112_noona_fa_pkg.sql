@@ -63,6 +63,24 @@ CREATE OR REPLACE PACKAGE NOONA_FA_PKG AUTHID DEFINER AS
                    p_reason IN VARCHAR2) RETURN NUMBER;
   FUNCTION reverse_disposal(p_disposal_id IN NUMBER, p_reason IN VARCHAR2) RETURN NUMBER;
 
+  -- ---------------------------------------------------------- الصيانة وتمديد العمر
+  -- JSON: asset (اختياري للمصروف)، date, maint_type (PREVENTIVE|CORRECTIVE|OVERHAUL|INSPECTION|ACCIDENT|UPGRADE)،
+  --   treatment: EXPENSE (مصروف صيانة 5205) | CAPITALIZE (إضافة رأسمالية على تكلفة الأصل)، description, amount, vat,
+  --   funding: BANK | CASH | PAYABLE | ACCOUNT ، bank_account, cash_box, party, account, expense_account, cost_center, branch,
+  --   life_extension (أشهر تضاف للعمر الإنتاجي مع الرسملة)، plan (خطة دورية تتحدث)، reference, source_module, source_id
+  FUNCTION record_maintenance(p_doc IN CLOB) RETURN NUMBER;
+  -- عكس قيد صيانة المصروف (الرأسمالية تعالج بحركة تعديل على الأصل)
+  FUNCTION reverse_maintenance(p_id IN NUMBER, p_reason IN VARCHAR2) RETURN NUMBER;
+  -- تمديد العمر الإنتاجي المتبقي بعدد أشهر (بعد تجديد أو إعادة تقدير فني)
+  FUNCTION extend_life(p_asset_id IN NUMBER, p_months IN NUMBER, p_date IN DATE, p_reason IN VARCHAR2) RETURN NUMBER;
+  FUNCTION save_maint_plan(p_id IN NUMBER, p_asset_id IN NUMBER, p_service IN VARCHAR2, p_every_months IN NUMBER,
+                           p_next_due IN DATE, p_cost IN NUMBER DEFAULT NULL, p_status IN VARCHAR2 DEFAULT 'ACTIVE') RETURN NUMBER;
+  FUNCTION maint_type_label(p_type IN VARCHAR2) RETURN VARCHAR2;
+  -- سجل صيانة الأصل وتكلفتها (مصروف ورأسمالي) وعمره بعد التمديد
+  FUNCTION maintenance_html(p_asset_id IN NUMBER) RETURN CLOB;
+  -- الصيانات الدورية المستحقة والمتأخرة خلال p_days يوماً
+  FUNCTION due_maintenance_html(p_days IN NUMBER DEFAULT 30) RETURN CLOB;
+
   -- ---------------------------------------------------------- المسميات والتقارير
   FUNCTION status_label(p_status IN VARCHAR2) RETURN VARCHAR2;
   FUNCTION method_label(p_method IN VARCHAR2) RETURN VARCHAR2;
@@ -1062,6 +1080,205 @@ CREATE OR REPLACE PACKAGE BODY NOONA_FA_PKG AS
     RETURN '<div class="nn-kpi ' || p_cls || '"><span class="nn-kpi-icon fa ' || p_icon || '"></span><div><div class="nn-kpi-value">'
         || p_value || '</div><div class="nn-kpi-label">' || esc(p_label) || '</div></div></div>';
   END kpi;
+
+  -- ---------------------------------------------------------- الصيانة وتمديد العمر
+  FUNCTION maint_type_label(p_type IN VARCHAR2) RETURN VARCHAR2 IS
+  BEGIN
+    RETURN CASE p_type WHEN 'PREVENTIVE' THEN 'وقائية دورية' WHEN 'CORRECTIVE' THEN 'إصلاح عطل' WHEN 'OVERHAUL' THEN 'عمرة / تجديد'
+      WHEN 'INSPECTION' THEN 'فحص' WHEN 'ACCIDENT' THEN 'إصلاح حادث' WHEN 'UPGRADE' THEN 'تطوير وتحسين' WHEN 'TIRES' THEN 'إطارات'
+      ELSE p_type END;
+  END maint_type_label;
+
+  FUNCTION extend_life(p_asset_id IN NUMBER, p_months IN NUMBER, p_date IN DATE, p_reason IN VARCHAR2) RETURN NUMBER IS
+    l_b fa_asset_book%ROWTYPE;
+  BEGIN
+    NOONA_CORE_PKG.assert(NVL(p_months, 0) > 0 AND p_months = TRUNC(p_months), 'NOONA-FA-060',
+      'أشهر التمديد عدد صحيح موجب', 'Extension months must be a positive integer');
+    NOONA_CORE_PKG.assert(TRIM(p_reason) IS NOT NULL, 'NOONA-FA-043', 'سبب التمديد مطلوب', 'Reason required');
+    l_b := book_row(p_asset_id);
+    NOONA_CORE_PKG.assert(l_b.depreciation_method <> 'NONE', 'NOONA-FA-063', 'الأصل لا يهلك؛ لا عمر إنتاجي لتمديده', 'Asset is not depreciable');
+    RETURN change_life(p_asset_id, l_b.useful_life_months + p_months, NULL, p_date,
+                       'تمديد العمر ' || p_months || ' شهراً: ' || p_reason);
+  END extend_life;
+
+  FUNCTION record_maintenance(p_doc IN CLOB) RETURN NUMBER IS
+    l_o     JSON_OBJECT_T := JSON_OBJECT_T.parse(p_doc);
+    l_asset NUMBER := jnum(l_o, 'asset');
+    l_a     fa_asset%ROWTYPE;
+    l_amt   NUMBER := ROUND(jnum(l_o, 'amount'), 2);
+    l_vat   NUMBER := NVL(ROUND(jnum(l_o, 'vat'), 2), 0);
+    l_date  DATE := NVL(jdate(l_o, 'date'), TRUNC(SYSDATE));
+    l_treat VARCHAR2(30) := NVL(js(l_o, 'treatment'), 'EXPENSE');
+    l_type  VARCHAR2(30) := NVL(js(l_o, 'maint_type'), 'CORRECTIVE');
+    l_fund  VARCHAR2(30) := NVL(js(l_o, 'funding'), 'BANK');
+    l_ext   NUMBER := NVL(jnum(l_o, 'life_extension'), 0);
+    l_desc  VARCHAR2(1000) := SUBSTR(js(l_o, 'description'), 1, 1000);
+    l_plan  NUMBER := jnum(l_o, 'plan');
+    l_bank  NUMBER := jnum(l_o, 'bank_account');
+    l_box   NUMBER := jnum(l_o, 'cash_box');
+    l_party NUMBER := jnum(l_o, 'party');
+    l_acct  NUMBER := jnum(l_o, 'account');
+    l_ref   VARCHAR2(100) := SUBSTR(js(l_o, 'reference'), 1, 100);
+    l_smod  VARCHAR2(30) := NVL(js(l_o, 'source_module'), 'FA');
+    l_sid   NUMBER := jnum(l_o, 'source_id');
+    l_exp   NUMBER;
+    l_cc    NUMBER;
+    l_br    NUMBER;
+    l_src   NUMBER;
+    l_id    NUMBER;
+    l_tx    NUMBER;
+    l_j     NUMBER;
+    l_x     NUMBER;
+    l_no    VARCHAR2(50);
+    l_lines NOONA_GL_PKG.t_lines := NOONA_GL_PKG.t_lines();
+  BEGIN
+    guard('FA_MAINTENANCE.CREATE');
+    NOONA_CORE_PKG.assert(l_amt > 0, 'NOONA-FA-064', 'مبلغ الصيانة يجب أن يكون موجباً', 'Amount must be positive');
+    NOONA_CORE_PKG.assert(l_vat >= 0, 'NOONA-FA-064', 'الضريبة لا تكون سالبة', 'VAT must not be negative');
+    NOONA_CORE_PKG.assert(TRIM(l_desc) IS NOT NULL, 'NOONA-FA-065', 'وصف الصيانة مطلوب', 'Description required');
+    NOONA_CORE_PKG.assert(l_treat IN ('EXPENSE', 'CAPITALIZE'), 'NOONA-FA-066', 'المعالجة: مصروف أو إضافة رأسمالية', 'Invalid treatment');
+    NOONA_CORE_PKG.assert(l_fund IN ('BANK', 'CASH', 'PAYABLE', 'ACCOUNT'), 'NOONA-FA-014', 'مصدر السداد غير صحيح', 'Invalid funding');
+    NOONA_CORE_PKG.assert(l_ext >= 0 AND l_ext = TRUNC(l_ext), 'NOONA-FA-060', 'أشهر التمديد عدد صحيح موجب', 'Invalid extension');
+    IF l_asset IS NOT NULL THEN
+      l_a := asset_row(l_asset, TRUE);
+      assert_active(l_a);
+    END IF;
+    NOONA_CORE_PKG.assert(l_treat = 'EXPENSE' OR l_asset IS NOT NULL, 'NOONA-FA-061',
+      'الإضافة الرأسمالية تتطلب أصلاً مسجلاً', 'Capitalization requires a registered asset');
+    NOONA_CORE_PKG.assert(l_ext = 0 OR l_treat = 'CAPITALIZE', 'NOONA-FA-062',
+      'تمديد العمر الإنتاجي يكون مع الصيانة الرأسمالية (عمرة أو تجديد يطيل العمر)؛ أو استخدم «تمديد العمر» مباشرة',
+      'Life extension requires capitalized maintenance');
+    l_exp := NVL(jnum(l_o, 'expense_account'), need_acc('5205'));
+    l_cc := NVL(jnum(l_o, 'cost_center'), l_a.cost_center_id);
+    l_br := NVL(jnum(l_o, 'branch'), NVL(l_a.branch_id, NOONA_CTX_PKG.branch_id));
+    ensure_sequence('FA_MAINTENANCE', 'FAM-');
+    l_no := next_no('FA_MAINTENANCE', l_date);
+    INSERT INTO fa_maintenance (company_id, branch_id, doc_no, doc_date, asset_id, plan_id, maint_type, treatment, description,
+                                vendor_party_id, amount, vat_amount, funding, bank_account_id, cash_box_id, account_id,
+                                expense_account_id, cost_center_id, life_extension_months, source_module, source_id, reference_no, status_code)
+    VALUES (company, l_br, l_no, l_date, l_asset, l_plan, l_type, l_treat, l_desc, l_party, l_amt, l_vat, l_fund, l_bank, l_box, l_acct,
+            CASE WHEN l_treat = 'EXPENSE' THEN l_exp END, l_cc, l_ext, l_smod, l_sid,
+            l_ref, 'POSTED')
+    RETURNING id INTO l_id;
+    IF l_treat = 'CAPITALIZE' THEN
+      -- العمرة والتجديد والتطوير: تضاف لتكلفة الأصل وتهلك على عمره (الممدد)
+      l_tx := add_cost(l_asset, l_amt, l_date, l_fund, l_bank, l_box, l_party, l_acct, l_vat,
+                       'صيانة رأسمالية ' || l_no || ' - ' || l_desc);
+      IF l_ext > 0 THEN
+        l_x := extend_life(l_asset, l_ext, l_date, 'صيانة رأسمالية ' || l_no);
+      END IF;
+      UPDATE fa_maintenance SET fa_transaction_id = l_tx, posted_at = SYSTIMESTAMP, posted_by = NOONA_CTX_PKG.current_user_name WHERE id = l_id;
+    ELSE
+      l_src := source_account(l_fund, l_bank, l_box, l_party, l_acct);
+      add_line(l_lines, l_exp, l_amt, 0, l_cc, 'صيانة ' || NVL(l_a.asset_no, '') || ' - ' || SUBSTR(l_desc, 1, 200));
+      IF l_vat > 0 THEN
+        add_line(l_lines, need_acc('1107'), l_vat, 0, NULL, 'ضريبة مدخلات صيانة ' || l_no);
+      END IF;
+      add_line(l_lines, l_src, 0, l_amt + l_vat, NULL, 'صيانة ' || l_no, CASE WHEN l_fund = 'PAYABLE' THEN l_party END);
+      l_j := NOONA_ACE_PKG.post_source('FA_ASSET_ADJUSTED', 'ASSETS', 'FA_MAINTENANCE', l_id, l_date,
+               'صيانة ' || CASE WHEN l_a.asset_no IS NOT NULL THEN 'الأصل ' || l_a.asset_no || ' - ' END || SUBSTR(l_desc, 1, 300),
+               NOONA_GL_PKG.ledger_currency, 1, l_lines, NVL(l_ref, l_no), l_br, 'FA_ACQUISITION');
+      UPDATE fa_maintenance SET posted_at = SYSTIMESTAMP, posted_by = NOONA_CTX_PKG.current_user_name,
+             accounting_event_id = (SELECT MAX(e.id) FROM ace_accounting_event e WHERE e.journal_id = l_j)
+       WHERE id = l_id;
+    END IF;
+    IF l_plan IS NOT NULL THEN
+      UPDATE fa_maint_plan SET last_done_date = l_date, next_due_date = ADD_MONTHS(l_date, every_months)
+       WHERE id = l_plan AND company_id = company AND (asset_id = l_asset OR l_asset IS NULL);
+      NOONA_CORE_PKG.assert(SQL%ROWCOUNT = 1, 'NOONA-FA-067', 'خطة الصيانة لا تخص هذا الأصل', 'Plan does not belong to the asset');
+    END IF;
+    NOONA_AUDIT_PKG.log_event('DATA_CHANGE', 'FA_MAINTENANCE', l_id, 'CREATE', 'SUCCESS');
+    RETURN l_id;
+  END record_maintenance;
+
+  FUNCTION reverse_maintenance(p_id IN NUMBER, p_reason IN VARCHAR2) RETURN NUMBER IS
+    l_m fa_maintenance%ROWTYPE;
+    l_j NUMBER;
+  BEGIN
+    guard('FA_MAINTENANCE.CREATE');
+    SELECT * INTO l_m FROM fa_maintenance WHERE id = p_id AND company_id = company FOR UPDATE;
+    NOONA_CORE_PKG.assert(l_m.status_code = 'POSTED', 'NOONA-FA-068', 'الصيانة معكوسة سابقاً', 'Already reversed');
+    NOONA_CORE_PKG.assert(l_m.treatment = 'EXPENSE', 'NOONA-FA-069',
+      'الصيانة الرأسمالية أضيفت لتكلفة الأصل؛ تعالج بانخفاض قيمة أو تعديل', 'Capitalized maintenance cannot be reversed here');
+    NOONA_CORE_PKG.assert(TRIM(p_reason) IS NOT NULL, 'NOONA-FA-043', 'سبب العكس مطلوب', 'Reason required');
+    l_j := NOONA_ACE_PKG.reverse_source('FA_MAINTENANCE', p_id, TRUNC(SYSDATE), p_reason);
+    UPDATE fa_maintenance SET status_code = 'REVERSED', notes = SUBSTR(NVL2(notes, notes || ' | ', '') || 'عكس: ' || p_reason, 1, 4000)
+     WHERE id = p_id;
+    RETURN l_j;
+  EXCEPTION WHEN NO_DATA_FOUND THEN
+    NOONA_CORE_PKG.raise_error('NOONA-FA-070', 'سجل الصيانة غير موجود', 'Maintenance not found');
+  END reverse_maintenance;
+
+  FUNCTION save_maint_plan(p_id IN NUMBER, p_asset_id IN NUMBER, p_service IN VARCHAR2, p_every_months IN NUMBER,
+                           p_next_due IN DATE, p_cost IN NUMBER DEFAULT NULL, p_status IN VARCHAR2 DEFAULT 'ACTIVE') RETURN NUMBER IS
+    l_id NUMBER := p_id;
+    l_a  fa_asset%ROWTYPE;
+  BEGIN
+    guard('FA_MAINT_PLAN.CREATE');
+    l_a := asset_row(p_asset_id);
+    NOONA_CORE_PKG.assert(TRIM(p_service) IS NOT NULL AND NVL(p_every_months, 0) > 0, 'NOONA-FA-071',
+      'اسم الصيانة وتكرارها بالأشهر مطلوبان', 'Service and frequency required');
+    IF l_id IS NULL THEN
+      INSERT INTO fa_maint_plan (company_id, asset_id, service_name, every_months, next_due_date, estimated_cost, status_code)
+      VALUES (company, p_asset_id, TRIM(p_service), p_every_months, NVL(p_next_due, ADD_MONTHS(TRUNC(SYSDATE), p_every_months)),
+              p_cost, NVL(p_status, 'ACTIVE'))
+      RETURNING id INTO l_id;
+    ELSE
+      UPDATE fa_maint_plan SET asset_id = p_asset_id, service_name = TRIM(p_service), every_months = p_every_months,
+             next_due_date = NVL(p_next_due, next_due_date), estimated_cost = p_cost, status_code = NVL(p_status, status_code)
+       WHERE id = l_id AND company_id = company;
+      NOONA_CORE_PKG.assert(SQL%ROWCOUNT = 1, 'NOONA-FA-072', 'الخطة غير موجودة', 'Plan not found');
+    END IF;
+    RETURN l_id;
+  END save_maint_plan;
+
+  FUNCTION maintenance_html(p_asset_id IN NUMBER) RETURN CLOB IS
+    l_h   CLOB;
+    l_exp NUMBER := 0;
+    l_cap NUMBER := 0;
+    l_b   fa_asset_book%ROWTYPE;
+  BEGIN
+    IF p_asset_id IS NULL THEN RETURN NULL; END IF;
+    l_b := book_row(p_asset_id);
+    FOR r IN (SELECT m.*, (SELECT p.display_name_ar FROM pty_party p WHERE p.id = m.vendor_party_id) vendor
+                FROM fa_maintenance m WHERE m.asset_id = p_asset_id AND m.company_id = company ORDER BY m.doc_date DESC, m.id DESC) LOOP
+      IF r.status_code = 'POSTED' THEN
+        IF r.treatment = 'EXPENSE' THEN l_exp := l_exp + r.amount; ELSE l_cap := l_cap + r.amount; END IF;
+      END IF;
+      l_h := l_h || '<tr' || CASE WHEN r.status_code = 'REVERSED' THEN ' style="opacity:.55"' END || '><td>' || esc(r.doc_no) || '</td><td>'
+          || TO_CHAR(r.doc_date, 'YYYY-MM-DD') || '</td><td>' || esc(maint_type_label(r.maint_type)) || '</td><td>'
+          || CASE r.treatment WHEN 'CAPITALIZE' THEN '<b>رأسمالية</b>' ELSE 'مصروف' END
+          || CASE WHEN r.life_extension_months > 0 THEN ' (+' || r.life_extension_months || ' شهر)' END || '</td><td>'
+          || esc(r.description) || '</td><td>' || esc(r.vendor) || '</td><td class="u-tE">' || fnum(r.amount) || '</td><td>'
+          || CASE r.status_code WHEN 'REVERSED' THEN 'معكوسة' ELSE 'مرحلة' END || '</td></tr>';
+    END LOOP;
+    RETURN '<div class="nn-kpis"><div class="nn-kpi"><span>صيانة كمصروف</span><b>' || fnum(l_exp) || '</b></div>'
+        || '<div class="nn-kpi"><span>صيانة رأسمالية مضافة للتكلفة</span><b>' || fnum(l_cap) || '</b></div>'
+        || '<div class="nn-kpi"><span>العمر الإنتاجي الحالي</span><b>' || l_b.useful_life_months || ' شهر</b></div>'
+        || '<div class="nn-kpi"><span>صافي القيمة الدفترية</span><b>' || fnum(l_b.cost - l_b.accumulated_depr) || '</b></div></div>'
+        || CASE WHEN l_h IS NULL THEN '<p class="nn-hint">لا توجد صيانات مسجلة لهذا الأصل.</p>'
+           ELSE '<table class="nn-table"><thead><tr><th>الرقم</th><th>التاريخ</th><th>النوع</th><th>المعالجة</th><th>الوصف</th>'
+             || '<th>الورشة</th><th>المبلغ</th><th>الحالة</th></tr></thead><tbody>' || l_h || '</tbody></table>' END;
+  END maintenance_html;
+
+  FUNCTION due_maintenance_html(p_days IN NUMBER DEFAULT 30) RETURN CLOB IS
+    l_h CLOB;
+  BEGIN
+    FOR r IN (SELECT p.*, a.asset_no, a.name_ar, p.next_due_date - TRUNC(SYSDATE) days_left
+                FROM fa_maint_plan p JOIN fa_asset a ON a.id = p.asset_id
+               WHERE p.company_id = company AND p.status_code = 'ACTIVE' AND a.status_code NOT IN ('DISPOSED', 'RETIRED')
+                 AND p.next_due_date <= TRUNC(SYSDATE) + NVL(p_days, 30)
+               ORDER BY p.next_due_date) LOOP
+      l_h := l_h || '<tr><td>' || esc(r.asset_no || ' - ' || r.name_ar) || '</td><td>' || esc(r.service_name) || '</td><td>'
+          || TO_CHAR(r.next_due_date, 'YYYY-MM-DD') || '</td><td>'
+          || CASE WHEN r.days_left < 0 THEN '<span class="nn-badge nn-badge--danger">متأخرة ' || -r.days_left || ' يوم</span>'
+                  WHEN r.days_left = 0 THEN '<span class="nn-badge nn-badge--warning">اليوم</span>'
+                  ELSE 'بعد ' || r.days_left || ' يوم' END || '</td><td class="u-tE">' || fnum(r.estimated_cost) || '</td></tr>';
+    END LOOP;
+    RETURN CASE WHEN l_h IS NULL THEN '<p class="nn-hint">لا صيانات دورية مستحقة خلال ' || NVL(p_days, 30) || ' يوماً.</p>'
+           ELSE '<table class="nn-table"><thead><tr><th>الأصل</th><th>الصيانة</th><th>الاستحقاق</th><th>الحالة</th><th>التكلفة التقديرية</th>'
+             || '</tr></thead><tbody>' || l_h || '</tbody></table>' END;
+  END due_maintenance_html;
 
   FUNCTION fa_summary RETURN CLOB IS
     l_cnt  NUMBER;
