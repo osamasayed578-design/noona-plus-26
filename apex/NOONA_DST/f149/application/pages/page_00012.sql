@@ -22,7 +22,7 @@ wwv_flow_imp_page.create_page(
 ,p_protection_level=>'C'
 );
 wwv_flow_imp_page.create_page_plug(
- p_id=>wwv_flow_imp.id(91820300000000165)
+ p_id=>wwv_flow_imp.id(91820300000000168)
 ,p_plug_name=>'خط جديد'
 ,p_region_template_options=>'#DEFAULT#'
 ,p_plug_template=>4072358936313175081
@@ -33,9 +33,9 @@ wwv_flow_imp_page.create_page_plug(
   'show_line_breaks', 'Y')).to_clob
 );
 wwv_flow_imp_page.create_page_button(
- p_id=>wwv_flow_imp.id(91820300000000166)
+ p_id=>wwv_flow_imp.id(91820300000000169)
 ,p_button_sequence=>10
-,p_button_plug_id=>wwv_flow_imp.id(91820300000000165)
+,p_button_plug_id=>wwv_flow_imp.id(91820300000000168)
 ,p_button_name=>'NEW'
 ,p_button_action=>'REDIRECT_URL'
 ,p_button_template_options=>'#DEFAULT#'
@@ -46,7 +46,7 @@ wwv_flow_imp_page.create_page_button(
 ,p_button_redirect_url=>'f?p=&APP_ID.:13:&SESSION.::&DEBUG.:RP,13::'
 );
 wwv_flow_imp_page.create_page_plug(
- p_id=>wwv_flow_imp.id(91820300000000167)
+ p_id=>wwv_flow_imp.id(91820300000000170)
 ,p_plug_name=>'خطوط السير'
 ,p_region_template_options=>'#DEFAULT#'
 ,p_component_template_options=>'#DEFAULT#'
@@ -63,7 +63,7 @@ wwv_flow_imp_page.create_page_plug(
 ,p_prn_page_header=>'خطوط السير'
 );
 wwv_flow_imp_page.create_worksheet(
- p_id=>wwv_flow_imp.id(91820300000000168)
+ p_id=>wwv_flow_imp.id(91820300000000171)
 ,p_max_row_count=>'1000000'
 ,p_no_data_found_message=>'لا توجد بيانات'
 ,p_pagination_type=>'ROWS_X_TO_Y'
@@ -77,10 +77,10 @@ wwv_flow_imp_page.create_worksheet(
 ,p_detail_link=>'f?p=&APP_ID.:13:&SESSION.::&DEBUG.:RP,13:P13_ID:#ID#'
 ,p_detail_link_text=>'<span role="img" aria-label="تعديل" class="fa fa-edit" title="فتح"></span>'
 ,p_owner=>'NOONA'
-,p_internal_uid=>91820300000000168
+,p_internal_uid=>91820300000000171
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820300000000170)
+ p_id=>wwv_flow_imp.id(91820300000000173)
 ,p_db_column_name=>'ID'
 ,p_display_order=>10
 ,p_column_identifier=>'A'
@@ -91,7 +91,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820300000000171)
+ p_id=>wwv_flow_imp.id(91820300000000174)
 ,p_db_column_name=>'CODE'
 ,p_display_order=>20
 ,p_column_identifier=>'B'
@@ -101,7 +101,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820300000000172)
+ p_id=>wwv_flow_imp.id(91820300000000175)
 ,p_db_column_name=>'NAME_AR'
 ,p_display_order=>30
 ,p_column_identifier=>'C'
@@ -111,7 +111,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820300000000173)
+ p_id=>wwv_flow_imp.id(91820300000000176)
 ,p_db_column_name=>'REGION_NAME'
 ,p_display_order=>40
 ,p_column_identifier=>'D'
@@ -121,7 +121,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820300000000174)
+ p_id=>wwv_flow_imp.id(91820300000000177)
 ,p_db_column_name=>'VISIT_DAYS'
 ,p_display_order=>50
 ,p_column_identifier=>'E'
@@ -131,7 +131,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820300000000175)
+ p_id=>wwv_flow_imp.id(91820300000000178)
 ,p_db_column_name=>'REP'
 ,p_display_order=>60
 ,p_column_identifier=>'F'
@@ -141,7 +141,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820300000000176)
+ p_id=>wwv_flow_imp.id(91820300000000179)
 ,p_db_column_name=>'SHOPS'
 ,p_display_order=>70
 ,p_column_identifier=>'G'
@@ -151,7 +151,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820300000000177)
+ p_id=>wwv_flow_imp.id(91820300000000180)
 ,p_db_column_name=>'LOCATED'
 ,p_display_order=>80
 ,p_column_identifier=>'H'
@@ -161,7 +161,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820300000000178)
+ p_id=>wwv_flow_imp.id(91820300000000181)
 ,p_db_column_name=>'STATUS_HTML'
 ,p_display_order=>90
 ,p_column_identifier=>'I'
@@ -172,10 +172,10 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_rpt(
- p_id=>wwv_flow_imp.id(91820300000000169)
+ p_id=>wwv_flow_imp.id(91820300000000172)
 ,p_application_user=>'APXWS_DEFAULT'
 ,p_report_seq=>10
-,p_report_alias=>'169'
+,p_report_alias=>'172'
 ,p_status=>'PUBLIC'
 ,p_is_default=>'Y'
 ,p_report_columns=>'CODE:NAME_AR:REGION_NAME:VISIT_DAYS:REP:SHOPS:LOCATED:STATUS_HTML'

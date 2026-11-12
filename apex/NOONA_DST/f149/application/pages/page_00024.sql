@@ -22,7 +22,7 @@ wwv_flow_imp_page.create_page(
 ,p_protection_level=>'C'
 );
 wwv_flow_imp_page.create_page_plug(
- p_id=>wwv_flow_imp.id(91820300000000292)
+ p_id=>wwv_flow_imp.id(91820300000000295)
 ,p_plug_name=>'أوامر التوريد'
 ,p_region_template_options=>'#DEFAULT#'
 ,p_component_template_options=>'#DEFAULT#'
@@ -38,7 +38,7 @@ wwv_flow_imp_page.create_page_plug(
 ,p_prn_page_header=>'أوامر التوريد'
 );
 wwv_flow_imp_page.create_worksheet(
- p_id=>wwv_flow_imp.id(91820300000000293)
+ p_id=>wwv_flow_imp.id(91820300000000296)
 ,p_max_row_count=>'1000000'
 ,p_no_data_found_message=>'لا توجد بيانات'
 ,p_pagination_type=>'ROWS_X_TO_Y'
@@ -52,10 +52,10 @@ wwv_flow_imp_page.create_worksheet(
 ,p_detail_link=>'f?p=&APP_ID.:25:&SESSION.::&DEBUG.:RP,25:P25_ID:#ID#'
 ,p_detail_link_text=>'<span role="img" aria-label="تعديل" class="fa fa-edit" title="فتح"></span>'
 ,p_owner=>'NOONA'
-,p_internal_uid=>91820300000000293
+,p_internal_uid=>91820300000000296
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820300000000295)
+ p_id=>wwv_flow_imp.id(91820300000000298)
 ,p_db_column_name=>'ID'
 ,p_display_order=>10
 ,p_column_identifier=>'A'
@@ -66,7 +66,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820300000000296)
+ p_id=>wwv_flow_imp.id(91820300000000299)
 ,p_db_column_name=>'DOC_NO'
 ,p_display_order=>20
 ,p_column_identifier=>'B'
@@ -76,7 +76,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820300000000297)
+ p_id=>wwv_flow_imp.id(91820300000000300)
 ,p_db_column_name=>'DOC_DATE'
 ,p_display_order=>30
 ,p_column_identifier=>'C'
@@ -87,7 +87,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820300000000298)
+ p_id=>wwv_flow_imp.id(91820300000000301)
 ,p_db_column_name=>'REP'
 ,p_display_order=>40
 ,p_column_identifier=>'D'
@@ -97,7 +97,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820300000000299)
+ p_id=>wwv_flow_imp.id(91820300000000302)
 ,p_db_column_name=>'SHOP'
 ,p_display_order=>50
 ,p_column_identifier=>'E'
@@ -107,7 +107,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820300000000300)
+ p_id=>wwv_flow_imp.id(91820300000000303)
 ,p_db_column_name=>'DELIVERY_DATE'
 ,p_display_order=>60
 ,p_column_identifier=>'F'
@@ -118,7 +118,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820300000000301)
+ p_id=>wwv_flow_imp.id(91820300000000304)
 ,p_db_column_name=>'TOTAL_AMOUNT'
 ,p_display_order=>70
 ,p_column_identifier=>'G'
@@ -128,7 +128,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820300000000302)
+ p_id=>wwv_flow_imp.id(91820300000000305)
 ,p_db_column_name=>'LINES'
 ,p_display_order=>80
 ,p_column_identifier=>'H'
@@ -138,7 +138,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820300000000303)
+ p_id=>wwv_flow_imp.id(91820300000000306)
 ,p_db_column_name=>'INVOICE'
 ,p_display_order=>90
 ,p_column_identifier=>'I'
@@ -148,7 +148,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820300000000304)
+ p_id=>wwv_flow_imp.id(91820300000000307)
 ,p_db_column_name=>'STATUS_HTML'
 ,p_display_order=>100
 ,p_column_identifier=>'J'
@@ -159,10 +159,10 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_rpt(
- p_id=>wwv_flow_imp.id(91820300000000294)
+ p_id=>wwv_flow_imp.id(91820300000000297)
 ,p_application_user=>'APXWS_DEFAULT'
 ,p_report_seq=>10
-,p_report_alias=>'294'
+,p_report_alias=>'297'
 ,p_status=>'PUBLIC'
 ,p_is_default=>'Y'
 ,p_report_columns=>'DOC_NO:DOC_DATE:REP:SHOP:DELIVERY_DATE:TOTAL_AMOUNT:LINES:INVOICE:STATUS_HTML'

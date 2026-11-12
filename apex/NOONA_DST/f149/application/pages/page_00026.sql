@@ -22,7 +22,7 @@ wwv_flow_imp_page.create_page(
 ,p_protection_level=>'C'
 );
 wwv_flow_imp_page.create_page_plug(
- p_id=>wwv_flow_imp.id(91820300000000316)
+ p_id=>wwv_flow_imp.id(91820300000000319)
 ,p_plug_name=>'التسويات'
 ,p_region_template_options=>'#DEFAULT#'
 ,p_component_template_options=>'#DEFAULT#'
@@ -38,7 +38,7 @@ wwv_flow_imp_page.create_page_plug(
 ,p_prn_page_header=>'التسويات'
 );
 wwv_flow_imp_page.create_worksheet(
- p_id=>wwv_flow_imp.id(91820300000000317)
+ p_id=>wwv_flow_imp.id(91820300000000320)
 ,p_max_row_count=>'1000000'
 ,p_no_data_found_message=>'لا توجد بيانات'
 ,p_pagination_type=>'ROWS_X_TO_Y'
@@ -52,10 +52,10 @@ wwv_flow_imp_page.create_worksheet(
 ,p_detail_link=>'f?p=&APP_ID.:27:&SESSION.::&DEBUG.:RP,27:P27_ID:#ID#'
 ,p_detail_link_text=>'<span role="img" aria-label="تعديل" class="fa fa-edit" title="فتح"></span>'
 ,p_owner=>'NOONA'
-,p_internal_uid=>91820300000000317
+,p_internal_uid=>91820300000000320
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820300000000319)
+ p_id=>wwv_flow_imp.id(91820300000000322)
 ,p_db_column_name=>'ID'
 ,p_display_order=>10
 ,p_column_identifier=>'A'
@@ -66,7 +66,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820300000000320)
+ p_id=>wwv_flow_imp.id(91820300000000323)
 ,p_db_column_name=>'DOC_NO'
 ,p_display_order=>20
 ,p_column_identifier=>'B'
@@ -76,7 +76,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820300000000321)
+ p_id=>wwv_flow_imp.id(91820300000000324)
 ,p_db_column_name=>'SETTLE_DATE'
 ,p_display_order=>30
 ,p_column_identifier=>'C'
@@ -87,7 +87,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820300000000322)
+ p_id=>wwv_flow_imp.id(91820300000000325)
 ,p_db_column_name=>'REP'
 ,p_display_order=>40
 ,p_column_identifier=>'D'
@@ -97,7 +97,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820300000000323)
+ p_id=>wwv_flow_imp.id(91820300000000326)
 ,p_db_column_name=>'VISITS_PLANNED'
 ,p_display_order=>50
 ,p_column_identifier=>'E'
@@ -107,7 +107,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820300000000324)
+ p_id=>wwv_flow_imp.id(91820300000000327)
 ,p_db_column_name=>'VISITS_DONE'
 ,p_display_order=>60
 ,p_column_identifier=>'F'
@@ -117,7 +117,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820300000000325)
+ p_id=>wwv_flow_imp.id(91820300000000328)
 ,p_db_column_name=>'SALES_AMOUNT'
 ,p_display_order=>70
 ,p_column_identifier=>'G'
@@ -127,7 +127,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820300000000326)
+ p_id=>wwv_flow_imp.id(91820300000000329)
 ,p_db_column_name=>'CREDIT_SALES'
 ,p_display_order=>80
 ,p_column_identifier=>'H'
@@ -137,7 +137,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820300000000327)
+ p_id=>wwv_flow_imp.id(91820300000000330)
 ,p_db_column_name=>'RETURNS_AMOUNT'
 ,p_display_order=>90
 ,p_column_identifier=>'I'
@@ -147,7 +147,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820300000000328)
+ p_id=>wwv_flow_imp.id(91820300000000331)
 ,p_db_column_name=>'CASH_EXPECTED'
 ,p_display_order=>100
 ,p_column_identifier=>'J'
@@ -157,7 +157,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820300000000329)
+ p_id=>wwv_flow_imp.id(91820300000000332)
 ,p_db_column_name=>'CASH_COUNTED'
 ,p_display_order=>110
 ,p_column_identifier=>'K'
@@ -167,7 +167,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820300000000330)
+ p_id=>wwv_flow_imp.id(91820300000000333)
 ,p_db_column_name=>'CASH_DIFF'
 ,p_display_order=>120
 ,p_column_identifier=>'L'
@@ -177,7 +177,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820300000000331)
+ p_id=>wwv_flow_imp.id(91820300000000334)
 ,p_db_column_name=>'TRANSFERS_AMOUNT'
 ,p_display_order=>130
 ,p_column_identifier=>'M'
@@ -187,7 +187,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820300000000332)
+ p_id=>wwv_flow_imp.id(91820300000000335)
 ,p_db_column_name=>'CHEQUES_AMOUNT'
 ,p_display_order=>140
 ,p_column_identifier=>'N'
@@ -197,7 +197,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820300000000333)
+ p_id=>wwv_flow_imp.id(91820300000000336)
 ,p_db_column_name=>'CARDS_AMOUNT'
 ,p_display_order=>150
 ,p_column_identifier=>'O'
@@ -207,7 +207,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820300000000334)
+ p_id=>wwv_flow_imp.id(91820300000000337)
 ,p_db_column_name=>'APPROVED_BY'
 ,p_display_order=>160
 ,p_column_identifier=>'P'
@@ -217,7 +217,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820300000000335)
+ p_id=>wwv_flow_imp.id(91820300000000338)
 ,p_db_column_name=>'STATUS_HTML'
 ,p_display_order=>170
 ,p_column_identifier=>'Q'
@@ -228,10 +228,10 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_rpt(
- p_id=>wwv_flow_imp.id(91820300000000318)
+ p_id=>wwv_flow_imp.id(91820300000000321)
 ,p_application_user=>'APXWS_DEFAULT'
 ,p_report_seq=>10
-,p_report_alias=>'318'
+,p_report_alias=>'321'
 ,p_status=>'PUBLIC'
 ,p_is_default=>'Y'
 ,p_report_columns=>'DOC_NO:SETTLE_DATE:REP:VISITS_PLANNED:VISITS_DONE:SALES_AMOUNT:CREDIT_SALES:RETURNS_AMOUNT:CASH_EXPECTED:CASH_COUNTED:CASH_DIFF:TRANSFERS_AMOUNT:CHEQUES_AMOUNT:CARDS_AMOUNT:APPROVED_BY:STATUS_HTML'

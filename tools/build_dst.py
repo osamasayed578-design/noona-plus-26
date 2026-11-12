@@ -69,6 +69,10 @@ SHOP_TYPE = ('STATIC2:بقالة;GROCERY,سوبرماركت;SUPERMARKET,صيدل
 PAY = 'STATIC2:نقداً;CASH,تحويل بنكي (رقم الإشعار);BANK_TRANSFER,شيك;CHEQUE,شبكة / بطاقة;CARD,محفظة إلكترونية;WALLET'
 NO_SALE = ('STATIC2:المحل مغلق;CLOSED,لديه مخزون كافٍ;STOCKED,لا توجد سيولة;NO_CASH,صاحب المحل غير موجود;OWNER_ABSENT,'
            'يشتري من منافس;COMPETITOR,السعر مرتفع;PRICE,سبب آخر;OTHER')
+EMP_LOV = ("select e.employee_no || ' - ' || p.display_name_ar d, e.id r from hr_employee e join pty_party p on p.id = e.person_party_id "
+           "where exists (select 1 from hr_employment m where m.employee_id = e.id and m.company_id = noona_dst_pkg.company "
+           "and m.status_code in ('ACTIVE', 'NOTICE_PERIOD')) order by e.employee_no")
+PAYM = 'STATIC2:مع الراتب (مسير الرواتب);PAYROLL,نقداً (سند صرف);CASH,تحويل بنكي (سند صرف);BANK_TRANSFER,لا يستحق عمولة;NONE'
 BASIS = 'STATIC2:نسبة من المبيعات;SALES,نسبة من التحصيل;COLLECTION,مبلغ لكل زيارة منفذة;VISIT,بلا عمولة;NONE'
 DAYS_HINT = 'أيام الزيارة مفصولة بفواصل: SUN,MON,TUE,WED,THU,FRI,SAT'
 REP_OF_USER = 'noona_dst_pkg.my_rep'
@@ -342,12 +346,13 @@ r = p.static('مندوب جديد', 5)
 p.button(r, 10, 'NEW', 'مندوب جديد', hot=True, redirect=url(11, clear='RP,11'))
 p.ir('المندوبون', 10, [
     'select r.id, r.code, r.full_name, r.user_name, r.phone, r.vehicle_plate, w.name_ar van_wh, b.name_ar cash_box,',
+    "       nvl(noona_wrk_pkg.employee_name(r.employee_id), '— غير مربوط —') emp, noona_wrk_pkg.method_label(r.earnings_method) paym,",
     '       noona_dst_pkg.label(r.commission_basis) basis, r.commission_rate, r.commission_per_visit, r.monthly_target,',
     "       (select count(*) from dst_route x where x.rep_id = r.id and x.status_code = 'ACTIVE') routes,",
     '       noona_dst_pkg.badge(r.status_code) status_html',
     '  from dst_rep r join inv_warehouse w on w.id = r.van_warehouse_id join csh_cash_box b on b.id = r.cash_box_id',
     f' where r.company_id = {CO} order by r.full_name'],
-    [('ID', '#', {'hidden': True, 'type': 'NUMBER'}), ('CODE', 'الرمز', {}), ('FULL_NAME', 'الاسم', {}), ('USER_NAME', 'المستخدم', {}),
+    [('ID', '#', {'hidden': True, 'type': 'NUMBER'}), ('CODE', 'الرمز', {}), ('FULL_NAME', 'الاسم', {}), ('EMP', 'الموظف (الموارد البشرية)', {}), ('PAYM', 'صرف العمولة', {}), ('USER_NAME', 'المستخدم', {}),
      ('PHONE', 'الجوال', {}), ('VEHICLE_PLATE', 'اللوحة', {}), ('VAN_WH', 'مستودع السيارة', {}), ('CASH_BOX', 'العهدة', {}),
      ('BASIS', 'أساس العمولة', {}), ('COMMISSION_RATE', 'النسبة %', {'type': 'NUMBER'}), ('COMMISSION_PER_VISIT', 'للزيارة', {'type': 'NUMBER'}),
      ('MONTHLY_TARGET', 'الهدف الشهري', {'type': 'NUMBER'}), ('ROUTES', 'الخطوط', {'type': 'NUMBER'}), ('STATUS_HTML', 'الحالة', {'html': True})],
@@ -357,8 +362,9 @@ p = app.page(11, 'Rep', 'REP', 'مندوب', scheme=MGR, protection='N')
 f = p.static('المندوب', 10, text='<p class="nn-hint">إذا تركت مستودع السيارة والعهدة فارغين ينشئهما النظام (VAN-رمز، REP-رمز). '
                                  'اربط المندوب بمستخدم النظام ليفتح له تطبيق الهاتف خطته تلقائياً.</p>')
 p.hidden('P11_ID', f, 1, protected=False)
+p.select('P11_EMP', f, 5, 'الموظف من الموارد البشرية', lov_sql=EMP_LOV)
 p.text('P11_CODE', f, 10, 'الرمز', required=True, maxlen=30, width=12)
-p.text('P11_NAME', f, 20, 'الاسم', required=True, maxlen=200)
+p.text('P11_NAME', f, 20, 'الاسم (فارغ = من ملف الموظف)', maxlen=200)
 p.select('P11_USER', f, 30, 'مستخدم النظام', lov_sql=USER_LOV)
 p.text('P11_PHONE', f, 40, 'الجوال', maxlen=30, width=16)
 p.text('P11_PLATE', f, 50, 'لوحة السيارة', maxlen=30, width=14)
@@ -374,6 +380,7 @@ p.select('P11_BASIS', c, 10, 'أساس العمولة', lov_sql=BASIS, null_text
 p.number('P11_RATE', c, 20, 'النسبة %')
 p.number('P11_PERVISIT', c, 30, 'مبلغ لكل زيارة منفذة')
 p.number('P11_TARGET', c, 40, 'الهدف الشهري للمبيعات')
+p.select('P11_PAYM', c, 45, 'صرف العمولة', lov_sql=PAYM, null_text=None)
 p.select('P11_STATUS', c, 50, 'الحالة', lov_sql='STATIC2:نشط;ACTIVE,موقوف;INACTIVE', null_text=None)
 p.textarea('P11_NOTES', c, 60, 'ملاحظات', rows=2)
 p.process(10, 'BEFORE_HEADER', 'Load', [
@@ -382,7 +389,7 @@ p.process(10, 'BEFORE_HEADER', 'Load', [
     '    :P11_CODE := r.code; :P11_NAME := r.full_name; :P11_USER := r.user_name; :P11_PHONE := r.phone; :P11_PLATE := r.vehicle_plate;',
     '    :P11_WH := r.van_warehouse_id; :P11_BOX := r.cash_box_id; :P11_CREDIT := r.credit_allowed; :P11_BASIS := r.commission_basis;',
     '    :P11_RATE := r.commission_rate; :P11_PERVISIT := r.commission_per_visit; :P11_TARGET := r.monthly_target;',
-    '    :P11_STATUS := r.status_code; :P11_NOTES := r.notes;',
+    '    :P11_STATUS := r.status_code; :P11_NOTES := r.notes; :P11_EMP := r.employee_id; :P11_PAYM := r.earnings_method;',
     '  end loop;',
     "  if :P11_ID is null and :P11_CREDIT is null then :P11_CREDIT := 'Y'; end if;",
     'end;'])
@@ -390,11 +397,17 @@ b = p.button(f, 10, 'SAVE', 'حفظ', hot=True)
 p.process(20, 'AFTER_SUBMIT', 'Save', [
     'declare l json_object_t := json_object_t();',
     'begin',
+    '  if :P11_EMP is not null then',
+    "    for e in (select * from json_table(noona_wrk_pkg.employee_json(to_number(:P11_EMP)), '$' columns (n varchar2(400) path '$.name', ph varchar2(40) path '$.phone'))) loop",
+    '      :P11_NAME := nvl(:P11_NAME, e.n); :P11_PHONE := nvl(:P11_PHONE, e.ph);',
+    '    end loop;',
+    '  end if;',
     "  l.put('id', to_number(:P11_ID)); l.put('code', :P11_CODE); l.put('name', :P11_NAME); l.put('user', :P11_USER); l.put('phone', :P11_PHONE);",
     "  l.put('plate', :P11_PLATE); l.put('vanWarehouse', to_number(:P11_WH)); l.put('cashBox', to_number(:P11_BOX)); l.put('credit', :P11_CREDIT);",
     "  l.put('basis', :P11_BASIS); l.put('rate', to_number(:P11_RATE)); l.put('perVisit', to_number(:P11_PERVISIT));",
     "  l.put('target', to_number(:P11_TARGET)); l.put('status', :P11_STATUS); l.put('notes', :P11_NOTES);",
     '  :P11_ID := noona_dst_pkg.save_rep(l.to_clob);',
+    "  noona_wrk_pkg.set_worker('REP', :P11_ID, to_number(:P11_EMP), nvl(:P11_PAYM, 'PAYROLL'));",
     'end;'], when_button=b, success='تم حفظ المندوب')
 p.branch(10, url(11, 'P11_ID', '&P11_ID.') + '&success_msg=#SUCCESS_MSG#')
 

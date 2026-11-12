@@ -25,7 +25,7 @@
 | 17 | إدارة الأملاك والإيجارات والضيافة | Property Management, Leasing & Hospitality | 25 | [p17_prp](p17_prp.md) |
 | 18 | الصيانة وإدارة المرافق | Maintenance & Facility Management | 11 | [p18_mnt](p18_mnt.md) |
 | 19 | الموارد البشرية | Human Resources | 24 | [p19_hr](p19_hr.md) |
-| 20 | الرواتب | Payroll | 16 | [p20_pay](p20_pay.md) |
+| 20 | الرواتب | Payroll | 17 | [p20_pay](p20_pay.md) |
 | 21 | التصنيع | Manufacturing | 14 | [p21_mfg](p21_mfg.md) |
 | 22 | التقارير وذكاء الأعمال | Reporting & Business Intelligence | 10 | [p22_bi](p22_bi.md) |
 | 23 | ORDS وواجهات API والتكاملات | ORDS, APIs & Integrations | 13 | [p23_api](p23_api.md) |
@@ -42,7 +42,7 @@
 | 36 | التوزيع والمبيعات الميدانية | Distribution & Field Sales | 10 | [p36_dst](p36_dst.md) |
 | 37 | مركز الإدارة والتواصل | Management & Engagement Hub | 8 | [p37_eng](p37_eng.md) |
 
-**الإجمالي: 691 جدول.**
+**الإجمالي: 692 جدول.**
 
 ## خريطة اعتماديات الحزم
 

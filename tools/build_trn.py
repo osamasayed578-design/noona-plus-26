@@ -521,7 +521,7 @@ p.branch(10, url(35, 'P35_ID', '&P35_ID.') + '&success_msg=#SUCCESS_MSG#')
 
 
 # =============================================================== صفحات الإعداد: قائمة + نموذج على نفس الصفحة
-def master(pid, alias, title, ir_sql, cols, form, save_call, nav_scheme=SETUP):
+def master(pid, alias, title, ir_sql, cols, form, save_call, nav_scheme=SETUP, before=None, after=None):
     p = app.page(pid, alias.title(), alias, title, scheme=nav_scheme)
     p.ir(title, 10, ir_sql, cols, link=f'f?p=&APP_ID.:{pid}:&SESSION.::&DEBUG.:RP:P{pid}_ID:#ID#')
     f = p.static('إضافة / تعديل', 20)
@@ -543,8 +543,8 @@ def master(pid, alias, title, ir_sql, cols, form, save_call, nav_scheme=SETUP):
             p.yesno(name, f, seq * 10, label)
         pairs.append((key, name, 'N' if kind == 'N' else 'S'))
     b = p.button(f, 10, 'SAVE', 'حفظ', hot=True)
-    p.process(10, 'AFTER_SUBMIT', 'Save', ['declare l clob; l_id number;', 'begin', f'  select {jsobj(pairs)} into l from dual;',
-                                           f'  l_id := {save_call}(l);', 'end;'], when_button=b, success='تم الحفظ')
+    p.process(10, 'AFTER_SUBMIT', 'Save', ['declare l clob; l_id number;', 'begin'] + (before or []) + [f'  select {jsobj(pairs)} into l from dual;',
+                                           f'  l_id := {save_call}(l);'] + (after or []) + ['end;'], when_button=b, success='تم الحفظ')
     p.branch(10, f'f?p=&APP_ID.:{pid}:&SESSION.::&DEBUG.:RP,{pid}::&success_msg=#SUCCESS_MSG#')
     return p
 
@@ -662,19 +662,35 @@ p.process(5, 'BEFORE_HEADER', 'Load', ['begin', '  for v in (select * from trn_v
     '    :P40_OWN := v.ownership;',
     '  end loop;', 'end;'])
 
+EMP_LOV = ("select e.employee_no || ' - ' || p.display_name_ar d, e.id r from hr_employee e join pty_party p on p.id = e.person_party_id "
+           "where exists (select 1 from hr_employment m where m.employee_id = e.id and m.company_id = noona_trn_pkg.company "
+           "and m.status_code in ('ACTIVE', 'NOTICE_PERIOD')) order by e.employee_no")
+PAYM = 'STATIC2:مع الراتب (مسير الرواتب);PAYROLL,نقداً (سند صرف);CASH,تحويل بنكي (سند صرف);BANK_TRANSFER,لا يستحق بدلات;NONE'
+
 # 42) السائقون
 p = master(42, 'DRIVERS', 'السائقون', [
     'select d.id, d.full_name, d.phone, d.license_no, d.license_class, d.license_expiry, d.hazmat_certified, noona_trn_pkg.badge(d.status_code) status_html,',
+    "       nvl(noona_wrk_pkg.employee_name(d.employee_id), '— غير مربوط —') emp, noona_wrk_pkg.method_label(d.earnings_method) paym, d.trip_allowance,",
     "       (select count(*) from trn_trip t where t.driver_id = d.id and t.status_code = 'COMPLETED') trips,",
     "       (select nvl(sum(t.actual_distance_km), 0) from trn_trip t where t.driver_id = d.id and t.status_code = 'COMPLETED') km",
     f'  from trn_driver d where d.company_id = {CO} order by d.full_name'],
-    [('ID', '#', {'hidden': True, 'type': 'NUMBER'}), ('FULL_NAME', 'السائق', {}), ('PHONE', 'الجوال', {}), ('LICENSE_NO', 'الرخصة', {}),
+    [('ID', '#', {'hidden': True, 'type': 'NUMBER'}), ('FULL_NAME', 'السائق', {}), ('EMP', 'الموظف (الموارد البشرية)', {}),
+     ('PAYM', 'صرف البدلات', {}), ('TRIP_ALLOWANCE', 'بدل الرحلة', {'type': 'NUMBER'}), ('PHONE', 'الجوال', {}), ('LICENSE_NO', 'الرخصة', {}),
      ('LICENSE_CLASS', 'الفئة', {}), ('LICENSE_EXPIRY', 'انتهاء الرخصة', {'type': 'DATE', 'format': 'YYYY-MM-DD'}),
      ('HAZMAT_CERTIFIED', 'مواد خطرة', {}), ('STATUS_HTML', 'الحالة', {'html': True}), ('TRIPS', 'الرحلات', {'type': 'NUMBER'}), ('KM', 'الكيلومترات', {'type': 'NUMBER'})],
-    [('name', 'NAME', 'T', 'الاسم', 200), ('phone', 'PHONE', 'T', 'الجوال', 30), ('nationalId', 'NID', 'T', 'رقم الهوية', 30),
+    [('employeeId', 'EMP', 'S', 'الموظف من الموارد البشرية', EMP_LOV),
+     ('name', 'NAME', 'T', 'الاسم (فارغ = من ملف الموظف)', 200), ('phone', 'PHONE', 'T', 'الجوال', 30), ('nationalId', 'NID', 'T', 'رقم الهوية', 30),
      ('licenseNo', 'LICNO', 'T', 'رقم الرخصة', 50), ('licenseClass', 'LICCLS', 'T', 'فئة الرخصة', 30), ('licenseExpiry', 'LICEXP', 'D', 'انتهاء الرخصة', None),
-     ('hazmat', 'HAZ', 'YN', 'مؤهل للمواد الخطرة', None), ('allowance', 'ALW', 'N', 'بدل الرحلة الافتراضي', None)],
-    'noona_trn_pkg.save_driver')
+     ('hazmat', 'HAZ', 'YN', 'مؤهل للمواد الخطرة', None), ('allowance', 'ALW', 'N', 'بدل الرحلة الافتراضي', None),
+     ('earningsMethod', 'PAYM', 'S1', 'صرف بدل الرحلات', PAYM)],
+    'noona_trn_pkg.save_driver',
+    before=['  if :P42_EMP is not null then',
+            '    for e in (select * from json_table(noona_wrk_pkg.employee_json(to_number(:P42_EMP)), \'$\' columns (n varchar2(400) path \'$.name\',',
+            '              ph varchar2(40) path \'$.phone\', nid varchar2(30) path \'$.nationalId\'))) loop',
+            '      :P42_NAME := nvl(:P42_NAME, e.n); :P42_PHONE := nvl(:P42_PHONE, e.ph); :P42_NID := nvl(:P42_NID, e.nid);',
+            '    end loop;',
+            '  end if;'],
+    after=["  noona_wrk_pkg.set_worker('DRIVER', l_id, to_number(:P42_EMP), nvl(:P42_PAYM, 'PAYROLL'));"])
 f = p.static('حالة السائق', 30)
 p.select('P42_SET', f, 10, 'الحالة', lov_sql='STATIC2:متاح;AVAILABLE,خارج الدوام;OFF_DUTY,موقوف;SUSPENDED,ترك العمل;LEFT', null_text=None)
 b = p.button(f, 10, 'SET_STATUS', 'تغيير حالة السائق المختار')
@@ -686,7 +702,7 @@ p.select('P42_USER', u, 10, 'مستخدم النظام', lov_sql=("select nvl(u.
 b = p.button(u, 10, 'LINK_USER', 'ربط المستخدم بالسائق المختار')
 p.process(30, 'AFTER_SUBMIT', 'User', 'noona_trn_pkg.set_driver_user(:P42_ID, :P42_USER);', when_button=b, success='تم ربط المستخدم')
 p.process(5, 'BEFORE_HEADER', 'Load', ['begin', '  for d in (select * from trn_driver where id = :P42_ID and company_id = noona_trn_pkg.company) loop',
-    '    :P42_USER := d.user_name;',
+    '    :P42_USER := d.user_name; :P42_EMP := d.employee_id; :P42_PAYM := d.earnings_method;',
     '    :P42_NAME := d.full_name; :P42_PHONE := d.phone; :P42_NID := d.national_id; :P42_LICNO := d.license_no; :P42_LICCLS := d.license_class;',
     "    :P42_LICEXP := to_char(d.license_expiry, 'YYYY-MM-DD'); :P42_HAZ := d.hazmat_certified; :P42_ALW := d.trip_allowance; :P42_SET := d.status_code;",
     '  end loop;', 'end;'])

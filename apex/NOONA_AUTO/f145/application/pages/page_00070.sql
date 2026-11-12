@@ -27,7 +27,7 @@ wwv_flow_imp_page.create_page(
 ,p_protection_level=>'N'
 );
 wwv_flow_imp_page.create_page_plug(
- p_id=>wwv_flow_imp.id(91820280000000313)
+ p_id=>wwv_flow_imp.id(91820280000000314)
 ,p_plug_name=>'المهام'
 ,p_region_template_options=>'#DEFAULT#:t-Region--noUI:t-Region--removeHeader js-removeLandmark'
 ,p_plug_template=>4072358936313175081
@@ -38,17 +38,17 @@ wwv_flow_imp_page.create_page_plug(
   'show_line_breaks', 'Y')).to_clob
 );
 wwv_flow_imp_page.create_page_item(
- p_id=>wwv_flow_imp.id(91820280000000314)
+ p_id=>wwv_flow_imp.id(91820280000000315)
 ,p_name=>'P70_LINE'
 ,p_item_sequence=>1
-,p_item_plug_id=>wwv_flow_imp.id(91820280000000313)
+,p_item_plug_id=>wwv_flow_imp.id(91820280000000314)
 ,p_display_as=>'NATIVE_HIDDEN'
 ,p_protection_level=>'N'
 ,p_attributes=>wwv_flow_t_plugin_attributes(wwv_flow_t_varchar2(
   'value_protected', 'N')).to_clob
 );
 wwv_flow_imp_page.create_page_plug(
- p_id=>wwv_flow_imp.id(91820280000000315)
+ p_id=>wwv_flow_imp.id(91820280000000316)
 ,p_plug_name=>'مهامي'
 ,p_region_template_options=>'#DEFAULT#:t-Region--scrollBody:t-Region--removeHeader js-removeLandmark:t-Region--noUI'
 ,p_plug_template=>4072358936313175081
@@ -59,7 +59,7 @@ wwv_flow_imp_page.create_page_plug(
 ,p_plug_source_type=>'NATIVE_DYNAMIC_CONTENT'
 );
 wwv_flow_imp_page.create_page_process(
- p_id=>wwv_flow_imp.id(91820280000000316)
+ p_id=>wwv_flow_imp.id(91820280000000317)
 ,p_process_sequence=>10
 ,p_process_point=>'AFTER_SUBMIT'
 ,p_process_type=>'NATIVE_PLSQL'
@@ -72,10 +72,10 @@ wwv_flow_imp_page.create_page_process(
 ,p_process_when_type=>'EXPRESSION'
 ,p_process_when2=>'PLSQL'
 ,p_process_success_message=>'بدأ العمل على البند'
-,p_internal_uid=>91820280000000316
+,p_internal_uid=>91820280000000317
 );
 wwv_flow_imp_page.create_page_process(
- p_id=>wwv_flow_imp.id(91820280000000317)
+ p_id=>wwv_flow_imp.id(91820280000000318)
 ,p_process_sequence=>20
 ,p_process_point=>'AFTER_SUBMIT'
 ,p_process_type=>'NATIVE_PLSQL'
@@ -88,10 +88,10 @@ wwv_flow_imp_page.create_page_process(
 ,p_process_when_type=>'EXPRESSION'
 ,p_process_when2=>'PLSQL'
 ,p_process_success_message=>'تم إنجاز البند'
-,p_internal_uid=>91820280000000317
+,p_internal_uid=>91820280000000318
 );
 wwv_flow_imp_page.create_page_branch(
- p_id=>wwv_flow_imp.id(91820280000000318)
+ p_id=>wwv_flow_imp.id(91820280000000319)
 ,p_branch_action=>'f?p=&APP_ID.:70:&SESSION.::&DEBUG.:::&success_msg=#SUCCESS_MSG#'
 ,p_branch_point=>'AFTER_PROCESSING'
 ,p_branch_type=>'REDIRECT_URL'

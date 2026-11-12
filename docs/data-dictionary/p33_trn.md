@@ -195,16 +195,17 @@
 | 10 | `LICENSE_CLASS` | نص | `VARCHAR2(30 CHAR)` |  |  |  |  | إدخال المستخدم |  | فئة الرخصة |
 | 11 | `LICENSE_EXPIRY` | تاريخ | `DATE` | ✔ |  |  |  | إدخال المستخدم |  | انتهاء الرخصة |
 | 12 | `USER_NAME` | نص | `VARCHAR2(128 CHAR)` |  |  |  |  | إدخال المستخدم |  | مستخدم النظام (شاشات السائق على الهاتف) |
-| 13 | `HAZMAT_CERTIFIED` | منطقي Y/N | `CHAR(1 CHAR)` | ✔ | 'N' |  | Y, N | إدخال المستخدم |  | مؤهل لنقل المواد الخطرة |
-| 14 | `TRIP_ALLOWANCE` | مبلغ | `NUMBER(24,6)` |  |  |  |  | إدخال المستخدم |  | بدل الرحلة الافتراضي |
-| 15 | `BRANCH_ID` | معرف | `NUMBER(19)` |  |  | FK→ORG_BRANCH |  | إدخال المستخدم |  | الفرع |
-| 16 | `STATUS_CODE` | رمز | `VARCHAR2(30 CHAR)` | ✔ | 'AVAILABLE' |  | AVAILABLE, ON_TRIP, OFF_DUTY, SUSPENDED, LEFT | النظام/الحزمة |  | الحالة ضمن دورة الحياة المعتمدة |
-| 17 | `NOTES` | نص | `VARCHAR2(4000 CHAR)` |  |  |  |  | إدخال المستخدم |  | ملاحظات |
-| 18 | `ROW_VERSION` | عدد صحيح | `NUMBER(10)` | ✔ | 1 |  |  | Trigger |  | رقم الإصدار للتحكم في التزامن المتفائل |
-| 19 | `CREATED_BY` | اسم مستخدم | `VARCHAR2(128 CHAR)` | ✔ |  |  |  | Trigger |  | منشئ السجل |
-| 20 | `CREATED_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` | ✔ | SYSTIMESTAMP |  |  | Trigger |  | وقت الإنشاء |
-| 21 | `UPDATED_BY` | اسم مستخدم | `VARCHAR2(128 CHAR)` |  |  |  |  | Trigger |  | آخر من عدل السجل |
-| 22 | `UPDATED_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` |  |  |  |  | Trigger |  | وقت آخر تعديل |
+| 13 | `EARNINGS_METHOD` | رمز | `VARCHAR2(30 CHAR)` | ✔ | 'PAYROLL' |  | PAYROLL, CASH, BANK_TRANSFER, NONE | إدخال المستخدم |  | صرف المستحقات (مع الراتب، نقداً، تحويل، لا يستحق) |
+| 14 | `HAZMAT_CERTIFIED` | منطقي Y/N | `CHAR(1 CHAR)` | ✔ | 'N' |  | Y, N | إدخال المستخدم |  | مؤهل لنقل المواد الخطرة |
+| 15 | `TRIP_ALLOWANCE` | مبلغ | `NUMBER(24,6)` |  |  |  |  | إدخال المستخدم |  | بدل الرحلة الافتراضي |
+| 16 | `BRANCH_ID` | معرف | `NUMBER(19)` |  |  | FK→ORG_BRANCH |  | إدخال المستخدم |  | الفرع |
+| 17 | `STATUS_CODE` | رمز | `VARCHAR2(30 CHAR)` | ✔ | 'AVAILABLE' |  | AVAILABLE, ON_TRIP, OFF_DUTY, SUSPENDED, LEFT | النظام/الحزمة |  | الحالة ضمن دورة الحياة المعتمدة |
+| 18 | `NOTES` | نص | `VARCHAR2(4000 CHAR)` |  |  |  |  | إدخال المستخدم |  | ملاحظات |
+| 19 | `ROW_VERSION` | عدد صحيح | `NUMBER(10)` | ✔ | 1 |  |  | Trigger |  | رقم الإصدار للتحكم في التزامن المتفائل |
+| 20 | `CREATED_BY` | اسم مستخدم | `VARCHAR2(128 CHAR)` | ✔ |  |  |  | Trigger |  | منشئ السجل |
+| 21 | `CREATED_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` | ✔ | SYSTIMESTAMP |  |  | Trigger |  | وقت الإنشاء |
+| 22 | `UPDATED_BY` | اسم مستخدم | `VARCHAR2(128 CHAR)` |  |  |  |  | Trigger |  | آخر من عدل السجل |
+| 23 | `UPDATED_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` |  |  |  |  | Trigger |  | وقت آخر تعديل |
 
 ## TRN_RATE
 

@@ -422,6 +422,7 @@ BEGIN
   NOONA_VPD_PKG.add_shared_policy('PAY_ELEMENT_RULE');
   NOONA_VPD_PKG.add_tenant_policy('PAY_EMPLOYEE_ELEMENT');
   NOONA_VPD_PKG.add_tenant_policy('PAY_EMPLOYEE_PAYMENT_METHOD');
+  NOONA_VPD_PKG.add_tenant_policy('PAY_FIELD_EARNING');
   NOONA_VPD_PKG.add_tenant_policy('PAY_INPUT');
   NOONA_VPD_PKG.add_tenant_policy('PAY_LOAN');
   NOONA_VPD_PKG.add_tenant_policy('PAY_LOAN_INSTALLMENT');

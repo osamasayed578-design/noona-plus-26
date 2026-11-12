@@ -62,6 +62,7 @@ LICENSE_NO      V50  NN          | رقم رخصة القيادة
 LICENSE_CLASS   V30              | فئة الرخصة
 LICENSE_EXPIRY  DATE NN          | انتهاء الرخصة
 USER_NAME       V128             | مستخدم النظام (شاشات السائق على الهاتف)
+EARNINGS_METHOD CODE NN D='PAYROLL' IN:PAYROLL,CASH,BANK_TRANSFER,NONE | صرف المستحقات (مع الراتب، نقداً، تحويل، لا يستحق)
 HAZMAT_CERTIFIED YN  NN D='N'    | مؤهل لنقل المواد الخطرة
 TRIP_ALLOWANCE  AMT              | بدل الرحلة الافتراضي
 BRANCH_ID       ID   >ORG_BRANCH | الفرع

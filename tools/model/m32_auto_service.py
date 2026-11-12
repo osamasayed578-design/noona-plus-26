@@ -38,6 +38,7 @@ SPECIALTY       V200             | التخصص
 PHONE           V30              | الجوال
 HOURLY_COST     AMT              | تكلفة الساعة
 USER_NAME       V128             | مستخدم النظام (شاشة الفني على الهاتف)
+EARNINGS_METHOD CODE NN D='PAYROLL' IN:PAYROLL,CASH,BANK_TRANSFER,NONE | صرف المستحقات (مع الراتب، نقداً، تحويل، لا يستحق)
 COMMISSION_PCT  PCT              | نسبة العمولة من الخدمات
 ''', area='setup')
 
