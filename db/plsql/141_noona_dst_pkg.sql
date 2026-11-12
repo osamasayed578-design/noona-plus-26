@@ -83,6 +83,13 @@ CREATE OR REPLACE PACKAGE NOONA_DST_PKG AUTHID DEFINER AS
   FUNCTION rep_label(p_rep_id IN NUMBER) RETURN VARCHAR2;
   FUNCTION shop_label(p_shop_id IN NUMBER) RETURN VARCHAR2;
   FUNCTION visit_status(p_visit_id IN NUMBER) RETURN VARCHAR2;
+  FUNCTION items_picker_html(p_rep_id IN NUMBER, p_mode IN VARCHAR2 DEFAULT 'SALE', p_wh IN NUMBER DEFAULT NULL) RETURN CLOB;
+  FUNCTION return_picker_html(p_invoice_id IN NUMBER) RETURN CLOB;
+  FUNCTION visit_actions_html(p_visit_id IN NUMBER) RETURN CLOB;
+  FUNCTION collection_status(p_id IN NUMBER) RETURN VARCHAR2;
+  FUNCTION order_status(p_id IN NUMBER) RETURN VARCHAR2;
+  FUNCTION settlement_status(p_id IN NUMBER) RETURN VARCHAR2;
+  FUNCTION quick_links_html RETURN CLOB;
 END NOONA_DST_PKG;
 /
 
@@ -1210,6 +1217,138 @@ CREATE OR REPLACE PACKAGE BODY NOONA_DST_PKG AS
        AND (p_route_id IS NULL OR s.route_id = p_route_id);
     RETURN NVL(l, '[]');
   END shops_geo_json;
+
+  -- ================================================================ أدوات الشاشات الميدانية
+  -- بطاقات الأصناف بخانة كمية (+/-): SALE من مخزون السيارة، ORDER كل الأصناف القابلة للبيع، LOAD من مستودع الشركة، UNLOAD من السيارة
+  FUNCTION items_picker_html(p_rep_id IN NUMBER, p_mode IN VARCHAR2 DEFAULT 'SALE', p_wh IN NUMBER DEFAULT NULL) RETURN CLOB IS
+    l_h   CLOB;
+    l_wh  NUMBER;
+    l_van NUMBER;
+    l_p   NUMBER; l_inc VARCHAR2(1); l_tc NUMBER; l_net NUMBER; l_tx NUMBER;
+    l_n   PLS_INTEGER := 0;
+  BEGIN
+    IF p_rep_id IS NOT NULL THEN
+      SELECT MAX(van_warehouse_id) INTO l_van FROM dst_rep WHERE id = p_rep_id AND company_id = company;
+    END IF;
+    l_wh := CASE WHEN p_mode IN ('SALE', 'UNLOAD') THEN l_van ELSE NVL(p_wh, NOONA_INV_PKG.default_warehouse) END;
+    FOR r IN (SELECT i.id, i.item_no, i.name_ar,
+                     (SELECT NVL(SUM(o.on_hand_qty), 0) FROM inv_onhand o WHERE o.item_id = i.id AND o.warehouse_id = l_wh) q,
+                     (SELECT MAX(b.barcode) FROM inv_item_barcode b WHERE b.item_id = i.id) bc
+                FROM inv_item i
+               WHERE i.status_code = 'ACTIVE' AND NVL(i.is_sellable, 'Y') = 'Y'
+                 AND i.item_type NOT IN ('SERVICE', 'NON_STOCK', 'ASSET', 'REAL_ESTATE_UNIT', 'KIT')
+               ORDER BY i.name_ar) LOOP
+      CONTINUE WHEN p_mode <> 'ORDER' AND r.q <= 0;
+      l_p := NULL; l_inc := NULL; l_tc := NULL;
+      BEGIN
+        NOONA_SAL_PKG.price_line(r.id, 1, l_p, 0, l_inc, l_tc, TRUNC(SYSDATE), l_net, l_tx);
+      EXCEPTION WHEN OTHERS THEN l_net := 0; l_tx := 0;
+      END;
+      l_n := l_n + 1;
+      l_h := l_h || '<div class="nn-dst-item" data-i="' || r.id || '" data-p="' || TO_CHAR(ROUND(NVL(l_net, 0) + NVL(l_tx, 0), 2), 'FM9999999990.00')
+          || '" data-max="' || CASE WHEN p_mode = 'ORDER' THEN '' ELSE TO_CHAR(r.q, 'FM9999999990.999') END
+          || '" data-s="' || esc(LOWER(r.name_ar || ' ' || r.item_no || ' ' || r.bc)) || '"><div class="nn-dst-item-b"><b>' || esc(r.name_ar)
+          || '</b><small>' || esc(r.item_no) || ' · ' || CASE WHEN p_mode = 'ORDER' THEN 'المتوفر بالمستودع ' ELSE 'المتوفر ' END || qf(r.q)
+          || CASE WHEN p_mode IN ('SALE', 'ORDER') THEN ' · <b>' || fmt(NVL(l_net, 0) + NVL(l_tx, 0)) || '</b> شامل الضريبة' END || '</small></div>'
+          || '<div class="nn-dst-qty"><button type="button" class="nn-dst-minus" aria-label="-">−</button>'
+          || '<input type="number" inputmode="decimal" min="0" step="any" value="" aria-label="الكمية">'
+          || '<button type="button" class="nn-dst-plus" aria-label="+">+</button></div></div>';
+    END LOOP;
+    RETURN '<div class="nn-dst-picker" data-mode="' || esc(p_mode) || '"><input type="search" class="nn-dst-find" placeholder="بحث بالاسم أو الرقم أو الباركود">'
+        || NVL(l_h, '<p class="nn-hint">' || CASE WHEN p_mode = 'SALE' THEN 'لا مخزون في السيارة: حمّلها أولاً.'
+                                                WHEN p_mode = 'UNLOAD' THEN 'السيارة فارغة.' ELSE 'لا أصناف متاحة.' END || '</p>')
+        || '<div class="nn-dst-total">الإجمالي: <b class="nn-dst-sum">0.00</b> · الأصناف: <b class="nn-dst-cnt">0</b></div></div>';
+  END items_picker_html;
+
+  -- أسطر فاتورة للمرتجع مع الكمية القابلة للإرجاع
+  FUNCTION return_picker_html(p_invoice_id IN NUMBER) RETURN CLOB IS
+    l_h CLOB;
+    l_r NUMBER;
+  BEGIN
+    IF p_invoice_id IS NULL THEN RETURN '<p class="nn-hint">اختر الفاتورة لعرض أصنافها.</p>'; END IF;
+    FOR r IN (SELECT l.id, l.description, l.quantity, ROUND((l.net_amount + l.tax_amount) / NULLIF(l.quantity, 0), 2) up,
+                     (SELECT NVL(SUM(ABS(x.quantity)), 0) FROM sal_invoice_line x JOIN sal_invoice c ON c.id = x.invoice_id
+                       WHERE x.original_line_id = l.id AND c.status_code NOT IN ('CANCELLED', 'DRAFT')) ret
+                FROM sal_invoice_line l JOIN sal_invoice v ON v.id = l.invoice_id
+               WHERE l.invoice_id = p_invoice_id AND v.company_id = company AND l.item_id IS NOT NULL ORDER BY l.line_no) LOOP
+      l_r := r.quantity - r.ret;
+      CONTINUE WHEN l_r <= 0;
+      l_h := l_h || '<div class="nn-dst-item" data-l="' || r.id || '" data-p="' || TO_CHAR(r.up, 'FM9999999990.00') || '" data-max="'
+          || TO_CHAR(l_r, 'FM9999999990.999') || '" data-s="' || esc(LOWER(r.description)) || '"><div class="nn-dst-item-b"><b>' || esc(r.description)
+          || '</b><small>المباع ' || qf(r.quantity) || ' · القابل للإرجاع ' || qf(l_r) || ' · ' || fmt(r.up) || '</small></div>'
+          || '<div class="nn-dst-qty"><button type="button" class="nn-dst-minus">−</button><input type="number" inputmode="decimal" min="0" step="any">'
+          || '<button type="button" class="nn-dst-plus">+</button></div></div>';
+    END LOOP;
+    RETURN '<div class="nn-dst-picker" data-mode="RETURN">' || NVL(l_h, '<p class="nn-hint">لا أصناف قابلة للإرجاع في هذه الفاتورة.</p>')
+        || '<div class="nn-dst-total">قيمة المرتجع: <b class="nn-dst-sum">0.00</b></div></div>';
+  END return_picker_html;
+
+  -- روابط واتساب للفاتورة وكشف الحساب بعد البيع
+  FUNCTION visit_actions_html(p_visit_id IN NUMBER) RETURN CLOB IS
+    l_h CLOB;
+    l_wa VARCHAR2(30);
+  BEGIN
+    FOR v IN (SELECT v.*, NVL(s.whatsapp, s.phone) wa FROM dst_visit v JOIN dst_shop s ON s.id = v.shop_id
+               WHERE v.id = p_visit_id AND v.company_id = company) LOOP
+      l_wa := v.wa;
+      IF l_wa IS NULL THEN RETURN '<p class="nn-hint">أضف رقم واتساب المحل لإرسال الفاتورة وكشف الحساب.</p>'; END IF;
+      FOR i IN (SELECT DISTINCT sales_invoice_id id FROM dst_collection WHERE visit_id = v.id AND sales_invoice_id IS NOT NULL
+                UNION SELECT v.sales_invoice_id FROM dual WHERE v.sales_invoice_id IS NOT NULL) LOOP
+        l_h := l_h || '<a class="nn-dst-btn nn-dst-wa" target="_blank" rel="noopener" href="' || esc(whatsapp_url(l_wa, invoice_text(i.id)))
+            || '"><span class="fa fa-whatsapp"></span> إرسال الفاتورة</a>';
+      END LOOP;
+      l_h := l_h || '<a class="nn-dst-btn nn-dst-wa" target="_blank" rel="noopener" href="' || esc(whatsapp_url(l_wa, statement_text(v.shop_id)))
+          || '"><span class="fa fa-whatsapp"></span> كشف الحساب</a>';
+    END LOOP;
+    RETURN '<div class="nn-dst-acts">' || l_h || '</div>';
+  END visit_actions_html;
+
+  FUNCTION collection_status(p_id IN NUMBER) RETURN VARCHAR2 IS
+    l VARCHAR2(30);
+  BEGIN
+    SELECT MAX(status_code) INTO l FROM dst_collection WHERE id = p_id AND company_id = company;
+    RETURN l;
+  END collection_status;
+
+  FUNCTION order_status(p_id IN NUMBER) RETURN VARCHAR2 IS
+    l VARCHAR2(30);
+  BEGIN
+    SELECT MAX(status_code) INTO l FROM dst_order WHERE id = p_id AND company_id = company;
+    RETURN l;
+  END order_status;
+
+  FUNCTION settlement_status(p_id IN NUMBER) RETURN VARCHAR2 IS
+    l VARCHAR2(30);
+  BEGIN
+    SELECT MAX(status_code) INTO l FROM dst_settlement WHERE id = p_id AND company_id = company;
+    RETURN l;
+  END settlement_status;
+
+  -- اختصارات الشاشة الرئيسية حسب دور المستخدم (مندوب، مدير)
+  FUNCTION quick_links_html RETURN CLOB IS
+    l_h   CLOB;
+    l_rep NUMBER := my_rep;
+    l_v   NUMBER;
+    FUNCTION lnk(p_page NUMBER, p_icon VARCHAR2, p_label VARCHAR2, p_item VARCHAR2 DEFAULT NULL, p_val VARCHAR2 DEFAULT NULL) RETURN VARCHAR2 IS
+    BEGIN
+      RETURN '<a href="f?p=' || V('APP_ID') || ':' || p_page || ':' || V('APP_SESSION') || '::NO:RP,' || p_page || ':' || p_item || ':' || p_val
+          || '"><span class="fa ' || p_icon || '"></span>' || p_label || '</a>';
+    END lnk;
+  BEGIN
+    IF l_rep IS NOT NULL THEN
+      l_v := open_visit(l_rep);
+      FOR v IN (SELECT shop_id FROM dst_visit WHERE id = l_v) LOOP
+        l_h := l_h || lnk(2, 'fa-play-circle', 'متابعة الزيارة الجارية', 'P2_SHOP', v.shop_id);
+      END LOOP;
+      l_h := l_h || lnk(3, 'fa-truck', 'تحميل السيارة') || lnk(5, 'fa-plus-circle', 'محل جديد') || lnk(4, 'fa-calculator', 'نهاية اليوم')
+          || lnk(6, 'fa-cubes', 'مخزون السيارة');
+    END IF;
+    IF NOONA_SECURITY_PKG.has_permission('DST_REP.UPDATE', company) = 'Y' THEN
+      l_h := l_h || lnk(16, 'fa-map', 'خريطة المحلات') || lnk(22, 'fa-check-square-o', 'تأكيد التحويلات والشيكات')
+          || lnk(24, 'fa-list-alt', 'أوامر التوريد') || lnk(26, 'fa-balance-scale', 'تسويات اليوم') || lnk(30, 'fa-line-chart', 'أداء المندوبين');
+    END IF;
+    RETURN '<div class="nn-dst-quick">' || l_h || '</div>';
+  END quick_links_html;
 
 END NOONA_DST_PKG;
 /

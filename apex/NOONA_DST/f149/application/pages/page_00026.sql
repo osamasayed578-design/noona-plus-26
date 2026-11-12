@@ -1,0 +1,242 @@
+prompt --application/pages/page_00026
+begin
+--   Manifest
+--     PAGE: 00026
+--   Manifest End
+wwv_flow_imp.component_begin (
+ p_version_yyyy_mm_dd=>'2024.11.30'
+,p_release=>'24.2.0'
+,p_default_workspace_id=>17663301221950901
+,p_default_application_id=>149
+,p_default_id_offset=>0
+,p_default_owner=>'NOONA_APP'
+);
+wwv_flow_imp_page.create_page(
+ p_id=>26
+,p_name=>'Settlements'
+,p_alias=>'SETTLEMENTS'
+,p_step_title=>'تسويات نهاية اليوم'
+,p_autocomplete_on_off=>'OFF'
+,p_page_template_options=>'#DEFAULT#'
+,p_required_role=>wwv_flow_imp.id(91820300000000010)
+,p_protection_level=>'C'
+);
+wwv_flow_imp_page.create_page_plug(
+ p_id=>wwv_flow_imp.id(91820300000000316)
+,p_plug_name=>'التسويات'
+,p_region_template_options=>'#DEFAULT#'
+,p_component_template_options=>'#DEFAULT#'
+,p_plug_template=>2100526641005906379
+,p_plug_display_sequence=>10
+,p_query_type=>'SQL'
+,p_plug_source=>wwv_flow_string.join(wwv_flow_t_varchar2(
+'select s.id, s.doc_no, s.settle_date, noona_dst_pkg.rep_label(s.rep_id) rep, s.visits_planned, s.visits_done, s.sales_amount, s.credit_sales,',
+'       s.returns_amount, s.cash_expected, s.cash_counted, s.cash_diff, s.transfers_amount, s.cheques_amount, s.cards_amount,',
+'       s.approved_by, noona_dst_pkg.badge(s.status_code) status_html',
+'  from dst_settlement s where s.company_id = noona_dst_pkg.company order by s.settle_date desc, s.id desc'))
+,p_plug_source_type=>'NATIVE_IR'
+,p_prn_page_header=>'التسويات'
+);
+wwv_flow_imp_page.create_worksheet(
+ p_id=>wwv_flow_imp.id(91820300000000317)
+,p_max_row_count=>'1000000'
+,p_no_data_found_message=>'لا توجد بيانات'
+,p_pagination_type=>'ROWS_X_TO_Y'
+,p_pagination_display_pos=>'BOTTOM_RIGHT'
+,p_report_list_mode=>'TABS'
+,p_lazy_loading=>false
+,p_show_detail_link=>'C'
+,p_show_notify=>'N'
+,p_download_formats=>'CSV:HTML:XLSX:PDF'
+,p_enable_mail_download=>'N'
+,p_detail_link=>'f?p=&APP_ID.:27:&SESSION.::&DEBUG.:RP,27:P27_ID:#ID#'
+,p_detail_link_text=>'<span role="img" aria-label="تعديل" class="fa fa-edit" title="فتح"></span>'
+,p_owner=>'NOONA'
+,p_internal_uid=>91820300000000317
+);
+wwv_flow_imp_page.create_worksheet_column(
+ p_id=>wwv_flow_imp.id(91820300000000319)
+,p_db_column_name=>'ID'
+,p_display_order=>10
+,p_column_identifier=>'A'
+,p_column_label=>'#'
+,p_column_type=>'NUMBER'
+,p_display_text_as=>'HIDDEN'
+,p_heading_alignment=>'CENTER'
+,p_use_as_row_header=>'N'
+);
+wwv_flow_imp_page.create_worksheet_column(
+ p_id=>wwv_flow_imp.id(91820300000000320)
+,p_db_column_name=>'DOC_NO'
+,p_display_order=>20
+,p_column_identifier=>'B'
+,p_column_label=>'الرقم'
+,p_column_type=>'STRING'
+,p_heading_alignment=>'CENTER'
+,p_use_as_row_header=>'N'
+);
+wwv_flow_imp_page.create_worksheet_column(
+ p_id=>wwv_flow_imp.id(91820300000000321)
+,p_db_column_name=>'SETTLE_DATE'
+,p_display_order=>30
+,p_column_identifier=>'C'
+,p_column_label=>'اليوم'
+,p_column_type=>'DATE'
+,p_format_mask=>'YYYY-MM-DD'
+,p_heading_alignment=>'CENTER'
+,p_use_as_row_header=>'N'
+);
+wwv_flow_imp_page.create_worksheet_column(
+ p_id=>wwv_flow_imp.id(91820300000000322)
+,p_db_column_name=>'REP'
+,p_display_order=>40
+,p_column_identifier=>'D'
+,p_column_label=>'المندوب'
+,p_column_type=>'STRING'
+,p_heading_alignment=>'CENTER'
+,p_use_as_row_header=>'N'
+);
+wwv_flow_imp_page.create_worksheet_column(
+ p_id=>wwv_flow_imp.id(91820300000000323)
+,p_db_column_name=>'VISITS_PLANNED'
+,p_display_order=>50
+,p_column_identifier=>'E'
+,p_column_label=>'المخطط'
+,p_column_type=>'NUMBER'
+,p_heading_alignment=>'CENTER'
+,p_use_as_row_header=>'N'
+);
+wwv_flow_imp_page.create_worksheet_column(
+ p_id=>wwv_flow_imp.id(91820300000000324)
+,p_db_column_name=>'VISITS_DONE'
+,p_display_order=>60
+,p_column_identifier=>'F'
+,p_column_label=>'المنفذ'
+,p_column_type=>'NUMBER'
+,p_heading_alignment=>'CENTER'
+,p_use_as_row_header=>'N'
+);
+wwv_flow_imp_page.create_worksheet_column(
+ p_id=>wwv_flow_imp.id(91820300000000325)
+,p_db_column_name=>'SALES_AMOUNT'
+,p_display_order=>70
+,p_column_identifier=>'G'
+,p_column_label=>'المبيعات'
+,p_column_type=>'NUMBER'
+,p_heading_alignment=>'CENTER'
+,p_use_as_row_header=>'N'
+);
+wwv_flow_imp_page.create_worksheet_column(
+ p_id=>wwv_flow_imp.id(91820300000000326)
+,p_db_column_name=>'CREDIT_SALES'
+,p_display_order=>80
+,p_column_identifier=>'H'
+,p_column_label=>'منها آجل'
+,p_column_type=>'NUMBER'
+,p_heading_alignment=>'CENTER'
+,p_use_as_row_header=>'N'
+);
+wwv_flow_imp_page.create_worksheet_column(
+ p_id=>wwv_flow_imp.id(91820300000000327)
+,p_db_column_name=>'RETURNS_AMOUNT'
+,p_display_order=>90
+,p_column_identifier=>'I'
+,p_column_label=>'المرتجعات'
+,p_column_type=>'NUMBER'
+,p_heading_alignment=>'CENTER'
+,p_use_as_row_header=>'N'
+);
+wwv_flow_imp_page.create_worksheet_column(
+ p_id=>wwv_flow_imp.id(91820300000000328)
+,p_db_column_name=>'CASH_EXPECTED'
+,p_display_order=>100
+,p_column_identifier=>'J'
+,p_column_label=>'النقد المتوقع'
+,p_column_type=>'NUMBER'
+,p_heading_alignment=>'CENTER'
+,p_use_as_row_header=>'N'
+);
+wwv_flow_imp_page.create_worksheet_column(
+ p_id=>wwv_flow_imp.id(91820300000000329)
+,p_db_column_name=>'CASH_COUNTED'
+,p_display_order=>110
+,p_column_identifier=>'K'
+,p_column_label=>'المسلم'
+,p_column_type=>'NUMBER'
+,p_heading_alignment=>'CENTER'
+,p_use_as_row_header=>'N'
+);
+wwv_flow_imp_page.create_worksheet_column(
+ p_id=>wwv_flow_imp.id(91820300000000330)
+,p_db_column_name=>'CASH_DIFF'
+,p_display_order=>120
+,p_column_identifier=>'L'
+,p_column_label=>'العجز/الزيادة'
+,p_column_type=>'NUMBER'
+,p_heading_alignment=>'CENTER'
+,p_use_as_row_header=>'N'
+);
+wwv_flow_imp_page.create_worksheet_column(
+ p_id=>wwv_flow_imp.id(91820300000000331)
+,p_db_column_name=>'TRANSFERS_AMOUNT'
+,p_display_order=>130
+,p_column_identifier=>'M'
+,p_column_label=>'التحويلات'
+,p_column_type=>'NUMBER'
+,p_heading_alignment=>'CENTER'
+,p_use_as_row_header=>'N'
+);
+wwv_flow_imp_page.create_worksheet_column(
+ p_id=>wwv_flow_imp.id(91820300000000332)
+,p_db_column_name=>'CHEQUES_AMOUNT'
+,p_display_order=>140
+,p_column_identifier=>'N'
+,p_column_label=>'الشيكات'
+,p_column_type=>'NUMBER'
+,p_heading_alignment=>'CENTER'
+,p_use_as_row_header=>'N'
+);
+wwv_flow_imp_page.create_worksheet_column(
+ p_id=>wwv_flow_imp.id(91820300000000333)
+,p_db_column_name=>'CARDS_AMOUNT'
+,p_display_order=>150
+,p_column_identifier=>'O'
+,p_column_label=>'الشبكة'
+,p_column_type=>'NUMBER'
+,p_heading_alignment=>'CENTER'
+,p_use_as_row_header=>'N'
+);
+wwv_flow_imp_page.create_worksheet_column(
+ p_id=>wwv_flow_imp.id(91820300000000334)
+,p_db_column_name=>'APPROVED_BY'
+,p_display_order=>160
+,p_column_identifier=>'P'
+,p_column_label=>'المعتمد'
+,p_column_type=>'STRING'
+,p_heading_alignment=>'CENTER'
+,p_use_as_row_header=>'N'
+);
+wwv_flow_imp_page.create_worksheet_column(
+ p_id=>wwv_flow_imp.id(91820300000000335)
+,p_db_column_name=>'STATUS_HTML'
+,p_display_order=>170
+,p_column_identifier=>'Q'
+,p_column_label=>'الحالة'
+,p_column_type=>'STRING'
+,p_display_text_as=>'WITHOUT_MODIFICATION'
+,p_heading_alignment=>'CENTER'
+,p_use_as_row_header=>'N'
+);
+wwv_flow_imp_page.create_worksheet_rpt(
+ p_id=>wwv_flow_imp.id(91820300000000318)
+,p_application_user=>'APXWS_DEFAULT'
+,p_report_seq=>10
+,p_report_alias=>'318'
+,p_status=>'PUBLIC'
+,p_is_default=>'Y'
+,p_report_columns=>'DOC_NO:SETTLE_DATE:REP:VISITS_PLANNED:VISITS_DONE:SALES_AMOUNT:CREDIT_SALES:RETURNS_AMOUNT:CASH_EXPECTED:CASH_COUNTED:CASH_DIFF:TRANSFERS_AMOUNT:CHEQUES_AMOUNT:CARDS_AMOUNT:APPROVED_BY:STATUS_HTML'
+);
+
+wwv_flow_imp.component_end;
+end;
+/

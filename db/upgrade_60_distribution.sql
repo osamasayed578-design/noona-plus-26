@@ -22,6 +22,13 @@ END;
 PROMPT ========== الوحدة والجداول والصلاحيات وعزل البيانات
 @@upgrade_parts/60_dst_module.sql
 @@upgrade_parts/60_dst.sql
+-- مندوبون بلا مستخدم نظام متعددون: لا قيد فريد على المستخدم (التحقق في الحزمة)
+BEGIN
+  FOR c IN (SELECT constraint_name FROM user_constraints WHERE table_name = 'DST_REP' AND constraint_name = 'DST_REP_UK3') LOOP
+    EXECUTE IMMEDIATE 'ALTER TABLE DST_REP DROP CONSTRAINT ' || c.constraint_name || ' DROP INDEX';
+  END LOOP;
+END;
+/
 @@upgrade_parts/sync_admin_roles.sql
 @@seed/21_signup.sql
 PROMPT ========== الحزم

@@ -1,0 +1,224 @@
+prompt --application/pages/page_00020
+begin
+--   Manifest
+--     PAGE: 00020
+--   Manifest End
+wwv_flow_imp.component_begin (
+ p_version_yyyy_mm_dd=>'2024.11.30'
+,p_release=>'24.2.0'
+,p_default_workspace_id=>17663301221950901
+,p_default_application_id=>149
+,p_default_id_offset=>0
+,p_default_owner=>'NOONA_APP'
+);
+wwv_flow_imp_page.create_page(
+ p_id=>20
+,p_name=>'Visits'
+,p_alias=>'VISITS'
+,p_step_title=>'الزيارات'
+,p_autocomplete_on_off=>'OFF'
+,p_page_template_options=>'#DEFAULT#'
+,p_required_role=>wwv_flow_imp.id(91820300000000010)
+,p_protection_level=>'C'
+);
+wwv_flow_imp_page.create_page_plug(
+ p_id=>wwv_flow_imp.id(91820300000000241)
+,p_plug_name=>'الزيارات'
+,p_region_template_options=>'#DEFAULT#'
+,p_component_template_options=>'#DEFAULT#'
+,p_plug_template=>2100526641005906379
+,p_plug_display_sequence=>10
+,p_query_type=>'SQL'
+,p_plug_source=>wwv_flow_string.join(wwv_flow_t_varchar2(
+'select v.id, v.doc_no, v.doc_date, noona_dst_pkg.rep_label(v.rep_id) rep, noona_dst_pkg.shop_label(v.shop_id) shop,',
+'       to_char(v.checkin_at, ''HH24:MI'') checkin, to_char(v.checkout_at, ''HH24:MI'') checkout,',
+'       round((cast(v.checkout_at as date) - cast(v.checkin_at as date)) * 1440) minutes, round(v.distance_m) distance_m,',
+'       noona_dst_pkg.label(v.outcome) outcome, noona_dst_pkg.label(v.no_sale_reason) reason, v.sales_amount, v.collected_amount, v.returns_amount,',
+'       noona_dst_pkg.badge(v.status_code) status_html',
+'  from dst_visit v where v.company_id = noona_dst_pkg.company order by v.id desc'))
+,p_plug_source_type=>'NATIVE_IR'
+,p_prn_page_header=>'الزيارات'
+);
+wwv_flow_imp_page.create_worksheet(
+ p_id=>wwv_flow_imp.id(91820300000000242)
+,p_max_row_count=>'1000000'
+,p_no_data_found_message=>'لا توجد بيانات'
+,p_pagination_type=>'ROWS_X_TO_Y'
+,p_pagination_display_pos=>'BOTTOM_RIGHT'
+,p_report_list_mode=>'TABS'
+,p_lazy_loading=>false
+,p_show_detail_link=>'C'
+,p_show_notify=>'N'
+,p_download_formats=>'CSV:HTML:XLSX:PDF'
+,p_enable_mail_download=>'N'
+,p_detail_link=>'f?p=&APP_ID.:21:&SESSION.::&DEBUG.:RP,21:P21_ID:#ID#'
+,p_detail_link_text=>'<span role="img" aria-label="تعديل" class="fa fa-edit" title="فتح"></span>'
+,p_owner=>'NOONA'
+,p_internal_uid=>91820300000000242
+);
+wwv_flow_imp_page.create_worksheet_column(
+ p_id=>wwv_flow_imp.id(91820300000000244)
+,p_db_column_name=>'ID'
+,p_display_order=>10
+,p_column_identifier=>'A'
+,p_column_label=>'#'
+,p_column_type=>'NUMBER'
+,p_display_text_as=>'HIDDEN'
+,p_heading_alignment=>'CENTER'
+,p_use_as_row_header=>'N'
+);
+wwv_flow_imp_page.create_worksheet_column(
+ p_id=>wwv_flow_imp.id(91820300000000245)
+,p_db_column_name=>'DOC_NO'
+,p_display_order=>20
+,p_column_identifier=>'B'
+,p_column_label=>'الرقم'
+,p_column_type=>'STRING'
+,p_heading_alignment=>'CENTER'
+,p_use_as_row_header=>'N'
+);
+wwv_flow_imp_page.create_worksheet_column(
+ p_id=>wwv_flow_imp.id(91820300000000246)
+,p_db_column_name=>'DOC_DATE'
+,p_display_order=>30
+,p_column_identifier=>'C'
+,p_column_label=>'اليوم'
+,p_column_type=>'DATE'
+,p_format_mask=>'YYYY-MM-DD'
+,p_heading_alignment=>'CENTER'
+,p_use_as_row_header=>'N'
+);
+wwv_flow_imp_page.create_worksheet_column(
+ p_id=>wwv_flow_imp.id(91820300000000247)
+,p_db_column_name=>'REP'
+,p_display_order=>40
+,p_column_identifier=>'D'
+,p_column_label=>'المندوب'
+,p_column_type=>'STRING'
+,p_heading_alignment=>'CENTER'
+,p_use_as_row_header=>'N'
+);
+wwv_flow_imp_page.create_worksheet_column(
+ p_id=>wwv_flow_imp.id(91820300000000248)
+,p_db_column_name=>'SHOP'
+,p_display_order=>50
+,p_column_identifier=>'E'
+,p_column_label=>'المحل'
+,p_column_type=>'STRING'
+,p_heading_alignment=>'CENTER'
+,p_use_as_row_header=>'N'
+);
+wwv_flow_imp_page.create_worksheet_column(
+ p_id=>wwv_flow_imp.id(91820300000000249)
+,p_db_column_name=>'CHECKIN'
+,p_display_order=>60
+,p_column_identifier=>'F'
+,p_column_label=>'الوصول'
+,p_column_type=>'STRING'
+,p_heading_alignment=>'CENTER'
+,p_use_as_row_header=>'N'
+);
+wwv_flow_imp_page.create_worksheet_column(
+ p_id=>wwv_flow_imp.id(91820300000000250)
+,p_db_column_name=>'CHECKOUT'
+,p_display_order=>70
+,p_column_identifier=>'G'
+,p_column_label=>'المغادرة'
+,p_column_type=>'STRING'
+,p_heading_alignment=>'CENTER'
+,p_use_as_row_header=>'N'
+);
+wwv_flow_imp_page.create_worksheet_column(
+ p_id=>wwv_flow_imp.id(91820300000000251)
+,p_db_column_name=>'MINUTES'
+,p_display_order=>80
+,p_column_identifier=>'H'
+,p_column_label=>'المدة (د)'
+,p_column_type=>'NUMBER'
+,p_heading_alignment=>'CENTER'
+,p_use_as_row_header=>'N'
+);
+wwv_flow_imp_page.create_worksheet_column(
+ p_id=>wwv_flow_imp.id(91820300000000252)
+,p_db_column_name=>'DISTANCE_M'
+,p_display_order=>90
+,p_column_identifier=>'I'
+,p_column_label=>'البعد عن المحل (م)'
+,p_column_type=>'NUMBER'
+,p_heading_alignment=>'CENTER'
+,p_use_as_row_header=>'N'
+);
+wwv_flow_imp_page.create_worksheet_column(
+ p_id=>wwv_flow_imp.id(91820300000000253)
+,p_db_column_name=>'OUTCOME'
+,p_display_order=>100
+,p_column_identifier=>'J'
+,p_column_label=>'النتيجة'
+,p_column_type=>'STRING'
+,p_heading_alignment=>'CENTER'
+,p_use_as_row_header=>'N'
+);
+wwv_flow_imp_page.create_worksheet_column(
+ p_id=>wwv_flow_imp.id(91820300000000254)
+,p_db_column_name=>'REASON'
+,p_display_order=>110
+,p_column_identifier=>'K'
+,p_column_label=>'سبب عدم الشراء'
+,p_column_type=>'STRING'
+,p_heading_alignment=>'CENTER'
+,p_use_as_row_header=>'N'
+);
+wwv_flow_imp_page.create_worksheet_column(
+ p_id=>wwv_flow_imp.id(91820300000000255)
+,p_db_column_name=>'SALES_AMOUNT'
+,p_display_order=>120
+,p_column_identifier=>'L'
+,p_column_label=>'المبيعات'
+,p_column_type=>'NUMBER'
+,p_heading_alignment=>'CENTER'
+,p_use_as_row_header=>'N'
+);
+wwv_flow_imp_page.create_worksheet_column(
+ p_id=>wwv_flow_imp.id(91820300000000256)
+,p_db_column_name=>'COLLECTED_AMOUNT'
+,p_display_order=>130
+,p_column_identifier=>'M'
+,p_column_label=>'المحصل'
+,p_column_type=>'NUMBER'
+,p_heading_alignment=>'CENTER'
+,p_use_as_row_header=>'N'
+);
+wwv_flow_imp_page.create_worksheet_column(
+ p_id=>wwv_flow_imp.id(91820300000000257)
+,p_db_column_name=>'RETURNS_AMOUNT'
+,p_display_order=>140
+,p_column_identifier=>'N'
+,p_column_label=>'المرتجعات'
+,p_column_type=>'NUMBER'
+,p_heading_alignment=>'CENTER'
+,p_use_as_row_header=>'N'
+);
+wwv_flow_imp_page.create_worksheet_column(
+ p_id=>wwv_flow_imp.id(91820300000000258)
+,p_db_column_name=>'STATUS_HTML'
+,p_display_order=>150
+,p_column_identifier=>'O'
+,p_column_label=>'الحالة'
+,p_column_type=>'STRING'
+,p_display_text_as=>'WITHOUT_MODIFICATION'
+,p_heading_alignment=>'CENTER'
+,p_use_as_row_header=>'N'
+);
+wwv_flow_imp_page.create_worksheet_rpt(
+ p_id=>wwv_flow_imp.id(91820300000000243)
+,p_application_user=>'APXWS_DEFAULT'
+,p_report_seq=>10
+,p_report_alias=>'243'
+,p_status=>'PUBLIC'
+,p_is_default=>'Y'
+,p_report_columns=>'DOC_NO:DOC_DATE:REP:SHOP:CHECKIN:CHECKOUT:MINUTES:DISTANCE_M:OUTCOME:REASON:SALES_AMOUNT:COLLECTED_AMOUNT:RETURNS_AMOUNT:STATUS_HTML'
+);
+
+wwv_flow_imp.component_end;
+end;
+/

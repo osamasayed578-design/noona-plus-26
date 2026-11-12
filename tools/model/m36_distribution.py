@@ -18,7 +18,7 @@ COMMISSION_BASIS CODE NN D='SALES' IN:SALES,COLLECTION,VISIT,NONE | أساس ا�
 COMMISSION_RATE NUM              | نسبة العمولة %
 COMMISSION_PER_VISIT AMT         | عمولة الزيارة المنفذة
 MONTHLY_TARGET  AMT              | الهدف الشهري للمبيعات
-''', uk=[('TENANT_ID', 'COMPANY_ID', 'USER_NAME')], area='setup')
+''', area='setup')
 
 table('DST_ROUTE', 'خطوط السير', 'Delivery Routes', scope='C', mix='code names notes status', status='ACTIVE INACTIVE', cols='''
 REP_ID          ID   >DST_REP    | المندوب

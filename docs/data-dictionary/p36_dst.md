@@ -29,17 +29,17 @@
 | نطاق الملكية | `C` — مملوك للشركة Company-Owned |
 | الحساسية | INTERNAL |
 | النمط | قابل للتعديل وفق دورة الحياة |
-| مفاتيح فريدة | UK2: (TENANT_ID, COMPANY_ID, CODE)<br>UK3: (TENANT_ID, COMPANY_ID, USER_NAME) |
+| مفاتيح فريدة | UK2: (TENANT_ID, COMPANY_ID, CODE) |
 
 | # | العمود | النوع المنطقي | Oracle Type | إلزامي | افتراضي | مفاتيح | القيم المقبولة | المصدر | PII | الوصف |
 |---:|---|---|---|:---:|---|---|---|---|:---:|---|
 | 1 | `ID` | معرف | `NUMBER(19)` | ✔ |  | PK |  | النظام/الحزمة |  | المفتاح الداخلي الثابت (Identity) - لا يعاد استخدامه |
-| 2 | `TENANT_ID` | معرف | `NUMBER(19)` | ✔ |  | FK→PLT_TENANT UK2 UK3 |  | Security Context |  | المؤسسة المالكة؛ يملأ من Security Context الموثوق لا من مدخلات المستخدم |
-| 3 | `COMPANY_ID` | معرف | `NUMBER(19)` | ✔ |  | FK→ORG_COMPANY UK2 UK3 |  | Security Context |  | الشركة (الكيان القانوني) المالكة للسجل |
+| 2 | `TENANT_ID` | معرف | `NUMBER(19)` | ✔ |  | FK→PLT_TENANT UK2 |  | Security Context |  | المؤسسة المالكة؛ يملأ من Security Context الموثوق لا من مدخلات المستخدم |
+| 3 | `COMPANY_ID` | معرف | `NUMBER(19)` | ✔ |  | FK→ORG_COMPANY UK2 |  | Security Context |  | الشركة (الكيان القانوني) المالكة للسجل |
 | 4 | `CODE` | نص | `VARCHAR2(50 CHAR)` | ✔ |  | UK2 |  | إدخال المستخدم |  | الرمز الفريد ضمن النطاق |
 | 5 | `FULL_NAME` | اسم | `VARCHAR2(200 CHAR)` | ✔ |  |  |  | إدخال المستخدم |  | الاسم |
 | 6 | `EMPLOYEE_ID` | معرف | `NUMBER(19)` |  |  | FK→HR_EMPLOYEE |  | إدخال المستخدم |  | الموظف |
-| 7 | `USER_NAME` | نص | `VARCHAR2(128 CHAR)` |  |  | UK3 |  | إدخال المستخدم |  | مستخدم النظام (للتطبيق الميداني) |
+| 7 | `USER_NAME` | نص | `VARCHAR2(128 CHAR)` |  |  |  |  | إدخال المستخدم |  | مستخدم النظام (للتطبيق الميداني) |
 | 8 | `PHONE` | نص | `VARCHAR2(30 CHAR)` |  |  |  |  | إدخال المستخدم |  | الجوال |
 | 9 | `VAN_WAREHOUSE_ID` | معرف | `NUMBER(19)` | ✔ |  | FK→INV_WAREHOUSE |  | إدخال المستخدم |  | مستودع السيارة (المخزون المتنقل) |
 | 10 | `CASH_BOX_ID` | معرف | `NUMBER(19)` | ✔ |  | FK→CSH_CASH_BOX |  | إدخال المستخدم |  | عهدة النقد (صندوق المندوب) |
