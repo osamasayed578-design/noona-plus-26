@@ -178,6 +178,14 @@ BEGIN
   NOONA_VPD_PKG.add_tenant_policy('DST_SETTLEMENT');
   NOONA_VPD_PKG.add_tenant_policy('DST_SHOP');
   NOONA_VPD_PKG.add_tenant_policy('DST_VISIT');
+  NOONA_VPD_PKG.add_tenant_policy('ENG_ALERT');
+  NOONA_VPD_PKG.add_tenant_policy('ENG_ALERT_RULE');
+  NOONA_VPD_PKG.add_tenant_policy('ENG_CHANGE_LOG');
+  NOONA_VPD_PKG.add_shared_policy('ENG_HELP');
+  NOONA_VPD_PKG.add_tenant_policy('ENG_MESSAGE');
+  NOONA_VPD_PKG.add_tenant_policy('ENG_PORTAL_LINK');
+  NOONA_VPD_PKG.add_tenant_policy('ENG_WA_SETTING');
+  NOONA_VPD_PKG.add_tenant_policy('ENG_WA_TEMPLATE');
   NOONA_VPD_PKG.add_tenant_policy('FA_ASSET');
   NOONA_VPD_PKG.add_tenant_policy('FA_ASSET_BOOK');
   NOONA_VPD_PKG.add_tenant_policy('FA_BOOK');
@@ -602,6 +610,7 @@ BEGIN
   NOONA_VPD_PKG.add_tenant_policy('TRN_MAINT_ORDER');
   NOONA_VPD_PKG.add_tenant_policy('TRN_MAINT_PLAN');
   NOONA_VPD_PKG.add_tenant_policy('TRN_ORDER');
+  NOONA_VPD_PKG.add_tenant_policy('TRN_POD');
   NOONA_VPD_PKG.add_tenant_policy('TRN_RATE');
   NOONA_VPD_PKG.add_tenant_policy('TRN_ROUTE');
   NOONA_VPD_PKG.add_tenant_policy('TRN_TRIP');

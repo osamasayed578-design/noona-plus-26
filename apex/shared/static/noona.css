@@ -2595,3 +2595,51 @@ html:has(body.t-PageBody--login), body.t-PageBody--login { overflow-x: clip; }
   .nn-dst-btn { min-height: 44px; }
   .nn-dst-quick { grid-template-columns: repeat(2, 1fr); }
 }
+
+/* ================================================================ مركز الإدارة والتواصل: البوابة واللوحة والتوقع والمساعدة والسجل */
+.nn-help-btn { display: inline-grid; place-items: center; text-decoration: none !important; margin-inline-end: 6px; }
+.nn-pt { max-width: 760px; margin: 0 auto; padding: 8px 4px 24px; }
+.nn-pt-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; padding: 16px; border-radius: 14px;
+  background: var(--nn-primary); color: #fff; margin-bottom: 12px; }
+.nn-pt-head h1 { margin: 2px 0 0; font-size: 1.35rem; color: #fff; }
+.nn-pt-head small { opacity: .85; }
+.nn-pt-bal { text-align: end; }
+.nn-pt-bal b { display: block; font-size: 1.6rem; }
+.nn-pt-tabs { display: flex; gap: 6px; margin: 12px 0; overflow-x: auto; }
+.nn-pt-tab { flex: 1 0 auto; text-align: center; padding: 10px 12px; border-radius: 10px; border: 1px solid var(--nn-border); background: var(--nn-surface);
+  color: var(--nn-text) !important; text-decoration: none !important; font-weight: 600; }
+.nn-pt-tab.is-on { background: var(--nn-primary-50); border-color: var(--nn-primary); color: var(--nn-primary) !important; }
+.nn-pt-card { display: block; padding: 12px; margin-bottom: 8px; border: 1px solid var(--nn-border); border-radius: 12px; background: var(--nn-surface); }
+.nn-pt-card summary { cursor: pointer; list-style: none; }
+.nn-pt-card-h { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.nn-pt-amt { margin-inline-start: auto; }
+.nn-pt-card small { color: var(--nn-muted); display: block; margin-top: 4px; }
+.nn-pt-foot { text-align: center; color: var(--nn-muted); font-size: .85rem; margin-top: 18px; }
+.nn-pt-empty { max-width: 460px; margin: 60px auto; text-align: center; padding: 24px; border: 1px solid var(--nn-border); border-radius: 14px; background: var(--nn-surface); }
+.nn-mgr-h { margin: 18px 0 8px; font-size: 1.05rem; }
+.nn-kpi.is-danger b { color: var(--nn-danger); }
+.nn-kpi.is-warning b { color: var(--nn-warning); }
+.nn-kpi small { display: block; color: var(--nn-muted); font-size: .78rem; margin-top: 2px; }
+.nn-al { padding: 10px 12px; margin-bottom: 8px; border-radius: 10px; border: 1px solid var(--nn-border); border-inline-start-width: 4px; background: var(--nn-surface); }
+.nn-al small { display: block; color: var(--nn-muted); margin-top: 4px; }
+.nn-al-critical, .nn-al-high { border-inline-start-color: var(--nn-danger); }
+.nn-al-medium { border-inline-start-color: var(--nn-warning); }
+.nn-al-low { border-inline-start-color: var(--nn-success); }
+.nn-fc-chart { display: flex; align-items: flex-end; gap: 4px; height: 160px; padding: 8px; margin: 12px 0; border: 1px solid var(--nn-border);
+  border-radius: 12px; background: var(--nn-surface); }
+.nn-fc-bar { flex: 1; height: 100%; display: flex; flex-direction: column; justify-content: flex-end; align-items: center; gap: 2px; }
+.nn-fc-bar i { display: block; width: 100%; min-height: 2px; border-radius: 4px 4px 0 0; background: var(--nn-primary); }
+.nn-fc-bar.is-neg i { background: var(--nn-danger); }
+.nn-fc-bar small { font-size: .7rem; color: var(--nn-muted); }
+.nn-fc tr.is-neg td { color: var(--nn-danger); }
+.nn-help h2 { margin: 0; }
+.nn-help h3 { margin: 18px 0 6px; font-size: 1.02rem; color: var(--nn-primary); }
+.nn-hist { padding: 10px 12px; margin-bottom: 8px; border: 1px solid var(--nn-border); border-radius: 10px; background: var(--nn-surface); }
+.nn-hist-h small { color: var(--nn-muted); margin-inline-start: 8px; }
+.nn-hist ul { margin: 6px 0 0; padding-inline-start: 20px; }
+.nn-hist del { color: var(--nn-danger); }
+.nn-hist ins { color: var(--nn-success); text-decoration: none; font-weight: 600; }
+.nn-pod { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-top: 6px; }
+.nn-pod img { max-height: 90px; max-width: 140px; border-radius: 8px; border: 1px solid var(--nn-border); background: #fff; }
+.nn-sign { width: 100%; height: 180px; border: 2px dashed var(--nn-border); border-radius: 12px; background: #fff; touch-action: none; }
+.nn-photo-prev { max-width: 100%; max-height: 220px; border-radius: 10px; margin-top: 8px; display: none; }

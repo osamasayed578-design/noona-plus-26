@@ -33,6 +33,7 @@ WHENEVER SQLERROR EXIT SQL.SQLCODE
 @@triggers/p32_aut_trg.sql
 @@triggers/p33_trn_trg.sql
 @@triggers/p36_dst_trg.sql
+@@triggers/p37_eng_trg.sql
 @@triggers/p22_bi_trg.sql
 @@triggers/p23_api_trg.sql
 @@triggers/p24_ai_trg.sql

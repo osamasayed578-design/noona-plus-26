@@ -59,6 +59,8 @@ PROMPT == p33_trn: Transport & Logistics
 @@ddl/p33_trn.sql
 PROMPT == p36_dst: Distribution & Field Sales
 @@ddl/p36_dst.sql
+PROMPT == p37_eng: Management & Engagement Hub
+@@ddl/p37_eng.sql
 PROMPT == p22_bi: Reporting & Business Intelligence
 @@ddl/p22_bi.sql
 PROMPT == p23_api: ORDS, APIs & Integrations

@@ -37,6 +37,7 @@ EMPLOYEE_ID     ID   >HR_EMPLOYEE | الموظف
 SPECIALTY       V200             | التخصص
 PHONE           V30              | الجوال
 HOURLY_COST     AMT              | تكلفة الساعة
+USER_NAME       V128             | مستخدم النظام (شاشة الفني على الهاتف)
 COMMISSION_PCT  PCT              | نسبة العمولة من الخدمات
 ''', area='setup')
 

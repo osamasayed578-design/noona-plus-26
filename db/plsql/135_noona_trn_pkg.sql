@@ -134,6 +134,13 @@ CREATE OR REPLACE PACKAGE NOONA_TRN_PKG AUTHID DEFINER AS
   FUNCTION order_status(p_id IN NUMBER) RETURN VARCHAR2;
   FUNCTION trip_status(p_id IN NUMBER) RETURN VARCHAR2;
   FUNCTION incident_status(p_id IN NUMBER) RETURN VARCHAR2;
+  -- شاشات السائق على الهاتف
+  FUNCTION my_driver RETURN NUMBER;
+  FUNCTION driver_trips_html(p_driver_id IN NUMBER, p_trip_url IN VARCHAR2) RETURN CLOB;
+  FUNCTION driver_trip_html(p_trip_id IN NUMBER) RETURN CLOB;
+  -- {"trip","order","receiver","phone","qty","damage","photo":"data:image/jpeg;base64,...","signature":"data:image/png;base64,...","lat","lng","notes"}
+  FUNCTION save_pod(p_doc IN CLOB) RETURN NUMBER;
+  FUNCTION trip_status(p_trip_id IN NUMBER) RETURN VARCHAR2;
 END NOONA_TRN_PKG;
 /
 
@@ -1908,6 +1915,8 @@ CREATE OR REPLACE PACKAGE BODY NOONA_TRN_PKG AS
     x_location_jn NUMBER;
     x_description_js VARCHAR2(4000);
     x_locationText_js VARCHAR2(4000);
+    x_lat NUMBER := jn(l_o, 'lat');
+    x_lng NUMBER := jn(l_o, 'lng');
     x_reportedBy_js VARCHAR2(4000);
     x_at_jts TIMESTAMP;
     l_trip NUMBER := jn(l_o, 'trip');
@@ -1935,9 +1944,9 @@ CREATE OR REPLACE PACKAGE BODY NOONA_TRN_PKG AS
     x_at_jts := jts(l_o, 'at');
     l_no := next_no(c_inc, 'INC-');
     INSERT INTO trn_incident (company_id, doc_no, doc_date, trip_id, vehicle_id, driver_id, incident_type, severity, reported_at, reported_by,
-                              location_id, location_text, description, status_code)
+                              location_id, location_text, description, status_code, latitude, longitude)
     VALUES (company, l_no, TRUNC(SYSDATE), l_trip, l_v, l_d, l_tp, l_sv, NVL(x_at_jts, SYSTIMESTAMP),
-            NVL(x_reportedBy_js, NOONA_APEX_PKG.display_name), x_location_jn, x_locationText_js, x_description_js, 'REPORTED')
+            NVL(x_reportedBy_js, NOONA_APEX_PKG.display_name), x_location_jn, x_locationText_js, x_description_js, 'REPORTED', x_lat, x_lng)
     RETURNING id INTO l_id;
     NOONA_AUDIT_PKG.log_event('DATA_CHANGE', c_inc, l_id, 'REPORT', 'SUCCESS');
     RETURN l_id;
@@ -2163,6 +2172,134 @@ CREATE OR REPLACE PACKAGE BODY NOONA_TRN_PKG AS
     SELECT MAX(status_code) INTO l FROM trn_incident WHERE id = p_id AND company_id = company;
     RETURN l;
   END incident_status;
+  -- ================================================================ شاشات السائق
+  FUNCTION my_driver RETURN NUMBER IS
+    l NUMBER;
+  BEGIN
+    SELECT MIN(id) INTO l FROM trn_driver
+     WHERE company_id = company AND status_code <> 'LEFT'
+       AND UPPER(user_name) = UPPER(NVL(SYS_CONTEXT('APEX$SESSION', 'APP_USER'), NOONA_CTX_PKG.current_user_name));
+    RETURN l;
+  END my_driver;
+
+  FUNCTION trip_status(p_trip_id IN NUMBER) RETURN VARCHAR2 IS
+    l VARCHAR2(30);
+  BEGIN
+    SELECT MAX(status_code) INTO l FROM trn_trip WHERE id = p_trip_id AND company_id = company;
+    RETURN l;
+  END trip_status;
+
+  FUNCTION driver_trips_html(p_driver_id IN NUMBER, p_trip_url IN VARCHAR2) RETURN CLOB IS
+    l_h CLOB;
+  BEGIN
+    IF p_driver_id IS NULL THEN
+      RETURN '<p class="nn-hint">حسابك غير مربوط بسائق. يربطه مسؤول الأسطول من «السائقون» بحقل مستخدم النظام.</p>';
+    END IF;
+    FOR t IN (SELECT t.id, t.doc_no, t.status_code, t.planned_departure, t.eta, v.plate_no, f.name_ar fr, tl.name_ar tl,
+                     (SELECT COUNT(*) FROM trn_trip_order x WHERE x.trip_id = t.id) n_orders,
+                     (SELECT COUNT(*) FROM trn_trip_order x JOIN trn_order o ON o.id = x.order_id WHERE x.trip_id = t.id AND o.status_code = 'DELIVERED') n_done
+                FROM trn_trip t JOIN trn_vehicle v ON v.id = t.vehicle_id JOIN trn_location f ON f.id = t.from_location_id
+                JOIN trn_location tl ON tl.id = t.to_location_id
+               WHERE t.company_id = company AND (t.driver_id = p_driver_id OR t.co_driver_id = p_driver_id)
+                 AND (t.status_code IN ('PLANNED', 'DISPATCHED', 'IN_TRANSIT', 'ARRIVED') OR (t.status_code = 'COMPLETED' AND t.actual_arrival > SYSTIMESTAMP - INTERVAL '2' DAY))
+               ORDER BY DECODE(t.status_code, 'IN_TRANSIT', 0, 'ARRIVED', 1, 'DISPATCHED', 2, 'PLANNED', 3, 9), t.planned_departure) LOOP
+      l_h := l_h || '<a class="nn-dst-stop' || CASE WHEN t.status_code IN ('IN_TRANSIT', 'ARRIVED') THEN ' is-open' WHEN t.status_code = 'COMPLETED' THEN ' is-done' END
+          || '" href="' || REPLACE(p_trip_url, '#TRIP#', t.id) || '"><span class="nn-dst-seq"><span class="fa fa-truck"></span></span><div class="nn-dst-stop-b"><b>'
+          || esc(t.doc_no) || ' · ' || esc(t.fr) || ' ← ' || esc(t.tl) || '</b> ' || badge(t.status_code)
+          || '<small>' || esc(t.plate_no) || ' · التحرك ' || TO_CHAR(t.planned_departure, 'YYYY-MM-DD HH24:MI')
+          || CASE WHEN t.eta IS NOT NULL THEN ' · الوصول المتوقع ' || TO_CHAR(t.eta, 'HH24:MI') END || '</small><small>الشحنات المسلمة '
+          || t.n_done || ' من ' || t.n_orders || '</small></div></a>';
+    END LOOP;
+    RETURN NVL(l_h, '<p class="nn-hint">لا رحلات مسندة لك حالياً.</p>');
+  END driver_trips_html;
+
+  FUNCTION driver_trip_html(p_trip_id IN NUMBER) RETURN CLOB IS
+    l_h CLOB;
+    l_b64 CLOB;
+  BEGIN
+    FOR t IN (SELECT t.*, v.plate_no, f.name_ar fr, tl.name_ar tl, f.latitude flat, f.longitude flng, tl.latitude tlat, tl.longitude tlng
+                FROM trn_trip t JOIN trn_vehicle v ON v.id = t.vehicle_id JOIN trn_location f ON f.id = t.from_location_id
+                JOIN trn_location tl ON tl.id = t.to_location_id WHERE t.id = p_trip_id AND t.company_id = company) LOOP
+      l_h := '<div class="nn-dst-card"><div class="nn-dst-card-h"><b>' || esc(t.doc_no) || ' · ' || esc(t.plate_no) || '</b>' || badge(t.status_code) || '</div>'
+          || '<div>' || esc(t.fr) || ' ← ' || esc(t.tl) || '</div><small>التحرك ' || TO_CHAR(NVL(t.actual_departure, t.planned_departure), 'YYYY-MM-DD HH24:MI')
+          || CASE WHEN t.odometer_start IS NOT NULL THEN ' · العداد ' || qf(t.odometer_start) END
+          || CASE WHEN t.eta IS NOT NULL THEN ' · الوصول المتوقع ' || TO_CHAR(t.eta, 'YYYY-MM-DD HH24:MI') END || '</small>'
+          || CASE WHEN t.tlat IS NOT NULL THEN '<div class="nn-dst-actions"><a class="nn-dst-btn" target="_blank" rel="noopener" href="https://www.google.com/maps/dir/?api=1&destination='
+               || TO_CHAR(t.tlat, 'FM990.0000000') || ',' || TO_CHAR(t.tlng, 'FM990.0000000') || '"><span class="fa fa-location-arrow"></span> الطريق إلى الوجهة</a></div>' END
+          || '</div><h3 class="nn-mgr-h">الشحنات</h3>';
+      FOR o IN (SELECT o.id, o.doc_no, o.status_code, o.quantity, o.delivered_qty, o.receiver_name, NOONA_SAL_PKG.customer_label(o.customer_account_id) cust,
+                       c.name_ar cargo, uom_label(o.uom_code) uom
+                  FROM trn_trip_order x JOIN trn_order o ON o.id = x.order_id JOIN trn_cargo_type c ON c.id = o.cargo_type_id
+                 WHERE x.trip_id = t.id ORDER BY o.id) LOOP
+        l_h := l_h || '<div class="nn-dst-stop' || CASE WHEN o.status_code = 'DELIVERED' THEN ' is-done' END || '"><div class="nn-dst-stop-b"><b>'
+            || esc(o.doc_no) || ' · ' || esc(o.cust) || '</b> ' || badge(o.status_code) || '<small>' || esc(o.cargo) || ' · ' || qf(o.quantity) || ' ' || esc(o.uom)
+            || CASE WHEN o.status_code = 'DELIVERED' THEN ' · سلم ' || qf(o.delivered_qty) || ' إلى ' || esc(o.receiver_name) END || '</small>';
+        FOR p IN (SELECT id, photo, signature, captured_at FROM trn_pod WHERE trip_id = t.id AND order_id = o.id ORDER BY id DESC FETCH FIRST 1 ROWS ONLY) LOOP
+          l_h := l_h || '<div class="nn-pod">';
+          IF p.photo IS NOT NULL AND DBMS_LOB.GETLENGTH(p.photo) < 600000 THEN
+            l_b64 := APEX_WEB_SERVICE.blob2clobbase64(p.photo);
+            l_h := l_h || '<img alt="صورة التسليم" src="data:image/jpeg;base64,' || REPLACE(REPLACE(l_b64, CHR(10)), CHR(13)) || '">';
+          END IF;
+          IF p.signature IS NOT NULL AND DBMS_LOB.GETLENGTH(p.signature) < 300000 THEN
+            l_b64 := APEX_WEB_SERVICE.blob2clobbase64(p.signature);
+            l_h := l_h || '<img alt="توقيع المستلم" class="is-sig" src="data:image/png;base64,' || REPLACE(REPLACE(l_b64, CHR(10)), CHR(13)) || '">';
+          END IF;
+          l_h := l_h || '<small>' || TO_CHAR(p.captured_at, 'YYYY-MM-DD HH24:MI') || '</small></div>';
+        END LOOP;
+        l_h := l_h || '</div></div>';
+      END LOOP;
+    END LOOP;
+    RETURN l_h;
+  END driver_trip_html;
+
+  FUNCTION data_url_blob(p CLOB) RETURN BLOB IS
+    l_i NUMBER;
+  BEGIN
+    IF p IS NULL OR DBMS_LOB.GETLENGTH(p) < 30 THEN RETURN NULL; END IF;
+    l_i := DBMS_LOB.INSTR(p, ',');
+    RETURN APEX_WEB_SERVICE.clobbase642blob(CASE WHEN l_i > 0 AND l_i < 100 THEN DBMS_LOB.SUBSTR(p, DBMS_LOB.GETLENGTH(p) - l_i, l_i + 1) ELSE p END);
+  END data_url_blob;
+
+  FUNCTION save_pod(p_doc IN CLOB) RETURN NUMBER IS
+    l_o   JSON_OBJECT_T := JSON_OBJECT_T.parse(p_doc);
+    l_t   NUMBER := jn(l_o, 'trip');
+    l_ord NUMBER := jn(l_o, 'order');
+    l_rc  VARCHAR2(200) := js(l_o, 'receiver');
+    l_qty NUMBER := jn(l_o, 'qty');
+    l_ph  BLOB;
+    l_sg  BLOB;
+    l_id  NUMBER;
+    l_st  VARCHAR2(30);
+    l_pm  VARCHAR2(100);
+    l_oq  NUMBER;
+    l_rp  VARCHAR2(30) := js(l_o, 'phone');
+    l_la  NUMBER := jn(l_o, 'lat');
+    l_ln  NUMBER := jn(l_o, 'lng');
+    l_nt  VARCHAR2(4000) := js(l_o, 'notes');
+    l_dm  VARCHAR2(4000) := js(l_o, 'damage');
+  BEGIN
+    guard('TRN_TRIP.UPDATE');
+    IF l_o.has('photo') AND NOT l_o.get('photo').is_null THEN
+      l_ph := data_url_blob(l_o.get_clob('photo'));
+      l_pm := REGEXP_SUBSTR(DBMS_LOB.SUBSTR(l_o.get_clob('photo'), 60, 1), 'data:([a-z/+]+);', 1, 1, NULL, 1);
+    END IF;
+    IF l_o.has('signature') AND NOT l_o.get('signature').is_null THEN
+      l_sg := data_url_blob(l_o.get_clob('signature'));
+    END IF;
+    NOONA_CORE_PKG.assert(l_sg IS NOT NULL OR l_ph IS NOT NULL, 'NOONA-TRN-120', 'التقط صورة التسليم أو توقيع المستلم', 'Photo or signature required');
+    SELECT MAX(status_code), MAX(quantity) INTO l_st, l_oq FROM trn_order WHERE id = l_ord AND company_id = company;
+    NOONA_CORE_PKG.assert(l_st IS NOT NULL, 'NOONA-TRN-121', 'الشحنة غير موجودة', 'Order not found');
+    l_qty := NVL(l_qty, l_oq);
+    IF l_st = 'IN_TRANSIT' THEN
+      deliver_order(l_t, l_ord, l_qty, l_rc, l_dm);
+    END IF;
+    INSERT INTO trn_pod (company_id, trip_id, order_id, receiver_name, receiver_phone, delivered_qty, photo, photo_mime, signature, latitude, longitude, notes)
+    VALUES (company, l_t, l_ord, l_rc, l_rp, l_qty, l_ph, l_pm, l_sg, l_la, l_ln, l_nt)
+    RETURNING id INTO l_id;
+    NOONA_AUDIT_PKG.log_event('DATA_CHANGE', 'TRN_POD', l_id, 'CAPTURE', 'SUCCESS');
+    RETURN l_id;
+  END save_pod;
+
 END NOONA_TRN_PKG;
 /
 SHOW ERRORS PACKAGE BODY NOONA_TRN_PKG

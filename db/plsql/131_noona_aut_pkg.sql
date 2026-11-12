@@ -107,6 +107,9 @@ CREATE OR REPLACE PACKAGE NOONA_AUT_PKG AUTHID DEFINER AS
   -- مطالبات التأمين: {"job","claim","claimStatus","approved"}
   PROCEDURE set_claim(p_doc IN CLOB);
   FUNCTION claims_html(p_insurer_id IN NUMBER DEFAULT NULL, p_status IN VARCHAR2 DEFAULT NULL) RETURN CLOB;
+  -- شاشة الفني على الهاتف
+  FUNCTION my_technician RETURN NUMBER;
+  FUNCTION tech_tasks_html(p_tech_id IN NUMBER) RETURN CLOB;
 END NOONA_AUT_PKG;
 /
 
@@ -1848,6 +1851,52 @@ CREATE OR REPLACE PACKAGE BODY NOONA_AUT_PKG AS
     END LOOP;
     RETURN l_h || (CASE WHEN l_n = 0 THEN '<tr><td colspan="11" class="nn-empty">لا مطالبات</td></tr>' END || '</tbody></table>');
   END claims_html;
+
+  -- ================================================================ شاشة الفني
+  FUNCTION my_technician RETURN NUMBER IS
+    l NUMBER;
+  BEGIN
+    SELECT MIN(id) INTO l FROM aut_technician
+     WHERE company_id = company AND is_active = 'Y'
+       AND UPPER(user_name) = UPPER(NVL(SYS_CONTEXT('APEX$SESSION', 'APP_USER'), NOONA_CTX_PKG.current_user_name));
+    RETURN l;
+  END my_technician;
+
+  -- بنود الخدمة المسندة للفني (وغير المسندة في أوامره) بأزرار البدء والإنجاز
+  FUNCTION tech_tasks_html(p_tech_id IN NUMBER) RETURN CLOB IS
+    l_h   CLOB;
+    l_job NUMBER := -1;
+  BEGIN
+    IF p_tech_id IS NULL THEN
+      RETURN '<p class="nn-hint">حسابك غير مربوط بفني. يربطه مسؤول المركز من «الفنيون» بحقل مستخدم النظام.</p>';
+    END IF;
+    FOR r IN (SELECT l.id, l.description, l.line_status, l.started_at, l.technician_id, j.id job_id, j.doc_no, j.promised_at, j.status_code job_st,
+                     v.plate_no, v.make, v.model, b.name_ar bay
+                FROM aut_job_line l JOIN aut_job_card j ON j.id = l.job_card_id JOIN aut_vehicle v ON v.id = j.vehicle_id
+                LEFT JOIN aut_bay b ON b.id = j.bay_id
+               WHERE j.company_id = company AND j.status_code IN ('OPEN', 'IN_PROGRESS', 'WAITING_PARTS')
+                 AND l.line_type IN ('SERVICE', 'SUBLET') AND l.line_status IN ('PENDING', 'IN_PROGRESS')
+                 AND (l.technician_id = p_tech_id
+                      OR (l.technician_id IS NULL AND EXISTS (SELECT 1 FROM aut_job_line x WHERE x.job_card_id = j.id AND x.technician_id = p_tech_id)))
+               ORDER BY j.promised_at NULLS LAST, j.id, l.line_no) LOOP
+      IF r.job_id <> l_job THEN
+        IF l_job <> -1 THEN l_h := l_h || '</div>'; END IF;
+        l_job := r.job_id;
+        l_h := l_h || '<div class="nn-dst-card nn-tech-job"><div class="nn-dst-card-h"><b>' || esc(r.plate_no) || ' · ' || esc(r.make || ' ' || r.model)
+            || '</b>' || badge(r.job_st) || '</div><small>' || esc(r.doc_no) || CASE WHEN r.bay IS NOT NULL THEN ' · ' || esc(r.bay) END
+            || CASE WHEN r.promised_at IS NOT NULL THEN ' · التسليم ' || TO_CHAR(r.promised_at, 'YYYY-MM-DD HH24:MI') END || '</small>';
+      END IF;
+      l_h := l_h || '<div class="nn-dst-stop' || CASE WHEN r.line_status = 'IN_PROGRESS' THEN ' is-open' END || '"><div class="nn-dst-stop-b"><b>'
+          || esc(r.description) || '</b><small>' || CASE WHEN r.line_status = 'IN_PROGRESS' THEN 'بدأ ' || TO_CHAR(r.started_at, 'HH24:MI') ELSE 'لم يبدأ' END
+          || CASE WHEN r.technician_id IS NULL THEN ' · غير مسند' END || '</small></div><div class="nn-dst-stop-a">'
+          || CASE WHEN r.line_status = 'PENDING'
+                  THEN '<button type="button" class="nn-dst-btn nn-dst-go" data-line="' || r.id || '" data-req="LINE_START"><span class="fa fa-play"></span> بدء</button>'
+                  ELSE '<button type="button" class="nn-dst-btn nn-dst-wa" data-line="' || r.id || '" data-req="LINE_DONE"><span class="fa fa-check"></span> تم</button>' END
+          || '</div></div>';
+    END LOOP;
+    IF l_job <> -1 THEN l_h := l_h || '</div>'; END IF;
+    RETURN NVL(l_h, '<p class="nn-hint">لا مهام مفتوحة لك الآن.</p>');
+  END tech_tasks_html;
 
 END NOONA_AUT_PKG;
 /

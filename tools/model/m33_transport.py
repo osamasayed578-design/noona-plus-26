@@ -61,6 +61,7 @@ NATIONAL_ID     V30              | رقم الهوية
 LICENSE_NO      V50  NN          | رقم رخصة القيادة
 LICENSE_CLASS   V30              | فئة الرخصة
 LICENSE_EXPIRY  DATE NN          | انتهاء الرخصة
+USER_NAME       V128             | مستخدم النظام (شاشات السائق على الهاتف)
 HAZMAT_CERTIFIED YN  NN D='N'    | مؤهل لنقل المواد الخطرة
 TRIP_ALLOWANCE  AMT              | بدل الرحلة الافتراضي
 BRANCH_ID       ID   >ORG_BRANCH | الفرع
@@ -169,6 +170,8 @@ REPORTED_AT     TS   NN          | وقت البلاغ
 REPORTED_BY     V200             | المبلّغ
 LOCATION_ID     ID   >TRN_LOCATION | أقرب موقع
 LOCATION_TEXT   V500             | وصف المكان
+LATITUDE        NUM              | موقع البلاغ (عرض)
+LONGITUDE       NUM              | موقع البلاغ (طول)
 DESCRIPTION     V2000 NN         | الوصف
 ASSIGNED_TO     V200             | المكلّف بالاستجابة
 ACKNOWLEDGED_AT TS               | وقت الاستلام
@@ -231,3 +234,17 @@ NEXT_DUE_KM     NUM              | الاستبدال التالي عند الع
 NEXT_DUE_DATE   DATE             | الاستبدال التالي بتاريخ
 INV_TXN_ID      ID   >INV_TRANSACTION | حركة الصرف المخزني
 ''', chk=['QUANTITY > 0', 'UNIT_COST >= 0'], area='fleet')
+
+table('TRN_POD', 'إثبات التسليم', 'Proof of Delivery', scope='C', mix='notes', cols='''
+TRIP_ID         ID   NN >TRN_TRIP | الرحلة
+ORDER_ID        ID   >TRN_ORDER  | أمر الشحن
+RECEIVER_NAME   V200             | المستلم
+RECEIVER_PHONE  V30              | جوال المستلم
+DELIVERED_QTY   QTY              | الكمية المسلمة
+PHOTO           BLOB             | صورة التسليم
+PHOTO_MIME      V100             | نوع الصورة
+SIGNATURE       BLOB             | توقيع المستلم (PNG)
+LATITUDE        NUM              | الموقع (عرض)
+LONGITUDE       NUM              | الموقع (طول)
+CAPTURED_AT     TS   NN D=SYSTIMESTAMP | الوقت
+''', ix=[('TENANT_ID', 'TRIP_ID')], area='operations')
