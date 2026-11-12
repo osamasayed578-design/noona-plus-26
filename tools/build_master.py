@@ -23,6 +23,12 @@ p.dynamic('الأنظمة', 10, [
     "    select listagg(alias, ',') within group (order by alias) into l_aliases from apex_applications;",
     '    return noona_ui_pkg.launcher(p_session => :APP_SESSION, p_existing_aliases => l_aliases);',
     'end;'], hide_header=True, opts='#DEFAULT#:t-Region--noPadding')
+# يتذكر هذا الجهاز المؤسسة وأنظمتها: صفحة الدخول تعرض «أهلاً بعودتك» وما الجديد وترويجاً لنظام غير مشترك فيه
+p.dynamic('تذكر الجهاز', 90, [
+    'begin',
+    "    return '<script>try{localStorage.setItem(''nn_back'',JSON.stringify({org:' || apex_escape.js_literal(noona_apex_pkg.company_name, '\"')",
+    "        || ',subs:' || apex_escape.js_literal(nvl(noona_account_pkg.tenant_offerings, ''), '\"') || '.split('':'')}))}catch(e){}</script>';",
+    'end;'], hide_header=True, opts='#DEFAULT#:t-Region--noUI')
 
 # =============================================================== 10) تغيير كلمة المرور
 p = app.page(10, 'Change Password', 'CHANGE-PASSWORD', 'تغيير كلمة المرور')
@@ -61,4 +67,5 @@ signup_pages.add_site(app)
 
 app.finalize()
 signup_pages.login_link(os.path.join(ROOT, 'apex/NOONA_MASTER/f115'))
+signup_pages.login_showcase(os.path.join(ROOT, 'apex/NOONA_MASTER/f115'))
 print('NOONA_MASTER built:', len(app.pages), 'pages')

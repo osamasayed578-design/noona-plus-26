@@ -41,6 +41,9 @@ CREATE OR REPLACE PACKAGE NOONA_SIGNUP_PKG AUTHID DEFINER AS
   -- صفحة الموقع العامة: بطاقات الأنظمة بأسعارها، والباقات بخصوماتها (من جداول الأسعار مباشرة)
   FUNCTION site_systems_html(p_signup_url IN VARCHAR2) RETURN CLOB;
   FUNCTION site_plans_html(p_signup_url IN VARCHAR2) RETURN CLOB;
+  -- واجهة صفحة الدخول (عامة): عرض متحرك للأنظمة من العروض الفعالة وأرقام وزر التجربة،
+  --   ولوحة «أهلاً بعودتك» و«ما الجديد» (LOGIN.WHATS_NEW) لمن دخل سابقاً من نفس الجهاز
+  FUNCTION login_showcase_html(p_signup_url IN VARCHAR2, p_site_url IN VARCHAR2) RETURN CLOB;
   -- يتحقق من الأنظمة ومتطلباتها؛ يعيد الرموز المعتمدة مفصولة بفاصلة
   FUNCTION validate_offerings(p_offerings IN VARCHAR2) RETURN VARCHAR2;
   FUNCTION bank_details RETURN VARCHAR2;
@@ -345,6 +348,49 @@ CREATE OR REPLACE PACKAGE BODY NOONA_SIGNUP_PKG AS
     END LOOP;
     RETURN l_h || ('</div>');
   END site_systems_html;
+
+  FUNCTION login_showcase_html(p_signup_url IN VARCHAR2, p_site_url IN VARCHAR2) RETURN CLOB IS
+    l_h    CLOB;
+    l_dots VARCHAR2(4000);
+    l_n    PLS_INTEGER := 0;
+    l_news VARCHAR2(4000) := setting('LOGIN.WHATS_NEW');
+    l_item VARCHAR2(1000);
+    l_i    PLS_INTEGER := 1;
+  BEGIN
+    l_h := '<div class="nnl-show" id="nnlShow"><div class="nnl-orb nnl-orb1"></div><div class="nnl-orb nnl-orb2"></div>'
+        || '<div class="nnl-new"><div class="nnl-kicker">نظام ERP عربي سحابي متكامل</div>'
+        || '<h1 class="nnl-h1">كل أعمال مؤسستك في نظام واحد</h1><div class="nnl-slides">';
+    FOR o IN (SELECT * FROM plt_offering WHERE is_active = 'Y' ORDER BY sort_order) LOOP
+      l_n := l_n + 1;
+      l_h := l_h || ('<div class="nnl-slide' || CASE WHEN l_n = 1 THEN ' is-on' END || '" data-code="' || esc(o.code) || '">'
+          || '<span class="nnl-ic"><span class="fa ' || esc(o.icon) || '" aria-hidden="true"></span></span><div class="nnl-txt"><h2>'
+          || esc(o.name_ar) || '</h2><p>' || esc(o.description) || '</p><div class="nnl-price">'
+          || CASE WHEN o.monthly_price = 0 THEN 'مشمول مع كل اشتراك'
+                  ELSE 'من <b>' || TO_CHAR(o.monthly_price, 'FM999,990') || '</b> ريال شهرياً' END || '</div></div></div>');
+      l_dots := l_dots || '<button type="button" class="nnl-dot' || CASE WHEN l_n = 1 THEN ' is-on' END || '" aria-label="'
+             || esc(o.name_ar) || '"></button>';
+    END LOOP;
+    l_h := l_h || ('</div><div class="nnl-dots">' || l_dots || '</div>'
+        || '<div class="nnl-stats"><div><b data-count="' || l_n || '">0</b><span>نظاماً</span></div>'
+        || '<div><b data-count="14">0</b><span>يوم تجربة مجانية</span></div>'
+        || '<div><b data-count="8">0</b><span>دول بضرائبها</span></div>'
+        || '<div><b data-count="24">0</b><span>ساعة بلا توقف</span></div></div>'
+        || '<div class="nnl-cta"><a class="nnl-btn nnl-btn-primary" href="' || p_signup_url || '">ابدأ تجربتك المجانية</a>'
+        || '<a class="nnl-btn nnl-btn-ghost" href="' || p_site_url || '">المزايا والأسعار</a></div></div>');
+    -- لوحة العائدين: أهلاً بعودتك + ما الجديد + ترويج لنظام غير مشترك فيه
+    l_h := l_h || '<div class="nnl-back" hidden><div class="nnl-kicker">نونا بلس</div><h1 class="nnl-h1">أهلاً بعودتك<span class="nnl-org"></span></h1>'
+        || '<h3 class="nnl-h3"><span class="fa fa-star" aria-hidden="true"></span> ما الجديد في النظام</h3><ul class="nnl-news">';
+    WHILE l_news IS NOT NULL AND l_i <= 8 LOOP
+      l_item := TRIM(REGEXP_SUBSTR(l_news, '[^|]+', 1, l_i));
+      EXIT WHEN l_item IS NULL;
+      l_h := l_h || ('<li><b>' || esc(TRIM(REGEXP_SUBSTR(l_item, '^[^:]+'))) || '</b>'
+          || CASE WHEN INSTR(l_item, ':') > 0 THEN '<span>' || esc(TRIM(SUBSTR(l_item, INSTR(l_item, ':') + 1))) || '</span>' END || '</li>');
+      l_i := l_i + 1;
+    END LOOP;
+    l_h := l_h || '</ul><h3 class="nnl-h3 nnl-promo-h"><span class="fa fa-plus-circle" aria-hidden="true"></span> قد يهمك أيضاً</h3>'
+        || '<div class="nnl-promo"></div><a class="nnl-tour" href="#">جولة على كل الأنظمة</a></div></div>';
+    RETURN l_h;
+  END login_showcase_html;
 
   FUNCTION site_plans_html(p_signup_url IN VARCHAR2) RETURN CLOB IS
     l_h   CLOB := '<div class="nnw-grid nnw-plans">';
@@ -658,7 +704,7 @@ CREATE OR REPLACE PACKAGE BODY NOONA_SIGNUP_PKG AS
   PROCEDURE save_setting(p_key IN VARCHAR2, p_value IN VARCHAR2) IS
   BEGIN
     NOONA_CORE_PKG.require_platform_admin;
-    NOONA_CORE_PKG.assert(p_key LIKE 'SIGNUP.%' OR p_key LIKE 'MAIL.%' OR p_key LIKE 'PLATFORM.%' OR p_key LIKE 'BILLING.%', 'NOONA-SGN-074', 'إعداد غير معروف', 'Unknown setting');
+    NOONA_CORE_PKG.assert(p_key LIKE 'SIGNUP.%' OR p_key LIKE 'MAIL.%' OR p_key LIKE 'PLATFORM.%' OR p_key LIKE 'BILLING.%' OR p_key LIKE 'LOGIN.%', 'NOONA-SGN-074', 'إعداد غير معروف', 'Unknown setting');
     NOONA_CORE_PKG.assert(p_key <> 'SIGNUP.OTP_MODE' OR p_value IN ('DEMO', 'EMAIL'), 'NOONA-SGN-075', 'وضع الرموز: DEMO أو EMAIL', 'OTP mode: DEMO or EMAIL');
     UPDATE plt_setting_def SET default_value = p_value WHERE setting_key = p_key;
     NOONA_CORE_PKG.assert(SQL%ROWCOUNT = 1, 'NOONA-SGN-074', 'إعداد غير معروف', 'Unknown setting');

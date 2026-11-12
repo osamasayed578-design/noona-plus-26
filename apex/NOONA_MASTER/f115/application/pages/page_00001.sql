@@ -37,6 +37,20 @@ wwv_flow_imp_page.create_page_plug(
 'end;'))
 ,p_plug_source_type=>'NATIVE_DYNAMIC_CONTENT'
 );
+wwv_flow_imp_page.create_page_plug(
+ p_id=>wwv_flow_imp.id(91820263000000010)
+,p_plug_name=>'تذكر الجهاز'
+,p_region_template_options=>'#DEFAULT#:t-Region--noUI:t-Region--removeHeader js-removeLandmark:t-Region--noUI'
+,p_plug_template=>4072358936313175081
+,p_plug_display_sequence=>90
+,p_function_body_language=>'PLSQL'
+,p_plug_source=>wwv_flow_string.join(wwv_flow_t_varchar2(
+'begin',
+'    return ''<script>try{localStorage.setItem(''''nn_back'''',JSON.stringify({org:'' || apex_escape.js_literal(noona_apex_pkg.company_name, ''"'')',
+'        || '',subs:'' || apex_escape.js_literal(nvl(noona_account_pkg.tenant_offerings, ''''), ''"'') || ''.split('''':'''')}))}catch(e){}</script>'';',
+'end;'))
+,p_plug_source_type=>'NATIVE_DYNAMIC_CONTENT'
+);
 
 wwv_flow_imp.component_end;
 end;

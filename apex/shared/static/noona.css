@@ -2454,3 +2454,90 @@ html[data-theme="dark"] .nn-kpi-value, html[data-theme="dark"] .nn-anl-kpi-val, 
 /* منطقة رأس الموقع في صفحتي التسجيل واستعادة كلمة المرور: بلا قص حتى يمتد الرأس بعرض الشاشة */
 .t-Region:has(.nnw-top) { overflow: visible !important; transform: none !important; background: transparent !important; border: 0 !important; box-shadow: none !important; }
 .t-Region:has(.nnw-top) .t-Region-body { padding: 0 !important; }
+
+/* ===================================================================== صفحة الدخول: عمود الدخول يمين + عرض الأنظمة المتحرك */
+.t-PageBody--login:has(#nnlShow) .t-Login-bg { display: none; }
+.t-PageBody--login:has(#nnlShow) .t-Login-container {
+  position: fixed; top: 0; bottom: 0; right: 0; width: 420px; max-width: 100%; margin: 0; border-radius: 0;
+  display: flex; flex-direction: column; justify-content: center; overflow-y: auto; z-index: 2;
+  background: #fff; box-shadow: -10px 0 40px rgba(15, 23, 42, .12); padding: 24px 8px;
+}
+.t-PageBody--login:has(#nnlShow) .t-Login-region { box-shadow: none; border: 0; background: transparent; }
+.nnl-show {
+  position: fixed; top: 0; bottom: 0; left: 0; right: 420px; z-index: 1; overflow: hidden; color: #fff; direction: rtl;
+  background: radial-gradient(1200px 600px at 85% 10%, #3b82f6 0%, transparent 60%),
+              radial-gradient(900px 500px at 10% 90%, #7c3aed 0%, transparent 55%),
+              linear-gradient(135deg, #0b1e4a 0%, #102a63 45%, #1e1b4b 100%);
+  display: flex; flex-direction: column; justify-content: center; padding: 6vh 6vw;
+}
+.nnl-orb { position: absolute; border-radius: 50%; filter: blur(60px); opacity: .35; pointer-events: none; animation: nnlFloat 14s ease-in-out infinite alternate; }
+.nnl-orb1 { width: 340px; height: 340px; background: #22d3ee; top: -80px; left: 12%; }
+.nnl-orb2 { width: 420px; height: 420px; background: #a855f7; bottom: -140px; right: 8%; animation-delay: -6s; }
+@keyframes nnlFloat { from { transform: translate(0, 0) scale(1); } to { transform: translate(40px, 30px) scale(1.12); } }
+.nnl-new, .nnl-back { position: relative; max-width: 760px; }
+.nnl-kicker { display: inline-block; font-size: 13px; letter-spacing: .3px; padding: 6px 14px; border-radius: 999px;
+  background: rgba(255, 255, 255, .12); border: 1px solid rgba(255, 255, 255, .2); margin-bottom: 18px; }
+.nnl-h1 { font-size: clamp(28px, 3.2vw, 44px); line-height: 1.25; font-weight: 800; margin: 0 0 28px; color: #fff; }
+.nnl-org { color: #93c5fd; }
+.nnl-slides { position: relative; min-height: 190px; }
+.nnl-slide { position: absolute; inset: 0; display: flex; gap: 22px; align-items: flex-start; opacity: 0; transform: translateX(-36px);
+  transition: opacity .7s ease, transform .7s ease; pointer-events: none; }
+.nnl-slide.is-on { opacity: 1; transform: none; pointer-events: auto; }
+.nnl-promo .nnl-slide { position: static; opacity: 1; transform: none; background: rgba(255, 255, 255, .08);
+  border: 1px solid rgba(255, 255, 255, .16); border-radius: 18px; padding: 18px; }
+.nnl-ic { flex: 0 0 auto; width: 78px; height: 78px; border-radius: 22px; display: grid; place-items: center; font-size: 34px;
+  background: linear-gradient(145deg, rgba(255, 255, 255, .25), rgba(255, 255, 255, .06)); border: 1px solid rgba(255, 255, 255, .25);
+  box-shadow: 0 12px 30px rgba(0, 0, 0, .25); }
+.nnl-slide.is-on .nnl-ic { animation: nnlPop .7s ease; }
+@keyframes nnlPop { 0% { transform: scale(.6) rotate(-12deg); } 70% { transform: scale(1.08); } 100% { transform: none; } }
+.nnl-txt h2 { font-size: 26px; margin: 4px 0 10px; color: #fff; font-weight: 700; }
+.nnl-txt p { font-size: 16px; line-height: 1.8; margin: 0 0 12px; color: rgba(255, 255, 255, .85); max-width: 560px; }
+.nnl-price { font-size: 14px; color: #bfdbfe; }
+.nnl-price b { font-size: 20px; color: #fff; }
+.nnl-dots { display: flex; gap: 8px; flex-wrap: wrap; margin: 18px 0 30px; }
+.nnl-dot { width: 10px; height: 10px; border-radius: 999px; border: 0; padding: 0; cursor: pointer; background: rgba(255, 255, 255, .3);
+  transition: width .3s, background .3s; }
+.nnl-dot.is-on { width: 30px; background: #fff; }
+.nnl-stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; margin-bottom: 30px; }
+.nnl-stats div { background: rgba(255, 255, 255, .08); border: 1px solid rgba(255, 255, 255, .14); border-radius: 16px; padding: 14px; }
+.nnl-stats b { display: block; font-size: 30px; font-weight: 800; font-variant-numeric: tabular-nums; }
+.nnl-stats span { font-size: 13px; color: rgba(255, 255, 255, .75); }
+.nnl-cta { display: flex; gap: 12px; flex-wrap: wrap; }
+.nnl-btn { display: inline-flex; align-items: center; padding: 13px 26px; border-radius: 12px; font-weight: 700; text-decoration: none !important;
+  transition: transform .2s, box-shadow .2s; }
+.nnl-btn:hover { transform: translateY(-2px); }
+.nnl-btn-primary { background: #fff; color: #1d4ed8 !important; box-shadow: 0 10px 30px rgba(0, 0, 0, .25); }
+.nnl-btn-ghost { color: #fff !important; border: 1px solid rgba(255, 255, 255, .45); }
+.nnl-h3 { font-size: 18px; margin: 6px 0 14px; color: #e0e7ff; font-weight: 700; }
+.nnl-news { list-style: none; margin: 0 0 26px; padding: 0; display: grid; gap: 10px; }
+.nnl-news li { background: rgba(255, 255, 255, .08); border: 1px solid rgba(255, 255, 255, .14); border-radius: 14px; padding: 12px 16px;
+  animation: nnlIn .6s ease both; }
+.nnl-news li:nth-child(2) { animation-delay: .1s; } .nnl-news li:nth-child(3) { animation-delay: .2s; }
+.nnl-news li:nth-child(4) { animation-delay: .3s; } .nnl-news li:nth-child(5) { animation-delay: .4s; }
+@keyframes nnlIn { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
+.nnl-news b { display: block; color: #fff; }
+.nnl-news span { color: rgba(255, 255, 255, .78); font-size: 14px; }
+.nnl-tour { display: inline-block; margin-top: 18px; color: #bfdbfe !important; }
+.nnl-promo { margin-bottom: 6px; }
+@media (prefers-reduced-motion: reduce) { .nnl-orb, .nnl-news li, .nnl-slide.is-on .nnl-ic { animation: none; } .nnl-slide { transition: none; } }
+@media (max-width: 900px) {
+  .t-PageBody--login:has(#nnlShow) .t-Login-container { position: static; width: auto; min-height: auto; box-shadow: none; padding: 16px; }
+  .nnl-show { position: static; right: auto; margin: 16px -16px -16px; padding: 32px 20px; border-radius: 0; }
+  .nnl-slides { min-height: 260px; }
+  .nnl-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .nnl-ic { width: 60px; height: 60px; font-size: 26px; }
+}
+.t-PageBody--login:has(#nnlShow) .t-Login-containerBody, .t-PageBody--login:has(#nnlShow) .t-Login-containerBody .container { width: 100%; max-width: 100%; }
+.t-PageBody--login:has(#nnlShow) .t-Login-region { width: 100%; max-width: 360px; margin-inline: auto; }
+.t-PageBody--login:has(#nnlShow) .nn-sgn-login-link { max-width: 360px; margin: 8px auto 0; text-align: center; line-height: 2; }
+.nnl-ic .fa { font-size: 34px; line-height: 1; }
+.nnl-slides { overflow: hidden; }
+@media (max-width: 900px) {
+  .nnl-show { margin: 0; }
+  .nnl-ic .fa { font-size: 26px; }
+  html:has(.nnl-show), body:has(.nnl-show) { overflow-x: hidden; }
+}
+html:has(body.t-PageBody--login), body.t-PageBody--login { overflow-x: clip; }
+.nnl-show { max-width: 100vw; box-sizing: border-box; }
+@media (max-width: 900px) { .nnl-orb { display: none; } }
+.t-PageBody--login:has(#nnlShow) span.t-Login-logo { display: block !important; margin: 6px auto 10px !important; }
