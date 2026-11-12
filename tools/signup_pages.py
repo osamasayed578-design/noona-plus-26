@@ -175,6 +175,57 @@ def login_link(out_dir):
     open(path, 'w', encoding='utf-8').write(s[:i] + region + s[i:])
 
 
+
+LOGIN_JS = r"""<script>
+(function(){
+  var root = document.getElementById('nnlShow'); if (!root) return;
+  document.body.appendChild(root);   // خارج منطقة الصفحة: يملأ الشاشة بجانب عمود الدخول
+  document.body.classList.add('nnl-page');
+  var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var back = null; try { back = JSON.parse(localStorage.getItem('nn_back') || 'null'); } catch (e) {}
+  var neu = root.querySelector('.nnl-new'), old = root.querySelector('.nnl-back');
+  var slides = [].slice.call(root.querySelectorAll('.nnl-new .nnl-slide')), dots = [].slice.call(root.querySelectorAll('.nnl-dot'));
+  var cur = 0, timer = null, hold = false;
+  function show(i){ slides[cur].classList.remove('is-on'); dots[cur] && dots[cur].classList.remove('is-on');
+    cur = (i + slides.length) % slides.length; slides[cur].classList.add('is-on'); dots[cur] && dots[cur].classList.add('is-on'); }
+  function play(){ if (reduce || slides.length < 2) return; clearInterval(timer); timer = setInterval(function(){ if (!hold) show(cur + 1); }, 6000); }
+  dots.forEach(function(d, i){ d.addEventListener('click', function(){ show(i); play(); }); });
+  var box = root.querySelector('.nnl-new .nnl-slides');
+  box.addEventListener('mouseenter', function(){ hold = true; }); box.addEventListener('mouseleave', function(){ hold = false; });
+  function count(){ root.querySelectorAll('[data-count]').forEach(function(b){ var t = +b.getAttribute('data-count'), n = 0, s = Math.max(1, Math.round(t / 30));
+    if (reduce) { b.textContent = t; return; } var k = setInterval(function(){ n = Math.min(t, n + s); b.textContent = n; if (n >= t) clearInterval(k); }, 40); }); }
+  function tour(){ old.hidden = true; neu.hidden = false; play(); count(); }
+  if (back && back.org !== undefined) {
+    neu.hidden = true; old.hidden = false;
+    var o = old.querySelector('.nnl-org'); if (back.org) o.textContent = '، ' + back.org;
+    var subs = (back.subs || []), pick = slides.filter(function(s){ return subs.indexOf(s.getAttribute('data-code')) < 0 && s.getAttribute('data-code') !== 'DOC'; });
+    var promo = old.querySelector('.nnl-promo');
+    if (pick.length) { var c = pick[Math.floor(Math.random() * pick.length)].cloneNode(true); c.classList.add('is-on'); promo.appendChild(c); }
+    else { promo.remove(); old.querySelector('.nnl-promo-h').remove(); }
+    old.querySelector('.nnl-tour').addEventListener('click', function(e){ e.preventDefault(); tour(); });
+  } else { play(); count(); }
+})();
+</script>"""
+
+
+def login_showcase(out_dir):
+    """صفحة الدخول: عمود الدخول يمين الشاشة والعرض المتحرك للأنظمة في باقيها (أو «أهلاً بعودتك» لمن دخل سابقاً)"""
+    path = out_dir + '/application/pages/page_09999.sql'
+    s = open(path, encoding='utf-8').read()
+    if 'NOONA-LOGIN-SHOWCASE' in s:
+        return
+    js = LOGIN_JS.replace("'", "''''")   # الاقتباس داخل نص PL/SQL داخل ملف التصدير
+    lines = ["'return noona_signup_pkg.login_showcase_html(''f?p='' || :APP_ID || '':SIGNUP:0'', ''f?p='' || :APP_ID || '':WELCOME:0'')',"]
+    for ln in js.split('\n'):
+        lines.append("'  || ''" + ln + "'' || chr(10)',")
+    lines.append("';'")
+    region = ("wwv_flow_imp_page.create_page_plug(\n p_id=>wwv_flow_imp.id(91820263000099002)\n,p_plug_name=>'NOONA-LOGIN-SHOWCASE'\n"
+              ",p_region_template_options=>'#DEFAULT#'\n,p_plug_template=>4501440665235496320\n,p_plug_display_sequence=>95\n"
+              ",p_function_body_language=>'PLSQL'\n,p_plug_source=>wwv_flow_string.join(wwv_flow_t_varchar2(\n"
+              + '\n'.join(lines) + "))\n,p_plug_source_type=>'NATIVE_DYNAMIC_CONTENT'\n);\n")
+    i = s.rindex('wwv_flow_imp.component_end;')
+    open(path, 'w', encoding='utf-8').write(s[:i] + region + s[i:])
+
 SITE_NAV = (
     '<header class="nnw-top"><div class="nnw-wrap nnw-top-in">'
     '<a class="nnw-logo" href="f?p=&APP_ID.:WELCOME:&SESSION."><img src="#APP_FILES#noona-logo.svg" alt="">نونا بلس</a>'

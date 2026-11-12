@@ -195,7 +195,7 @@ wwv_flow_imp_page.create_page_item(
 ,p_item_plug_id=>wwv_flow_imp.id(91820265000000248)
 ,p_prompt=>'الإعداد'
 ,p_display_as=>'NATIVE_SELECT_LIST'
-,p_lov=>'select name_ar || '': '' || substr(default_value, 1, 60) d, setting_key r from plt_setting_def where (setting_key like ''SIGNUP.%'' or setting_key like ''MAIL.%'' or setting_key like ''PLATFORM.%'' or setting_key like ''BILLING.%'') order by setting_key'
+,p_lov=>'select name_ar || '': '' || substr(default_value, 1, 60) d, setting_key r from plt_setting_def where (setting_key like ''SIGNUP.%'' or setting_key like ''MAIL.%'' or setting_key like ''PLATFORM.%'' or setting_key like ''BILLING.%'' or setting_key like ''LOGIN.%'') order by setting_key'
 ,p_lov_display_null=>'YES'
 ,p_lov_null_text=>'- اختر -'
 ,p_cHeight=>1
@@ -214,7 +214,7 @@ wwv_flow_imp_page.create_page_item(
 ,p_display_as=>'NATIVE_TEXTAREA'
 ,p_cSize=>60
 ,p_cMaxlength=>1000
-,p_cHeight=>2
+,p_cHeight=>4
 ,p_field_template=>1609121967514267634
 ,p_item_template_options=>'#DEFAULT#'
 ,p_attributes=>wwv_flow_t_plugin_attributes(wwv_flow_t_varchar2(

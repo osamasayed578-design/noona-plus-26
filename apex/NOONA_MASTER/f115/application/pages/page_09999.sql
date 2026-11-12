@@ -238,6 +238,48 @@ wwv_flow_imp_page.create_page_plug(
   'expand_shortcuts', 'Y',
   'output_as', 'HTML')).to_clob
 );
+wwv_flow_imp_page.create_page_plug(
+ p_id=>wwv_flow_imp.id(91820263000099002)
+,p_plug_name=>'NOONA-LOGIN-SHOWCASE'
+,p_region_template_options=>'#DEFAULT#'
+,p_plug_template=>4501440665235496320
+,p_plug_display_sequence=>95
+,p_function_body_language=>'PLSQL'
+,p_plug_source=>wwv_flow_string.join(wwv_flow_t_varchar2(
+'return noona_signup_pkg.login_showcase_html(''f?p='' || :APP_ID || '':SIGNUP:0'', ''f?p='' || :APP_ID || '':WELCOME:0'')',
+'  || ''<script>'' || chr(10)',
+'  || ''(function(){'' || chr(10)',
+'  || ''  var root = document.getElementById(''''nnlShow''''); if (!root) return;'' || chr(10)',
+'  || ''  document.body.appendChild(root);   // خارج منطقة الصفحة: يملأ الشاشة بجانب عمود الدخول'' || chr(10)',
+'  || ''  document.body.classList.add(''''nnl-page'''');'' || chr(10)',
+'  || ''  var reduce = window.matchMedia && window.matchMedia(''''(prefers-reduced-motion: reduce)'''').matches;'' || chr(10)',
+'  || ''  var back = null; try { back = JSON.parse(localStorage.getItem(''''nn_back'''') || ''''null''''); } catch (e) {}'' || chr(10)',
+'  || ''  var neu = root.querySelector(''''.nnl-new''''), old = root.querySelector(''''.nnl-back'''');'' || chr(10)',
+'  || ''  var slides = [].slice.call(root.querySelectorAll(''''.nnl-new .nnl-slide'''')), dots = [].slice.call(root.querySelectorAll(''''.nnl-dot''''));'' || chr(10)',
+'  || ''  var cur = 0, timer = null, hold = false;'' || chr(10)',
+'  || ''  function show(i){ slides[cur].classList.remove(''''is-on''''); dots[cur] && dots[cur].classList.remove(''''is-on'''');'' || chr(10)',
+'  || ''    cur = (i + slides.length) % slides.length; slides[cur].classList.add(''''is-on''''); dots[cur] && dots[cur].classList.add(''''is-on''''); }'' || chr(10)',
+'  || ''  function play(){ if (reduce || slides.length < 2) return; clearInterval(timer); timer = setInterval(function(){ if (!hold) show(cur + 1); }, 6000); }'' || chr(10)',
+'  || ''  dots.forEach(function(d, i){ d.addEventListener(''''click'''', function(){ show(i); play(); }); });'' || chr(10)',
+'  || ''  var box = root.querySelector(''''.nnl-new .nnl-slides'''');'' || chr(10)',
+'  || ''  box.addEventListener(''''mouseenter'''', function(){ hold = true; }); box.addEventListener(''''mouseleave'''', function(){ hold = false; });'' || chr(10)',
+'  || ''  function count(){ root.querySelectorAll(''''[data-count]'''').forEach(function(b){ var t = +b.getAttribute(''''data-count''''), n = 0, s = Math.max(1, Math.round(t / 30));'' || chr(10)',
+'  || ''    if (reduce) { b.textContent = t; return; } var k = setInterval(function(){ n = Math.min(t, n + s); b.textContent = n; if (n >= t) clearInterval(k); }, 40); }); }'' || chr(10)',
+'  || ''  function tour(){ old.hidden = true; neu.hidden = false; play(); count(); }'' || chr(10)',
+'  || ''  if (back && back.org !== undefined) {'' || chr(10)',
+'  || ''    neu.hidden = true; old.hidden = false;'' || chr(10)',
+'  || ''    var o = old.querySelector(''''.nnl-org''''); if (back.org) o.textContent = ''''، '''' + back.org;'' || chr(10)',
+'  || ''    var subs = (back.subs || []), pick = slides.filter(function(s){ return subs.indexOf(s.getAttribute(''''data-code'''')) < 0 && s.getAttribute(''''data-code'''') !== ''''DOC''''; });'' || chr(10)',
+'  || ''    var promo = old.querySelector(''''.nnl-promo'''');'' || chr(10)',
+'  || ''    if (pick.length) { var c = pick[Math.floor(Math.random() * pick.length)].cloneNode(true); c.classList.add(''''is-on''''); promo.appendChild(c); }'' || chr(10)',
+'  || ''    else { promo.remove(); old.querySelector(''''.nnl-promo-h'''').remove(); }'' || chr(10)',
+'  || ''    old.querySelector(''''.nnl-tour'''').addEventListener(''''click'''', function(e){ e.preventDefault(); tour(); });'' || chr(10)',
+'  || ''  } else { play(); count(); }'' || chr(10)',
+'  || ''})();'' || chr(10)',
+'  || ''</script>'' || chr(10)',
+';'))
+,p_plug_source_type=>'NATIVE_DYNAMIC_CONTENT'
+);
 wwv_flow_imp.component_end;
 end;
 /

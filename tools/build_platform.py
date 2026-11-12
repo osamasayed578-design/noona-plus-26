@@ -317,10 +317,10 @@ g = p.static('إعدادات التسجيل', 30, text=(
     '(يتطلب ضبط SMTP في APEX). رسائل الجوال تحتاج ربط مزود رسائل.</p>'))
 p.select('P10_KEY', g, 10, 'الإعداد', lov_sql=(
     "select name_ar || ': ' || substr(default_value, 1, 60) d, setting_key r from plt_setting_def"
-    " where (setting_key like 'SIGNUP.%' or setting_key like 'MAIL.%' or setting_key like 'PLATFORM.%' or setting_key like 'BILLING.%')"
+    " where (setting_key like 'SIGNUP.%' or setting_key like 'MAIL.%' or setting_key like 'PLATFORM.%' or setting_key like 'BILLING.%' or setting_key like 'LOGIN.%')"
     " order by setting_key"),
     submit=True)
-p.textarea('P10_VALUE', g, 20, 'القيمة', rows=2)
+p.textarea('P10_VALUE', g, 20, 'القيمة', rows=4)
 b_st = p.button(g, 10, 'SAVE_SET', 'حفظ الإعداد')
 p.process(5, 'BEFORE_HEADER', 'Load setting', ':P10_VALUE := noona_signup_pkg.setting(:P10_KEY);', when=':P10_KEY is not null')
 p.process(30, 'AFTER_SUBMIT', 'Setting', 'noona_signup_pkg.save_setting(:P10_KEY, :P10_VALUE);', when_button=b_st, success='حفظ الإعداد')
