@@ -40,6 +40,7 @@ HOURLY_COST     AMT              | تكلفة الساعة
 USER_NAME       V128             | مستخدم النظام (شاشة الفني على الهاتف)
 EARNINGS_METHOD CODE NN D='PAYROLL' IN:PAYROLL,CASH,BANK_TRANSFER,NONE | صرف المستحقات (مع الراتب، نقداً، تحويل، لا يستحق)
 COMMISSION_PCT  PCT              | نسبة العمولة من الخدمات
+JOB_BONUS       AMT              | بونص ثابت لكل أمر إصلاح منجز
 ''', area='setup')
 
 table('AUT_INSURER', 'شركات التأمين', 'Insurers', scope='C', mix='code names status', status='ACTIVE SUSPENDED INACTIVE', cols='''

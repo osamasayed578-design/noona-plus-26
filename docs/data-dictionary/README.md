@@ -57,5 +57,5 @@
 | 36 | التوزيع والمبيعات الميدانية | Distribution & Field Sales | `NOONA_DST_PKG` | 10 | [p36_dst](p36_dst.md) |
 | 37 | مركز الإدارة والتواصل | Management & Engagement Hub | `NOONA_ENG_PKG` | 8 | [p37_eng](p37_eng.md) |
 
-**الإجمالي:** 692 جدول · 12383 عمود.
+**الإجمالي:** 692 جدول · 12386 عمود.
 

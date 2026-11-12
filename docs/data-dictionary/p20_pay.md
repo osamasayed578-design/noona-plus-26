@@ -559,7 +559,7 @@
 | نطاق الملكية | `C` — مملوك للشركة Company-Owned |
 | الحساسية | INTERNAL |
 | النمط | قابل للتعديل وفق دورة الحياة |
-| مفاتيح فريدة | UK1: (TENANT_ID, COMPANY_ID, SOURCE_ENTITY_TYPE, SOURCE_ENTITY_ID, EARNING_TYPE, PERIOD_MONTH) |
+| مفاتيح فريدة | UK1: (TENANT_ID, COMPANY_ID, SOURCE_ENTITY_TYPE, SOURCE_ENTITY_ID, EARNING_TYPE, PERIOD_MONTH, EMPLOYEE_ID) |
 | قيود أعمال | AMOUNT > 0 |
 
 | # | العمود | النوع المنطقي | Oracle Type | إلزامي | افتراضي | مفاتيح | القيم المقبولة | المصدر | PII | الوصف |
@@ -569,7 +569,7 @@
 | 3 | `COMPANY_ID` | معرف | `NUMBER(19)` | ✔ |  | FK→ORG_COMPANY UK1 |  | Security Context |  | الشركة (الكيان القانوني) المالكة للسجل |
 | 4 | `SOURCE_ENTITY_TYPE` | نص | `VARCHAR2(50 CHAR)` |  |  | FK→REF_ENTITY_TYPE UK1 |  | إدخال المستخدم |  | نوع كيان المصدر من سجل الأنواع REF_ENTITY_TYPE |
 | 5 | `SOURCE_ENTITY_ID` | معرف | `NUMBER(19)` |  |  | UK1 |  | إدخال المستخدم |  | معرف كيان المصدر (يتحقق منه خادمياً عبر حزمة الوحدة المالكة) |
-| 6 | `EMPLOYEE_ID` | معرف | `NUMBER(19)` | ✔ |  | FK→HR_EMPLOYEE |  | إدخال المستخدم |  | الموظف |
+| 6 | `EMPLOYEE_ID` | معرف | `NUMBER(19)` | ✔ |  | FK→HR_EMPLOYEE UK1 |  | إدخال المستخدم |  | الموظف |
 | 7 | `EMPLOYMENT_ID` | معرف | `NUMBER(19)` |  |  | FK→HR_EMPLOYMENT |  | إدخال المستخدم |  | علاقة التوظيف |
 | 8 | `SOURCE_MODULE` | رمز | `VARCHAR2(30 CHAR)` | ✔ |  |  | TRN, DST, AUT, OTHER | إدخال المستخدم |  | المصدر |
 | 9 | `EARNING_TYPE` | رمز | `VARCHAR2(30 CHAR)` | ✔ |  | UK1 | TRIP_ALLOWANCE, SALES_COMMISSION, COLLECTION_COMMISSION, VISIT_COMMISSION, SERVICE_COMMISSION, BONUS, OTHER | إدخال المستخدم |  | النوع |

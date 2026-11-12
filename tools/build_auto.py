@@ -539,6 +539,8 @@ p.hidden('P11_T_ID', tt, 5, protected=False)
 p.text('P11_T_CODE', tt, 10, 'الرمز', maxlen=30, width=10)
 p.text('P11_T_NAME', tt, 20, 'الاسم', maxlen=200, width=25)
 p.select('P11_T_EMP', tt, 30, 'الموظف من الموارد البشرية', lov_sql=EMP_LOV)
+p.number('P11_T_JOBB', tt, 71, 'بونص ثابت لكل أمر إصلاح منجز (فوق الراتب)')
+p.display('P11_T_SALARY', tt, 73, 'الراتب الشهري (من الموارد البشرية)')
 p.select('P11_T_PAYM', tt, 72, 'صرف العمولة', lov_sql='STATIC2:مع الراتب (مسير الرواتب);PAYROLL,نقداً (سند صرف);CASH,تحويل بنكي (سند صرف);BANK_TRANSFER,لا يستحق عمولة;NONE',
          null_text=None)
 p.text('P11_T_SPEC', tt, 40, 'التخصص', maxlen=200, width=25)
@@ -554,8 +556,10 @@ p.process(5, 'BEFORE_HEADER', 'Load', [
     'begin',
     "    :P11_B_TYPE := nvl(:P11_B_TYPE, 'LIFT'); :P11_T_ACTIVE := nvl(:P11_T_ACTIVE, 'Y');",
     '    if :P11_T_ID is not null and :P11_T_CODE is null then',
-    '        select code, name_ar, employee_id, specialty, phone, hourly_cost, commission_pct, is_active, user_name, earnings_method',
-    '          into :P11_T_CODE, :P11_T_NAME, :P11_T_EMP, :P11_T_SPEC, :P11_T_PHONE, :P11_T_COST, :P11_T_COMM, :P11_T_ACTIVE, :P11_T_USER, :P11_T_PAYM',
+    '        select code, name_ar, employee_id, specialty, phone, hourly_cost, commission_pct, is_active, user_name, earnings_method, job_bonus,',
+    "                 to_char(noona_wrk_pkg.monthly_salary(employee_id), 'FM999G999G990D00')",
+    '          into :P11_T_CODE, :P11_T_NAME, :P11_T_EMP, :P11_T_SPEC, :P11_T_PHONE, :P11_T_COST, :P11_T_COMM, :P11_T_ACTIVE, :P11_T_USER, :P11_T_PAYM,',
+    '               :P11_T_JOBB, :P11_T_SALARY',
     '          from aut_technician where id = :P11_T_ID and company_id = noona_aut_pkg.company;',
     '    end if;',
     'exception when no_data_found then null;',
@@ -574,7 +578,8 @@ p.process(20, 'AFTER_SUBMIT', 'Technician', ['declare l_o json_object_t := json_
           "    l_o.put('commission', to_number(:P11_T_COMM)); l_o.put('active', :P11_T_ACTIVE);",
           '    :P11_T_ID := noona_aut_pkg.save_technician(l_o.to_clob);',
           '    noona_aut_pkg.set_technician_user(:P11_T_ID, :P11_T_USER);',
-          "    noona_wrk_pkg.set_worker('TECH', :P11_T_ID, to_number(:P11_T_EMP), nvl(:P11_T_PAYM, 'PAYROLL'));", 'end;'], when_button=b_tech, success='تم حفظ الفني')
+          "    noona_wrk_pkg.set_worker('TECH', :P11_T_ID, to_number(:P11_T_EMP), nvl(:P11_T_PAYM, 'PAYROLL'));",
+          "    noona_wrk_pkg.set_bonus('TECH', :P11_T_ID, null, to_number(:P11_T_JOBB));", 'end;'], when_button=b_tech, success='تم حفظ الفني')
 p.ir('الرافعات ومواقع العمل', 30, [
     "select b.id, b.code, b.name_ar, b.bay_type, b.sort_order,",
     "       (select max(j.doc_no) from aut_job_card j where j.bay_id = b.id and j.status_code in ('OPEN', 'IN_PROGRESS', 'WAITING_PARTS')) as busy_with",

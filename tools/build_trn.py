@@ -665,24 +665,27 @@ p.process(5, 'BEFORE_HEADER', 'Load', ['begin', '  for v in (select * from trn_v
 EMP_LOV = ("select e.employee_no || ' - ' || p.display_name_ar d, e.id r from hr_employee e join pty_party p on p.id = e.person_party_id "
            "where exists (select 1 from hr_employment m where m.employee_id = e.id and m.company_id = noona_trn_pkg.company "
            "and m.status_code in ('ACTIVE', 'NOTICE_PERIOD')) order by e.employee_no")
-PAYM = 'STATIC2:مع الراتب (مسير الرواتب);PAYROLL,نقداً (سند صرف);CASH,تحويل بنكي (سند صرف);BANK_TRANSFER,لا يستحق بدلات;NONE'
+PAYM = 'STATIC2:مع الراتب (مسير الرواتب);PAYROLL,نقداً (سند صرف);CASH,تحويل بنكي (سند صرف);BANK_TRANSFER,لا يستحق بونص;NONE'
+BONUS_BASIS = 'STATIC2:مبلغ ثابت لكل رحلة;PER_TRIP,لكل كيلومتر;PER_KM,لكل طن منقول;PER_TON,نسبة من إيراد الرحلة %;PCT_FREIGHT'
 
 # 42) السائقون
 p = master(42, 'DRIVERS', 'السائقون', [
     'select d.id, d.full_name, d.phone, d.license_no, d.license_class, d.license_expiry, d.hazmat_certified, noona_trn_pkg.badge(d.status_code) status_html,',
-    "       nvl(noona_wrk_pkg.employee_name(d.employee_id), '— غير مربوط —') emp, noona_wrk_pkg.method_label(d.earnings_method) paym, d.trip_allowance,",
+    "       nvl(noona_wrk_pkg.employee_name(d.employee_id), '— غير مربوط —') emp, noona_wrk_pkg.method_label(d.earnings_method) paym,",
+    "       noona_wrk_pkg.monthly_salary(d.employee_id) salary, to_char(nvl(d.trip_bonus_rate, d.trip_allowance), 'FM999G990D99') || decode(d.trip_bonus_basis, 'PER_KM', ' للكيلو', 'PER_TON', ' للطن', 'PCT_FREIGHT', '% من الإيراد', ' للرحلة') bonus,",
     "       (select count(*) from trn_trip t where t.driver_id = d.id and t.status_code = 'COMPLETED') trips,",
     "       (select nvl(sum(t.actual_distance_km), 0) from trn_trip t where t.driver_id = d.id and t.status_code = 'COMPLETED') km",
     f'  from trn_driver d where d.company_id = {CO} order by d.full_name'],
     [('ID', '#', {'hidden': True, 'type': 'NUMBER'}), ('FULL_NAME', 'السائق', {}), ('EMP', 'الموظف (الموارد البشرية)', {}),
-     ('PAYM', 'صرف البدلات', {}), ('TRIP_ALLOWANCE', 'بدل الرحلة', {'type': 'NUMBER'}), ('PHONE', 'الجوال', {}), ('LICENSE_NO', 'الرخصة', {}),
+     ('SALARY', 'الراتب الشهري', {'type': 'NUMBER'}), ('BONUS', 'بونص الرحلة', {}), ('PAYM', 'صرف البونص', {}), ('PHONE', 'الجوال', {}), ('LICENSE_NO', 'الرخصة', {}),
      ('LICENSE_CLASS', 'الفئة', {}), ('LICENSE_EXPIRY', 'انتهاء الرخصة', {'type': 'DATE', 'format': 'YYYY-MM-DD'}),
      ('HAZMAT_CERTIFIED', 'مواد خطرة', {}), ('STATUS_HTML', 'الحالة', {'html': True}), ('TRIPS', 'الرحلات', {'type': 'NUMBER'}), ('KM', 'الكيلومترات', {'type': 'NUMBER'})],
     [('employeeId', 'EMP', 'S', 'الموظف من الموارد البشرية', EMP_LOV),
      ('name', 'NAME', 'T', 'الاسم (فارغ = من ملف الموظف)', 200), ('phone', 'PHONE', 'T', 'الجوال', 30), ('nationalId', 'NID', 'T', 'رقم الهوية', 30),
      ('licenseNo', 'LICNO', 'T', 'رقم الرخصة', 50), ('licenseClass', 'LICCLS', 'T', 'فئة الرخصة', 30), ('licenseExpiry', 'LICEXP', 'D', 'انتهاء الرخصة', None),
      ('hazmat', 'HAZ', 'YN', 'مؤهل للمواد الخطرة', None), ('allowance', 'ALW', 'N', 'بدل الرحلة الافتراضي', None),
-     ('earningsMethod', 'PAYM', 'S1', 'صرف بدل الرحلات', PAYM)],
+     ('bonusBasis', 'BBAS', 'S1', 'أساس بونص الرحلة (فوق الراتب)', BONUS_BASIS), ('bonusRate', 'BRATE', 'N', 'قيمة البونص (مبلغ، أو للكيلو، أو للطن، أو نسبة %)', None),
+     ('earningsMethod', 'PAYM', 'S1', 'صرف البونص', PAYM)],
     'noona_trn_pkg.save_driver',
     before=['  if :P42_EMP is not null then',
             '    for e in (select * from json_table(noona_wrk_pkg.employee_json(to_number(:P42_EMP)), \'$\' columns (n varchar2(400) path \'$.name\',',
@@ -690,7 +693,12 @@ p = master(42, 'DRIVERS', 'السائقون', [
             '      :P42_NAME := nvl(:P42_NAME, e.n); :P42_PHONE := nvl(:P42_PHONE, e.ph); :P42_NID := nvl(:P42_NID, e.nid);',
             '    end loop;',
             '  end if;'],
-    after=["  noona_wrk_pkg.set_worker('DRIVER', l_id, to_number(:P42_EMP), nvl(:P42_PAYM, 'PAYROLL'));"])
+    after=["  noona_wrk_pkg.set_worker('DRIVER', l_id, to_number(:P42_EMP), nvl(:P42_PAYM, 'PAYROLL'));",
+           "  noona_wrk_pkg.set_bonus('DRIVER', l_id, :P42_BBAS, to_number(:P42_BRATE));"])
+sal = p.static('الراتب الشهري', 25, condition=':P42_EMP is not null',
+               text='<p class="nn-hint">الراتب الشهري يصرف من مسير الرواتب حسب هيكل راتب الموظف في الموارد البشرية، '
+                    'والبونص أعلاه يضاف فوقه عن كل رحلة مقفلة.</p>')
+p.display('P42_SALARY', sal, 10, 'الراتب الشهري (من الموارد البشرية)')
 f = p.static('حالة السائق', 30)
 p.select('P42_SET', f, 10, 'الحالة', lov_sql='STATIC2:متاح;AVAILABLE,خارج الدوام;OFF_DUTY,موقوف;SUSPENDED,ترك العمل;LEFT', null_text=None)
 b = p.button(f, 10, 'SET_STATUS', 'تغيير حالة السائق المختار')
@@ -703,6 +711,8 @@ b = p.button(u, 10, 'LINK_USER', 'ربط المستخدم بالسائق الم�
 p.process(30, 'AFTER_SUBMIT', 'User', 'noona_trn_pkg.set_driver_user(:P42_ID, :P42_USER);', when_button=b, success='تم ربط المستخدم')
 p.process(5, 'BEFORE_HEADER', 'Load', ['begin', '  for d in (select * from trn_driver where id = :P42_ID and company_id = noona_trn_pkg.company) loop',
     '    :P42_USER := d.user_name; :P42_EMP := d.employee_id; :P42_PAYM := d.earnings_method;',
+    '    :P42_BBAS := d.trip_bonus_basis; :P42_BRATE := d.trip_bonus_rate;',
+    "    :P42_SALARY := to_char(noona_wrk_pkg.monthly_salary(d.employee_id), 'FM999G999G990D00');",
     '    :P42_NAME := d.full_name; :P42_PHONE := d.phone; :P42_NID := d.national_id; :P42_LICNO := d.license_no; :P42_LICCLS := d.license_class;',
     "    :P42_LICEXP := to_char(d.license_expiry, 'YYYY-MM-DD'); :P42_HAZ := d.hazmat_certified; :P42_ALW := d.trip_allowance; :P42_SET := d.status_code;",
     '  end loop;', 'end;'])

@@ -13,6 +13,10 @@ CREATE OR REPLACE PACKAGE NOONA_WRK_PKG AUTHID DEFINER AS
   FUNCTION employment_of(p_employee_id IN NUMBER) RETURN NUMBER;
   -- p_kind: DRIVER | REP | TECH ؛ p_method: PAYROLL | CASH | BANK_TRANSFER | NONE
   PROCEDURE set_worker(p_kind IN VARCHAR2, p_id IN NUMBER, p_employee_id IN NUMBER, p_method IN VARCHAR2 DEFAULT NULL);
+  -- البونص فوق الراتب: السائق (أساس PER_TRIP|PER_KM|PER_TON|PCT_FREIGHT وقيمة)، الفني (مبلغ لكل أمر إصلاح منجز)
+  PROCEDURE set_bonus(p_kind IN VARCHAR2, p_id IN NUMBER, p_basis IN VARCHAR2, p_rate IN NUMBER);
+  -- الراتب الشهري للموظف من هيكل رواتبه في الموارد البشرية (للعرض)
+  FUNCTION monthly_salary(p_employee_id IN NUMBER) RETURN NUMBER;
 
   -- يجمع مستحقات الشهر من الوحدات (لا يكرر ما جمع)؛ يعيد عدد الأسطر الجديدة
   FUNCTION collect(p_month IN DATE) RETURN NUMBER;
@@ -55,7 +59,7 @@ CREATE OR REPLACE PACKAGE BODY NOONA_WRK_PKG AS
 
   FUNCTION type_label(p_code IN VARCHAR2) RETURN VARCHAR2 IS
   BEGIN
-    RETURN CASE p_code WHEN 'TRIP_ALLOWANCE' THEN 'بدل رحلات' WHEN 'SALES_COMMISSION' THEN 'عمولة مبيعات'
+    RETURN CASE p_code WHEN 'TRIP_ALLOWANCE' THEN 'بونص رحلات' WHEN 'SALES_COMMISSION' THEN 'عمولة مبيعات'
       WHEN 'COLLECTION_COMMISSION' THEN 'عمولة تحصيل' WHEN 'VISIT_COMMISSION' THEN 'عمولة زيارات' WHEN 'SERVICE_COMMISSION' THEN 'عمولة خدمات'
       WHEN 'BONUS' THEN 'مكافأة' WHEN 'OTHER' THEN 'أخرى' ELSE p_code END;
   END type_label;
@@ -136,6 +140,28 @@ CREATE OR REPLACE PACKAGE BODY NOONA_WRK_PKG AS
     END IF;
   END set_worker;
 
+  PROCEDURE set_bonus(p_kind IN VARCHAR2, p_id IN NUMBER, p_basis IN VARCHAR2, p_rate IN NUMBER) IS
+  BEGIN
+    NOONA_CORE_PKG.assert(NVL(p_rate, 0) >= 0, 'NOONA-WRK-007', 'قيمة البونص لا تكون سالبة', 'Bonus cannot be negative');
+    IF p_kind = 'DRIVER' THEN
+      guard('TRN_DRIVER.UPDATE');
+      NOONA_CORE_PKG.assert(NVL(p_basis, 'PER_TRIP') IN ('PER_TRIP', 'PER_KM', 'PER_TON', 'PCT_FREIGHT'), 'NOONA-WRK-008', 'أساس البونص غير صحيح', 'Invalid basis');
+      NOONA_CORE_PKG.assert(NVL(p_basis, 'PER_TRIP') <> 'PCT_FREIGHT' OR NVL(p_rate, 0) <= 100, 'NOONA-WRK-009', 'النسبة لا تتجاوز 100%', 'Percent over 100');
+      UPDATE trn_driver SET trip_bonus_basis = NVL(p_basis, 'PER_TRIP'), trip_bonus_rate = p_rate WHERE id = p_id AND company_id = company;
+    ELSIF p_kind = 'TECH' THEN
+      guard('AUT_TECHNICIAN.UPDATE');
+      UPDATE aut_technician SET job_bonus = p_rate WHERE id = p_id AND company_id = company;
+    END IF;
+  END set_bonus;
+
+  FUNCTION monthly_salary(p_employee_id IN NUMBER) RETURN NUMBER IS
+    l_m NUMBER := employment_of(p_employee_id);
+  BEGIN
+    IF l_m IS NULL THEN RETURN NULL; END IF;
+    RETURN NOONA_PAY_PKG.monthly_wage(l_m);
+  EXCEPTION WHEN OTHERS THEN RETURN NULL;
+  END monthly_salary;
+
   -- ================================================================ جمع المستحقات
   FUNCTION put(p_emp NUMBER, p_mod VARCHAR2, p_type VARCHAR2, p_month DATE, p_ent VARCHAR2, p_ent_id NUMBER, p_ref VARCHAR2,
                p_base NUMBER, p_amt NUMBER, p_method VARCHAR2) RETURN NUMBER IS
@@ -150,7 +176,7 @@ CREATE OR REPLACE PACKAGE BODY NOONA_WRK_PKG AS
     -- يعاد الحساب لما لم يعتمد بعد (تصحيح عمولة الشهر مثلاً)
     UPDATE pay_field_earning SET amount = ROUND(p_amt, 2), base_amount = p_base
      WHERE company_id = company AND source_entity_type = p_ent AND source_entity_id = p_ent_id AND earning_type = p_type
-       AND period_month = p_month AND status_code = 'PENDING';
+       AND period_month = p_month AND employee_id = p_emp AND status_code = 'PENDING';
     RETURN 0;
   END put;
 
@@ -170,13 +196,22 @@ CREATE OR REPLACE PACKAGE BODY NOONA_WRK_PKG AS
                        ELSE 'SALES_COMMISSION' END, l_m, 'DST_COMMISSION', c.id, 'عمولة ' || TO_CHAR(l_m, 'YYYY-MM') || ' - ' || c.full_name,
                        c.base_amount, c.commission_amount, c.earnings_method);
     END LOOP;
-    -- النقل: بدل الرحلة لكل رحلة مقفلة في الشهر لم يسجل لها بدل سائق في مصروفاتها
-    FOR t IN (SELECT t.id, t.doc_no, d.employee_id, d.earnings_method, d.trip_allowance
-                FROM trn_trip t JOIN trn_driver d ON d.id = t.driver_id
-               WHERE t.company_id = company AND t.status_code = 'COMPLETED' AND d.employee_id IS NOT NULL AND NVL(d.trip_allowance, 0) > 0
+    -- النقل: بونص الرحلة لكل رحلة مقفلة (السائق والمساعد) حسب أساسه: مبلغ ثابت، للكيلومتر، للطن، أو نسبة من إيراد الرحلة
+    --        ولا يحسب إن سجل بدل السائق في مصروفات الرحلة (صرف مسبقاً)
+    FOR t IN (SELECT t.id, t.doc_no, NVL(t.actual_distance_km, 0) km, NVL(t.load_kg, 0) kg, NVL(t.revenue_amount, 0) rev,
+                     d.id drv, d.employee_id, d.earnings_method, d.trip_bonus_basis basis, NVL(d.trip_bonus_rate, d.trip_allowance) rate
+                FROM trn_trip t JOIN trn_driver d ON d.id IN (t.driver_id, t.co_driver_id)
+               WHERE t.company_id = company AND t.status_code = 'COMPLETED' AND d.employee_id IS NOT NULL
+                 AND NVL(d.trip_bonus_rate, d.trip_allowance) > 0
                  AND CAST(NVL(t.actual_arrival, t.updated_at) AS DATE) >= l_m AND CAST(NVL(t.actual_arrival, t.updated_at) AS DATE) < l_e
                  AND NOT EXISTS (SELECT 1 FROM trn_trip_expense x WHERE x.trip_id = t.id AND x.expense_type = 'DRIVER_ALLOWANCE')) LOOP
-      l_n := l_n + put(t.employee_id, 'TRN', 'TRIP_ALLOWANCE', l_m, 'TRN_TRIP', t.id, 'بدل الرحلة ' || t.doc_no, NULL, t.trip_allowance, t.earnings_method);
+      l_n := l_n + put(t.employee_id, 'TRN', 'TRIP_ALLOWANCE', l_m, 'TRN_TRIP', t.id,
+                       'بونص الرحلة ' || t.doc_no || CASE t.basis WHEN 'PER_KM' THEN ' (' || t.km || ' كم × ' || t.rate || ')'
+                                                         WHEN 'PER_TON' THEN ' (' || ROUND(t.kg / 1000, 2) || ' طن × ' || t.rate || ')'
+                                                         WHEN 'PCT_FREIGHT' THEN ' (' || t.rate || '% من ' || t.rev || ')' END,
+                       CASE t.basis WHEN 'PER_KM' THEN t.km WHEN 'PER_TON' THEN ROUND(t.kg / 1000, 3) WHEN 'PCT_FREIGHT' THEN t.rev END,
+                       CASE t.basis WHEN 'PER_KM' THEN t.km * t.rate WHEN 'PER_TON' THEN t.kg / 1000 * t.rate
+                                    WHEN 'PCT_FREIGHT' THEN t.rev * t.rate / 100 ELSE t.rate END, t.earnings_method);
     END LOOP;
     -- مراكز السيارات: نسبة الفني من صافي الخدمات المنجزة في أوامر مفوترة أو مسلمة خلال الشهر
     FOR k IN (SELECT tc.id, tc.employee_id, tc.earnings_method, tc.commission_pct, tc.name_ar, SUM(NVL(l.net_amount, 0)) base
@@ -187,6 +222,17 @@ CREATE OR REPLACE PACKAGE BODY NOONA_WRK_PKG AS
                GROUP BY tc.id, tc.employee_id, tc.earnings_method, tc.commission_pct, tc.name_ar) LOOP
       l_n := l_n + put(k.employee_id, 'AUT', 'SERVICE_COMMISSION', l_m, 'AUT_TECHNICIAN', k.id,
                        'عمولة خدمات ' || TO_CHAR(l_m, 'YYYY-MM') || ' - ' || k.name_ar, k.base, k.base * k.commission_pct / 100, k.earnings_method);
+    END LOOP;
+    -- مراكز السيارات: بونص ثابت لكل أمر إصلاح شارك فيه الفني وأنجز وفوتر خلال الشهر (مع الراتب أو العمولة أو بدونهما)
+    FOR k IN (SELECT tc.id, tc.employee_id, tc.earnings_method, tc.job_bonus, tc.name_ar, COUNT(DISTINCT j.id) jobs
+                FROM aut_job_line l JOIN aut_job_card j ON j.id = l.job_card_id JOIN aut_technician tc ON tc.id = l.technician_id
+               WHERE j.company_id = company AND j.status_code IN ('INVOICED', 'DELIVERED') AND l.line_status = 'DONE'
+                 AND NVL(tc.job_bonus, 0) > 0 AND tc.employee_id IS NOT NULL
+                 AND CAST(l.done_at AS DATE) >= l_m AND CAST(l.done_at AS DATE) < l_e
+               GROUP BY tc.id, tc.employee_id, tc.earnings_method, tc.job_bonus, tc.name_ar) LOOP
+      l_n := l_n + put(k.employee_id, 'AUT', 'BONUS', l_m, 'AUT_TECHNICIAN', k.id,
+                       'بونص ' || k.jobs || ' أمر إصلاح × ' || k.job_bonus || ' - ' || TO_CHAR(l_m, 'YYYY-MM') || ' - ' || k.name_ar,
+                       k.jobs, k.jobs * k.job_bonus, k.earnings_method);
     END LOOP;
     RETURN l_n;
   END collect;
