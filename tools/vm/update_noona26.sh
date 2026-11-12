@@ -65,7 +65,7 @@ INV=$(printf '%s\nSET HEADING OFF FEEDBACK OFF PAGES 0\nSELECT object_type||%s||
 ok "القاعدة محدثة، ولا كائنات غير صالحة"
 
 # ----------------------------------------------------------------------------- 3) التطبيقات
-step "3/6 استيراد التطبيقات (15 تطبيقاً)"
+step "3/6 استيراد كل التطبيقات"
 FAILED=""
 for d in $(ls -d "$WORK"/apex/NOONA_*/f[0-9][0-9][0-9]); do
   id=${d##*/f}
@@ -94,6 +94,9 @@ else
   info "المساعد المحلي (Ollama) غير مثبت. للتجربة المجانية على نفس الخادم:  bash tools/vm/setup_ai_ollama.sh"
   info "أو اضبط خدمة Claude ومفتاحك في APEX حسب docs/ai_setup_26.md"
 fi
+
+# اتصال WhatsApp Cloud API (صلاحية شبكة فقط؛ رمز الوصول يدخله المسؤول من مركز الإدارة)
+[ -f "$ROOT/tools/vm/whatsapp_setup.sh" ] && { bash "$ROOT/tools/vm/whatsapp_setup.sh" 2>&1 | tee -a "$LOG" || info "تنبيه: لم تمنح صلاحية الاتصال بواتساب؛ الإرسال بروابط wa.me يعمل دائماً"; }
 
 # ----------------------------------------------------------------------------- 6) التحقق
 step "6/6 التحقق"

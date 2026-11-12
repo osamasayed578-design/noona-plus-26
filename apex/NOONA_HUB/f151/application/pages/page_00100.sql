@@ -25,7 +25,7 @@ wwv_flow_imp_page.create_page(
 wwv_flow_imp_page.create_page_plug(
  p_id=>wwv_flow_imp.id(91820310000000221)
 ,p_plug_name=>'البوابة'
-,p_region_template_options=>'#DEFAULT#:t-Region--removeHeader js-removeLandmark'
+,p_region_template_options=>'#DEFAULT#:t-Region--noUI:t-Region--removeHeader js-removeLandmark'
 ,p_plug_template=>4072358936313175081
 ,p_plug_display_sequence=>5
 ,p_attributes=>wwv_flow_t_plugin_attributes(wwv_flow_t_varchar2(

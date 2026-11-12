@@ -398,7 +398,7 @@ p.dynamic('التغييرات', 20, "return noona_eng_pkg.history_html(:P31_TABL
 
 # =============================================================== 40) المساعدة
 p = app.page(40, 'Screen Help', 'HELP', 'مساعدة الشاشة', scheme=ANY, protection='N')
-f = p.static('الشاشة', 5, hide_header=True)
+f = p.static('الشاشة', 5, hide_header=True, opts='#DEFAULT#:t-Region--noUI')
 p.hidden('P40_APP', f, 1, protected=False)
 p.hidden('P40_PAGE', f, 2, protected=False)
 p.dynamic('المساعدة', 10, "return noona_eng_pkg.help_html(to_number(:P40_APP), to_number(:P40_PAGE));", hide_header=True,
@@ -445,7 +445,7 @@ p.dynamic('دليل الأنظمة', 10, [
 
 # =============================================================== 100) بوابة العملاء (عامة)
 p = app.page(100, 'Customer Portal', 'PORTAL', 'حسابي', protection='N', public=True)
-f = p.static('البوابة', 5, hide_header=True)
+f = p.static('البوابة', 5, hide_header=True, opts='#DEFAULT#:t-Region--noUI')
 p.hidden('P100_T', f, 1, protected=False)
 p.hidden('P100_TAB', f, 2, protected=False)
 p.dynamic('حسابي', 10, 'return noona_eng_pkg.portal_html(:P100_T, :P100_TAB);', hide_header=True)

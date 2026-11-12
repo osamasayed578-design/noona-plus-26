@@ -411,8 +411,63 @@ wwv_flow_imp_page.create_page_process(
 ,p_process_success_message=>'تم تغيير الحالة'
 ,p_internal_uid=>91820290000000501
 );
-wwv_flow_imp_page.create_page_process(
+wwv_flow_imp_page.create_page_plug(
  p_id=>wwv_flow_imp.id(91820290000000502)
+,p_plug_name=>'حساب السائق على الهاتف'
+,p_region_template_options=>'#DEFAULT#'
+,p_plug_template=>4072358936313175081
+,p_plug_display_sequence=>40
+,p_plug_source=>wwv_flow_string.join(wwv_flow_t_varchar2(
+'<p class="nn-hint">اربط السائق بمستخدم النظام ليفتح «رحلاتي» على هاتفه: التحرك والعداد، التسليم بالصورة والتوقيع، الإبلاغ عن عطل بالموقع، والإقفال.</p>'))
+,p_attributes=>wwv_flow_t_plugin_attributes(wwv_flow_t_varchar2(
+  'expand_shortcuts', 'N',
+  'output_as', 'HTML',
+  'show_line_breaks', 'Y')).to_clob
+);
+wwv_flow_imp_page.create_page_item(
+ p_id=>wwv_flow_imp.id(91820290000000503)
+,p_name=>'P42_USER'
+,p_item_sequence=>10
+,p_item_plug_id=>wwv_flow_imp.id(91820290000000502)
+,p_prompt=>'مستخدم النظام'
+,p_display_as=>'NATIVE_SELECT_LIST'
+,p_lov=>'select nvl(u.display_name, u.username) || '' ('' || u.username || '')'' d, upper(u.username) r from sec_user_membership m join sec_user u on u.id = m.user_id where m.status_code = ''ACTIVE'' order by 1'
+,p_lov_display_null=>'YES'
+,p_lov_null_text=>'- اختر -'
+,p_cHeight=>1
+,p_lov_display_extra=>'NO'
+,p_field_template=>1609121967514267634
+,p_item_template_options=>'#DEFAULT#'
+,p_attributes=>wwv_flow_t_plugin_attributes(wwv_flow_t_varchar2(
+  'page_action_on_selection', 'NONE')).to_clob
+);
+wwv_flow_imp_page.create_page_button(
+ p_id=>wwv_flow_imp.id(91820290000000504)
+,p_button_sequence=>10
+,p_button_plug_id=>wwv_flow_imp.id(91820290000000502)
+,p_button_name=>'LINK_USER'
+,p_button_action=>'SUBMIT'
+,p_button_template_options=>'#DEFAULT#'
+,p_button_template_id=>4072362960822175091
+,p_button_image_alt=>'ربط المستخدم بالسائق المختار'
+,p_button_position=>'NEXT'
+);
+wwv_flow_imp_page.create_page_process(
+ p_id=>wwv_flow_imp.id(91820290000000505)
+,p_process_sequence=>30
+,p_process_point=>'AFTER_SUBMIT'
+,p_process_type=>'NATIVE_PLSQL'
+,p_process_name=>'User'
+,p_process_sql_clob=>wwv_flow_string.join(wwv_flow_t_varchar2(
+'noona_trn_pkg.set_driver_user(:P42_ID, :P42_USER);'))
+,p_process_clob_language=>'PLSQL'
+,p_error_display_location=>'INLINE_IN_NOTIFICATION'
+,p_process_when_button_id=>wwv_flow_imp.id(91820290000000504)
+,p_process_success_message=>'تم ربط المستخدم'
+,p_internal_uid=>91820290000000505
+);
+wwv_flow_imp_page.create_page_process(
+ p_id=>wwv_flow_imp.id(91820290000000506)
 ,p_process_sequence=>5
 ,p_process_point=>'BEFORE_HEADER'
 ,p_process_type=>'NATIVE_PLSQL'
@@ -420,13 +475,14 @@ wwv_flow_imp_page.create_page_process(
 ,p_process_sql_clob=>wwv_flow_string.join(wwv_flow_t_varchar2(
 'begin',
 '  for d in (select * from trn_driver where id = :P42_ID and company_id = noona_trn_pkg.company) loop',
+'    :P42_USER := d.user_name;',
 '    :P42_NAME := d.full_name; :P42_PHONE := d.phone; :P42_NID := d.national_id; :P42_LICNO := d.license_no; :P42_LICCLS := d.license_class;',
 '    :P42_LICEXP := to_char(d.license_expiry, ''YYYY-MM-DD''); :P42_HAZ := d.hazmat_certified; :P42_ALW := d.trip_allowance; :P42_SET := d.status_code;',
 '  end loop;',
 'end;'))
 ,p_process_clob_language=>'PLSQL'
 ,p_error_display_location=>'INLINE_IN_NOTIFICATION'
-,p_internal_uid=>91820290000000502
+,p_internal_uid=>91820290000000506
 );
 
 wwv_flow_imp.component_end;
