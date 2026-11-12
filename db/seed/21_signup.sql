@@ -24,6 +24,7 @@ BEGIN
          UNION ALL SELECT 'POS', 'المبيعات ونقاط البيع', 'Sales & POS', 'عروض الأسعار وفواتير المبيعات والفاتورة الإلكترونية ونقاط البيع', 'fa-shopping-cart', 'SAL', 199, 'FIN,SCM', 30 FROM dual
          UNION ALL SELECT 'HR', 'الموارد البشرية والرواتب', 'HR & Payroll', 'ملفات الموظفين والعقود والإجازات ومسير الرواتب وحماية الأجور', 'fa-users', 'HR,PAY', 199, NULL, 40 FROM dual
          UNION ALL SELECT 'RST', 'المطاعم والكافتيريا', 'Restaurants & Cafeterias', 'الصالة والطاولات والطلبات وشاشة المطبخ والقائمة والعملاء الآجلون', 'fa-cutlery', 'RST', 149, 'FIN,SCM,POS', 35 FROM dual
+         UNION ALL SELECT 'DST', 'التوزيع والمبيعات الميدانية', 'Distribution & Field Sales', 'المندوبون وخطوط السير والمحلات على الخريطة، البيع من السيارة والتحصيل برقم الإشعار، تسوية اليوم والعمولات', 'fa-map-marker', 'DST', 249, 'FIN,SCM,POS', 37 FROM dual
          UNION ALL SELECT 'RE', 'العقارات والإيجارات وبيع الوحدات', 'Real Estate & Leasing', 'السجل العقاري وعقود الإيجار والتحصيل وبيع الوحدات والأقساط والصيانة', 'fa-building', 'RE,PRP,MNT', 249, 'FIN', 50 FROM dual
          UNION ALL SELECT 'HSP', 'الفنادق والشقق الفندقية', 'Hotels & Hospitality', 'لوحة الاستقبال والحجوزات والنزلاء والتدبير الفندقي والتدقيق الليلي والصيانة', 'fa-bed', 'HSP,MNT', 249, 'FIN', 52 FROM dual
          UNION ALL SELECT 'PRJ', 'المشاريع والمقاولات', 'Projects & Contracting', 'المشاريع والميزانيات والمستخلصات ونسبة الإنجاز والضمانات والمعدات', 'fa-road', 'PRJ', 299, 'FIN', 55 FROM dual

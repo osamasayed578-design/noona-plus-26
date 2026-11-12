@@ -1,0 +1,194 @@
+# ERD — الحزمة 36: التوزيع والمبيعات الميدانية
+
+**Distribution & Field Sales** · الحزمة البرمجية `NOONA_DST_PKG` · عدد الجداول: **10**
+
+شركات التوزيع على المحلات: المندوبون وسيارات التوزيع (مستودع متنقل وعهدة نقدية)، خطوط السير والمناطق وأيام الزيارة، المحلات بمواقعها على الخريطة، خطة اليوم والزيارات بالموقع والوقت، البيع من السيارة وأوامر التوريد المسبقة، التحصيل بطرق الدفع ورقم المرجع (الإشعار البنكي، الشيك، العملية)، المرتجعات، أسباب عدم الشراء، تسوية نهاية اليوم، العمولات والأهداف.
+
+الجداول الخارجية المرتبطة (من حزم أخرى): `AR_CUSTOMER_ACCOUNT`, `AR_RECEIPT`, `CSH_BANK_ACCOUNT`, `CSH_CASH_BOX`, `HR_EMPLOYEE`, `INV_ITEM`, `INV_TRANSACTION`, `INV_WAREHOUSE`, `ORG_COMPANY`, `SAL_INVOICE`
+
+```mermaid
+erDiagram
+  DST_REP {
+    NUMBER ID PK
+    NUMBER TENANT_ID FK,UK
+    NUMBER COMPANY_ID FK,UK
+    VARCHAR2 CODE UK
+    NUMBER EMPLOYEE_ID FK
+    VARCHAR2 USER_NAME UK
+    NUMBER VAN_WAREHOUSE_ID FK
+    NUMBER CASH_BOX_ID FK
+    VARCHAR2 STATUS_CODE
+  }
+  DST_ROUTE {
+    NUMBER ID PK
+    NUMBER TENANT_ID FK,UK
+    NUMBER COMPANY_ID FK,UK
+    VARCHAR2 CODE UK
+    VARCHAR2 NAME_AR
+    NUMBER REP_ID FK
+    VARCHAR2 STATUS_CODE
+  }
+  DST_SHOP {
+    NUMBER ID PK
+    NUMBER TENANT_ID FK,UK
+    NUMBER COMPANY_ID FK,UK
+    NUMBER CUSTOMER_ACCOUNT_ID FK,UK
+    NUMBER ROUTE_ID FK
+    VARCHAR2 STATUS_CODE
+  }
+  DST_VISIT {
+    NUMBER ID PK
+    NUMBER TENANT_ID FK,UK
+    NUMBER COMPANY_ID FK,UK
+    VARCHAR2 DOC_NO UK
+    NUMBER REP_ID FK
+    NUMBER SHOP_ID FK
+    NUMBER ROUTE_ID FK
+    NUMBER SALES_INVOICE_ID FK
+    VARCHAR2 STATUS_CODE
+  }
+  DST_LOAD {
+    NUMBER ID PK
+    NUMBER TENANT_ID FK,UK
+    NUMBER COMPANY_ID FK,UK
+    VARCHAR2 DOC_NO UK
+    NUMBER REP_ID FK
+    NUMBER FROM_WAREHOUSE_ID FK
+    NUMBER TO_WAREHOUSE_ID FK
+    NUMBER INV_TXN_ID FK
+    VARCHAR2 STATUS_CODE
+  }
+  DST_ORDER {
+    NUMBER ID PK
+    NUMBER TENANT_ID FK,UK
+    NUMBER COMPANY_ID FK,UK
+    VARCHAR2 DOC_NO UK
+    NUMBER REP_ID FK
+    NUMBER SHOP_ID FK
+    NUMBER VISIT_ID FK
+    NUMBER SALES_INVOICE_ID FK
+    VARCHAR2 STATUS_CODE
+  }
+  DST_ORDER_LINE {
+    NUMBER ID PK
+    NUMBER TENANT_ID FK
+    NUMBER COMPANY_ID FK
+    NUMBER ORDER_ID FK
+    NUMBER ITEM_ID FK
+  }
+  DST_COLLECTION {
+    NUMBER ID PK
+    NUMBER TENANT_ID FK,UK
+    NUMBER COMPANY_ID FK,UK
+    VARCHAR2 DOC_NO UK
+    NUMBER REP_ID FK
+    NUMBER SHOP_ID FK
+    NUMBER VISIT_ID FK
+    NUMBER BANK_ACCOUNT_ID FK
+    NUMBER SALES_INVOICE_ID FK
+    NUMBER AR_RECEIPT_ID FK
+    VARCHAR2 STATUS_CODE
+  }
+  DST_SETTLEMENT {
+    NUMBER ID PK
+    NUMBER TENANT_ID FK,UK
+    NUMBER COMPANY_ID FK,UK
+    VARCHAR2 DOC_NO UK
+    NUMBER REP_ID FK,UK
+    DATE SETTLE_DATE UK
+    NUMBER DEPOSIT_BOX_ID FK
+    VARCHAR2 STATUS_CODE
+  }
+  DST_COMMISSION {
+    NUMBER ID PK
+    NUMBER TENANT_ID FK,UK
+    NUMBER COMPANY_ID FK,UK
+    NUMBER REP_ID FK,UK
+    DATE PERIOD_START UK
+    VARCHAR2 STATUS_CODE
+  }
+  ORG_COMPANY {
+    NUMBER ID PK
+  }
+  HR_EMPLOYEE {
+    NUMBER ID PK
+  }
+  INV_WAREHOUSE {
+    NUMBER ID PK
+  }
+  CSH_CASH_BOX {
+    NUMBER ID PK
+  }
+  AR_CUSTOMER_ACCOUNT {
+    NUMBER ID PK
+  }
+  SAL_INVOICE {
+    NUMBER ID PK
+  }
+  INV_TRANSACTION {
+    NUMBER ID PK
+  }
+  INV_ITEM {
+    NUMBER ID PK
+  }
+  CSH_BANK_ACCOUNT {
+    NUMBER ID PK
+  }
+  AR_RECEIPT {
+    NUMBER ID PK
+  }
+  AR_CUSTOMER_ACCOUNT ||--o{ DST_SHOP : "CUSTOMER_ACCOUNT_ID"
+  AR_RECEIPT |o--o{ DST_COLLECTION : "AR_RECEIPT_ID"
+  CSH_BANK_ACCOUNT |o--o{ DST_COLLECTION : "BANK_ACCOUNT_ID"
+  CSH_CASH_BOX |o--o{ DST_SETTLEMENT : "DEPOSIT_BOX_ID"
+  CSH_CASH_BOX ||--o{ DST_REP : "CASH_BOX_ID"
+  DST_ORDER ||--o{ DST_ORDER_LINE : "ORDER_ID"
+  DST_REP |o--o{ DST_ROUTE : "REP_ID"
+  DST_REP ||--o{ DST_COLLECTION : "REP_ID"
+  DST_REP ||--o{ DST_COMMISSION : "REP_ID"
+  DST_REP ||--o{ DST_LOAD : "REP_ID"
+  DST_REP ||--o{ DST_ORDER : "REP_ID"
+  DST_REP ||--o{ DST_SETTLEMENT : "REP_ID"
+  DST_REP ||--o{ DST_VISIT : "REP_ID"
+  DST_ROUTE |o--o{ DST_SHOP : "ROUTE_ID"
+  DST_ROUTE |o--o{ DST_VISIT : "ROUTE_ID"
+  DST_SHOP ||--o{ DST_COLLECTION : "SHOP_ID"
+  DST_SHOP ||--o{ DST_ORDER : "SHOP_ID"
+  DST_SHOP ||--o{ DST_VISIT : "SHOP_ID"
+  DST_VISIT |o--o{ DST_COLLECTION : "VISIT_ID"
+  DST_VISIT |o--o{ DST_ORDER : "VISIT_ID"
+  HR_EMPLOYEE |o--o{ DST_REP : "EMPLOYEE_ID"
+  INV_ITEM ||--o{ DST_ORDER_LINE : "ITEM_ID"
+  INV_TRANSACTION |o--o{ DST_LOAD : "INV_TXN_ID"
+  INV_WAREHOUSE ||--o{ DST_LOAD : "FROM_WAREHOUSE_ID"
+  INV_WAREHOUSE ||--o{ DST_LOAD : "TO_WAREHOUSE_ID"
+  INV_WAREHOUSE ||--o{ DST_REP : "VAN_WAREHOUSE_ID"
+  ORG_COMPANY ||--o{ DST_COLLECTION : "COMPANY_ID"
+  ORG_COMPANY ||--o{ DST_COMMISSION : "COMPANY_ID"
+  ORG_COMPANY ||--o{ DST_LOAD : "COMPANY_ID"
+  ORG_COMPANY ||--o{ DST_ORDER : "COMPANY_ID"
+  ORG_COMPANY ||--o{ DST_ORDER_LINE : "COMPANY_ID"
+  ORG_COMPANY ||--o{ DST_REP : "COMPANY_ID"
+  ORG_COMPANY ||--o{ DST_ROUTE : "COMPANY_ID"
+  ORG_COMPANY ||--o{ DST_SETTLEMENT : "COMPANY_ID"
+  ORG_COMPANY ||--o{ DST_SHOP : "COMPANY_ID"
+  ORG_COMPANY ||--o{ DST_VISIT : "COMPANY_ID"
+  SAL_INVOICE |o--o{ DST_COLLECTION : "SALES_INVOICE_ID"
+  SAL_INVOICE |o--o{ DST_ORDER : "SALES_INVOICE_ID"
+  SAL_INVOICE |o--o{ DST_VISIT : "SALES_INVOICE_ID"
+```
+
+## الجداول
+
+| الجدول | الاسم العربي | English | النطاق |
+|---|---|---|---|
+| `DST_REP` | المندوبون | Field Sales Reps | C |
+| `DST_ROUTE` | خطوط السير | Delivery Routes | C |
+| `DST_SHOP` | المحلات | Shops & Outlets | C |
+| `DST_VISIT` | الزيارات | Shop Visits | C |
+| `DST_LOAD` | تحميل وتفريغ السيارات | Van Loads | C |
+| `DST_ORDER` | أوامر التوريد | Pre-sale Orders | C |
+| `DST_ORDER_LINE` | أسطر أوامر التوريد | Pre-sale Order Lines | C |
+| `DST_COLLECTION` | تحصيلات المندوبين | Field Collections | C |
+| `DST_SETTLEMENT` | تسويات نهاية اليوم | Daily Rep Settlements | C |
+| `DST_COMMISSION` | عمولات المندوبين | Rep Commissions | C |
