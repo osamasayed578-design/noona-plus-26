@@ -229,7 +229,12 @@ CREATE OR REPLACE PACKAGE BODY NOONA_SAL_PKG AS
     l_id  NUMBER;
     l_no  VARCHAR2(50);
   BEGIN
-    l_no := NOONA_REFERENCE_PKG.next_doc_no('AR_CUSTOMER', company, NULL, TRUNC(SYSDATE), 'AR_CUSTOMER', NULL);
+    -- رقم العميل فريد على مستوى المؤسسة والترقيم لكل شركة: يتخطى الأرقام المستخدمة في شركات المؤسسة الأخرى
+    FOR i IN 1 .. 10000 LOOP
+      l_no := NOONA_REFERENCE_PKG.next_doc_no('AR_CUSTOMER', company, NULL, TRUNC(SYSDATE), 'AR_CUSTOMER', NULL);
+      SELECT COUNT(*) INTO l_cus FROM ar_customer WHERE customer_no = l_no;
+      EXIT WHEN l_cus = 0;
+    END LOOP;
     INSERT INTO ar_customer (party_id, customer_no, customer_class, is_walk_in, status_code)
     VALUES (p_party, l_no, CASE WHEN p_walk_in = 'Y' THEN 'WALK_IN' ELSE 'STANDARD' END, p_walk_in, 'ACTIVE')
     RETURNING id INTO l_cus;

@@ -308,7 +308,8 @@ def build(app, url):
 
     # =============================================================== 64) تفاصيل تشغيل الإهلاك
     p = app.page(64, 'Depreciation Run', 'DEPRECIATION-RUN', 'تشغيل الإهلاك', scheme=FA)
-    p.dynamic('التفاصيل', 10, 'return noona_fa_pkg.run_html(:P64_ID);', hide_header=True, opts='#DEFAULT#:t-Region--scrollBody:nn-print-area')
+    p.dynamic('التفاصيل', 10, 'return noona_fa_pkg.run_html(:P64_ID);', hide_header=True, opts='#DEFAULT#:t-Region--scrollBody:nn-print-area',
+              condition=':P64_ID is not null')
     a = p.static('عكس التشغيل', 5, condition="noona_fa_pkg.run_status(:P64_ID) = 'POSTED'",
                  text='<p class="nn-hint">يعكس قيد الإهلاك ويعيد أرصدة الأصول لما قبل التشغيل لإعادة الاحتساب (آخر تشغيل فقط).</p>')
     p.hidden('P64_ID', a, 1)

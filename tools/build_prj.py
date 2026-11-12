@@ -217,8 +217,8 @@ p.branch(10, url(12, 'P12_ID', '&P11_ID.', 'RP,12') + '&success_msg=#SUCCESS_MSG
 
 # =============================================================== 12) بطاقة العقار
 p = app.page(12, 'Property', 'PROPERTY', 'بطاقة العقار', scheme=RE)
-p.dynamic('العقار', 5, 'return noona_re_pkg.property_card_html(:P12_ID);', hide_header=True)
-p.dynamic('مخطط الوحدات', 10, f"return noona_re_pkg.stacking_html(:P12_ID, {get_url(13, 'P13_ID')});")
+p.dynamic('العقار', 5, 'return noona_re_pkg.property_card_html(:P12_ID);', hide_header=True, condition=':P12_ID is not null')
+p.dynamic('مخطط الوحدات', 10, f"return noona_re_pkg.stacking_html(:P12_ID, {get_url(13, 'P13_ID')});", condition=':P12_ID is not null')
 ed = p.static('تعديل بيانات العقار', 20)
 p.hidden('P12_ID', ed, 1)
 p.text('P12_NAME', ed, 10, 'الاسم', required=True, maxlen=200)

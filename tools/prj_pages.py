@@ -374,9 +374,10 @@ def build(app, url, link, scheme):
     # =========================================================== 88) المستخلص
     p = app.page(88, 'Progress Claim', 'CLAIM', 'المستخلص', scheme=scheme, protection='N')
     r = p.dynamic('المستخلص', 10, [
-        'declare l clob := noona_prj_pkg.claim_json(:P88_ID); l_k varchar2(30); l_d varchar2(30);', 'begin',
+        'declare l clob; l_k varchar2(30); l_d varchar2(30);', 'begin',
         "    select max(claim_kind), max(claim_direction) into l_k, l_d from prj_progress_claim where id = :P88_ID;",
-        "    if l_k is null then return '<div class=\"nn-empty\">المستخلص غير موجود</div>'; end if;",
+        "    if l_k is null then return '<div class=\"nn-empty\">اختر المستخلص من قائمة المستخلصات</div>'; end if;",
+        "    l := noona_prj_pkg.claim_json(:P88_ID);",
         "    return '<div class=\"nn-prj-chips\"><span>' || apex_escape.html(noona_prj_pkg.kind_label(l_k)) || case when l_d = 'PAYABLE' then ' - مقاول باطن' else ' - للعميل' end",
         "        || '</span><span>' || apex_escape.html(json_value(l, '$.no')) || '</span><span>' || apex_escape.html(noona_prj_pkg.status_label(json_value(l, '$.status'))) || '</span></div>'",
         "        || '<script type=\"application/json\" id=\"nnPrjClaimData\">' || replace(l, '</', '<\\/') || '</script><div id=\"nnPrjClaim\"></div>';",

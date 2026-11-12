@@ -1533,7 +1533,7 @@ CREATE OR REPLACE PACKAGE BODY NOONA_PAY_PKG AS
       SELECT COUNT(*) INTO l_n FROM pay_loan_installment WHERE loan_id = l.id AND status_code IN ('SCHEDULED', 'DEFERRED');
       l_out := l_out || (('<tr><td>' || esc(l.doc_no) || '</td><td class="nn-rpt-text">' || esc(NOONA_HR_PKG.employment_label(l.employment_id))
             || '</td><td>' || fnum(l.principal_amount) || '</td><td>' || fnum(l.installment_amount) || '</td><td>'
-            || fnum(l.principal_amount - l.outstanding_balance) * CASE WHEN l.status_code = 'ACTIVE' THEN 1 ELSE 0 END || '</td><td>'
+            || fnum((l.principal_amount - l.outstanding_balance) * CASE WHEN l.status_code = 'ACTIVE' THEN 1 ELSE 0 END) || '</td><td>'
             || fnum(l.outstanding_balance) || '</td><td>' || l_n || '</td><td>' || status_label(l.status_code) || '</td></tr>'));
     END LOOP;
     RETURN l_out || ('</tbody></table>');

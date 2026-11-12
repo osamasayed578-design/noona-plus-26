@@ -75,6 +75,13 @@ BEGIN
       NOONA_WRK_PKG.set_worker('TECH', t.id, l_emp(l_n + t.rn), 'PAYROLL');
       NOONA_WRK_PKG.set_bonus('TECH', t.id, 'JOB', 15);
     END LOOP;
+    -- شاشات الجوال («رحلاتي» للسائق و«مهامي» للفني) تعرض بيانات لمسؤول المؤسسة: يربط بأول سائق وأول فني (يغير من شاشة السائق/الفني)
+    UPDATE trn_driver SET user_name = c_admin
+     WHERE id = (SELECT MIN(id) FROM trn_driver WHERE company_id = l_co)
+       AND NOT EXISTS (SELECT 1 FROM trn_driver WHERE company_id = l_co AND user_name IS NOT NULL);
+    UPDATE aut_technician SET user_name = c_admin
+     WHERE id = (SELECT MIN(id) FROM aut_technician WHERE company_id = l_co)
+       AND NOT EXISTS (SELECT 1 FROM aut_technician WHERE company_id = l_co AND user_name IS NOT NULL);
     SELECT COUNT(*) INTO l_n FROM pay_field_earning WHERE company_id = l_co;
     IF l_n = 0 THEN
       l_n := NOONA_WRK_PKG.collect(TRUNC(SYSDATE, 'MM'));
@@ -89,6 +96,12 @@ BEGIN
     END IF;
     COMMIT;
   EXCEPTION WHEN OTHERS THEN ROLLBACK; say('تنبيه العاملين الميدانيين: ' || SQLERRM);
+  END;
+
+  -- ================================================= تجهيز المبيعات (الترقيم والعميل النقدي) إن لم تجهز
+  BEGIN
+    IF NOONA_SAL_PKG.is_ready = 'N' THEN l_n := NOONA_SAL_PKG.quick_setup; COMMIT; say('تجهيز المبيعات والترقيم'); END IF;
+  EXCEPTION WHEN OTHERS THEN ROLLBACK; say('تنبيه تجهيز المبيعات: ' || SQLERRM);
   END;
 
   -- ================================================= مركز الإدارة: التنبيهات والبوابة وواتساب
