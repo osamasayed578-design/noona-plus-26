@@ -1,4 +1,4 @@
-# المؤسسات التسع للمختبرين: رمز|المسؤول|اسم المؤسسة|الاسم الإنجليزي|رمز الشركة|اسم الشركة|الأنظمة|رمز الفرع الثاني|اسم الفرع الثاني|البيانات التجريبية|بادئة المستخدمين
+# مؤسسات المختبرين (تسع + المستشفى): رمز|المسؤول|اسم المؤسسة|الاسم الإنجليزي|رمز الشركة|اسم الشركة|الأنظمة|رمز الفرع الثاني|اسم الفرع الثاني|البيانات التجريبية|بادئة المستخدمين
 # الأنظمة الأساسية (المنصة، الأمن، سير العمل، الأرشيف، المراسلات، المراجع، التوطين، مركز الإدارة) مشتركة دائماً
 NFC|NFC_ADMIN|مجموعة النور الصناعية|Al Noor Industrial Group|NFC|مصنع النور للصناعات البلاستيكية|GL,AR,AP,CSH,INV,PUR,SAL,MFG,FA,HR,PAY,BI|NFC-JED|معرض مبيعات المصنع - جدة|demo_trade_data demo_manufacturing demo_hr demo_fixed_assets demo_history demo_correspondence demo_common|NFC
 RED|RED_ADMIN|دار الإعمار للتطوير العقاري|Dar Al Emaar Real Estate|RED|دار الإعمار للتطوير العقاري|GL,AR,AP,CSH,INV,PUR,SAL,FA,PRJ,RE,PRP,MNT,HR,PAY,BI|RED-JED|مكتب مبيعات جدة|demo_finance_base demo_real_estate demo_projects demo_hr demo_fixed_assets demo_correspondence demo_common|RED
@@ -8,3 +8,4 @@ AUT|AUT_ADMIN|مركز المهارة لخدمة السيارات|Al Maharah Aut
 TRN|TRN_ADMIN|الناقل السريع للنقل والترحيل|Al Naqil Transport and Logistics|TRN|الناقل السريع للنقل والترحيل|GL,AR,AP,CSH,INV,PUR,SAL,FA,TRN,MNT,HR,PAY,BI|TRN-DMM|فرع الدمام والورشة|demo_trade_data transport_demo demo_hr demo_fixed_assets demo_correspondence demo_common|TRN
 DST|DST_ADMIN|شركة الوفرة للتوزيع|Al Wafra Distribution|DST|شركة الوفرة للتوزيع|GL,AR,AP,CSH,INV,PUR,SAL,DST,FA,HR,PAY,BI|DST-QSM|فرع القصيم|demo_trade_data demo_hr demo_distribution demo_correspondence demo_common|DST
 PHA|PHA_ADMIN|صيدليات الشفاء|Al Shifa Pharmacies|PHA|صيدليات الشفاء|GL,AR,AP,CSH,INV,PUR,SAL,HR,PAY,BI|PHA-B2|صيدلية الشفاء - فرع النخيل|demo_trade_data demo_pharmacy demo_hr demo_correspondence demo_common|PHA
+HOS|HOS_ADMIN|مستشفى الرحمة التخصصي|Al Rahma Specialist Hospital|HOS|مستشفى الرحمة التخصصي|GL,AR,AP,CSH,INV,PUR,SAL,FA,HIS,HR,PAY,BI|HOS-B2|مجمع عيادات الرحمة - فرع الشمال|demo_trade_data demo_healthcare demo_healthcare2 demo_healthcare3 demo_healthcare4 demo_hr demo_fixed_assets demo_correspondence demo_common|HOS
