@@ -543,14 +543,17 @@ p.text('P11_T_SPEC', tt, 40, 'التخصص', maxlen=200, width=25)
 p.text('P11_T_PHONE', tt, 50, 'الجوال', maxlen=30, width=15)
 p.number('P11_T_COST', tt, 60, 'تكلفة الساعة')
 p.number('P11_T_COMM', tt, 70, 'عمولة من الخدمات %')
+p.select('P11_T_USER', tt, 75, 'مستخدم النظام (شاشة الفني على الهاتف)', lov_sql=(
+    "select nvl(u.display_name, u.username) || ' (' || u.username || ')' d, upper(u.username) r "
+    "from sec_user_membership m join sec_user u on u.id = m.user_id where m.status_code = 'ACTIVE' order by 1"))
 p.select('P11_T_ACTIVE', tt, 80, 'الحالة', lov_sql=STATUS_LOV, null_text=None)
 b_tech = p.button(tt, 10, 'SAVE_TECH', 'حفظ الفني', hot=True)
 p.process(5, 'BEFORE_HEADER', 'Load', [
     'begin',
     "    :P11_B_TYPE := nvl(:P11_B_TYPE, 'LIFT'); :P11_T_ACTIVE := nvl(:P11_T_ACTIVE, 'Y');",
     '    if :P11_T_ID is not null and :P11_T_CODE is null then',
-    '        select code, name_ar, employee_id, specialty, phone, hourly_cost, commission_pct, is_active',
-    '          into :P11_T_CODE, :P11_T_NAME, :P11_T_EMP, :P11_T_SPEC, :P11_T_PHONE, :P11_T_COST, :P11_T_COMM, :P11_T_ACTIVE',
+    '        select code, name_ar, employee_id, specialty, phone, hourly_cost, commission_pct, is_active, user_name',
+    '          into :P11_T_CODE, :P11_T_NAME, :P11_T_EMP, :P11_T_SPEC, :P11_T_PHONE, :P11_T_COST, :P11_T_COMM, :P11_T_ACTIVE, :P11_T_USER',
     '          from aut_technician where id = :P11_T_ID and company_id = noona_aut_pkg.company;',
     '    end if;',
     'exception when no_data_found then null;',
@@ -562,7 +565,8 @@ p.process(20, 'AFTER_SUBMIT', 'Technician', ['declare l_o json_object_t := json_
           "    l_o.put('id', to_number(:P11_T_ID)); l_o.put('code', :P11_T_CODE); l_o.put('name', :P11_T_NAME); l_o.put('employee', to_number(:P11_T_EMP));",
           "    l_o.put('specialty', :P11_T_SPEC); l_o.put('phone', :P11_T_PHONE); l_o.put('hourly', to_number(:P11_T_COST));",
           "    l_o.put('commission', to_number(:P11_T_COMM)); l_o.put('active', :P11_T_ACTIVE);",
-          '    :P11_T_ID := noona_aut_pkg.save_technician(l_o.to_clob);', 'end;'], when_button=b_tech, success='تم حفظ الفني')
+          '    :P11_T_ID := noona_aut_pkg.save_technician(l_o.to_clob);',
+          '    noona_aut_pkg.set_technician_user(:P11_T_ID, :P11_T_USER);', 'end;'], when_button=b_tech, success='تم حفظ الفني')
 p.ir('الرافعات ومواقع العمل', 30, [
     "select b.id, b.code, b.name_ar, b.bay_type, b.sort_order,",
     "       (select max(j.doc_no) from aut_job_card j where j.bay_id = b.id and j.status_code in ('OPEN', 'IN_PROGRESS', 'WAITING_PARTS')) as busy_with",
@@ -611,8 +615,22 @@ p.process(10, 'AFTER_SUBMIT', 'Period', [
     "end;"], when=":REQUEST in ('P12_PERIOD', 'P12_KIND')")
 p.branch(10, url(12, 'P12_KIND,P12_PERIOD,P12_FROM,P12_TO', '&P12_KIND.,&P12_PERIOD.,&P12_FROM.,&P12_TO.'))
 
+# =============================================================== 70) مهامي (الفني على الهاتف)
+p = app.page(70, 'My Tasks', 'MY-TASKS', 'مهامي', scheme=AUT, protection='N')
+h = p.static('المهام', 1, hide_header=True, opts='#DEFAULT#:t-Region--noUI')
+p.hidden('P70_LINE', h, 1, protected=False)
+p.dynamic('مهامي', 10, 'return noona_aut_pkg.tech_tasks_html(noona_aut_pkg.my_technician);', hide_header=True)
+p.process(10, 'AFTER_SUBMIT', 'Start', "noona_aut_pkg.line_action(to_number(:P70_LINE), 'START');", when=":REQUEST = 'LINE_START'", success='بدأ العمل على البند')
+p.process(20, 'AFTER_SUBMIT', 'Done', "noona_aut_pkg.line_action(to_number(:P70_LINE), 'DONE');", when=":REQUEST = 'LINE_DONE'", success='تم إنجاز البند')
+p.onload(["document.addEventListener('click', function (e) {",
+          "  var b = e.target.closest('[data-line][data-req]'); if (!b) return;",
+          "  b.disabled = true; apex.submit({ request: b.getAttribute('data-req'), set: { P70_LINE: b.getAttribute('data-line') } });",
+          "});"])
+p.branch(10, url(70) + '&success_msg=#SUCCESS_MSG#')
+
 # =============================================================== القائمة
 app.nav_item('لوحة الورشة', 1, 'fa-dashboard', 10)
+app.nav_item('مهامي (الفني)', 70, 'fa-mobile', 15)
 app.nav_item('استلام سيارة', url(2, clear='RP,2'), 'fa-sign-in', 20)
 app.nav_item('أوامر الإصلاح', 4, 'fa-list', 30)
 app.nav_item('الحجوزات', 5, 'fa-calendar', 40)

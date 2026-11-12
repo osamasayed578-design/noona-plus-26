@@ -22,7 +22,7 @@ wwv_flow_imp_page.create_page(
 ,p_protection_level=>'N'
 );
 wwv_flow_imp_page.create_page_plug(
- p_id=>wwv_flow_imp.id(91820290000000629)
+ p_id=>wwv_flow_imp.id(91820290000000633)
 ,p_plug_name=>'تقرير الرحلات والالتزام بالمواعيد'
 ,p_region_template_options=>'#DEFAULT#'
 ,p_component_template_options=>'#DEFAULT#'
@@ -41,7 +41,7 @@ wwv_flow_imp_page.create_page_plug(
 ,p_prn_page_header=>'تقرير الرحلات والالتزام بالمواعيد'
 );
 wwv_flow_imp_page.create_worksheet(
- p_id=>wwv_flow_imp.id(91820290000000630)
+ p_id=>wwv_flow_imp.id(91820290000000634)
 ,p_max_row_count=>'1000000'
 ,p_no_data_found_message=>'لا توجد بيانات'
 ,p_pagination_type=>'ROWS_X_TO_Y'
@@ -53,10 +53,10 @@ wwv_flow_imp_page.create_worksheet(
 ,p_download_formats=>'CSV:HTML:XLSX:PDF'
 ,p_enable_mail_download=>'N'
 ,p_owner=>'NOONA'
-,p_internal_uid=>91820290000000630
+,p_internal_uid=>91820290000000634
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820290000000632)
+ p_id=>wwv_flow_imp.id(91820290000000636)
 ,p_db_column_name=>'DOC_NO'
 ,p_display_order=>10
 ,p_column_identifier=>'A'
@@ -66,7 +66,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820290000000633)
+ p_id=>wwv_flow_imp.id(91820290000000637)
 ,p_db_column_name=>'DOC_DATE'
 ,p_display_order=>20
 ,p_column_identifier=>'B'
@@ -77,7 +77,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820290000000634)
+ p_id=>wwv_flow_imp.id(91820290000000638)
 ,p_db_column_name=>'PLATE_NO'
 ,p_display_order=>30
 ,p_column_identifier=>'C'
@@ -87,7 +87,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820290000000635)
+ p_id=>wwv_flow_imp.id(91820290000000639)
 ,p_db_column_name=>'DRIVER'
 ,p_display_order=>40
 ,p_column_identifier=>'D'
@@ -97,7 +97,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820290000000636)
+ p_id=>wwv_flow_imp.id(91820290000000640)
 ,p_db_column_name=>'ROUTE'
 ,p_display_order=>50
 ,p_column_identifier=>'E'
@@ -107,7 +107,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820290000000637)
+ p_id=>wwv_flow_imp.id(91820290000000641)
 ,p_db_column_name=>'PLANNED_DEPARTURE'
 ,p_display_order=>60
 ,p_column_identifier=>'F'
@@ -117,7 +117,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820290000000638)
+ p_id=>wwv_flow_imp.id(91820290000000642)
 ,p_db_column_name=>'ACTUAL_DEPARTURE'
 ,p_display_order=>70
 ,p_column_identifier=>'G'
@@ -127,7 +127,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820290000000639)
+ p_id=>wwv_flow_imp.id(91820290000000643)
 ,p_db_column_name=>'ETA'
 ,p_display_order=>80
 ,p_column_identifier=>'H'
@@ -137,7 +137,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820290000000640)
+ p_id=>wwv_flow_imp.id(91820290000000644)
 ,p_db_column_name=>'ACTUAL_ARRIVAL'
 ,p_display_order=>90
 ,p_column_identifier=>'I'
@@ -147,7 +147,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820290000000641)
+ p_id=>wwv_flow_imp.id(91820290000000645)
 ,p_db_column_name=>'DELAY_MINUTES'
 ,p_display_order=>100
 ,p_column_identifier=>'J'
@@ -157,7 +157,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820290000000642)
+ p_id=>wwv_flow_imp.id(91820290000000646)
 ,p_db_column_name=>'TIMELINESS'
 ,p_display_order=>110
 ,p_column_identifier=>'K'
@@ -167,7 +167,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820290000000643)
+ p_id=>wwv_flow_imp.id(91820290000000647)
 ,p_db_column_name=>'TONS'
 ,p_display_order=>120
 ,p_column_identifier=>'L'
@@ -177,7 +177,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820290000000644)
+ p_id=>wwv_flow_imp.id(91820290000000648)
 ,p_db_column_name=>'ACTUAL_DISTANCE_KM'
 ,p_display_order=>130
 ,p_column_identifier=>'M'
@@ -187,7 +187,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820290000000645)
+ p_id=>wwv_flow_imp.id(91820290000000649)
 ,p_db_column_name=>'FUEL_LITERS'
 ,p_display_order=>140
 ,p_column_identifier=>'N'
@@ -197,7 +197,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820290000000646)
+ p_id=>wwv_flow_imp.id(91820290000000650)
 ,p_db_column_name=>'REVENUE_AMOUNT'
 ,p_display_order=>150
 ,p_column_identifier=>'O'
@@ -207,7 +207,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820290000000647)
+ p_id=>wwv_flow_imp.id(91820290000000651)
 ,p_db_column_name=>'EXPENSE_AMOUNT'
 ,p_display_order=>160
 ,p_column_identifier=>'P'
@@ -217,7 +217,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820290000000648)
+ p_id=>wwv_flow_imp.id(91820290000000652)
 ,p_db_column_name=>'NET_AMOUNT'
 ,p_display_order=>170
 ,p_column_identifier=>'Q'
@@ -227,7 +227,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820290000000649)
+ p_id=>wwv_flow_imp.id(91820290000000653)
 ,p_db_column_name=>'STATUS'
 ,p_display_order=>180
 ,p_column_identifier=>'R'
@@ -237,10 +237,10 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_rpt(
- p_id=>wwv_flow_imp.id(91820290000000631)
+ p_id=>wwv_flow_imp.id(91820290000000635)
 ,p_application_user=>'APXWS_DEFAULT'
 ,p_report_seq=>10
-,p_report_alias=>'631'
+,p_report_alias=>'635'
 ,p_status=>'PUBLIC'
 ,p_is_default=>'Y'
 ,p_report_columns=>'DOC_NO:DOC_DATE:PLATE_NO:DRIVER:ROUTE:PLANNED_DEPARTURE:ACTUAL_DEPARTURE:ETA:ACTUAL_ARRIVAL:DELAY_MINUTES:TIMELINESS:TONS:ACTUAL_DISTANCE_KM:FUEL_LITERS:REVENUE_AMOUNT:EXPENSE_AMOUNT:NET_AMOUNT:STATUS'

@@ -140,7 +140,7 @@ CREATE OR REPLACE PACKAGE NOONA_TRN_PKG AUTHID DEFINER AS
   FUNCTION driver_trip_html(p_trip_id IN NUMBER) RETURN CLOB;
   -- {"trip","order","receiver","phone","qty","damage","photo":"data:image/jpeg;base64,...","signature":"data:image/png;base64,...","lat","lng","notes"}
   FUNCTION save_pod(p_doc IN CLOB) RETURN NUMBER;
-  FUNCTION trip_status(p_trip_id IN NUMBER) RETURN VARCHAR2;
+  PROCEDURE set_driver_user(p_driver_id IN NUMBER, p_user IN VARCHAR2);
 END NOONA_TRN_PKG;
 /
 
@@ -2182,12 +2182,6 @@ CREATE OR REPLACE PACKAGE BODY NOONA_TRN_PKG AS
     RETURN l;
   END my_driver;
 
-  FUNCTION trip_status(p_trip_id IN NUMBER) RETURN VARCHAR2 IS
-    l VARCHAR2(30);
-  BEGIN
-    SELECT MAX(status_code) INTO l FROM trn_trip WHERE id = p_trip_id AND company_id = company;
-    RETURN l;
-  END trip_status;
 
   FUNCTION driver_trips_html(p_driver_id IN NUMBER, p_trip_url IN VARCHAR2) RETURN CLOB IS
     l_h CLOB;
@@ -2254,10 +2248,17 @@ CREATE OR REPLACE PACKAGE BODY NOONA_TRN_PKG AS
 
   FUNCTION data_url_blob(p CLOB) RETURN BLOB IS
     l_i NUMBER;
+    l_c CLOB;
   BEGIN
     IF p IS NULL OR DBMS_LOB.GETLENGTH(p) < 30 THEN RETURN NULL; END IF;
     l_i := DBMS_LOB.INSTR(p, ',');
-    RETURN APEX_WEB_SERVICE.clobbase642blob(CASE WHEN l_i > 0 AND l_i < 100 THEN DBMS_LOB.SUBSTR(p, DBMS_LOB.GETLENGTH(p) - l_i, l_i + 1) ELSE p END);
+    IF l_i > 0 AND l_i < 100 THEN
+      -- نسخ CLOB (الصورة أكبر من 32 كيلوبايت فلا يصلح SUBSTR النصي)
+      DBMS_LOB.CREATETEMPORARY(l_c, TRUE);
+      DBMS_LOB.COPY(l_c, p, DBMS_LOB.GETLENGTH(p) - l_i, 1, l_i + 1);
+      RETURN APEX_WEB_SERVICE.clobbase642blob(l_c);
+    END IF;
+    RETURN APEX_WEB_SERVICE.clobbase642blob(p);
   END data_url_blob;
 
   FUNCTION save_pod(p_doc IN CLOB) RETURN NUMBER IS
@@ -2299,6 +2300,17 @@ CREATE OR REPLACE PACKAGE BODY NOONA_TRN_PKG AS
     NOONA_AUDIT_PKG.log_event('DATA_CHANGE', 'TRN_POD', l_id, 'CAPTURE', 'SUCCESS');
     RETURN l_id;
   END save_pod;
+
+  PROCEDURE set_driver_user(p_driver_id IN NUMBER, p_user IN VARCHAR2) IS
+    l_x NUMBER;
+  BEGIN
+    guard('TRN_DRIVER.UPDATE');
+    IF p_user IS NOT NULL THEN
+      SELECT COUNT(*) INTO l_x FROM trn_driver WHERE company_id = company AND UPPER(user_name) = UPPER(p_user) AND id <> p_driver_id;
+      NOONA_CORE_PKG.assert(l_x = 0, 'NOONA-TRN-122', 'المستخدم مربوط بسائق آخر', 'User linked to another driver');
+    END IF;
+    UPDATE trn_driver SET user_name = UPPER(p_user) WHERE id = p_driver_id AND company_id = company;
+  END set_driver_user;
 
 END NOONA_TRN_PKG;
 /

@@ -114,7 +114,7 @@ p.branch(10, url(1) + '&success_msg=#SUCCESS_MSG#')
 
 # =============================================================== 2) الزيارة (الهاتف)
 p = app.page(2, 'Visit', 'VISIT', 'زيارة محل', scheme=DST, protection='N')
-h = p.static('بيانات الزيارة', 1, hide_header=True)
+h = p.static('بيانات الزيارة', 1, hide_header=True, opts='#DEFAULT#:t-Region--noUI')
 p.hidden('P2_SHOP', h, 1, protected=False)
 p.hidden('P2_VISIT', h, 2)
 p.hidden('P2_LAT', h, 3, protected=False)
@@ -569,7 +569,7 @@ p.ir('الزيارات', 10, [
      ('RETURNS_AMOUNT', 'المرتجعات', {'type': 'NUMBER'}), ('STATUS_HTML', 'الحالة', {'html': True})], link=link(21, 'P21_ID'))
 
 p = app.page(21, 'Visit View', 'VISIT-VIEW', 'زيارة', scheme=MGR, protection='N')
-f = p.static('الزيارة', 5, hide_header=True)
+f = p.static('الزيارة', 5, hide_header=True, opts='#DEFAULT#:t-Region--noUI')
 p.hidden('P21_ID', f, 1, protected=False)
 p.dynamic('الزيارة', 10, 'return noona_dst_pkg.visit_html(:P21_ID);')
 p.dynamic('واتساب', 20, 'return noona_dst_pkg.visit_actions_html(:P21_ID);')
@@ -634,7 +634,7 @@ p.ir('أوامر التوريد', 10, [
      ('STATUS_HTML', 'الحالة', {'html': True})], link=link(25, 'P25_ID'))
 
 p = app.page(25, 'Order', 'ORDER', 'أمر توريد', scheme=MGR, protection='N')
-f = p.static('الأمر', 5, hide_header=True)
+f = p.static('الأمر', 5, hide_header=True, opts='#DEFAULT#:t-Region--noUI')
 p.hidden('P25_ID', f, 1, protected=False)
 p.dynamic('الأمر', 10, [
     'declare l_h clob;',
@@ -679,7 +679,7 @@ p.ir('التسويات', 10, [
      ('APPROVED_BY', 'المعتمد', {}), ('STATUS_HTML', 'الحالة', {'html': True})], link=link(27, 'P27_ID'))
 
 p = app.page(27, 'Settlement', 'SETTLEMENT', 'تسوية', scheme=MGR, protection='N')
-f = p.static('التسوية', 5, hide_header=True)
+f = p.static('التسوية', 5, hide_header=True, opts='#DEFAULT#:t-Region--noUI')
 p.hidden('P27_ID', f, 1, protected=False)
 p.dynamic('اليوم', 10, [
     'begin',

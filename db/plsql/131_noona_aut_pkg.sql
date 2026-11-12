@@ -110,6 +110,7 @@ CREATE OR REPLACE PACKAGE NOONA_AUT_PKG AUTHID DEFINER AS
   -- شاشة الفني على الهاتف
   FUNCTION my_technician RETURN NUMBER;
   FUNCTION tech_tasks_html(p_tech_id IN NUMBER) RETURN CLOB;
+  PROCEDURE set_technician_user(p_tech_id IN NUMBER, p_user IN VARCHAR2);
 END NOONA_AUT_PKG;
 /
 
@@ -1897,6 +1898,17 @@ CREATE OR REPLACE PACKAGE BODY NOONA_AUT_PKG AS
     IF l_job <> -1 THEN l_h := l_h || '</div>'; END IF;
     RETURN NVL(l_h, '<p class="nn-hint">لا مهام مفتوحة لك الآن.</p>');
   END tech_tasks_html;
+
+  PROCEDURE set_technician_user(p_tech_id IN NUMBER, p_user IN VARCHAR2) IS
+    l_x NUMBER;
+  BEGIN
+    NOONA_SECURITY_PKG.assert_permission('AUT_TECHNICIAN.UPDATE', company);
+    IF p_user IS NOT NULL THEN
+      SELECT COUNT(*) INTO l_x FROM aut_technician WHERE company_id = company AND UPPER(user_name) = UPPER(p_user) AND id <> p_tech_id;
+      NOONA_CORE_PKG.assert(l_x = 0, 'NOONA-AUT-099', 'المستخدم مربوط بفني آخر', 'User linked to another technician');
+    END IF;
+    UPDATE aut_technician SET user_name = UPPER(p_user) WHERE id = p_tech_id AND company_id = company;
+  END set_technician_user;
 
 END NOONA_AUT_PKG;
 /

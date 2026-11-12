@@ -4,9 +4,16 @@
 الاستخدام: python3 tools/build_trn.py  ->  apex/NOONA_TRN/f147
 المنطق كله في NOONA_TRN_PKG.
 """
-import os, sys
+import os, shutil, sys
 sys.path.insert(0, os.path.dirname(__file__))
 from apexgen import App
+import apex_brand
+
+# شاشات السائق: الموقع (dst.js) وإثبات التسليم بالصورة والتوقيع (pod.js)
+for _js in ('dst.js', 'pod.js'):
+    shutil.copyfile(os.path.join(os.path.dirname(__file__), _js), os.path.join(apex_brand.STATIC_DIR, _js))
+    if (_js, 'application/javascript') not in apex_brand.FILES:
+        apex_brand.FILES.append((_js, 'application/javascript'))
 
 ROOT = os.path.join(os.path.dirname(__file__), '..')
 app = App(template_dir=os.path.join(ROOT, 'apex/_templates/f119_original'),
@@ -672,7 +679,14 @@ f = p.static('حالة السائق', 30)
 p.select('P42_SET', f, 10, 'الحالة', lov_sql='STATIC2:متاح;AVAILABLE,خارج الدوام;OFF_DUTY,موقوف;SUSPENDED,ترك العمل;LEFT', null_text=None)
 b = p.button(f, 10, 'SET_STATUS', 'تغيير حالة السائق المختار')
 p.process(20, 'AFTER_SUBMIT', 'Status', 'noona_trn_pkg.set_driver_status(:P42_ID, :P42_SET);', when_button=b, success='تم تغيير الحالة')
+u = p.static('حساب السائق على الهاتف', 40, text='<p class="nn-hint">اربط السائق بمستخدم النظام ليفتح «رحلاتي» على هاتفه: التحرك والعداد، '
+                                             'التسليم بالصورة والتوقيع، الإبلاغ عن عطل بالموقع، والإقفال.</p>')
+p.select('P42_USER', u, 10, 'مستخدم النظام', lov_sql=("select nvl(u.display_name, u.username) || ' (' || u.username || ')' d, upper(u.username) r "
+                                                      "from sec_user_membership m join sec_user u on u.id = m.user_id where m.status_code = 'ACTIVE' order by 1"))
+b = p.button(u, 10, 'LINK_USER', 'ربط المستخدم بالسائق المختار')
+p.process(30, 'AFTER_SUBMIT', 'User', 'noona_trn_pkg.set_driver_user(:P42_ID, :P42_USER);', when_button=b, success='تم ربط المستخدم')
 p.process(5, 'BEFORE_HEADER', 'Load', ['begin', '  for d in (select * from trn_driver where id = :P42_ID and company_id = noona_trn_pkg.company) loop',
+    '    :P42_USER := d.user_name;',
     '    :P42_NAME := d.full_name; :P42_PHONE := d.phone; :P42_NID := d.national_id; :P42_LICNO := d.license_no; :P42_LICCLS := d.license_class;',
     "    :P42_LICEXP := to_char(d.license_expiry, 'YYYY-MM-DD'); :P42_HAZ := d.hazmat_certified; :P42_ALW := d.trip_allowance; :P42_SET := d.status_code;",
     '  end loop;', 'end;'])
@@ -831,12 +845,110 @@ for pid, alias, title, sql, cols in REPORTS:
     p = app.page(pid, alias.title(), alias, title, scheme=TRN, protection='N')   # يفتح من مركز التقارير برابط يمسح مرشحاته
     p.ir(title, 10, sql, cols)
 
+
+# =============================================================== 70-73) شاشات السائق على الهاتف
+DLOAD = ["(function () { ['dst.js', 'pod.js'].forEach(function (f) { var s = document.createElement('script'); s.src = apex.env.APP_FILES + f; "
+         "document.head.appendChild(s); }); })();"]
+p = app.page(70, 'My Trips', 'MY-TRIPS', 'رحلاتي', scheme=TRN, protection='N')
+p.dynamic('رحلاتي', 10, ["return noona_trn_pkg.driver_trips_html(noona_trn_pkg.my_driver,",
+                         "  replace(apex_page.get_url(p_page => 71, p_clear_cache => '71', p_items => 'P71_TRIP', p_values => 'XTRIPX'), 'XTRIPX', '#TRIP#'));"],
+          hide_header=True)
+
+p = app.page(71, 'My Trip', 'MY-TRIP', 'رحلتي', scheme=TRN, protection='N')
+h = p.static('الرحلة', 1, hide_header=True, opts='#DEFAULT#:t-Region--noUI')
+p.hidden('P71_TRIP', h, 1, protected=False)
+p.dynamic('الرحلة', 5, 'return noona_trn_pkg.driver_trip_html(:P71_TRIP);', hide_header=True)
+ST = "noona_trn_pkg.trip_status(:P71_TRIP)"
+d = p.static('التحرك', 10, condition=ST + " in ('PLANNED', 'DISPATCHED')")
+p.number('P71_ODO', d, 10, 'قراءة العداد عند التحرك')
+b_dep = p.button(d, 10, 'DEPART', 'بدء الرحلة', hot=True)
+p.process(10, 'AFTER_SUBMIT', 'Depart', 'noona_trn_pkg.depart(:P71_TRIP, to_number(:P71_ODO));', when_button=b_dep, success='بدأت الرحلة؛ طريق السلامة')
+dl = p.static('التسليم', 20, condition=ST + " in ('IN_TRANSIT', 'ARRIVED')")
+p.select('P71_ORDER', dl, 10, 'الشحنة', lov_sql=(
+    "select o.doc_no || ' · ' || noona_sal_pkg.customer_label(o.customer_account_id) d, o.id r from trn_trip_order x join trn_order o on o.id = x.order_id "
+    "where x.trip_id = :P71_TRIP and o.status_code = 'IN_TRANSIT' order by o.id"), null_text='- اختر الشحنة -')
+b_pod = p.button(dl, 10, 'POD', 'تسليم بالصورة والتوقيع', hot=True)
+b_arr = p.button(dl, 20, 'ARRIVE', 'وصلت الوجهة', condition=ST + " = 'IN_TRANSIT'")
+p.process(20, 'AFTER_SUBMIT', 'Arrive', 'noona_trn_pkg.arrive(:P71_TRIP);', when_button=b_arr, success='تم تسجيل الوصول')
+c = p.static('إقفال الرحلة', 30, condition=ST + " in ('IN_TRANSIT', 'ARRIVED')")
+p.number('P71_ODO_END', c, 10, 'قراءة العداد عند العودة')
+p.number('P71_FUEL', c, 20, 'الوقود المستهلك (لتر)')
+b_done = p.button(c, 10, 'COMPLETE', 'إقفال الرحلة')
+p.process(30, 'AFTER_SUBMIT', 'Complete', 'noona_trn_pkg.complete_trip(:P71_TRIP, to_number(:P71_ODO_END), to_number(:P71_FUEL));',
+          when_button=b_done, success='تم إقفال الرحلة')
+i = p.static('عطل أو بلاغ', 40, condition=ST + " in ('DISPATCHED', 'IN_TRANSIT', 'ARRIVED')")
+p.button(i, 10, 'INCIDENT', 'الإبلاغ عن عطل بالموقع', redirect=url(73, 'P73_TRIP', '&P71_TRIP.', clear='RP,73'))
+p.branch(5, url(72, 'P72_TRIP,P72_ORDER', '&P71_TRIP.,&P71_ORDER.', clear='RP,72'), when_button=b_pod)
+p.branch(10, url(71, 'P71_TRIP', '&P71_TRIP.') + '&success_msg=#SUCCESS_MSG#')
+
+p = app.page(72, 'Proof of Delivery', 'POD', 'إثبات التسليم', scheme=TRN, protection='N')
+f = p.static('المستلم', 10)
+p.hidden('P72_TRIP', f, 1, protected=False)
+p.hidden('P72_ORDER', f, 2, protected=False)
+p.display('P72_INFO', f, 3, 'الشحنة')
+p.text('P72_RECEIVER', f, 10, 'اسم المستلم', required=True, maxlen=200)
+p.text('P72_PHONE', f, 20, 'جوال المستلم', maxlen=30, width=16)
+p.number('P72_QTY', f, 30, 'الكمية المسلمة (فارغ = كامل الشحنة)')
+p.text('P72_DAMAGE', f, 40, 'تلف أو ملاحظة على البضاعة', maxlen=1000)
+p.text('P72_NOTES', f, 50, 'ملاحظات', maxlen=1000)
+p.process(5, 'BEFORE_HEADER', 'Load', [
+    'begin',
+    '  for o in (select doc_no, quantity, noona_sal_pkg.customer_label(customer_account_id) c from trn_order',
+    '             where id = :P72_ORDER and company_id = noona_trn_pkg.company) loop',
+    "    :P72_INFO := o.doc_no || ' · ' || o.c || ' · ' || noona_trn_pkg.qf(o.quantity);",
+    '  end loop;',
+    'end;'])
+p.static('الصورة والتوقيع', 20, text=(
+    '<label class="nn-dst-btn"><span class="fa fa-camera"></span> صورة التسليم'
+    '<input type="file" id="podPhoto" accept="image/*" capture="environment" hidden></label>'
+    '<img id="podPreview" class="nn-photo-prev" alt="">'
+    '<p class="nn-hint">توقيع المستلم:</p><canvas id="podSign" class="nn-sign"></canvas>'
+    '<div class="nn-dst-actions"><button type="button" id="podClear" class="nn-dst-btn">مسح التوقيع</button></div>'))
+p.dynamic('حفظ', 30, ["return '<button type=\"button\" id=\"podSave\" class=\"nn-dst-btn nn-dst-checkin\" data-back=\"'",
+                      "  || apex_page.get_url(p_page => 71, p_items => 'P71_TRIP', p_values => :P72_TRIP) || '\">حفظ وتسليم</button>';"],
+          hide_header=True)
+p.process(1, 'ON_DEMAND', 'POD', [
+    'declare l number;',
+    'begin',
+    '  l := noona_trn_pkg.save_pod(apex_application.g_clob_01);',
+    "  apex_json.open_object; apex_json.write('id', l); apex_json.close_object;",
+    'exception when others then',
+    '  apex_json.open_object;',
+    "  apex_json.write('err', regexp_replace(nvl(trim(regexp_substr(sqlerrm, 'NOONA-[A-Z]+-[0-9]+: [^' || chr(10) || ']+')), sqlerrm), '\\s*\\[cid=[^]]+\\]', ''));",
+    '  apex_json.close_object;',
+    'end;'])
+p.onload(DLOAD)
+
+p = app.page(73, 'Report Incident', 'REPORT-INCIDENT', 'الإبلاغ عن عطل', scheme=TRN, protection='N')
+f = p.static('البلاغ', 10, text='<button type="button" class="nn-dst-btn nn-dst-mygeo" data-lat="P73_LAT" data-lng="P73_LNG">'
+                                '<span class="fa fa-crosshairs"></span> إرفاق موقعي الحالي</button>')
+p.hidden('P73_TRIP', f, 1, protected=False)
+p.hidden('P73_LAT', f, 2, protected=False)
+p.hidden('P73_LNG', f, 3, protected=False)
+p.select('P73_TYPE', f, 10, 'النوع', lov_sql=INC_TYPE, null_text=None)
+p.select('P73_SEV', f, 20, 'الخطورة', lov_sql='STATIC2:منخفضة;LOW,متوسطة;MEDIUM,عالية;HIGH,حرجة;CRITICAL', null_text=None)
+p.textarea('P73_DESC', f, 30, 'ماذا حدث؟', required=True, rows=3)
+p.text('P73_PLACE', f, 40, 'وصف المكان', maxlen=500)
+b = p.button(f, 10, 'REPORT', 'إرسال البلاغ', hot=True)
+p.process(5, 'BEFORE_HEADER', 'Defaults', "if :P73_SEV is null then :P73_SEV := 'MEDIUM'; end if;")
+p.process(10, 'AFTER_SUBMIT', 'Report', [
+    'declare l json_object_t := json_object_t(); l_id number;',
+    'begin',
+    "  l.put('trip', to_number(:P73_TRIP)); l.put('type', :P73_TYPE); l.put('severity', :P73_SEV); l.put('description', :P73_DESC);",
+    "  l.put('locationText', nvl(:P73_PLACE, case when :P73_LAT is not null then 'GPS ' || :P73_LAT || ',' || :P73_LNG end));",
+    "  l.put('lat', to_number(:P73_LAT)); l.put('lng', to_number(:P73_LNG));",
+    '  l_id := noona_trn_pkg.report_incident(l.to_clob);',
+    'end;'], when_button=b, success='تم إرسال البلاغ؛ سيتواصل معك فريق الأسطول')
+p.onload(DLOAD)
+p.branch(10, url(71, 'P71_TRIP', '&P73_TRIP.') + '&success_msg=#SUCCESS_MSG#')
+
 # التحليلات والتنبؤ
 import anl_pages
 anl_pages.add(app, ['TRN'], TRN, 11)
 
 # =============================================================== القائمة
 app.nav_item('لوحة الحركة', 1, 'fa-truck', 10)
+app.nav_item('رحلاتي (السائق)', 70, 'fa-mobile', 15)
 op = app.nav_item('العمليات', None, 'fa-road', 20)
 app.nav_item('أوامر الشحن', 10, 'fa-cubes', 21, parent=op)
 app.nav_item('الرحلات', 20, 'fa-road', 22, parent=op)
