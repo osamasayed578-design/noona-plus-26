@@ -2541,3 +2541,57 @@ html:has(body.t-PageBody--login), body.t-PageBody--login { overflow-x: clip; }
 .nnl-show { max-width: 100vw; box-sizing: border-box; }
 @media (max-width: 900px) { .nnl-orb { display: none; } }
 .t-PageBody--login:has(#nnlShow) span.t-Login-logo { display: block !important; margin: 6px auto 10px !important; }
+
+/* ================================================================ NOONA_DST: الشاشات الميدانية (الهاتف أولاً) */
+.nn-dst-plan-h { display: flex; justify-content: space-between; align-items: center; padding: 6px 2px 10px; color: var(--nn-muted); }
+.nn-dst-plan-h b { color: var(--nn-text); font-size: 1.05rem; }
+.nn-dst-stop { display: flex; gap: 12px; align-items: center; padding: 12px; margin-bottom: 10px; background: var(--nn-surface);
+  border: 1px solid var(--nn-border); border-radius: var(--nn-radius, 12px); }
+.nn-dst-stop.is-open { border-color: var(--nn-warning); box-shadow: 0 0 0 2px var(--nn-warning-50); }
+.nn-dst-stop.is-done { opacity: .72; }
+.nn-dst-seq { flex: 0 0 34px; height: 34px; border-radius: 50%; display: grid; place-items: center; font-weight: 700;
+  background: var(--nn-primary-50); color: var(--nn-primary); }
+.nn-dst-stop.is-done .nn-dst-seq { background: var(--nn-success-50); color: var(--nn-success); }
+.nn-dst-stop-b { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.nn-dst-stop-b small { color: var(--nn-muted); overflow: hidden; text-overflow: ellipsis; }
+.nn-dst-stop-a, .nn-dst-acts, .nn-dst-actions { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+.nn-dst-btn { display: inline-flex; align-items: center; gap: 6px; min-height: 40px; padding: 0 14px; border-radius: 10px; font-weight: 600;
+  border: 1px solid var(--nn-border); background: var(--nn-surface-2); color: var(--nn-text) !important; text-decoration: none !important; cursor: pointer; }
+.nn-dst-btn:hover { border-color: var(--nn-primary); }
+.nn-dst-go { background: var(--nn-primary); border-color: var(--nn-primary); color: #fff !important; }
+.nn-dst-wa { background: #25d366; border-color: #25d366; color: #fff !important; }
+.nn-dst-checkin { width: 100%; min-height: 56px; font-size: 1.1rem; justify-content: center; background: var(--nn-primary);
+  border-color: var(--nn-primary); color: #fff !important; }
+.nn-dst-mygeo.is-busy .fa { animation: fa-spin 1s linear infinite; }
+.nn-dst-card { padding: 4px 2px; }
+.nn-dst-card-h { display: flex; justify-content: space-between; gap: 10px; flex-wrap: wrap; align-items: baseline; margin-bottom: 8px; }
+.nn-dst-hist { font-size: .9rem; }
+.nn-dst-picker { display: flex; flex-direction: column; gap: 8px; }
+.nn-dst-find { width: 100%; min-height: 44px; padding: 0 12px; border: 1px solid var(--nn-border); border-radius: 10px;
+  background: var(--nn-surface); color: var(--nn-text); font-size: 1rem; }
+.nn-dst-item { display: flex; gap: 10px; align-items: center; padding: 10px; border: 1px solid var(--nn-border); border-radius: 10px;
+  background: var(--nn-surface); transition: border-color .15s, background .15s; }
+.nn-dst-item.is-on { border-color: var(--nn-primary); background: var(--nn-primary-50); }
+.nn-dst-item.is-max { border-color: var(--nn-danger); }
+.nn-dst-item-b { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; }
+.nn-dst-item-b small { color: var(--nn-muted); }
+.nn-dst-qty { flex: 0 0 auto; display: flex; align-items: center; gap: 4px; }
+.nn-dst-qty button { width: 40px; height: 40px; border-radius: 10px; border: 1px solid var(--nn-border); background: var(--nn-surface-2);
+  color: var(--nn-text); font-size: 1.25rem; font-weight: 700; cursor: pointer; }
+.nn-dst-qty input { width: 64px; height: 40px; text-align: center; border: 1px solid var(--nn-border); border-radius: 10px;
+  background: var(--nn-surface); color: var(--nn-text); font-size: 1rem; }
+.nn-dst-total { position: sticky; bottom: 0; padding: 10px 12px; border-radius: 10px; background: var(--nn-surface-2);
+  border: 1px solid var(--nn-border); font-size: 1.05rem; z-index: 2; }
+.nn-dst-map { height: 70vh; min-height: 360px; border-radius: 12px; border: 1px solid var(--nn-border); }
+.nn-dst-quick { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
+.nn-dst-quick a { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; min-height: 84px;
+  border-radius: 12px; border: 1px solid var(--nn-border); background: var(--nn-surface); color: var(--nn-text) !important;
+  text-decoration: none !important; font-weight: 600; text-align: center; padding: 8px; }
+.nn-dst-quick a .fa { font-size: 1.5rem; color: var(--nn-primary); }
+@media (max-width: 640px) {
+  .nn-dst-stop { flex-wrap: wrap; }
+  .nn-dst-stop-a { width: 100%; }
+  .nn-dst-stop-a .nn-dst-go { flex: 1 1 auto; justify-content: center; }
+  .nn-dst-btn { min-height: 44px; }
+  .nn-dst-quick { grid-template-columns: repeat(2, 1fr); }
+}
