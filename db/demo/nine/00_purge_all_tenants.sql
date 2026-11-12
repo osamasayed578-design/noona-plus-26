@@ -57,7 +57,8 @@ BEGIN
   DELETE FROM aud_event WHERE (company_id IS NOT NULL AND company_id NOT IN (SELECT id FROM org_company))
                            OR (actor_user_id IS NOT NULL AND actor_user_id NOT IN (SELECT id FROM sec_user));
   l_rows := l_rows + SQL%ROWCOUNT;
-  -- مشغلات سجل التغييرات تعاد بناؤها لاحقاً كما هي
+  -- سلسلة تدقيق المنصة: حذف صفوف منها يكسر ترابطها، فتعاد ختمها على الصفوف الباقية (المشغلات معطلة الآن)
+  l_n := NOONA_AUDIT_PKG.reseal_chain(NULL);
   COMMIT;
 
   NOONA_CTX_PKG.disable_purge_mode;

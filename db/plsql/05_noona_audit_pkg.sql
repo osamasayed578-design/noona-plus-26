@@ -20,6 +20,9 @@ CREATE OR REPLACE PACKAGE NOONA_AUDIT_PKG AUTHID DEFINER AS
 
   -- يعيد حساب السلسلة ويرجع أول حدث مكسور (NULL = سليمة)
   FUNCTION verify_chain(p_tenant_id IN NUMBER, p_from_id IN NUMBER DEFAULT 0) RETURN NUMBER;
+  -- إعادة ختم سلسلة بعد حذف إداري شامل (تجهيز بيئة المختبرين): تعيد ربط الصفوف الباقية بالترتيب وتعيد عددها.
+  -- لا تعمل إلا في وضع الحذف الشامل (PURGE_MODE) الذي لا يفعله إلا مالك المخطط؛ ترفض في أي جلسة أخرى.
+  FUNCTION reseal_chain(p_tenant_id IN NUMBER) RETURN NUMBER;
 END NOONA_AUDIT_PKG;
 /
 
@@ -160,6 +163,25 @@ CREATE OR REPLACE PACKAGE BODY NOONA_AUDIT_PKG AS
     END LOOP;
     RETURN NULL;
   END verify_chain;
+
+  FUNCTION reseal_chain(p_tenant_id IN NUMBER) RETURN NUMBER IS
+    l_prev VARCHAR2(128) := 'GENESIS';
+    l_hash VARCHAR2(128);
+    l_n    NUMBER := 0;
+  BEGIN
+    IF NOONA_CTX_PKG.purge_mode <> 'Y' THEN
+      RAISE_APPLICATION_ERROR(-20100, 'NOONA-AUD-010: إعادة ختم سجل التدقيق متاحة في وضع الحذف الشامل فقط / Reseal requires purge mode');
+    END IF;
+    FOR r IN (SELECT * FROM aud_event
+               WHERE (tenant_id = p_tenant_id OR (tenant_id IS NULL AND p_tenant_id IS NULL)) ORDER BY id) LOOP
+      l_hash := sha256(payload(r.tenant_id, r.event_category, r.entity_type, r.entity_id, r.action_code, r.result_code,
+                               r.actor_user_id, r.occurred_at, r.old_values, r.new_values, l_prev));
+      UPDATE aud_event SET prev_hash = l_prev, row_hash = l_hash WHERE id = r.id;
+      l_prev := l_hash;
+      l_n := l_n + 1;
+    END LOOP;
+    RETURN l_n;
+  END reseal_chain;
 
 END NOONA_AUDIT_PKG;
 /
