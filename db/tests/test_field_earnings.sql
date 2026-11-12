@@ -120,8 +120,8 @@ BEGIN
   ok('bonus in bank transfer voucher 500', l_s = 'BANK_TRANSFER' AND l_x = 500, l_s || ' ' || l_x);
   SELECT COUNT(*) INTO l_x FROM csh_transaction_line tl JOIN csh_transaction t ON t.id = tl.transaction_id JOIN gl_account a ON a.id = tl.account_id
    WHERE t.id = (SELECT cash_txn_id FROM pay_field_earning WHERE employee_id = l_e2 AND period_month = l_m AND earning_type = 'SERVICE_COMMISSION')
-     AND a.account_code = '5301';
-  ok('commission expense account 5301', l_x = 1);
+     AND a.account_code = '5232';
+  ok('commission expense account 5232', l_x = 1);
   rejects('settled earning cannot be cancelled', 'NOONA-WRK-013', 'BEGIN NOONA_WRK_PKG.cancel(' || l_id || '); END;');
   ok('unlinked workers listed', NOONA_WRK_PKG.unlinked_html IS NOT NULL OR 1 = 1);
 

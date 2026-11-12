@@ -80,6 +80,14 @@ BEGIN
     FROM inv_item_company c JOIN inv_item i ON i.id = c.item_id
    WHERE c.company_id = NOONA_PRC_PKG.company AND i.status_code = 'ACTIVE' AND NVL(i.is_sellable, 'Y') = 'Y'
      AND NVL(c.prices_include_tax, 'N') = 'N' AND NOONA_PRC_PKG.cost_of('ITEM', c.item_id) > 0;
+  IF l_item IS NULL THEN
+    -- البيئة بلا صنف بسعر غير شامل للضريبة وله تكلفة: ينشأ صنف للاختبار برصيد وتكلفة (يتراجع في النهاية)
+    l_item := NOONA_INV_PKG.save_item('{"name":"صنف اختبار التسعير","code":"PRC-T' || TO_CHAR(SYSTIMESTAMP, 'SSFF3') || '","price":20,"incl":"N"}');
+    DECLARE l_d NUMBER; BEGIN
+      l_d := NOONA_INV_PKG.save_stock_doc('{"id":null,"type":"ADJ_IN","date":"' || TO_CHAR(SYSDATE, 'YYYY-MM-DD') || '","wh":' || NOONA_INV_PKG.default_warehouse
+          || ',"reason":"COUNT","action":"POST","lines":[{"i":' || l_item || ',"q":50,"c":10}]}');
+    END;
+  END IF;
   ok('an active sellable item with cost exists', l_item IS NOT NULL);
   SELECT category_id INTO l_cat FROM inv_item WHERE id = l_item;
   l_cost := NOONA_PRC_PKG.cost_of('ITEM', l_item);
