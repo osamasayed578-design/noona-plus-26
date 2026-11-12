@@ -19,6 +19,18 @@ END;
 /
 PROMPT ========== الجداول والأعمدة والصلاحيات
 @@upgrade_parts/62_wrk.sql
+-- مفتاح منع التكرار يشمل الموظف (السائق والمساعد في الرحلة نفسها) - للقواعد التي أنشئ فيها الجدول بالمفتاح القديم
+DECLARE
+  l_n NUMBER;
+BEGIN
+  SELECT COUNT(*) INTO l_n FROM user_cons_columns WHERE constraint_name = 'PAY_FIELD_EARNING_UK1';
+  IF l_n = 6 THEN
+    EXECUTE IMMEDIATE 'ALTER TABLE PAY_FIELD_EARNING DROP CONSTRAINT PAY_FIELD_EARNING_UK1 DROP INDEX';
+    EXECUTE IMMEDIATE 'ALTER TABLE PAY_FIELD_EARNING ADD CONSTRAINT PAY_FIELD_EARNING_UK1 UNIQUE (TENANT_ID, COMPANY_ID, SOURCE_ENTITY_TYPE, '
+                   || 'SOURCE_ENTITY_ID, EARNING_TYPE, PERIOD_MONTH, EMPLOYEE_ID)';
+  END IF;
+END;
+/
 @@upgrade_parts/sync_admin_roles.sql
 PROMPT ========== الحزم
 WHENEVER SQLERROR CONTINUE

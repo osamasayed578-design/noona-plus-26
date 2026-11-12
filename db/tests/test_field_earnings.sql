@@ -72,6 +72,7 @@ BEGIN
   UPDATE aut_job_line SET done_at = ADD_MONTHS(SYSTIMESTAMP, -3) WHERE technician_id = l_tech AND job_card_id <> l_job;
   UPDATE aut_job_card SET status_code = 'INVOICED' WHERE id = l_job;
   UPDATE aut_technician SET commission_pct = 10 WHERE id = l_tech;
+  NOONA_WRK_PKG.set_bonus('TECH', l_tech, NULL, 50);
   NOONA_WRK_PKG.set_worker('TECH', l_tech, l_e2, 'CASH');
   SELECT COUNT(*) * 400 INTO l_s FROM aut_job_line WHERE job_card_id = l_job AND technician_id = l_tech AND line_type = 'SERVICE';
 
@@ -83,26 +84,38 @@ BEGIN
   SELECT MAX(amount), MAX(pay_method) INTO l_x, l_s FROM pay_field_earning WHERE company_id = NOONA_WRK_PKG.company AND period_month = l_m
      AND employee_id = l_e2 AND earning_type = 'SERVICE_COMMISSION';
   ok('technician 10% service commission, cash', l_x > 0 AND MOD(l_x, 40) = 0 AND l_s = 'CASH', l_x || ' ' || l_s);
+  SELECT MAX(amount) INTO l_x FROM pay_field_earning WHERE company_id = NOONA_WRK_PKG.company AND period_month = l_m
+     AND employee_id = l_e2 AND earning_type = 'BONUS' AND source_entity_type = 'AUT_TECHNICIAN';
+  ok('technician 50 per completed job bonus on top of commission', l_x = 50, l_x);
+  ok('monthly salary shown from HR structure', NOONA_WRK_PKG.monthly_salary(l_e1) IS NOT NULL, NOONA_WRK_PKG.monthly_salary(l_e1));
   l_x := NOONA_WRK_PKG.collect(l_m);
   ok('collect does not duplicate', l_x = 0, l_x);
+  -- بونص للكيلومتر يعاد حسابه قبل الاعتماد
+  NOONA_WRK_PKG.set_bonus('DRIVER', l_drv, 'PER_KM', 0.5);
+  UPDATE trn_trip SET actual_distance_km = 800 WHERE id = l_trip;
+  l_x := NOONA_WRK_PKG.collect(l_m);
+  SELECT MAX(amount) INTO l_x FROM pay_field_earning WHERE company_id = NOONA_WRK_PKG.company AND period_month = l_m AND employee_id = l_e1
+     AND earning_type = 'TRIP_ALLOWANCE';
+  ok('per-km trip bonus 800 km x 0.5 = 400 (recalculated while pending)', l_x = 400, l_x);
+  rejects('freight percent over 100 rejected', 'NOONA-WRK-009', 'BEGIN NOONA_WRK_PKG.set_bonus(''DRIVER'', ' || l_drv || ', ''PCT_FREIGHT'', 150); END;');
   -- مكافأة يدوية بتحويل بنكي
   l_id := NOONA_WRK_PKG.add_manual('{"employee":' || l_e3 || ',"type":"BONUS","amount":500,"month":"' || TO_CHAR(l_m, 'YYYY-MM-DD') || '","method":"BANK_TRANSFER","ref":"مكافأة تميز"}');
   ok('manual bonus', l_id IS NOT NULL);
   rejects('settle needs approval first (nothing settled)', 'X', 'DECLARE n NUMBER; BEGIN n := NOONA_WRK_PKG.settle(TRUNC(SYSDATE, ''MM'')); IF n > 0 THEN RAISE_APPLICATION_ERROR(-20001, ''settled ''||n); END IF; RAISE_APPLICATION_ERROR(-20001, ''X''); END;');
   l_x := NOONA_WRK_PKG.approve_month(l_m);
-  ok('approve month', l_x >= 3, l_x);
+  ok('approve month', l_x >= 4, l_x);
   ok('summary report', DBMS_LOB.INSTR(NOONA_WRK_PKG.summary_html(l_m), 'مع الراتب') > 0);
 
   -- الصرف
   l_n := NOONA_WRK_PKG.settle(l_m);
   SELECT COUNT(*) INTO l_x FROM pay_field_earning f JOIN pay_input i ON i.id = f.pay_input_id JOIN pay_element el ON el.id = i.element_id
-   WHERE f.employee_id = l_e1 AND f.period_month = l_m AND f.status_code = 'IN_PAYROLL' AND i.amount = 150 AND el.code = 'OTHER_ALLOW'
+   WHERE f.employee_id = l_e1 AND f.period_month = l_m AND f.status_code = 'IN_PAYROLL' AND i.amount = 400 AND el.code = 'OTHER_ALLOW'
      AND i.source_entity_type = 'PAY_FIELD_EARNING';
   ok('driver allowance added to payroll as variable input', l_x = 1);
   SELECT COUNT(*) INTO l_x FROM pay_field_earning f JOIN csh_transaction t ON t.id = f.cash_txn_id
    WHERE f.employee_id = l_e2 AND f.period_month = l_m AND f.status_code = 'IN_VOUCHER' AND t.txn_type = 'EXPENSE' AND t.channel = 'CASH'
      AND t.status_code = 'SUBMITTED';
-  ok('technician commission in cash expense voucher for approval', l_x = 1);
+  ok('technician commission + job bonus in one cash expense voucher for approval', l_x = 2, l_x);
   SELECT MAX(t.channel), MAX(t.amount) INTO l_s, l_x FROM pay_field_earning f JOIN csh_transaction t ON t.id = f.cash_txn_id WHERE f.id = l_id;
   ok('bonus in bank transfer voucher 500', l_s = 'BANK_TRANSFER' AND l_x = 500, l_s || ' ' || l_x);
   SELECT COUNT(*) INTO l_x FROM csh_transaction_line tl JOIN csh_transaction t ON t.id = tl.transaction_id JOIN gl_account a ON a.id = tl.account_id

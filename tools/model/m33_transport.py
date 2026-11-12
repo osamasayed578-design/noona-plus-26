@@ -65,6 +65,8 @@ USER_NAME       V128             | مستخدم النظام (شاشات الس�
 EARNINGS_METHOD CODE NN D='PAYROLL' IN:PAYROLL,CASH,BANK_TRANSFER,NONE | صرف المستحقات (مع الراتب، نقداً، تحويل، لا يستحق)
 HAZMAT_CERTIFIED YN  NN D='N'    | مؤهل لنقل المواد الخطرة
 TRIP_ALLOWANCE  AMT              | بدل الرحلة الافتراضي
+TRIP_BONUS_BASIS CODE NN D='PER_TRIP' IN:PER_TRIP,PER_KM,PER_TON,PCT_FREIGHT | أساس بونص الرحلة (مبلغ ثابت، للكيلو، للطن، نسبة من الترحيل)
+TRIP_BONUS_RATE AMT              | قيمة البونص (فارغ = بدل الرحلة الافتراضي)
 BRANCH_ID       ID   >ORG_BRANCH | الفرع
 ''', area='fleet')
 

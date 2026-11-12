@@ -191,5 +191,5 @@ CASH_TXN_ID     ID   >CSH_TRANSACTION | سند الصرف
 PAID_AT         TS               | وقت الصرف
 APPROVED_BY     USR              | المعتمد
 APPROVED_AT     TS               | وقت الاعتماد
-''', uk=[('TENANT_ID', 'COMPANY_ID', 'SOURCE_ENTITY_TYPE', 'SOURCE_ENTITY_ID', 'EARNING_TYPE', 'PERIOD_MONTH')],
+''', uk=[('TENANT_ID', 'COMPANY_ID', 'SOURCE_ENTITY_TYPE', 'SOURCE_ENTITY_ID', 'EARNING_TYPE', 'PERIOD_MONTH', 'EMPLOYEE_ID')],
       ix=[('TENANT_ID', 'COMPANY_ID', 'PERIOD_MONTH', 'STATUS_CODE'), ('TENANT_ID', 'EMPLOYEE_ID')], chk=['AMOUNT > 0'], area='run')
