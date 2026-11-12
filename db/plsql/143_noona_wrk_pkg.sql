@@ -294,16 +294,17 @@ CREATE OR REPLACE PACKAGE BODY NOONA_WRK_PKG AS
   END cancel;
 
   -- ================================================================ الصرف
-  -- حساب المصروف: بدلات الرحلات 5217، العمولات 5301، المكافآت 5201 (ينشأ الحساب إن لم يوجد)
+  -- حساب المصروف: بدلات الرحلات 5231، العمولات 5232، المكافآت 5201 (ينشأ الحساب إن لم يوجد)
   FUNCTION expense_account(p_type VARCHAR2) RETURN VARCHAR2 IS
-    l_code VARCHAR2(10) := CASE WHEN p_type = 'TRIP_ALLOWANCE' THEN '5217' WHEN p_type IN ('BONUS', 'OTHER') THEN '5201' ELSE '5301' END;
+    -- حسابان مخصصان تحت المصروفات التشغيلية (52): 5231 بدلات الرحلات، 5232 العمولات؛ المكافآت على الرواتب 5201
+    l_code VARCHAR2(10) := CASE WHEN p_type = 'TRIP_ALLOWANCE' THEN '5231' WHEN p_type IN ('BONUS', 'OTHER') THEN '5201' ELSE '5232' END;
     l_id   NUMBER;
   BEGIN
     SELECT MIN(id) INTO l_id FROM gl_account WHERE coa_id = NOONA_GL_PKG.primary_coa AND account_code = l_code;
     IF l_id IS NULL THEN
       l_id := NOONA_GL_PKG.add_account(NOONA_GL_PKG.primary_coa, l_code,
-                CASE l_code WHEN '5217' THEN 'بدلات رحلات السائقين' WHEN '5301' THEN 'عمولات المندوبين والعاملين' ELSE 'الرواتب والأجور' END,
-                SUBSTR(l_code, 1, 2), 'EXPENSE', 'Y', NULL);
+                CASE l_code WHEN '5231' THEN 'بدلات رحلات السائقين' WHEN '5232' THEN 'عمولات المندوبين والعاملين الميدانيين' ELSE 'الرواتب والأجور' END,
+                '52', 'EXPENSE', 'Y', NULL);
     END IF;
     RETURN l_code;
   EXCEPTION WHEN OTHERS THEN
