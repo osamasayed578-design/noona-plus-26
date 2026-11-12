@@ -1,6 +1,6 @@
 # ERD — الحزمة 33: النقل والشحن والترحيل
 
-**Transport & Logistics** · الحزمة البرمجية `NOONA_TRN_PKG` · عدد الجداول: **15**
+**Transport & Logistics** · الحزمة البرمجية `NOONA_TRN_PKG` · عدد الجداول: **16**
 
 أسطول الشاحنات والعربات والسائقين، المدن والمواقع والمسارات والمسافات، أنواع الشحنات، تعرفة الترحيل بالطن المتري والطن القصير والطويل والكيلوجرام والمتر المكعب والكيلومتر والطن-كيلومتر والرحلة والحاوية، أوامر الشحن، الرحلات بمواعيدها وزمن الوصول المتوقع ونقاط التوقف، التسليم والتفريغ والعجز، مصروفات الرحلة، والأعطال والبلاغات وزمن الاستجابة، وفوترة الترحيل في المبيعات.
 
@@ -156,6 +156,13 @@ erDiagram
     NUMBER ITEM_ID FK
     NUMBER INV_TXN_ID FK
   }
+  TRN_POD {
+    NUMBER ID PK
+    NUMBER TENANT_ID FK
+    NUMBER COMPANY_ID FK
+    NUMBER TRIP_ID FK
+    NUMBER ORDER_ID FK
+  }
   ORG_COMPANY {
     NUMBER ID PK
   }
@@ -217,6 +224,7 @@ erDiagram
   ORG_COMPANY ||--o{ TRN_MAINT_ORDER : "COMPANY_ID"
   ORG_COMPANY ||--o{ TRN_MAINT_PLAN : "COMPANY_ID"
   ORG_COMPANY ||--o{ TRN_ORDER : "COMPANY_ID"
+  ORG_COMPANY ||--o{ TRN_POD : "COMPANY_ID"
   ORG_COMPANY ||--o{ TRN_RATE : "COMPANY_ID"
   ORG_COMPANY ||--o{ TRN_ROUTE : "COMPANY_ID"
   ORG_COMPANY ||--o{ TRN_TRIP : "COMPANY_ID"
@@ -243,12 +251,14 @@ erDiagram
   TRN_LOCATION ||--o{ TRN_TRIP_STOP : "LOCATION_ID"
   TRN_MAINT_ORDER ||--o{ TRN_MAINT_LINE : "ORDER_ID"
   TRN_MAINT_PLAN |o--o{ TRN_MAINT_ORDER : "PLAN_ID"
+  TRN_ORDER |o--o{ TRN_POD : "ORDER_ID"
   TRN_ORDER ||--o{ TRN_TRIP_ORDER : "ORDER_ID"
   TRN_RATE |o--o{ TRN_ORDER : "RATE_ID"
   TRN_ROUTE |o--o{ TRN_ORDER : "ROUTE_ID"
   TRN_ROUTE |o--o{ TRN_RATE : "ROUTE_ID"
   TRN_ROUTE |o--o{ TRN_TRIP : "ROUTE_ID"
   TRN_TRIP |o--o{ TRN_INCIDENT : "TRIP_ID"
+  TRN_TRIP ||--o{ TRN_POD : "TRIP_ID"
   TRN_TRIP ||--o{ TRN_TRIP_EXPENSE : "TRIP_ID"
   TRN_TRIP ||--o{ TRN_TRIP_ORDER : "TRIP_ID"
   TRN_TRIP ||--o{ TRN_TRIP_STOP : "TRIP_ID"
@@ -277,3 +287,4 @@ erDiagram
 | `TRN_MAINT_PLAN` | برامج الصيانة الدورية للأسطول | Fleet Service Programs | C |
 | `TRN_MAINT_ORDER` | أوامر صيانة العربات | Vehicle Maintenance Orders | C |
 | `TRN_MAINT_LINE` | بنود أمر الصيانة | Maintenance Order Lines | C |
+| `TRN_POD` | إثبات التسليم | Proof of Delivery | C |

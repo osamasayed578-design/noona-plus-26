@@ -182,3 +182,24 @@
         for (var i = 0; i < ms.length; i++) if (ms[i].type === 'childList' && ms[i].addedNodes.length) { scan(); return; }
     }).observe(document.documentElement, { childList: true, subtree: true });
 })();
+
+/* NOONA PLUS | زر المساعدة «؟» في كل شاشة: يفتح شرح الشاشة الحالية (الغرض، الأقسام، الحقول، الأزرار، الخطوات والفيديو)
+   من مركز الإدارة والتواصل في تبويب جديد بنفس الجلسة */
+(function () {
+    'use strict';
+    function addHelp() {
+        if (document.querySelector('.nn-help-btn') || !window.apex || !apex.env) return;
+        var bar = document.querySelector('.t-NavigationBar, .t-Header-navBar');
+        if (!bar) return;
+        var app = apex.env.APP_ID, page = apex.env.APP_PAGE_ID;
+        if (!app || page === '0' || page === '9999') return;
+        var a = document.createElement('a');
+        a.className = 'nn-theme-toggle nn-help-btn';
+        a.href = 'f?p=NOONA_HUB:HELP:' + apex.env.APP_SESSION + '::NO:RP:P40_APP,P40_PAGE:' + app + ',' + page;
+        a.target = '_blank'; a.rel = 'noopener';
+        a.title = 'مساعدة هذه الشاشة'; a.setAttribute('aria-label', 'مساعدة هذه الشاشة');
+        a.innerHTML = '<span class="fa fa-question" aria-hidden="true"></span>';
+        bar.insertBefore(a, bar.firstChild);
+    }
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', addHelp); else addHelp();
+})();

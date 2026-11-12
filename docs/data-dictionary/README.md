@@ -53,8 +53,9 @@
 | 30 | التشغيل والدعم والتطوير المستمر | Operations, Support & Continuous Improvement | `NOONA_OPERATIONS_PKG` | 12 | [p30_ops](p30_ops.md) |
 | 31 | المستشفيات والمراكز الطبية | Hospital & Clinics | `NOONA_HIS_PKG` | 40 | [p31_his](p31_his.md) |
 | 32 | مراكز خدمة السيارات | Auto Service Centers | `NOONA_AUT_PKG` | 10 | [p32_aut](p32_aut.md) |
-| 33 | النقل والشحن والترحيل | Transport & Logistics | `NOONA_TRN_PKG` | 15 | [p33_trn](p33_trn.md) |
+| 33 | النقل والشحن والترحيل | Transport & Logistics | `NOONA_TRN_PKG` | 16 | [p33_trn](p33_trn.md) |
 | 36 | التوزيع والمبيعات الميدانية | Distribution & Field Sales | `NOONA_DST_PKG` | 10 | [p36_dst](p36_dst.md) |
+| 37 | مركز الإدارة والتواصل | Management & Engagement Hub | `NOONA_ENG_PKG` | 8 | [p37_eng](p37_eng.md) |
 
-**الإجمالي:** 682 جدول · 12199 عمود.
+**الإجمالي:** 691 جدول · 12354 عمود.
 

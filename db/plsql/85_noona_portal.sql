@@ -288,6 +288,8 @@ SELECT app_alias, sort_order, app_name_ar, app_name_en, icon_class,
                'الأسطول والسائقون والرحلات والشحنات والأعطال والترحيل' FROM dual UNION ALL
         SELECT 'NOONA_DST', 69, 'التوزيع والمبيعات الميدانية', 'Distribution & Field Sales', 'fa-map-marker', 'DST',
                'المندوبون وخطوط السير والمحلات والبيع من السيارة والتحصيل' FROM dual UNION ALL
+        SELECT 'NOONA_HUB', 12, 'مركز الإدارة والتواصل', 'Management Hub', 'fa-tachometer', NULL,
+               'لوحة المدير، توقع النقد، الإنذار المبكر، واتساب، بوابة العملاء، التصدير وسجل التغييرات' FROM dual UNION ALL
         SELECT 'NOONA_MFG', 70, 'التصنيع', 'Manufacturing', 'fa-industry', 'MFG,QA',
                'أوامر الإنتاج والجودة' FROM dual UNION ALL
         SELECT 'NOONA_DOC', 80, 'المستندات والمراسلات', 'Documents & Correspondence', 'fa-folder-open', 'DMS,COR',

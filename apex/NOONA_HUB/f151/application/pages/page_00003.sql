@@ -1,0 +1,173 @@
+prompt --application/pages/page_00003
+begin
+--   Manifest
+--     PAGE: 00003
+--   Manifest End
+wwv_flow_imp.component_begin (
+ p_version_yyyy_mm_dd=>'2024.11.30'
+,p_release=>'24.2.0'
+,p_default_workspace_id=>17663301221950901
+,p_default_application_id=>151
+,p_default_id_offset=>0
+,p_default_owner=>'NOONA_APP'
+);
+wwv_flow_imp_page.create_page(
+ p_id=>3
+,p_name=>'Alerts'
+,p_alias=>'ALERTS'
+,p_step_title=>'تنبيهات الإنذار المبكر'
+,p_autocomplete_on_off=>'OFF'
+,p_page_template_options=>'#DEFAULT#'
+,p_required_role=>wwv_flow_imp.id(91820310000000009)
+,p_protection_level=>'C'
+);
+wwv_flow_imp_page.create_page_plug(
+ p_id=>wwv_flow_imp.id(91820310000000027)
+,p_plug_name=>'التنبيهات'
+,p_region_template_options=>'#DEFAULT#'
+,p_component_template_options=>'#DEFAULT#'
+,p_plug_template=>2100526641005906379
+,p_plug_display_sequence=>10
+,p_query_type=>'SQL'
+,p_plug_source=>wwv_flow_string.join(wwv_flow_t_varchar2(
+'select a.id, a.alert_date, r.name_ar rule_name, noona_eng_pkg.badge(a.severity) severity_html, a.title, a.detail, a.metric_value,',
+'       a.ack_by, a.ack_at, noona_eng_pkg.badge(a.status_code) status_html',
+'  from eng_alert a join eng_alert_rule r on r.id = a.rule_id',
+' where a.company_id = noona_eng_pkg.company order by decode(a.status_code, ''OPEN'', 0, 1), a.alert_date desc, a.id desc'))
+,p_plug_source_type=>'NATIVE_IR'
+,p_prn_page_header=>'التنبيهات'
+);
+wwv_flow_imp_page.create_worksheet(
+ p_id=>wwv_flow_imp.id(91820310000000028)
+,p_max_row_count=>'1000000'
+,p_no_data_found_message=>'لا توجد بيانات'
+,p_pagination_type=>'ROWS_X_TO_Y'
+,p_pagination_display_pos=>'BOTTOM_RIGHT'
+,p_report_list_mode=>'TABS'
+,p_lazy_loading=>false
+,p_show_detail_link=>'C'
+,p_show_notify=>'N'
+,p_download_formats=>'CSV:HTML:XLSX:PDF'
+,p_enable_mail_download=>'N'
+,p_detail_link=>'f?p=&APP_ID.:4:&SESSION.::&DEBUG.:RP,4:P4_ID:#ID#'
+,p_detail_link_text=>'<span role="img" aria-label="تعديل" class="fa fa-edit" title="فتح"></span>'
+,p_owner=>'NOONA'
+,p_internal_uid=>91820310000000028
+);
+wwv_flow_imp_page.create_worksheet_column(
+ p_id=>wwv_flow_imp.id(91820310000000030)
+,p_db_column_name=>'ID'
+,p_display_order=>10
+,p_column_identifier=>'A'
+,p_column_label=>'#'
+,p_column_type=>'NUMBER'
+,p_display_text_as=>'HIDDEN'
+,p_heading_alignment=>'CENTER'
+,p_use_as_row_header=>'N'
+);
+wwv_flow_imp_page.create_worksheet_column(
+ p_id=>wwv_flow_imp.id(91820310000000031)
+,p_db_column_name=>'ALERT_DATE'
+,p_display_order=>20
+,p_column_identifier=>'B'
+,p_column_label=>'اليوم'
+,p_column_type=>'DATE'
+,p_format_mask=>'YYYY-MM-DD'
+,p_heading_alignment=>'CENTER'
+,p_use_as_row_header=>'N'
+);
+wwv_flow_imp_page.create_worksheet_column(
+ p_id=>wwv_flow_imp.id(91820310000000032)
+,p_db_column_name=>'RULE_NAME'
+,p_display_order=>30
+,p_column_identifier=>'C'
+,p_column_label=>'القاعدة'
+,p_column_type=>'STRING'
+,p_heading_alignment=>'CENTER'
+,p_use_as_row_header=>'N'
+);
+wwv_flow_imp_page.create_worksheet_column(
+ p_id=>wwv_flow_imp.id(91820310000000033)
+,p_db_column_name=>'SEVERITY_HTML'
+,p_display_order=>40
+,p_column_identifier=>'D'
+,p_column_label=>'الخطورة'
+,p_column_type=>'STRING'
+,p_display_text_as=>'WITHOUT_MODIFICATION'
+,p_heading_alignment=>'CENTER'
+,p_use_as_row_header=>'N'
+);
+wwv_flow_imp_page.create_worksheet_column(
+ p_id=>wwv_flow_imp.id(91820310000000034)
+,p_db_column_name=>'TITLE'
+,p_display_order=>50
+,p_column_identifier=>'E'
+,p_column_label=>'التنبيه'
+,p_column_type=>'STRING'
+,p_heading_alignment=>'CENTER'
+,p_use_as_row_header=>'N'
+);
+wwv_flow_imp_page.create_worksheet_column(
+ p_id=>wwv_flow_imp.id(91820310000000035)
+,p_db_column_name=>'DETAIL'
+,p_display_order=>60
+,p_column_identifier=>'F'
+,p_column_label=>'التفاصيل'
+,p_column_type=>'STRING'
+,p_heading_alignment=>'CENTER'
+,p_use_as_row_header=>'N'
+);
+wwv_flow_imp_page.create_worksheet_column(
+ p_id=>wwv_flow_imp.id(91820310000000036)
+,p_db_column_name=>'METRIC_VALUE'
+,p_display_order=>70
+,p_column_identifier=>'G'
+,p_column_label=>'القيمة'
+,p_column_type=>'NUMBER'
+,p_heading_alignment=>'CENTER'
+,p_use_as_row_header=>'N'
+);
+wwv_flow_imp_page.create_worksheet_column(
+ p_id=>wwv_flow_imp.id(91820310000000037)
+,p_db_column_name=>'ACK_BY'
+,p_display_order=>80
+,p_column_identifier=>'H'
+,p_column_label=>'استلمه'
+,p_column_type=>'STRING'
+,p_heading_alignment=>'CENTER'
+,p_use_as_row_header=>'N'
+);
+wwv_flow_imp_page.create_worksheet_column(
+ p_id=>wwv_flow_imp.id(91820310000000038)
+,p_db_column_name=>'ACK_AT'
+,p_display_order=>90
+,p_column_identifier=>'I'
+,p_column_label=>'وقت الاستلام'
+,p_column_type=>'STRING'
+,p_heading_alignment=>'CENTER'
+,p_use_as_row_header=>'N'
+);
+wwv_flow_imp_page.create_worksheet_column(
+ p_id=>wwv_flow_imp.id(91820310000000039)
+,p_db_column_name=>'STATUS_HTML'
+,p_display_order=>100
+,p_column_identifier=>'J'
+,p_column_label=>'الحالة'
+,p_column_type=>'STRING'
+,p_display_text_as=>'WITHOUT_MODIFICATION'
+,p_heading_alignment=>'CENTER'
+,p_use_as_row_header=>'N'
+);
+wwv_flow_imp_page.create_worksheet_rpt(
+ p_id=>wwv_flow_imp.id(91820310000000029)
+,p_application_user=>'APXWS_DEFAULT'
+,p_report_seq=>10
+,p_report_alias=>'29'
+,p_status=>'PUBLIC'
+,p_is_default=>'Y'
+,p_report_columns=>'ALERT_DATE:RULE_NAME:SEVERITY_HTML:TITLE:DETAIL:METRIC_VALUE:ACK_BY:ACK_AT:STATUS_HTML'
+);
+
+wwv_flow_imp.component_end;
+end;
+/

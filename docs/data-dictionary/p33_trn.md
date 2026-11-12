@@ -23,6 +23,7 @@
 | [`TRN_MAINT_PLAN`](#trn_maint_plan) | برامج الصيانة الدورية للأسطول | Fleet Service Programs | C | INTERNAL |
 | [`TRN_MAINT_ORDER`](#trn_maint_order) | أوامر صيانة العربات | Vehicle Maintenance Orders | C | INTERNAL |
 | [`TRN_MAINT_LINE`](#trn_maint_line) | بنود أمر الصيانة | Maintenance Order Lines | C | INTERNAL |
+| [`TRN_POD`](#trn_pod) | إثبات التسليم | Proof of Delivery | C | INTERNAL |
 
 ## TRN_LOCATION
 
@@ -193,16 +194,17 @@
 | 9 | `LICENSE_NO` | نص | `VARCHAR2(50 CHAR)` | ✔ |  |  |  | إدخال المستخدم |  | رقم رخصة القيادة |
 | 10 | `LICENSE_CLASS` | نص | `VARCHAR2(30 CHAR)` |  |  |  |  | إدخال المستخدم |  | فئة الرخصة |
 | 11 | `LICENSE_EXPIRY` | تاريخ | `DATE` | ✔ |  |  |  | إدخال المستخدم |  | انتهاء الرخصة |
-| 12 | `HAZMAT_CERTIFIED` | منطقي Y/N | `CHAR(1 CHAR)` | ✔ | 'N' |  | Y, N | إدخال المستخدم |  | مؤهل لنقل المواد الخطرة |
-| 13 | `TRIP_ALLOWANCE` | مبلغ | `NUMBER(24,6)` |  |  |  |  | إدخال المستخدم |  | بدل الرحلة الافتراضي |
-| 14 | `BRANCH_ID` | معرف | `NUMBER(19)` |  |  | FK→ORG_BRANCH |  | إدخال المستخدم |  | الفرع |
-| 15 | `STATUS_CODE` | رمز | `VARCHAR2(30 CHAR)` | ✔ | 'AVAILABLE' |  | AVAILABLE, ON_TRIP, OFF_DUTY, SUSPENDED, LEFT | النظام/الحزمة |  | الحالة ضمن دورة الحياة المعتمدة |
-| 16 | `NOTES` | نص | `VARCHAR2(4000 CHAR)` |  |  |  |  | إدخال المستخدم |  | ملاحظات |
-| 17 | `ROW_VERSION` | عدد صحيح | `NUMBER(10)` | ✔ | 1 |  |  | Trigger |  | رقم الإصدار للتحكم في التزامن المتفائل |
-| 18 | `CREATED_BY` | اسم مستخدم | `VARCHAR2(128 CHAR)` | ✔ |  |  |  | Trigger |  | منشئ السجل |
-| 19 | `CREATED_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` | ✔ | SYSTIMESTAMP |  |  | Trigger |  | وقت الإنشاء |
-| 20 | `UPDATED_BY` | اسم مستخدم | `VARCHAR2(128 CHAR)` |  |  |  |  | Trigger |  | آخر من عدل السجل |
-| 21 | `UPDATED_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` |  |  |  |  | Trigger |  | وقت آخر تعديل |
+| 12 | `USER_NAME` | نص | `VARCHAR2(128 CHAR)` |  |  |  |  | إدخال المستخدم |  | مستخدم النظام (شاشات السائق على الهاتف) |
+| 13 | `HAZMAT_CERTIFIED` | منطقي Y/N | `CHAR(1 CHAR)` | ✔ | 'N' |  | Y, N | إدخال المستخدم |  | مؤهل لنقل المواد الخطرة |
+| 14 | `TRIP_ALLOWANCE` | مبلغ | `NUMBER(24,6)` |  |  |  |  | إدخال المستخدم |  | بدل الرحلة الافتراضي |
+| 15 | `BRANCH_ID` | معرف | `NUMBER(19)` |  |  | FK→ORG_BRANCH |  | إدخال المستخدم |  | الفرع |
+| 16 | `STATUS_CODE` | رمز | `VARCHAR2(30 CHAR)` | ✔ | 'AVAILABLE' |  | AVAILABLE, ON_TRIP, OFF_DUTY, SUSPENDED, LEFT | النظام/الحزمة |  | الحالة ضمن دورة الحياة المعتمدة |
+| 17 | `NOTES` | نص | `VARCHAR2(4000 CHAR)` |  |  |  |  | إدخال المستخدم |  | ملاحظات |
+| 18 | `ROW_VERSION` | عدد صحيح | `NUMBER(10)` | ✔ | 1 |  |  | Trigger |  | رقم الإصدار للتحكم في التزامن المتفائل |
+| 19 | `CREATED_BY` | اسم مستخدم | `VARCHAR2(128 CHAR)` | ✔ |  |  |  | Trigger |  | منشئ السجل |
+| 20 | `CREATED_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` | ✔ | SYSTIMESTAMP |  |  | Trigger |  | وقت الإنشاء |
+| 21 | `UPDATED_BY` | اسم مستخدم | `VARCHAR2(128 CHAR)` |  |  |  |  | Trigger |  | آخر من عدل السجل |
+| 22 | `UPDATED_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` |  |  |  |  | Trigger |  | وقت آخر تعديل |
 
 ## TRN_RATE
 
@@ -464,21 +466,23 @@
 | 13 | `REPORTED_BY` | نص | `VARCHAR2(200 CHAR)` |  |  |  |  | إدخال المستخدم |  | المبلّغ |
 | 14 | `LOCATION_ID` | معرف | `NUMBER(19)` |  |  | FK→TRN_LOCATION |  | إدخال المستخدم |  | أقرب موقع |
 | 15 | `LOCATION_TEXT` | نص | `VARCHAR2(500 CHAR)` |  |  |  |  | إدخال المستخدم |  | وصف المكان |
-| 16 | `DESCRIPTION` | نص | `VARCHAR2(2000 CHAR)` | ✔ |  |  |  | إدخال المستخدم |  | الوصف |
-| 17 | `ASSIGNED_TO` | نص | `VARCHAR2(200 CHAR)` |  |  |  |  | إدخال المستخدم |  | المكلّف بالاستجابة |
-| 18 | `ACKNOWLEDGED_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` |  |  |  |  | إدخال المستخدم |  | وقت الاستلام |
-| 19 | `RESPONDED_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` |  |  |  |  | إدخال المستخدم |  | وقت بدء الاستجابة |
-| 20 | `RESOLVED_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` |  |  |  |  | إدخال المستخدم |  | وقت الحل |
-| 21 | `RESPONSE_ACTION` | نص | `VARCHAR2(2000 CHAR)` |  |  |  |  | إدخال المستخدم |  | إجراء الاستجابة |
-| 22 | `DOWNTIME_MINUTES` | عدد صحيح | `NUMBER(10)` |  |  |  |  | إدخال المستخدم |  | مدة التوقف (دقيقة) |
-| 23 | `COST_AMOUNT` | مبلغ | `NUMBER(24,6)` |  |  |  |  | إدخال المستخدم |  | التكلفة |
-| 24 | `STATUS_CODE` | رمز | `VARCHAR2(30 CHAR)` | ✔ | 'REPORTED' |  | REPORTED, ACKNOWLEDGED, IN_PROGRESS, RESOLVED, CLOSED | النظام/الحزمة |  | الحالة ضمن دورة الحياة المعتمدة |
-| 25 | `NOTES` | نص | `VARCHAR2(4000 CHAR)` |  |  |  |  | إدخال المستخدم |  | ملاحظات |
-| 26 | `ROW_VERSION` | عدد صحيح | `NUMBER(10)` | ✔ | 1 |  |  | Trigger |  | رقم الإصدار للتحكم في التزامن المتفائل |
-| 27 | `CREATED_BY` | اسم مستخدم | `VARCHAR2(128 CHAR)` | ✔ |  |  |  | Trigger |  | منشئ السجل |
-| 28 | `CREATED_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` | ✔ | SYSTIMESTAMP |  |  | Trigger |  | وقت الإنشاء |
-| 29 | `UPDATED_BY` | اسم مستخدم | `VARCHAR2(128 CHAR)` |  |  |  |  | Trigger |  | آخر من عدل السجل |
-| 30 | `UPDATED_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` |  |  |  |  | Trigger |  | وقت آخر تعديل |
+| 16 | `LATITUDE` | رقم | `NUMBER` |  |  |  |  | إدخال المستخدم |  | موقع البلاغ (عرض) |
+| 17 | `LONGITUDE` | رقم | `NUMBER` |  |  |  |  | إدخال المستخدم |  | موقع البلاغ (طول) |
+| 18 | `DESCRIPTION` | نص | `VARCHAR2(2000 CHAR)` | ✔ |  |  |  | إدخال المستخدم |  | الوصف |
+| 19 | `ASSIGNED_TO` | نص | `VARCHAR2(200 CHAR)` |  |  |  |  | إدخال المستخدم |  | المكلّف بالاستجابة |
+| 20 | `ACKNOWLEDGED_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` |  |  |  |  | إدخال المستخدم |  | وقت الاستلام |
+| 21 | `RESPONDED_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` |  |  |  |  | إدخال المستخدم |  | وقت بدء الاستجابة |
+| 22 | `RESOLVED_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` |  |  |  |  | إدخال المستخدم |  | وقت الحل |
+| 23 | `RESPONSE_ACTION` | نص | `VARCHAR2(2000 CHAR)` |  |  |  |  | إدخال المستخدم |  | إجراء الاستجابة |
+| 24 | `DOWNTIME_MINUTES` | عدد صحيح | `NUMBER(10)` |  |  |  |  | إدخال المستخدم |  | مدة التوقف (دقيقة) |
+| 25 | `COST_AMOUNT` | مبلغ | `NUMBER(24,6)` |  |  |  |  | إدخال المستخدم |  | التكلفة |
+| 26 | `STATUS_CODE` | رمز | `VARCHAR2(30 CHAR)` | ✔ | 'REPORTED' |  | REPORTED, ACKNOWLEDGED, IN_PROGRESS, RESOLVED, CLOSED | النظام/الحزمة |  | الحالة ضمن دورة الحياة المعتمدة |
+| 27 | `NOTES` | نص | `VARCHAR2(4000 CHAR)` |  |  |  |  | إدخال المستخدم |  | ملاحظات |
+| 28 | `ROW_VERSION` | عدد صحيح | `NUMBER(10)` | ✔ | 1 |  |  | Trigger |  | رقم الإصدار للتحكم في التزامن المتفائل |
+| 29 | `CREATED_BY` | اسم مستخدم | `VARCHAR2(128 CHAR)` | ✔ |  |  |  | Trigger |  | منشئ السجل |
+| 30 | `CREATED_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` | ✔ | SYSTIMESTAMP |  |  | Trigger |  | وقت الإنشاء |
+| 31 | `UPDATED_BY` | اسم مستخدم | `VARCHAR2(128 CHAR)` |  |  |  |  | Trigger |  | آخر من عدل السجل |
+| 32 | `UPDATED_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` |  |  |  |  | Trigger |  | وقت آخر تعديل |
 
 ## TRN_MAINT_PLAN
 
@@ -597,4 +601,38 @@
 | 19 | `CREATED_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` | ✔ | SYSTIMESTAMP |  |  | Trigger |  | وقت الإنشاء |
 | 20 | `UPDATED_BY` | اسم مستخدم | `VARCHAR2(128 CHAR)` |  |  |  |  | Trigger |  | آخر من عدل السجل |
 | 21 | `UPDATED_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` |  |  |  |  | Trigger |  | وقت آخر تعديل |
+
+## TRN_POD
+
+| البند | القيمة |
+|---|---|
+| الاسم العربي | إثبات التسليم |
+| English | Proof of Delivery |
+| الحزمة المالكة | 33 — `NOONA_TRN_PKG` |
+| نطاق الملكية | `C` — مملوك للشركة Company-Owned |
+| الحساسية | INTERNAL |
+| النمط | قابل للتعديل وفق دورة الحياة |
+
+| # | العمود | النوع المنطقي | Oracle Type | إلزامي | افتراضي | مفاتيح | القيم المقبولة | المصدر | PII | الوصف |
+|---:|---|---|---|:---:|---|---|---|---|:---:|---|
+| 1 | `ID` | معرف | `NUMBER(19)` | ✔ |  | PK |  | النظام/الحزمة |  | المفتاح الداخلي الثابت (Identity) - لا يعاد استخدامه |
+| 2 | `TENANT_ID` | معرف | `NUMBER(19)` | ✔ |  | FK→PLT_TENANT |  | Security Context |  | المؤسسة المالكة؛ يملأ من Security Context الموثوق لا من مدخلات المستخدم |
+| 3 | `COMPANY_ID` | معرف | `NUMBER(19)` | ✔ |  | FK→ORG_COMPANY |  | Security Context |  | الشركة (الكيان القانوني) المالكة للسجل |
+| 4 | `TRIP_ID` | معرف | `NUMBER(19)` | ✔ |  | FK→TRN_TRIP |  | إدخال المستخدم |  | الرحلة |
+| 5 | `ORDER_ID` | معرف | `NUMBER(19)` |  |  | FK→TRN_ORDER |  | إدخال المستخدم |  | أمر الشحن |
+| 6 | `RECEIVER_NAME` | نص | `VARCHAR2(200 CHAR)` |  |  |  |  | إدخال المستخدم |  | المستلم |
+| 7 | `RECEIVER_PHONE` | نص | `VARCHAR2(30 CHAR)` |  |  |  |  | إدخال المستخدم |  | جوال المستلم |
+| 8 | `DELIVERED_QTY` | كمية | `NUMBER(24,6)` |  |  |  |  | إدخال المستخدم |  | الكمية المسلمة |
+| 9 | `PHOTO` | ثنائي | `BLOB` |  |  |  |  | إدخال المستخدم |  | صورة التسليم |
+| 10 | `PHOTO_MIME` | نص | `VARCHAR2(100 CHAR)` |  |  |  |  | إدخال المستخدم |  | نوع الصورة |
+| 11 | `SIGNATURE` | ثنائي | `BLOB` |  |  |  |  | إدخال المستخدم |  | توقيع المستلم (PNG) |
+| 12 | `LATITUDE` | رقم | `NUMBER` |  |  |  |  | إدخال المستخدم |  | الموقع (عرض) |
+| 13 | `LONGITUDE` | رقم | `NUMBER` |  |  |  |  | إدخال المستخدم |  | الموقع (طول) |
+| 14 | `CAPTURED_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` | ✔ | SYSTIMESTAMP |  |  | إدخال المستخدم |  | الوقت |
+| 15 | `NOTES` | نص | `VARCHAR2(4000 CHAR)` |  |  |  |  | إدخال المستخدم |  | ملاحظات |
+| 16 | `ROW_VERSION` | عدد صحيح | `NUMBER(10)` | ✔ | 1 |  |  | Trigger |  | رقم الإصدار للتحكم في التزامن المتفائل |
+| 17 | `CREATED_BY` | اسم مستخدم | `VARCHAR2(128 CHAR)` | ✔ |  |  |  | Trigger |  | منشئ السجل |
+| 18 | `CREATED_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` | ✔ | SYSTIMESTAMP |  |  | Trigger |  | وقت الإنشاء |
+| 19 | `UPDATED_BY` | اسم مستخدم | `VARCHAR2(128 CHAR)` |  |  |  |  | Trigger |  | آخر من عدل السجل |
+| 20 | `UPDATED_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` |  |  |  |  | Trigger |  | وقت آخر تعديل |
 
