@@ -54,6 +54,7 @@
 | 31 | المستشفيات والمراكز الطبية | Hospital & Clinics | `NOONA_HIS_PKG` | 40 | [p31_his](p31_his.md) |
 | 32 | مراكز خدمة السيارات | Auto Service Centers | `NOONA_AUT_PKG` | 10 | [p32_aut](p32_aut.md) |
 | 33 | النقل والشحن والترحيل | Transport & Logistics | `NOONA_TRN_PKG` | 15 | [p33_trn](p33_trn.md) |
+| 36 | التوزيع والمبيعات الميدانية | Distribution & Field Sales | `NOONA_DST_PKG` | 10 | [p36_dst](p36_dst.md) |
 
-**الإجمالي:** 672 جدول · 11988 عمود.
+**الإجمالي:** 682 جدول · 12199 عمود.
 

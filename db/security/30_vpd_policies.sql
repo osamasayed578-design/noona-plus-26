@@ -168,6 +168,16 @@ BEGIN
   NOONA_VPD_PKG.add_tenant_policy('DMS_TAG');
   NOONA_VPD_PKG.add_shared_policy('DMS_TEMPLATE');
   NOONA_VPD_PKG.add_tenant_policy('DMS_UPLOAD_SESSION');
+  NOONA_VPD_PKG.add_tenant_policy('DST_COLLECTION');
+  NOONA_VPD_PKG.add_tenant_policy('DST_COMMISSION');
+  NOONA_VPD_PKG.add_tenant_policy('DST_LOAD');
+  NOONA_VPD_PKG.add_tenant_policy('DST_ORDER');
+  NOONA_VPD_PKG.add_tenant_policy('DST_ORDER_LINE');
+  NOONA_VPD_PKG.add_tenant_policy('DST_REP');
+  NOONA_VPD_PKG.add_tenant_policy('DST_ROUTE');
+  NOONA_VPD_PKG.add_tenant_policy('DST_SETTLEMENT');
+  NOONA_VPD_PKG.add_tenant_policy('DST_SHOP');
+  NOONA_VPD_PKG.add_tenant_policy('DST_VISIT');
   NOONA_VPD_PKG.add_tenant_policy('FA_ASSET');
   NOONA_VPD_PKG.add_tenant_policy('FA_ASSET_BOOK');
   NOONA_VPD_PKG.add_tenant_policy('FA_BOOK');

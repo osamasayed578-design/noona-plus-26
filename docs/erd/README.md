@@ -39,8 +39,9 @@
 | 31 | المستشفيات والمراكز الطبية | Hospital & Clinics | 40 | [p31_his](p31_his.md) |
 | 32 | مراكز خدمة السيارات | Auto Service Centers | 10 | [p32_aut](p32_aut.md) |
 | 33 | النقل والشحن والترحيل | Transport & Logistics | 15 | [p33_trn](p33_trn.md) |
+| 36 | التوزيع والمبيعات الميدانية | Distribution & Field Sales | 10 | [p36_dst](p36_dst.md) |
 
-**الإجمالي: 672 جدول.**
+**الإجمالي: 682 جدول.**
 
 ## خريطة اعتماديات الحزم
 
@@ -81,6 +82,7 @@ flowchart LR
   HIS["31 HIS<br/>Hospital & Clinics"]
   AUT["32 AUT<br/>Auto Service Centers"]
   TRN["33 TRN<br/>Transport & Logistics"]
+  DST["36 DST<br/>Distribution & Field Sales"]
   AI --> DMS
   AI --> SEC
   AP --> CSH
@@ -108,6 +110,9 @@ flowchart LR
   DMS --> REF
   DMS --> SEC
   DMS --> WF
+  DST --> CSH
+  DST --> INV
+  DST --> SAL
   FA --> DMS
   FA --> GL
   FA --> HR
