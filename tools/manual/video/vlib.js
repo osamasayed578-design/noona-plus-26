@@ -59,7 +59,7 @@ module.exports = async function video(app, outDir, name, opts = {}) {
     // تشخيص: VDBG=<مجلد> يحفظ لقطة عند كل شرح لمعرفة موضع التوقف
     if (process.env.VDBG) await page.screenshot({ path: path.join(process.env.VDBG, String(++shotN).padStart(3, '0') + '.png') }).catch(() => {});
     const words = html.replace(/<[^>]+>/g, '').split(/\s+/).length;
-    await wait(ms || Math.min(7000, 1400 + words * 330));
+    await wait(Math.round((ms || Math.min(7000, 1400 + words * 330)) * (+process.env.VSPEED || 1)));
   }
   async function setStep(t) { step = t; await ensure(); }
   async function moveTo(loc) {

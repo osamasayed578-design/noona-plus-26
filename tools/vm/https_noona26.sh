@@ -41,6 +41,7 @@ ok "nginx"
 cat > /etc/nginx/noona/proxy.conf <<EOF
 client_max_body_size 50m;
 location = / { return 302 /ords/r/noonaplus/noona_master/home; }
+location /noona-videos/ { alias /opt/noona/videos/; types { video/mp4 mp4; } add_header Cache-Control "public, max-age=86400"; }
 location / {
     proxy_pass http://127.0.0.1:$PORT_WEB;
     proxy_set_header Host \$host;

@@ -14,13 +14,23 @@ const [specFile, key, out, num] = process.argv.slice(2);
 const MOD = JSON.parse(fs.readFileSync(specFile, 'utf8'))[key];
 const ONLY = (process.env.ONLY || '').split(',').filter(Boolean);
 const PWD = { ADMIN: process.env.NOONA_PWD_ADMIN, PLATFORM: process.env.NOONA_PWD_PLATFORM };
+// وضع المؤسسة: ORG_USER/ORG_PWD لكل الشاشات، APPS لتقييد الشاشات بنظام واحد، ORG_NAME لبطاقة الفيديو، ENTRY=1 لإدخال مثال في كل حقل
+const ORG = process.env.ORG_USER || null;
+if (ORG) PWD[ORG] = process.env.ORG_PWD;
+const APPS = (process.env.APPS || '').split(',').filter(Boolean);
+const ENTRY = process.env.ENTRY === '1';
+const SKIP = (process.env.SKIP || '').split(',').filter(Boolean);
 const MAX_FIELDS = +(process.env.MAX_FIELDS || 8), MAX_BUTTONS = +(process.env.MAX_BUTTONS || 5);
 const strip = (s) => String(s || '').replace(/<[^>]+>/g, '').trim();
 const norm = (s) => strip(s).replace(/\s+/g, ' ').replace(/[*:]$/, '').trim();
 
 (async () => {
   const screens = [];
-  MOD.sections.forEach((sec, si) => sec.screens.forEach((s) => { if (!ONLY.length || ONLY.includes(s.shot)) screens.push({ ...s, sec: sec.title, si }); }));
+  MOD.sections.forEach((sec, si) => sec.screens.forEach((s) => {
+    if ((!ONLY.length || ONLY.includes(s.shot)) && (!APPS.length || APPS.includes(s.app)) && !SKIP.includes(s.shot)
+        && !(ORG && MOD.apps[s.app] === 'PLATFORM')) screens.push({ ...s, sec: sec.title, si });
+  }));
+  if (!screens.length) { console.log('no screens'); return; }
   const first = screens[0];
   const v = await video(first.app, out, 'tour_' + key);
   const { page } = v;
@@ -80,6 +90,43 @@ const norm = (s) => strip(s).replace(/\s+/g, ' ').replace(/[*:]$/, '').trim();
   }
   const descOf = (map, t) => { if (!map) return null; if (map[t]) return map[t]; const k = Object.keys(map).find((x) => norm(x) === norm(t) || t.includes(norm(x))); return k ? map[k] : null; };
 
+  // مثال إدخال في الحقل الفارغ (لا يحفظ): نص حسب التسمية، رقم، قائمة (أول خيار)، تاريخ اليوم
+  async function demoEntry(f) {
+    const box = page.locator(`[data-nnv-f="${f.i}"]`);
+    const el = box.locator('input:not([type=hidden]):not([type=checkbox]):not([type=radio]):not([type=file]):not([readonly]):not([disabled]), textarea:not([readonly]), select:not([disabled])').first();
+    if (!(await el.count())) return;
+    const tag = await el.evaluate((e) => e.tagName).catch(() => '');
+    try {
+      if (tag === 'SELECT') {
+        const cur = await el.inputValue();
+        if (cur) return;
+        const opts = await el.locator('option').evaluateAll((os) => os.map((o) => o.value).filter((v) => v));
+        if (!opts.length) return;
+        await el.selectOption(opts[0], { timeout: 2000 });
+      } else {
+        if ((await el.inputValue()) !== '') return;
+        const info = await el.evaluate((e) => ({ date: !!e.closest('a-date-picker, .apex-item-datepicker, .a-DatePicker, .apex-item-wrapper--date-picker'),
+          num: e.inputMode === 'decimal' || e.inputMode === 'numeric' || e.classList.contains('number_field') || e.type === 'number', ta: e.tagName === 'TEXTAREA' }));
+        const t = f.t;
+        const d = new Date(); const iso = (x) => x.toISOString().slice(0, 10);
+        let val;
+        if (info.date) val = /انتهاء|نهاية|إلى|استحقاق/.test(t) ? iso(new Date(d.getTime() + 365 * 864e5)) : iso(d);
+        else if (/جوال|هاتف|واتساب/.test(t)) val = '0551234567';
+        else if (/بريد/.test(t)) val = 'info@example.com';
+        else if (info.num || /مبلغ|كمية|سعر|نسبة|عدد|قيمة|راتب|حد/.test(t)) val = /نسبة|%/.test(t) ? '5' : '1500';
+        else if (/رمز|الرمز|كود|رقم/.test(t)) val = /هوية|إقامة/.test(t) ? '1012345678' : 'DEMO-01';
+        else if (/بالإنجليزية|English/i.test(t)) val = 'Sample Entry';
+        else if (/اسم|الاسم/.test(t)) val = /موظف|الكامل|الشخص|العميل|المالك/.test(t) ? 'أحمد محمد العلي' : 'مثال تجريبي';
+        else if (info.ta) val = 'ملاحظة توضيحية للمثال';
+        else val = 'مثال تجريبي';
+        await el.click({ timeout: 2000 });
+        await el.pressSequentially(val, { delay: 35, timeout: 6000 });
+        if (info.date) { await page.keyboard.press('Escape').catch(() => {}); await page.evaluate(() => document.activeElement && document.activeElement.blur()).catch(() => {}); }
+      }
+      await v.wait(500);
+    } catch (e) { /* حقل غير قابل للكتابة */ }
+  }
+
   async function explain(s) {
     const dfields = s.doc_fields ? Object.fromEntries(s.doc_fields) : null;
     // الحقول
@@ -89,7 +136,8 @@ const norm = (s) => strip(s).replace(/\s+/g, ' ').replace(/[*:]$/, '').trim();
       for (const f of fs_) {
         await mark(`[data-nnv-f="${f.i}"]`, true);
         const d = descOf(s.fields, f.t) || descOf(dfields, f.t);
-        await v.say(`<b>${f.t}</b>${f.req ? ' <small>(إلزامي)</small>' : ''}: ${d || f.kind}`);
+        await v.say(`<b>${f.t}</b>${f.req ? ' <small>(إلزامي)</small>' : ''}: ${d || f.kind}`, ENTRY ? 1800 : undefined);
+        if (ENTRY) await demoEntry(f);
         await mark(`[data-nnv-f="${f.i}"]`, false);
       }
     } else if (s.doc_fields) {
@@ -115,6 +163,7 @@ const norm = (s) => strip(s).replace(/\s+/g, ' ').replace(/[*:]$/, '').trim();
       await v.say(`زر <b>${b.t}</b>${d ? ': ' + d : b.hot ? ': الإجراء الرئيسي للشاشة' : ''}`, d ? undefined : 2400);
       await mark(`[data-nnv-b="${b.i}"]`, false);
     }
+    if (ENTRY && fs_.length) await v.say('هكذا يكون الإدخال في الشاشة؛ ثم زر الحفظ أو الإجراء الرئيسي لاعتماد البيانات (المثال هنا لا يحفظ)', 2600);
     // الخطوات والملاحظات والبدائل
     if (s.steps && s.steps.length) for (const [i, st] of s.steps.entries()) await v.say(`<b>الخطوة ${i + 1}</b>: ${st}`);
     for (const n of s.notes || []) await v.say(`<b>ملاحظة</b>: ${n}`);
@@ -145,10 +194,12 @@ const norm = (s) => strip(s).replace(/\s+/g, ' ').replace(/[*:]$/, '').trim();
 
   // ---------------------------------------------------------------- التسجيل
   await page.goto(`http://localhost:${process.env.NOONA_PORT || 8090}/ords/r/noonaplus/${first.app}/home`).catch(() => {}); await v.settle();
-  await v.card(MOD.title, [MOD.subtitle, `جولة شاملة على كل الشاشات (${screens.length} شاشة) بشرح كل حقل وزر`],
+  if (ORG) await v.card(process.env.ORG_NAME || ORG, [process.env.SYS_NAME || MOD.title, `الإدخال في كل شاشة (${screens.length} شاشة) ببيانات الشركة`],
+    5000, `دخول بمسؤول المؤسسة ${ORG} · شرح بالعربية · نونا بلس`);
+  else await v.card(MOD.title, [MOD.subtitle, `جولة شاملة على كل الشاشات (${screens.length} شاشة) بشرح كل حقل وزر`],
     5500, `الفيديو المطول ${num || ''} · شرح تفصيلي بالعربية · نونا بلس`);
   for (const t of MOD.intro || []) { /* المقدمة تعرض بعد الدخول */ }
-  const u0 = MOD.apps[first.app] || 'ADMIN';
+  const u0 = ORG || MOD.apps[first.app] || 'ADMIN';
   await loginAs(u0, first.app);
   for (const t of MOD.intro || []) await v.say(t, Math.min(9000, 2500 + strip(t).split(/\s+/).length * 300));
 
@@ -156,7 +207,7 @@ const norm = (s) => strip(s).replace(/\s+/g, ' ').replace(/[*:]$/, '').trim();
   for (const s of screens) {
     n++;
     try {
-      const u = MOD.apps[s.app] || 'ADMIN';
+      const u = ORG || MOD.apps[s.app] || 'ADMIN';
       if (u !== user) await loginAs(u, s.app);
       if (s.si !== lastSec) {
         lastSec = s.si;
@@ -172,7 +223,7 @@ const norm = (s) => strip(s).replace(/\s+/g, ' ').replace(/[*:]$/, '').trim();
       }
       await open(s);
       await v.say(`<b>${title}</b>${s.menu ? ' <small>(' + s.menu + ')</small>' : ''}`, 2600);
-      await v.say(s.purpose);
+      if (s.purpose) await v.say(s.purpose);
       await explain(s);
       log(`${n} ${s.shot} ok`);
     } catch (e) {

@@ -155,6 +155,7 @@ unset PWD_OF
 rm -rf "$WORK"
 echo
 ok "اكتمل التجهيز. نسخة من الجدول في $OUTF (لـ root فقط)؛ احذفها بعد تسليم الحسابات: rm $OUTF"
+[ -d /opt/noona/videos ] && echo "  لإعادة ربط فيديوهات الشرح بالمؤسسات الجديدة: bash tools/vm/videos_noona26.sh /opt/noona/videos"
 [ -n "$BK_FILE" ] && echo "  للرجوع لما قبل الحذف: bash tools/vm/backup_noona26.sh --restore $BK_FILE"
 [ "$WARN_N" -gt 0 ] && echo "  توجد $WARN_N تنبيهات أعلاه (التفاصيل في $LOG)"
 exit 0

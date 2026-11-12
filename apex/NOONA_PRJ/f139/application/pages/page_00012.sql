@@ -27,6 +27,9 @@ wwv_flow_imp_page.create_page_plug(
 ,p_region_template_options=>'#DEFAULT#:t-Region--scrollBody:t-Region--removeHeader js-removeLandmark:t-Region--noUI'
 ,p_plug_template=>4072358936313175081
 ,p_plug_display_sequence=>5
+,p_plug_display_condition_type=>'EXPRESSION'
+,p_plug_display_when_condition=>':P12_ID is not null'
+,p_plug_display_when_cond2=>'PLSQL'
 ,p_function_body_language=>'PLSQL'
 ,p_plug_source=>wwv_flow_string.join(wwv_flow_t_varchar2(
 'return noona_re_pkg.property_card_html(:P12_ID);'))
@@ -38,6 +41,9 @@ wwv_flow_imp_page.create_page_plug(
 ,p_region_template_options=>'#DEFAULT#:t-Region--scrollBody'
 ,p_plug_template=>4072358936313175081
 ,p_plug_display_sequence=>10
+,p_plug_display_condition_type=>'EXPRESSION'
+,p_plug_display_when_condition=>':P12_ID is not null'
+,p_plug_display_when_cond2=>'PLSQL'
 ,p_function_body_language=>'PLSQL'
 ,p_plug_source=>wwv_flow_string.join(wwv_flow_t_varchar2(
 'return noona_re_pkg.stacking_html(:P12_ID, replace(apex_page.get_url(p_page => 13, p_items => ''P13_ID'', p_values => ''990000000001''), ''990000000001'', ''#ID#''));'))

@@ -966,6 +966,7 @@ CREATE OR REPLACE PACKAGE BODY NOONA_ENG_PKG AS
     l_btns  CLOB;
     l_regs  CLOB;
     l_hp    eng_help%ROWTYPE;
+    l_video VARCHAR2(500);
     l_found BOOLEAN := FALSE;
   BEGIN
     FOR a IN (SELECT alias, application_name FROM apex_applications WHERE application_id = p_app_id) LOOP
@@ -1013,8 +1014,12 @@ CREATE OR REPLACE PACKAGE BODY NOONA_ENG_PKG AS
     IF l_found AND l_hp.tips IS NOT NULL THEN
       l_h := l_h || '<h3>تنبيهات ونصائح</h3><p>' || REPLACE(esc(l_hp.tips), CHR(10), '<br>') || '</p>';
     END IF;
-    IF l_found AND l_hp.video_url IS NOT NULL THEN
-      l_h := l_h || '<p><a class="nn-dst-btn" target="_blank" rel="noopener" href="' || esc(l_hp.video_url) || '"><span class="fa fa-play-circle"></span> فيديو الشرح</a></p>';
+    -- فيديو الشرح: فيديو الشاشة، وإلا فيديو النظام لمؤسسة المستخدم (الصفحة 0) ثم فيديو النظام العام
+    SELECT MAX(video_url) KEEP (DENSE_RANK FIRST ORDER BY CASE WHEN page_id = p_page_id THEN 0 ELSE 1 END, NVL2(tenant_id, 0, 1))
+      INTO l_video FROM eng_help
+     WHERE app_alias = l_alias AND page_id IN (p_page_id, 0) AND video_url IS NOT NULL;
+    IF l_video IS NOT NULL THEN
+      l_h := l_h || '<p><a class="nn-dst-btn" target="_blank" rel="noopener" href="' || esc(l_video) || '"><span class="fa fa-play-circle"></span> فيديو الشرح</a></p>';
     END IF;
     RETURN l_h || '</div>';
   END help_html;

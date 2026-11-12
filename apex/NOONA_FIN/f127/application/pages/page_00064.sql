@@ -27,6 +27,9 @@ wwv_flow_imp_page.create_page_plug(
 ,p_region_template_options=>'#DEFAULT#:t-Region--scrollBody:nn-print-area:t-Region--removeHeader js-removeLandmark:t-Region--noUI'
 ,p_plug_template=>4072358936313175081
 ,p_plug_display_sequence=>10
+,p_plug_display_condition_type=>'EXPRESSION'
+,p_plug_display_when_condition=>':P64_ID is not null'
+,p_plug_display_when_cond2=>'PLSQL'
 ,p_function_body_language=>'PLSQL'
 ,p_plug_source=>wwv_flow_string.join(wwv_flow_t_varchar2(
 'return noona_fa_pkg.run_html(:P64_ID);'))

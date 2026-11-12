@@ -55,7 +55,8 @@ def capture(mod):
     for s in screens(mod):
         by_app.setdefault(s['app'], []).append(s)
     for app, lst in by_app.items():
-        user = mod['apps'][app]
+        # NOONA_USER_<APP> أو NOONA_USER_<الدور> يحدد مستخدم الالتقاط (مثلاً مسؤول مؤسسة تجريبية لنظامها)
+        user = os.environ.get('NOONA_USER_' + app.upper()) or os.environ.get('NOONA_USER_' + mod['apps'][app].upper()) or mod['apps'][app]
         pwd = os.environ.get('NOONA_PWD_' + user.upper())
         if not pwd:
             sys.exit(f'set NOONA_PWD_{user.upper()} for {app}')
