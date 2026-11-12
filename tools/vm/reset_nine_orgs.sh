@@ -57,11 +57,14 @@ CONN_O="CONNECT NOONA_OWNER/\"$OWNER_PWD\"@//localhost:$PORT_DB/$PDB"
 CONN_A="CONNECT NOONA_APP/\"$APP_PWD\"@//localhost:$PORT_DB/$PDB"
 unset OWNER_PWD APP_PWD
 mkdir -p "$WORK"; cp -r "$ROOT/db" "$WORK/"; chown -R oracle:oinstall "$WORK"; chmod -R u+rwX,go+rX "$WORK"; chmod 711 "$WORK"
-printf 'WHENEVER SQLERROR EXIT 1\nSELECT 1 FROM dual;\nEXIT\n' | sql "$CONN_O" > /dev/null || die "كلمة مرور NOONA_OWNER غير صحيحة"
-printf 'WHENEVER SQLERROR EXIT 1\nSELECT 1 FROM dual;\nEXIT\n' | sql "$CONN_A" > /dev/null || die "كلمة مرور NOONA_APP غير صحيحة"
+# التحقق الفعلي من الدخول: فشل CONNECT لا يوقف sqlplus، لذا نطلب علامة لا تظهر إلا بعد دخول ناجح
+printf "SET HEADING OFF FEEDBACK OFF PAGES 0\nSELECT 'CONN_' || 'OK' FROM dual;\nEXIT\n" | sql "$CONN_O" | grep -q "CONN_OK" \
+  || die "كلمة مرور NOONA_OWNER غير صحيحة (لم يحذف شيء). أعد التشغيل واكتبها كما في update_noona26.sh"
+printf "SET HEADING OFF FEEDBACK OFF PAGES 0\nSELECT 'CONN_' || 'OK' FROM dual;\nEXIT\n" | sql "$CONN_A" | grep -q "CONN_OK" \
+  || die "كلمة مرور NOONA_APP غير صحيحة (لم يحذف شيء). أعد التشغيل واكتبها كما في update_noona26.sh"
 PLT_USER=$(printf "SET HEADING OFF FEEDBACK OFF PAGES 0\nSELECT username FROM sec_user WHERE user_type = 'PLATFORM_ADMIN' AND status_code = 'ACTIVE' ORDER BY id FETCH FIRST 1 ROWS ONLY;\nEXIT\n" \
-  | sql "$CONN_O" | tr -d ' \n')
-[ -n "$PLT_USER" ] || die "لا يوجد مستخدم مسؤول منصة نشط"
+  | sql "$CONN_O" | grep -v '^$' | head -1 | tr -d ' \n')
+[[ "$PLT_USER" =~ ^[A-Za-z0-9_.@-]+$ ]] || die "لا يوجد مستخدم مسؤول منصة نشط (لم يحذف شيء)"
 ok "القاعدة $PDB، مسؤول المنصة $PLT_USER"
 
 # ----------------------------------------------------------------------------- 1) النسخة الاحتياطية
@@ -75,7 +78,11 @@ ok "النسخة: ${BK_FILE:-$(ls -t /opt/noona/backup/noona_*.dmp 2>/dev/null |
 # ----------------------------------------------------------------------------- 2) الحذف
 step "2/5 حذف كل المؤسسات وبياناتها (دقيقة إلى خمس دقائق)"
 OUT=$(echo "@demo/nine/00_purge_all_tenants.sql" | sql "$CONN_O"); echo "$OUT" >> "$LOG"
-echo "$OUT" | grep -q "PURGE_OK" || { echo "$OUT" | grep -E "PURGE_FAILED|ORA-" | head -3; die "تعذر الحذف (أعيدت القيود والمشغلات كما كانت)"; }
+if ! echo "$OUT" | grep -q "PURGE_OK"; then
+  echo "$OUT" | grep -E "PURGE_FAILED|ORA-" | head -3
+  if echo "$OUT" | grep -q "PURGE_FAILED"; then die "تعذر الحذف: تراجعت العملية وأعيدت القيود والمشغلات كما كانت"
+  else die "لم يبدأ الحذف (تعذر الاتصال أو تشغيل الملف)؛ لم يحذف شيء"; fi
+fi
 ok "$(echo "$OUT" | grep -o 'PURGE_OK.*')"
 
 # ----------------------------------------------------------------------------- كلمات المرور العشوائية
