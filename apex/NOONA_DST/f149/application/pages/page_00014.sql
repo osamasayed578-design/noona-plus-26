@@ -22,7 +22,7 @@ wwv_flow_imp_page.create_page(
 ,p_protection_level=>'C'
 );
 wwv_flow_imp_page.create_page_plug(
- p_id=>wwv_flow_imp.id(91820300000000194)
+ p_id=>wwv_flow_imp.id(91820300000000197)
 ,p_plug_name=>'محل جديد'
 ,p_region_template_options=>'#DEFAULT#'
 ,p_plug_template=>4072358936313175081
@@ -33,9 +33,9 @@ wwv_flow_imp_page.create_page_plug(
   'show_line_breaks', 'Y')).to_clob
 );
 wwv_flow_imp_page.create_page_button(
- p_id=>wwv_flow_imp.id(91820300000000195)
+ p_id=>wwv_flow_imp.id(91820300000000198)
 ,p_button_sequence=>10
-,p_button_plug_id=>wwv_flow_imp.id(91820300000000194)
+,p_button_plug_id=>wwv_flow_imp.id(91820300000000197)
 ,p_button_name=>'NEW'
 ,p_button_action=>'REDIRECT_URL'
 ,p_button_template_options=>'#DEFAULT#'
@@ -46,9 +46,9 @@ wwv_flow_imp_page.create_page_button(
 ,p_button_redirect_url=>'f?p=&APP_ID.:15:&SESSION.::&DEBUG.:RP,15::'
 );
 wwv_flow_imp_page.create_page_button(
- p_id=>wwv_flow_imp.id(91820300000000196)
+ p_id=>wwv_flow_imp.id(91820300000000199)
 ,p_button_sequence=>20
-,p_button_plug_id=>wwv_flow_imp.id(91820300000000194)
+,p_button_plug_id=>wwv_flow_imp.id(91820300000000197)
 ,p_button_name=>'MAP'
 ,p_button_action=>'REDIRECT_URL'
 ,p_button_template_options=>'#DEFAULT#'
@@ -58,7 +58,7 @@ wwv_flow_imp_page.create_page_button(
 ,p_button_redirect_url=>'f?p=&APP_ID.:16:&SESSION.::&DEBUG.:::'
 );
 wwv_flow_imp_page.create_page_plug(
- p_id=>wwv_flow_imp.id(91820300000000197)
+ p_id=>wwv_flow_imp.id(91820300000000200)
 ,p_plug_name=>'المحلات'
 ,p_region_template_options=>'#DEFAULT#'
 ,p_component_template_options=>'#DEFAULT#'
@@ -77,7 +77,7 @@ wwv_flow_imp_page.create_page_plug(
 ,p_prn_page_header=>'المحلات'
 );
 wwv_flow_imp_page.create_worksheet(
- p_id=>wwv_flow_imp.id(91820300000000198)
+ p_id=>wwv_flow_imp.id(91820300000000201)
 ,p_max_row_count=>'1000000'
 ,p_no_data_found_message=>'لا توجد بيانات'
 ,p_pagination_type=>'ROWS_X_TO_Y'
@@ -91,10 +91,10 @@ wwv_flow_imp_page.create_worksheet(
 ,p_detail_link=>'f?p=&APP_ID.:15:&SESSION.::&DEBUG.:RP,15:P15_ID:#ID#'
 ,p_detail_link_text=>'<span role="img" aria-label="تعديل" class="fa fa-edit" title="فتح"></span>'
 ,p_owner=>'NOONA'
-,p_internal_uid=>91820300000000198
+,p_internal_uid=>91820300000000201
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820300000000200)
+ p_id=>wwv_flow_imp.id(91820300000000203)
 ,p_db_column_name=>'ID'
 ,p_display_order=>10
 ,p_column_identifier=>'A'
@@ -105,7 +105,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820300000000201)
+ p_id=>wwv_flow_imp.id(91820300000000204)
 ,p_db_column_name=>'SHOP'
 ,p_display_order=>20
 ,p_column_identifier=>'B'
@@ -115,7 +115,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820300000000202)
+ p_id=>wwv_flow_imp.id(91820300000000205)
 ,p_db_column_name=>'SHOP_TYPE'
 ,p_display_order=>30
 ,p_column_identifier=>'C'
@@ -125,7 +125,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820300000000203)
+ p_id=>wwv_flow_imp.id(91820300000000206)
 ,p_db_column_name=>'OWNER_NAME'
 ,p_display_order=>40
 ,p_column_identifier=>'D'
@@ -135,7 +135,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820300000000204)
+ p_id=>wwv_flow_imp.id(91820300000000207)
 ,p_db_column_name=>'PHONE'
 ,p_display_order=>50
 ,p_column_identifier=>'E'
@@ -145,7 +145,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820300000000205)
+ p_id=>wwv_flow_imp.id(91820300000000208)
 ,p_db_column_name=>'ROUTE'
 ,p_display_order=>60
 ,p_column_identifier=>'F'
@@ -155,7 +155,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820300000000206)
+ p_id=>wwv_flow_imp.id(91820300000000209)
 ,p_db_column_name=>'ROUTE_SEQ'
 ,p_display_order=>70
 ,p_column_identifier=>'G'
@@ -165,7 +165,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820300000000207)
+ p_id=>wwv_flow_imp.id(91820300000000210)
 ,p_db_column_name=>'DAYS'
 ,p_display_order=>80
 ,p_column_identifier=>'H'
@@ -175,7 +175,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820300000000208)
+ p_id=>wwv_flow_imp.id(91820300000000211)
 ,p_db_column_name=>'LANDMARK'
 ,p_display_order=>90
 ,p_column_identifier=>'I'
@@ -185,7 +185,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820300000000209)
+ p_id=>wwv_flow_imp.id(91820300000000212)
 ,p_db_column_name=>'LOCATED'
 ,p_display_order=>100
 ,p_column_identifier=>'J'
@@ -195,7 +195,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820300000000210)
+ p_id=>wwv_flow_imp.id(91820300000000213)
 ,p_db_column_name=>'LAST_VISIT_AT'
 ,p_display_order=>110
 ,p_column_identifier=>'K'
@@ -205,7 +205,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820300000000211)
+ p_id=>wwv_flow_imp.id(91820300000000214)
 ,p_db_column_name=>'LAST_SALE_AT'
 ,p_display_order=>120
 ,p_column_identifier=>'L'
@@ -215,7 +215,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820300000000212)
+ p_id=>wwv_flow_imp.id(91820300000000215)
 ,p_db_column_name=>'BALANCE'
 ,p_display_order=>130
 ,p_column_identifier=>'M'
@@ -225,7 +225,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820300000000213)
+ p_id=>wwv_flow_imp.id(91820300000000216)
 ,p_db_column_name=>'CREDIT_LIMIT'
 ,p_display_order=>140
 ,p_column_identifier=>'N'
@@ -235,7 +235,7 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820300000000214)
+ p_id=>wwv_flow_imp.id(91820300000000217)
 ,p_db_column_name=>'STATUS_HTML'
 ,p_display_order=>150
 ,p_column_identifier=>'O'
@@ -246,10 +246,10 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_rpt(
- p_id=>wwv_flow_imp.id(91820300000000199)
+ p_id=>wwv_flow_imp.id(91820300000000202)
 ,p_application_user=>'APXWS_DEFAULT'
 ,p_report_seq=>10
-,p_report_alias=>'199'
+,p_report_alias=>'202'
 ,p_status=>'PUBLIC'
 ,p_is_default=>'Y'
 ,p_report_columns=>'SHOP:SHOP_TYPE:OWNER_NAME:PHONE:ROUTE:ROUTE_SEQ:DAYS:LANDMARK:LOCATED:LAST_VISIT_AT:LAST_SALE_AT:BALANCE:CREDIT_LIMIT:STATUS_HTML'

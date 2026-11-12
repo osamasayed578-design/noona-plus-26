@@ -24,6 +24,7 @@
 | [`PAY_BANK_FILE_LINE`](#pay_bank_file_line) | أسطر ملف التحويل | Bank File Lines | C | HIGHLY_RESTRICTED |
 | [`PAY_PAYSLIP`](#pay_payslip) | قسائم الرواتب | Payslips | C | HIGHLY_RESTRICTED |
 | [`PAY_ACCRUAL`](#pay_accrual) | المخصصات والاستحقاقات | Payroll Accruals (EOS, Leave, Tickets) | C | HIGHLY_RESTRICTED |
+| [`PAY_FIELD_EARNING`](#pay_field_earning) | مستحقات العاملين الميدانيين | Field Worker Earnings | C | INTERNAL |
 
 ## PAY_PAYROLL_GROUP
 
@@ -547,4 +548,46 @@
 | 16 | `CREATED_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` | ✔ | SYSTIMESTAMP |  |  | Trigger |  | وقت الإنشاء |
 | 17 | `UPDATED_BY` | اسم مستخدم | `VARCHAR2(128 CHAR)` |  |  |  |  | Trigger |  | آخر من عدل السجل |
 | 18 | `UPDATED_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` |  |  |  |  | Trigger |  | وقت آخر تعديل |
+
+## PAY_FIELD_EARNING
+
+| البند | القيمة |
+|---|---|
+| الاسم العربي | مستحقات العاملين الميدانيين |
+| English | Field Worker Earnings |
+| الحزمة المالكة | 20 — `NOONA_PAYROLL_PKG` |
+| نطاق الملكية | `C` — مملوك للشركة Company-Owned |
+| الحساسية | INTERNAL |
+| النمط | قابل للتعديل وفق دورة الحياة |
+| مفاتيح فريدة | UK1: (TENANT_ID, COMPANY_ID, SOURCE_ENTITY_TYPE, SOURCE_ENTITY_ID, EARNING_TYPE, PERIOD_MONTH) |
+| قيود أعمال | AMOUNT > 0 |
+
+| # | العمود | النوع المنطقي | Oracle Type | إلزامي | افتراضي | مفاتيح | القيم المقبولة | المصدر | PII | الوصف |
+|---:|---|---|---|:---:|---|---|---|---|:---:|---|
+| 1 | `ID` | معرف | `NUMBER(19)` | ✔ |  | PK |  | النظام/الحزمة |  | المفتاح الداخلي الثابت (Identity) - لا يعاد استخدامه |
+| 2 | `TENANT_ID` | معرف | `NUMBER(19)` | ✔ |  | FK→PLT_TENANT UK1 |  | Security Context |  | المؤسسة المالكة؛ يملأ من Security Context الموثوق لا من مدخلات المستخدم |
+| 3 | `COMPANY_ID` | معرف | `NUMBER(19)` | ✔ |  | FK→ORG_COMPANY UK1 |  | Security Context |  | الشركة (الكيان القانوني) المالكة للسجل |
+| 4 | `SOURCE_ENTITY_TYPE` | نص | `VARCHAR2(50 CHAR)` |  |  | FK→REF_ENTITY_TYPE UK1 |  | إدخال المستخدم |  | نوع كيان المصدر من سجل الأنواع REF_ENTITY_TYPE |
+| 5 | `SOURCE_ENTITY_ID` | معرف | `NUMBER(19)` |  |  | UK1 |  | إدخال المستخدم |  | معرف كيان المصدر (يتحقق منه خادمياً عبر حزمة الوحدة المالكة) |
+| 6 | `EMPLOYEE_ID` | معرف | `NUMBER(19)` | ✔ |  | FK→HR_EMPLOYEE |  | إدخال المستخدم |  | الموظف |
+| 7 | `EMPLOYMENT_ID` | معرف | `NUMBER(19)` |  |  | FK→HR_EMPLOYMENT |  | إدخال المستخدم |  | علاقة التوظيف |
+| 8 | `SOURCE_MODULE` | رمز | `VARCHAR2(30 CHAR)` | ✔ |  |  | TRN, DST, AUT, OTHER | إدخال المستخدم |  | المصدر |
+| 9 | `EARNING_TYPE` | رمز | `VARCHAR2(30 CHAR)` | ✔ |  | UK1 | TRIP_ALLOWANCE, SALES_COMMISSION, COLLECTION_COMMISSION, VISIT_COMMISSION, SERVICE_COMMISSION, BONUS, OTHER | إدخال المستخدم |  | النوع |
+| 10 | `PERIOD_MONTH` | تاريخ | `DATE` | ✔ |  | UK1 |  | إدخال المستخدم |  | الشهر |
+| 11 | `SOURCE_REF` | نص | `VARCHAR2(200 CHAR)` |  |  |  |  | إدخال المستخدم |  | المرجع (الرحلة، الشهر، أمر الإصلاح) |
+| 12 | `BASE_AMOUNT` | مبلغ | `NUMBER(24,6)` |  |  |  |  | إدخال المستخدم |  | الأساس (مبيعات، تحصيل، خدمات) |
+| 13 | `AMOUNT` | مبلغ | `NUMBER(24,6)` | ✔ |  |  |  | إدخال المستخدم |  | المستحق |
+| 14 | `PAY_METHOD` | رمز | `VARCHAR2(30 CHAR)` | ✔ | 'PAYROLL' |  | PAYROLL, CASH, BANK_TRANSFER | إدخال المستخدم |  | طريقة الصرف |
+| 15 | `PAY_INPUT_ID` | معرف | `NUMBER(19)` |  |  | FK→PAY_INPUT |  | إدخال المستخدم |  | المدخل في مسير الرواتب |
+| 16 | `CASH_TXN_ID` | معرف | `NUMBER(19)` |  |  | FK→CSH_TRANSACTION |  | إدخال المستخدم |  | سند الصرف |
+| 17 | `PAID_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` |  |  |  |  | إدخال المستخدم |  | وقت الصرف |
+| 18 | `APPROVED_BY` | اسم مستخدم | `VARCHAR2(128 CHAR)` |  |  |  |  | إدخال المستخدم |  | المعتمد |
+| 19 | `APPROVED_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` |  |  |  |  | إدخال المستخدم |  | وقت الاعتماد |
+| 20 | `STATUS_CODE` | رمز | `VARCHAR2(30 CHAR)` | ✔ | 'PENDING' |  | PENDING, APPROVED, IN_PAYROLL, IN_VOUCHER, PAID, CANCELLED | النظام/الحزمة |  | الحالة ضمن دورة الحياة المعتمدة |
+| 21 | `NOTES` | نص | `VARCHAR2(4000 CHAR)` |  |  |  |  | إدخال المستخدم |  | ملاحظات |
+| 22 | `ROW_VERSION` | عدد صحيح | `NUMBER(10)` | ✔ | 1 |  |  | Trigger |  | رقم الإصدار للتحكم في التزامن المتفائل |
+| 23 | `CREATED_BY` | اسم مستخدم | `VARCHAR2(128 CHAR)` | ✔ |  |  |  | Trigger |  | منشئ السجل |
+| 24 | `CREATED_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` | ✔ | SYSTIMESTAMP |  |  | Trigger |  | وقت الإنشاء |
+| 25 | `UPDATED_BY` | اسم مستخدم | `VARCHAR2(128 CHAR)` |  |  |  |  | Trigger |  | آخر من عدل السجل |
+| 26 | `UPDATED_AT` | طابع زمني | `TIMESTAMP(6) WITH LOCAL TIME ZONE` |  |  |  |  | Trigger |  | وقت آخر تعديل |
 

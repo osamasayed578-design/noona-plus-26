@@ -55,6 +55,7 @@ wwv_flow_imp_page.create_page_plug(
 ,p_query_type=>'SQL'
 ,p_plug_source=>wwv_flow_string.join(wwv_flow_t_varchar2(
 'select r.id, r.code, r.full_name, r.user_name, r.phone, r.vehicle_plate, w.name_ar van_wh, b.name_ar cash_box,',
+'       nvl(noona_wrk_pkg.employee_name(r.employee_id), ''— غير مربوط —'') emp, noona_wrk_pkg.method_label(r.earnings_method) paym,',
 '       noona_dst_pkg.label(r.commission_basis) basis, r.commission_rate, r.commission_per_visit, r.monthly_target,',
 '       (select count(*) from dst_route x where x.rep_id = r.id and x.status_code = ''ACTIVE'') routes,',
 '       noona_dst_pkg.badge(r.status_code) status_html',
@@ -113,109 +114,129 @@ wwv_flow_imp_page.create_worksheet_column(
 );
 wwv_flow_imp_page.create_worksheet_column(
  p_id=>wwv_flow_imp.id(91820300000000131)
-,p_db_column_name=>'USER_NAME'
+,p_db_column_name=>'EMP'
 ,p_display_order=>40
 ,p_column_identifier=>'D'
-,p_column_label=>'المستخدم'
+,p_column_label=>'الموظف (الموارد البشرية)'
 ,p_column_type=>'STRING'
 ,p_heading_alignment=>'CENTER'
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
  p_id=>wwv_flow_imp.id(91820300000000132)
-,p_db_column_name=>'PHONE'
+,p_db_column_name=>'PAYM'
 ,p_display_order=>50
 ,p_column_identifier=>'E'
-,p_column_label=>'الجوال'
+,p_column_label=>'صرف العمولة'
 ,p_column_type=>'STRING'
 ,p_heading_alignment=>'CENTER'
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
  p_id=>wwv_flow_imp.id(91820300000000133)
-,p_db_column_name=>'VEHICLE_PLATE'
+,p_db_column_name=>'USER_NAME'
 ,p_display_order=>60
 ,p_column_identifier=>'F'
-,p_column_label=>'اللوحة'
+,p_column_label=>'المستخدم'
 ,p_column_type=>'STRING'
 ,p_heading_alignment=>'CENTER'
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
  p_id=>wwv_flow_imp.id(91820300000000134)
-,p_db_column_name=>'VAN_WH'
+,p_db_column_name=>'PHONE'
 ,p_display_order=>70
 ,p_column_identifier=>'G'
-,p_column_label=>'مستودع السيارة'
+,p_column_label=>'الجوال'
 ,p_column_type=>'STRING'
 ,p_heading_alignment=>'CENTER'
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
  p_id=>wwv_flow_imp.id(91820300000000135)
-,p_db_column_name=>'CASH_BOX'
+,p_db_column_name=>'VEHICLE_PLATE'
 ,p_display_order=>80
 ,p_column_identifier=>'H'
-,p_column_label=>'العهدة'
+,p_column_label=>'اللوحة'
 ,p_column_type=>'STRING'
 ,p_heading_alignment=>'CENTER'
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
  p_id=>wwv_flow_imp.id(91820300000000136)
-,p_db_column_name=>'BASIS'
+,p_db_column_name=>'VAN_WH'
 ,p_display_order=>90
 ,p_column_identifier=>'I'
-,p_column_label=>'أساس العمولة'
+,p_column_label=>'مستودع السيارة'
 ,p_column_type=>'STRING'
 ,p_heading_alignment=>'CENTER'
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
  p_id=>wwv_flow_imp.id(91820300000000137)
-,p_db_column_name=>'COMMISSION_RATE'
+,p_db_column_name=>'CASH_BOX'
 ,p_display_order=>100
 ,p_column_identifier=>'J'
+,p_column_label=>'العهدة'
+,p_column_type=>'STRING'
+,p_heading_alignment=>'CENTER'
+,p_use_as_row_header=>'N'
+);
+wwv_flow_imp_page.create_worksheet_column(
+ p_id=>wwv_flow_imp.id(91820300000000138)
+,p_db_column_name=>'BASIS'
+,p_display_order=>110
+,p_column_identifier=>'K'
+,p_column_label=>'أساس العمولة'
+,p_column_type=>'STRING'
+,p_heading_alignment=>'CENTER'
+,p_use_as_row_header=>'N'
+);
+wwv_flow_imp_page.create_worksheet_column(
+ p_id=>wwv_flow_imp.id(91820300000000139)
+,p_db_column_name=>'COMMISSION_RATE'
+,p_display_order=>120
+,p_column_identifier=>'L'
 ,p_column_label=>'النسبة %'
 ,p_column_type=>'NUMBER'
 ,p_heading_alignment=>'CENTER'
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820300000000138)
+ p_id=>wwv_flow_imp.id(91820300000000140)
 ,p_db_column_name=>'COMMISSION_PER_VISIT'
-,p_display_order=>110
-,p_column_identifier=>'K'
+,p_display_order=>130
+,p_column_identifier=>'M'
 ,p_column_label=>'للزيارة'
 ,p_column_type=>'NUMBER'
 ,p_heading_alignment=>'CENTER'
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820300000000139)
+ p_id=>wwv_flow_imp.id(91820300000000141)
 ,p_db_column_name=>'MONTHLY_TARGET'
-,p_display_order=>120
-,p_column_identifier=>'L'
+,p_display_order=>140
+,p_column_identifier=>'N'
 ,p_column_label=>'الهدف الشهري'
 ,p_column_type=>'NUMBER'
 ,p_heading_alignment=>'CENTER'
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820300000000140)
+ p_id=>wwv_flow_imp.id(91820300000000142)
 ,p_db_column_name=>'ROUTES'
-,p_display_order=>130
-,p_column_identifier=>'M'
+,p_display_order=>150
+,p_column_identifier=>'O'
 ,p_column_label=>'الخطوط'
 ,p_column_type=>'NUMBER'
 ,p_heading_alignment=>'CENTER'
 ,p_use_as_row_header=>'N'
 );
 wwv_flow_imp_page.create_worksheet_column(
- p_id=>wwv_flow_imp.id(91820300000000141)
+ p_id=>wwv_flow_imp.id(91820300000000143)
 ,p_db_column_name=>'STATUS_HTML'
-,p_display_order=>140
-,p_column_identifier=>'N'
+,p_display_order=>160
+,p_column_identifier=>'P'
 ,p_column_label=>'الحالة'
 ,p_column_type=>'STRING'
 ,p_display_text_as=>'WITHOUT_MODIFICATION'
@@ -229,7 +250,7 @@ wwv_flow_imp_page.create_worksheet_rpt(
 ,p_report_alias=>'127'
 ,p_status=>'PUBLIC'
 ,p_is_default=>'Y'
-,p_report_columns=>'CODE:FULL_NAME:USER_NAME:PHONE:VEHICLE_PLATE:VAN_WH:CASH_BOX:BASIS:COMMISSION_RATE:COMMISSION_PER_VISIT:MONTHLY_TARGET:ROUTES:STATUS_HTML'
+,p_report_columns=>'CODE:FULL_NAME:EMP:PAYM:USER_NAME:PHONE:VEHICLE_PLATE:VAN_WH:CASH_BOX:BASIS:COMMISSION_RATE:COMMISSION_PER_VISIT:MONTHLY_TARGET:ROUTES:STATUS_HTML'
 );
 
 wwv_flow_imp.component_end;

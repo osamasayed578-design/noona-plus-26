@@ -174,3 +174,22 @@ PERIOD_AMOUNT   AMT  NN          | مخصص الفترة
 CLOSING_BALANCE AMT  NN          | الرصيد
 CALC_INFO       JSON             | أساس الحساب
 ''', uk=[('PERIOD_ID', 'EMPLOYMENT_ID', 'ACCRUAL_TYPE')], area='accrual', sens='HIGHLY_RESTRICTED')
+
+table('PAY_FIELD_EARNING', 'مستحقات العاملين الميدانيين', 'Field Worker Earnings', scope='C', mix='src notes status',
+      status='PENDING APPROVED IN_PAYROLL IN_VOUCHER PAID CANCELLED', cols='''
+EMPLOYEE_ID     ID   NN >HR_EMPLOYEE | الموظف
+EMPLOYMENT_ID   ID   >HR_EMPLOYMENT | علاقة التوظيف
+SOURCE_MODULE   CODE NN IN:TRN,DST,AUT,OTHER | المصدر
+EARNING_TYPE    CODE NN IN:TRIP_ALLOWANCE,SALES_COMMISSION,COLLECTION_COMMISSION,VISIT_COMMISSION,SERVICE_COMMISSION,BONUS,OTHER | النوع
+PERIOD_MONTH    DATE NN          | الشهر
+SOURCE_REF      V200             | المرجع (الرحلة، الشهر، أمر الإصلاح)
+BASE_AMOUNT     AMT              | الأساس (مبيعات، تحصيل، خدمات)
+AMOUNT          AMT  NN          | المستحق
+PAY_METHOD      CODE NN D='PAYROLL' IN:PAYROLL,CASH,BANK_TRANSFER | طريقة الصرف
+PAY_INPUT_ID    ID   >PAY_INPUT  | المدخل في مسير الرواتب
+CASH_TXN_ID     ID   >CSH_TRANSACTION | سند الصرف
+PAID_AT         TS               | وقت الصرف
+APPROVED_BY     USR              | المعتمد
+APPROVED_AT     TS               | وقت الاعتماد
+''', uk=[('TENANT_ID', 'COMPANY_ID', 'SOURCE_ENTITY_TYPE', 'SOURCE_ENTITY_ID', 'EARNING_TYPE', 'PERIOD_MONTH')],
+      ix=[('TENANT_ID', 'COMPANY_ID', 'PERIOD_MONTH', 'STATUS_CODE'), ('TENANT_ID', 'EMPLOYEE_ID')], chk=['AMOUNT > 0'], area='run')

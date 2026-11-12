@@ -22,7 +22,7 @@ wwv_flow_imp_page.create_page(
 ,p_protection_level=>'N'
 );
 wwv_flow_imp_page.create_page_plug(
- p_id=>wwv_flow_imp.id(91820300000000363)
+ p_id=>wwv_flow_imp.id(91820300000000366)
 ,p_plug_name=>'المرشح'
 ,p_region_template_options=>'#DEFAULT#'
 ,p_plug_template=>4072358936313175081
@@ -33,10 +33,10 @@ wwv_flow_imp_page.create_page_plug(
   'show_line_breaks', 'Y')).to_clob
 );
 wwv_flow_imp_page.create_page_item(
- p_id=>wwv_flow_imp.id(91820300000000364)
+ p_id=>wwv_flow_imp.id(91820300000000367)
 ,p_name=>'P31_DAYS'
 ,p_item_sequence=>10
-,p_item_plug_id=>wwv_flow_imp.id(91820300000000363)
+,p_item_plug_id=>wwv_flow_imp.id(91820300000000366)
 ,p_prompt=>'لم تشترِ منذ (يوم)'
 ,p_display_as=>'NATIVE_NUMBER_FIELD'
 ,p_cSize=>20
@@ -47,9 +47,9 @@ wwv_flow_imp_page.create_page_item(
   'virtual_keyboard', 'decimal')).to_clob
 );
 wwv_flow_imp_page.create_page_button(
- p_id=>wwv_flow_imp.id(91820300000000365)
+ p_id=>wwv_flow_imp.id(91820300000000368)
 ,p_button_sequence=>10
-,p_button_plug_id=>wwv_flow_imp.id(91820300000000363)
+,p_button_plug_id=>wwv_flow_imp.id(91820300000000366)
 ,p_button_name=>'SHOW'
 ,p_button_action=>'SUBMIT'
 ,p_button_template_options=>'#DEFAULT#'
@@ -59,7 +59,7 @@ wwv_flow_imp_page.create_page_button(
 ,p_button_position=>'NEXT'
 );
 wwv_flow_imp_page.create_page_process(
- p_id=>wwv_flow_imp.id(91820300000000366)
+ p_id=>wwv_flow_imp.id(91820300000000369)
 ,p_process_sequence=>5
 ,p_process_point=>'BEFORE_HEADER'
 ,p_process_type=>'NATIVE_PLSQL'
@@ -68,10 +68,10 @@ wwv_flow_imp_page.create_page_process(
 'if :P31_DAYS is null then :P31_DAYS := 14; end if;'))
 ,p_process_clob_language=>'PLSQL'
 ,p_error_display_location=>'INLINE_IN_NOTIFICATION'
-,p_internal_uid=>91820300000000366
+,p_internal_uid=>91820300000000369
 );
 wwv_flow_imp_page.create_page_plug(
- p_id=>wwv_flow_imp.id(91820300000000367)
+ p_id=>wwv_flow_imp.id(91820300000000370)
 ,p_plug_name=>'المحلات'
 ,p_region_template_options=>'#DEFAULT#:t-Region--scrollBody'
 ,p_plug_template=>4072358936313175081

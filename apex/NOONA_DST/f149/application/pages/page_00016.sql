@@ -50,7 +50,7 @@ wwv_flow_imp_page.create_page(
 ,p_protection_level=>'N'
 );
 wwv_flow_imp_page.create_page_plug(
- p_id=>wwv_flow_imp.id(91820300000000238)
+ p_id=>wwv_flow_imp.id(91820300000000241)
 ,p_plug_name=>'المرشحات'
 ,p_region_template_options=>'#DEFAULT#'
 ,p_plug_template=>4072358936313175081
@@ -61,10 +61,10 @@ wwv_flow_imp_page.create_page_plug(
   'show_line_breaks', 'Y')).to_clob
 );
 wwv_flow_imp_page.create_page_item(
- p_id=>wwv_flow_imp.id(91820300000000239)
+ p_id=>wwv_flow_imp.id(91820300000000242)
 ,p_name=>'P16_ROUTE'
 ,p_item_sequence=>10
-,p_item_plug_id=>wwv_flow_imp.id(91820300000000238)
+,p_item_plug_id=>wwv_flow_imp.id(91820300000000241)
 ,p_prompt=>'خط السير'
 ,p_display_as=>'NATIVE_SELECT_LIST'
 ,p_lov=>'select r.name_ar || nvl2(r.rep_id, '' · '' || noona_dst_pkg.rep_label(r.rep_id), '''') d, r.id r from dst_route r where r.company_id = noona_dst_pkg.company and r.status_code = ''ACTIVE'' order by r.name_ar'
@@ -78,7 +78,7 @@ wwv_flow_imp_page.create_page_item(
   'page_action_on_selection', 'SUBMIT')).to_clob
 );
 wwv_flow_imp_page.create_page_plug(
- p_id=>wwv_flow_imp.id(91820300000000240)
+ p_id=>wwv_flow_imp.id(91820300000000243)
 ,p_plug_name=>'الخريطة'
 ,p_region_template_options=>'#DEFAULT#:t-Region--scrollBody'
 ,p_plug_template=>4072358936313175081

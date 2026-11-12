@@ -40,7 +40,7 @@
 | 17 | إدارة الأملاك والإيجارات والضيافة | Property Management, Leasing & Hospitality | `NOONA_PROPERTY_PKG` | 25 | [p17_prp](p17_prp.md) |
 | 18 | الصيانة وإدارة المرافق | Maintenance & Facility Management | `NOONA_MAINTENANCE_PKG` | 11 | [p18_mnt](p18_mnt.md) |
 | 19 | الموارد البشرية | Human Resources | `NOONA_HR_PKG` | 24 | [p19_hr](p19_hr.md) |
-| 20 | الرواتب | Payroll | `NOONA_PAYROLL_PKG` | 16 | [p20_pay](p20_pay.md) |
+| 20 | الرواتب | Payroll | `NOONA_PAYROLL_PKG` | 17 | [p20_pay](p20_pay.md) |
 | 21 | التصنيع | Manufacturing | `NOONA_MANUFACTURING_PKG` | 14 | [p21_mfg](p21_mfg.md) |
 | 22 | التقارير وذكاء الأعمال | Reporting & Business Intelligence | `NOONA_BI_PKG` | 10 | [p22_bi](p22_bi.md) |
 | 23 | ORDS وواجهات API والتكاملات | ORDS, APIs & Integrations | `NOONA_API_PKG` | 13 | [p23_api](p23_api.md) |
@@ -57,5 +57,5 @@
 | 36 | التوزيع والمبيعات الميدانية | Distribution & Field Sales | `NOONA_DST_PKG` | 10 | [p36_dst](p36_dst.md) |
 | 37 | مركز الإدارة والتواصل | Management & Engagement Hub | `NOONA_ENG_PKG` | 8 | [p37_eng](p37_eng.md) |
 
-**الإجمالي:** 691 جدول · 12354 عمود.
+**الإجمالي:** 692 جدول · 12383 عمود.
 

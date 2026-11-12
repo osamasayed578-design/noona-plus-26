@@ -12,55 +12,55 @@ wwv_flow_imp.component_begin (
 ,p_default_owner=>'NOONA_APP'
 );
 wwv_flow_imp_shared.create_message(
- p_id=>wwv_flow_imp.id(91820300000000408)
+ p_id=>wwv_flow_imp.id(91820300000000411)
 ,p_name=>'LINK'
 ,p_message_language=>'ar'
 ,p_message_text=>'فتح'
 );
 wwv_flow_imp_shared.create_message(
- p_id=>wwv_flow_imp.id(91820300000000409)
+ p_id=>wwv_flow_imp.id(91820300000000412)
 ,p_name=>'FLOW.SINGLE_VALIDATION_ERROR'
 ,p_message_language=>'ar'
 ,p_message_text=>'حدث خطأ واحد'
 ,p_is_js_message=>true
 );
 wwv_flow_imp_shared.create_message(
- p_id=>wwv_flow_imp.id(91820300000000410)
+ p_id=>wwv_flow_imp.id(91820300000000413)
 ,p_name=>'FLOW.VALIDATION_ERROR'
 ,p_message_language=>'ar'
 ,p_message_text=>'حدثت %0 أخطاء'
 ,p_is_js_message=>true
 );
 wwv_flow_imp_shared.create_message(
- p_id=>wwv_flow_imp.id(91820300000000411)
+ p_id=>wwv_flow_imp.id(91820300000000414)
 ,p_name=>'APEX.ERROR_MESSAGE_HEADING'
 ,p_message_language=>'ar'
 ,p_message_text=>'رسالة خطأ'
 ,p_is_js_message=>true
 );
 wwv_flow_imp_shared.create_message(
- p_id=>wwv_flow_imp.id(91820300000000412)
+ p_id=>wwv_flow_imp.id(91820300000000415)
 ,p_name=>'APEX.SUCCESS_MESSAGE_HEADING'
 ,p_message_language=>'ar'
 ,p_message_text=>'رسالة نجاح'
 ,p_is_js_message=>true
 );
 wwv_flow_imp_shared.create_message(
- p_id=>wwv_flow_imp.id(91820300000000413)
+ p_id=>wwv_flow_imp.id(91820300000000416)
 ,p_name=>'ERROR_MESSAGE'
 ,p_message_language=>'ar'
 ,p_message_text=>'رسالة خطأ'
 ,p_is_js_message=>true
 );
 wwv_flow_imp_shared.create_message(
- p_id=>wwv_flow_imp.id(91820300000000414)
+ p_id=>wwv_flow_imp.id(91820300000000417)
 ,p_name=>'LAYOUT.T_SUCCESS_MSG'
 ,p_message_language=>'ar'
 ,p_message_text=>'رسالة نجاح'
 ,p_is_js_message=>true
 );
 wwv_flow_imp_shared.create_message(
- p_id=>wwv_flow_imp.id(91820300000000415)
+ p_id=>wwv_flow_imp.id(91820300000000418)
 ,p_name=>'LAYOUT.T_ALT_SUCCESS_MSG'
 ,p_message_language=>'ar'
 ,p_message_text=>'رسالة نجاح'

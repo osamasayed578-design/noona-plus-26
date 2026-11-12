@@ -18,6 +18,7 @@ COMMISSION_BASIS CODE NN D='SALES' IN:SALES,COLLECTION,VISIT,NONE | أساس ا�
 COMMISSION_RATE NUM              | نسبة العمولة %
 COMMISSION_PER_VISIT AMT         | عمولة الزيارة المنفذة
 MONTHLY_TARGET  AMT              | الهدف الشهري للمبيعات
+EARNINGS_METHOD CODE NN D='PAYROLL' IN:PAYROLL,CASH,BANK_TRANSFER,NONE | صرف المستحقات (مع الراتب، نقداً، تحويل، لا يستحق)
 ''', area='setup')
 
 table('DST_ROUTE', 'خطوط السير', 'Delivery Routes', scope='C', mix='code names notes status', status='ACTIVE INACTIVE', cols='''

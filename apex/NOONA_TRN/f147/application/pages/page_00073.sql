@@ -24,7 +24,7 @@ wwv_flow_imp_page.create_page(
 ,p_protection_level=>'N'
 );
 wwv_flow_imp_page.create_page_plug(
- p_id=>wwv_flow_imp.id(91820290000000739)
+ p_id=>wwv_flow_imp.id(91820290000000744)
 ,p_plug_name=>'البلاغ'
 ,p_region_template_options=>'#DEFAULT#'
 ,p_plug_template=>4072358936313175081
@@ -37,40 +37,40 @@ wwv_flow_imp_page.create_page_plug(
   'show_line_breaks', 'Y')).to_clob
 );
 wwv_flow_imp_page.create_page_item(
- p_id=>wwv_flow_imp.id(91820290000000740)
+ p_id=>wwv_flow_imp.id(91820290000000745)
 ,p_name=>'P73_TRIP'
 ,p_item_sequence=>1
-,p_item_plug_id=>wwv_flow_imp.id(91820290000000739)
+,p_item_plug_id=>wwv_flow_imp.id(91820290000000744)
 ,p_display_as=>'NATIVE_HIDDEN'
 ,p_protection_level=>'N'
 ,p_attributes=>wwv_flow_t_plugin_attributes(wwv_flow_t_varchar2(
   'value_protected', 'N')).to_clob
 );
 wwv_flow_imp_page.create_page_item(
- p_id=>wwv_flow_imp.id(91820290000000741)
+ p_id=>wwv_flow_imp.id(91820290000000746)
 ,p_name=>'P73_LAT'
 ,p_item_sequence=>2
-,p_item_plug_id=>wwv_flow_imp.id(91820290000000739)
+,p_item_plug_id=>wwv_flow_imp.id(91820290000000744)
 ,p_display_as=>'NATIVE_HIDDEN'
 ,p_protection_level=>'N'
 ,p_attributes=>wwv_flow_t_plugin_attributes(wwv_flow_t_varchar2(
   'value_protected', 'N')).to_clob
 );
 wwv_flow_imp_page.create_page_item(
- p_id=>wwv_flow_imp.id(91820290000000742)
+ p_id=>wwv_flow_imp.id(91820290000000747)
 ,p_name=>'P73_LNG'
 ,p_item_sequence=>3
-,p_item_plug_id=>wwv_flow_imp.id(91820290000000739)
+,p_item_plug_id=>wwv_flow_imp.id(91820290000000744)
 ,p_display_as=>'NATIVE_HIDDEN'
 ,p_protection_level=>'N'
 ,p_attributes=>wwv_flow_t_plugin_attributes(wwv_flow_t_varchar2(
   'value_protected', 'N')).to_clob
 );
 wwv_flow_imp_page.create_page_item(
- p_id=>wwv_flow_imp.id(91820290000000743)
+ p_id=>wwv_flow_imp.id(91820290000000748)
 ,p_name=>'P73_TYPE'
 ,p_item_sequence=>10
-,p_item_plug_id=>wwv_flow_imp.id(91820290000000739)
+,p_item_plug_id=>wwv_flow_imp.id(91820290000000744)
 ,p_prompt=>'النوع'
 ,p_display_as=>'NATIVE_SELECT_LIST'
 ,p_lov=>'STATIC2:عطل ميكانيكي;BREAKDOWN,إطار;TIRE,حادث;ACCIDENT,تأخير;DELAY,تلف الشحنة;CARGO_DAMAGE,سرقة;THEFT,إيقاف أمني/مروري;POLICE,طقس;WEATHER,إغلاق طريق;ROAD_CLOSURE,حالة صحية;MEDICAL,احتجاز حدودي;BORDER_HOLD,أخرى;OTHER'
@@ -82,10 +82,10 @@ wwv_flow_imp_page.create_page_item(
   'page_action_on_selection', 'NONE')).to_clob
 );
 wwv_flow_imp_page.create_page_item(
- p_id=>wwv_flow_imp.id(91820290000000744)
+ p_id=>wwv_flow_imp.id(91820290000000749)
 ,p_name=>'P73_SEV'
 ,p_item_sequence=>20
-,p_item_plug_id=>wwv_flow_imp.id(91820290000000739)
+,p_item_plug_id=>wwv_flow_imp.id(91820290000000744)
 ,p_prompt=>'الخطورة'
 ,p_display_as=>'NATIVE_SELECT_LIST'
 ,p_lov=>'STATIC2:منخفضة;LOW,متوسطة;MEDIUM,عالية;HIGH,حرجة;CRITICAL'
@@ -98,10 +98,10 @@ wwv_flow_imp_page.create_page_item(
   'page_action_on_selection', 'NONE')).to_clob
 );
 wwv_flow_imp_page.create_page_item(
- p_id=>wwv_flow_imp.id(91820290000000745)
+ p_id=>wwv_flow_imp.id(91820290000000750)
 ,p_name=>'P73_DESC'
 ,p_item_sequence=>30
-,p_item_plug_id=>wwv_flow_imp.id(91820290000000739)
+,p_item_plug_id=>wwv_flow_imp.id(91820290000000744)
 ,p_prompt=>'ماذا حدث؟'
 ,p_display_as=>'NATIVE_TEXTAREA'
 ,p_cSize=>60
@@ -116,10 +116,10 @@ wwv_flow_imp_page.create_page_item(
   'trim_spaces', 'BOTH')).to_clob
 );
 wwv_flow_imp_page.create_page_item(
- p_id=>wwv_flow_imp.id(91820290000000746)
+ p_id=>wwv_flow_imp.id(91820290000000751)
 ,p_name=>'P73_PLACE'
 ,p_item_sequence=>40
-,p_item_plug_id=>wwv_flow_imp.id(91820290000000739)
+,p_item_plug_id=>wwv_flow_imp.id(91820290000000744)
 ,p_prompt=>'وصف المكان'
 ,p_display_as=>'NATIVE_TEXT_FIELD'
 ,p_cSize=>40
@@ -133,20 +133,20 @@ wwv_flow_imp_page.create_page_item(
   'trim_spaces', 'BOTH')).to_clob
 );
 wwv_flow_imp_page.create_page_validation(
- p_id=>wwv_flow_imp.id(91820290000000748)
+ p_id=>wwv_flow_imp.id(91820290000000753)
 ,p_validation_name=>'P73_DESC required (REPORT)'
 ,p_validation_sequence=>8
 ,p_validation=>'P73_DESC'
 ,p_validation_type=>'ITEM_NOT_NULL'
 ,p_error_message=>'#LABEL#: قيمة مطلوبة'
-,p_when_button_pressed=>wwv_flow_imp.id(91820290000000747)
-,p_associated_item=>wwv_flow_imp.id(91820290000000745)
+,p_when_button_pressed=>wwv_flow_imp.id(91820290000000752)
+,p_associated_item=>wwv_flow_imp.id(91820290000000750)
 ,p_error_display_location=>'INLINE_WITH_FIELD_AND_NOTIFICATION'
 );
 wwv_flow_imp_page.create_page_button(
- p_id=>wwv_flow_imp.id(91820290000000747)
+ p_id=>wwv_flow_imp.id(91820290000000752)
 ,p_button_sequence=>10
-,p_button_plug_id=>wwv_flow_imp.id(91820290000000739)
+,p_button_plug_id=>wwv_flow_imp.id(91820290000000744)
 ,p_button_name=>'REPORT'
 ,p_button_action=>'SUBMIT'
 ,p_button_template_options=>'#DEFAULT#'
@@ -156,7 +156,7 @@ wwv_flow_imp_page.create_page_button(
 ,p_button_position=>'NEXT'
 );
 wwv_flow_imp_page.create_page_process(
- p_id=>wwv_flow_imp.id(91820290000000749)
+ p_id=>wwv_flow_imp.id(91820290000000754)
 ,p_process_sequence=>5
 ,p_process_point=>'BEFORE_HEADER'
 ,p_process_type=>'NATIVE_PLSQL'
@@ -165,10 +165,10 @@ wwv_flow_imp_page.create_page_process(
 'if :P73_SEV is null then :P73_SEV := ''MEDIUM''; end if;'))
 ,p_process_clob_language=>'PLSQL'
 ,p_error_display_location=>'INLINE_IN_NOTIFICATION'
-,p_internal_uid=>91820290000000749
+,p_internal_uid=>91820290000000754
 );
 wwv_flow_imp_page.create_page_process(
- p_id=>wwv_flow_imp.id(91820290000000750)
+ p_id=>wwv_flow_imp.id(91820290000000755)
 ,p_process_sequence=>10
 ,p_process_point=>'AFTER_SUBMIT'
 ,p_process_type=>'NATIVE_PLSQL'
@@ -183,12 +183,12 @@ wwv_flow_imp_page.create_page_process(
 'end;'))
 ,p_process_clob_language=>'PLSQL'
 ,p_error_display_location=>'INLINE_IN_NOTIFICATION'
-,p_process_when_button_id=>wwv_flow_imp.id(91820290000000747)
+,p_process_when_button_id=>wwv_flow_imp.id(91820290000000752)
 ,p_process_success_message=>'تم إرسال البلاغ؛ سيتواصل معك فريق الأسطول'
-,p_internal_uid=>91820290000000750
+,p_internal_uid=>91820290000000755
 );
 wwv_flow_imp_page.create_page_branch(
- p_id=>wwv_flow_imp.id(91820290000000751)
+ p_id=>wwv_flow_imp.id(91820290000000756)
 ,p_branch_action=>'f?p=&APP_ID.:71:&SESSION.::&DEBUG.::P71_TRIP:&P73_TRIP.&success_msg=#SUCCESS_MSG#'
 ,p_branch_point=>'AFTER_PROCESSING'
 ,p_branch_type=>'REDIRECT_URL'

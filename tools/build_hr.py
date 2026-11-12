@@ -562,6 +562,88 @@ p.dynamic('التقرير', 10, [
     'end;'], hide_header=True, opts='#DEFAULT#:t-Region--scrollBody:nn-print-area')
 p.branch(10, url(60, 'P60_REPORT,P60_RUN,P60_DATE', '&P60_REPORT.,&P60_RUN.,&P60_DATE.', '60'))
 
+# =============================================================== 80-81) مستحقات العاملين الميدانيين (السائقون، المندوبون، الفنيون)
+WM = "to_date(:P80_MONTH || '-01', 'YYYY-MM-DD')"
+p = app.page(80, 'Field Earnings', 'FIELD-EARNINGS', 'مستحقات العاملين الميدانيين', scheme=PAY, protection='N')
+f = p.static('الشهر', 5, text='<p class="nn-hint">العاملون في النقل والتوزيع ومراكز السيارات موظفون في الموارد البشرية ويختارون في شاشاتهم. '
+                              'يجمع النظام مستحقاتهم الشهرية: بدل الرحلات المقفلة، عمولات المندوبين (مبيعات أو تحصيل أو زيارات)، عمولات الفنيين '
+                              'من الخدمات المنجزة، والمكافآت اليدوية. بعد الاعتماد تصرف حسب طريقة كل عامل: <b>مع الراتب</b> (تضاف لمسير الشهر '
+                              'كمدخل متغير) أو <b>نقداً / تحويلاً</b> (سند مصروفات يعتمده المالي).</p>')
+p.select('P80_MONTH', f, 10, 'الشهر', lov_sql=("select to_char(add_months(trunc(sysdate, 'MM'), -level + 1), 'YYYY-MM') d, "
+                                               "to_char(add_months(trunc(sysdate, 'MM'), -level + 1), 'YYYY-MM') r from dual connect by level <= 12"),
+         null_text=None, submit=True)
+p.select('P80_PLACE', f, 20, 'الصندوق أو البنك للصرف النقدي والتحويل', lov_sql=(
+    "select name_ar || ' (صندوق)' d, 'BOX:' || id r from csh_cash_box where company_id = noona_hr_pkg.company and status_code = 'ACTIVE' "
+    "union all select name_ar || ' (بنك)', 'BANK:' || id from csh_bank_account where company_id = noona_hr_pkg.company and status_code = 'ACTIVE' order by 1"),
+    null_text='- تلقائي: الصندوق الرئيسي / أول حساب بنكي -')
+p.process(5, 'BEFORE_HEADER', 'Defaults', ["if :P80_MONTH is null then :P80_MONTH := to_char(sysdate, 'YYYY-MM'); end if;",
+                                           "declare n number; begin n := noona_wrk_pkg.sync_paid; end;"])
+b1 = p.button(f, 10, 'COLLECT', 'جمع المستحقات', hot=True)
+b2 = p.button(f, 20, 'APPROVE_ALL', 'اعتماد كل المعلق')
+b3 = p.button(f, 30, 'SETTLE', 'صرف المعتمد')
+p.button(f, 40, 'NEW', 'مكافأة أو مستحق يدوي', redirect=url(81, clear='RP,81'))
+p.process(10, 'AFTER_SUBMIT', 'Collect', ['declare n number;', 'begin', f'  n := noona_wrk_pkg.collect({WM});',
+                                          "  apex_application.g_print_success_message := 'تم الجمع: ' || n || ' مستحق جديد';", 'end;'], when_button=b1)
+p.process(20, 'AFTER_SUBMIT', 'Approve', ['declare n number;', 'begin', f'  n := noona_wrk_pkg.approve_month({WM});',
+                                          "  apex_application.g_print_success_message := 'تم اعتماد ' || n || ' مستحق';", 'end;'], when_button=b2)
+p.process(30, 'AFTER_SUBMIT', 'Settle', ['declare n number;', 'begin', f'  n := noona_wrk_pkg.settle({WM}, :P80_PLACE);',
+                                         "  apex_application.g_print_success_message := 'تم صرف ' || n || ' مستحق: مع الراتب إلى مسير الشهر، والنقدي والتحويل في سندات بانتظار الاعتماد المالي';",
+                                         'end;'], when_button=b3)
+p.dynamic('غير المربوطين', 8, 'return noona_wrk_pkg.unlinked_html;', hide_header=True, opts='#DEFAULT#:t-Region--noUI')
+p.dynamic('ملخص الشهر', 10, f'return noona_wrk_pkg.summary_html({WM});')
+p.ir('تفاصيل المستحقات', 20, [
+    'select f.id, noona_wrk_pkg.employee_name(f.employee_id) employee, noona_wrk_pkg.type_label(f.earning_type) etype, f.source_module,',
+    '       f.source_ref, f.base_amount, f.amount, noona_wrk_pkg.method_label(f.pay_method) method, noona_wrk_pkg.badge(f.status_code) status_html,',
+    '       (select t.doc_no from csh_transaction t where t.id = f.cash_txn_id) voucher, f.approved_by, f.notes',
+    "  from pay_field_earning f where f.company_id = noona_hr_pkg.company and f.period_month = to_date(:P80_MONTH || '-01', 'YYYY-MM-DD')",
+    ' order by employee, f.id'],
+    [('ID', '#', {'hidden': True, 'type': 'NUMBER'}), ('EMPLOYEE', 'الموظف', {}), ('ETYPE', 'النوع', {}), ('SOURCE_MODULE', 'المصدر', {}),
+     ('SOURCE_REF', 'المرجع', {}), ('BASE_AMOUNT', 'الأساس', {'type': 'NUMBER'}), ('AMOUNT', 'المستحق', {'type': 'NUMBER'}),
+     ('METHOD', 'الصرف', {}), ('STATUS_HTML', 'الحالة', {'html': True}), ('VOUCHER', 'سند الصرف', {}), ('APPROVED_BY', 'المعتمد', {}),
+     ('NOTES', 'ملاحظات', {})], link=link(81, 'P81_ID'))
+p.branch(10, url(80) + '&success_msg=#SUCCESS_MSG#')
+
+p = app.page(81, 'Field Earning', 'FIELD-EARNING', 'مستحق عامل', scheme=PAY, protection='N')
+f = p.static('المستحق', 10)
+p.hidden('P81_ID', f, 1, protected=False)
+p.dynamic('البيانات', 5, [
+    'begin',
+    '  for e in (select * from pay_field_earning where id = :P81_ID and company_id = noona_hr_pkg.company) loop',
+    "    return '<p><b>' || apex_escape.html(noona_wrk_pkg.employee_name(e.employee_id)) || '</b> · ' || noona_wrk_pkg.type_label(e.earning_type)",
+    "        || ' · ' || to_char(e.period_month, 'YYYY-MM') || ' · <b>' || to_char(e.amount, 'FM999G999G990D00') || '</b> · '",
+    "        || noona_wrk_pkg.method_label(e.pay_method) || ' ' || noona_wrk_pkg.badge(e.status_code) || '</p><p class=\"nn-hint\">' || apex_escape.html(e.source_ref) || '</p>';",
+    '  end loop;',
+    '  return null;',
+    'end;'], condition=':P81_ID is not null')
+p.select('P81_EMP', f, 10, 'الموظف', lov_sql=EMP_LOV, required=True)
+p.select('P81_TYPE', f, 20, 'النوع', lov_sql='STATIC2:مكافأة;BONUS,عمولة مبيعات;SALES_COMMISSION,عمولة خدمات;SERVICE_COMMISSION,بدل رحلات;TRIP_ALLOWANCE,أخرى;OTHER',
+         null_text=None)
+p.number('P81_AMOUNT', f, 30, 'المبلغ', required=True)
+p.select('P81_METHOD', f, 40, 'طريقة الصرف', lov_sql='STATIC2:مع الراتب;PAYROLL,نقداً;CASH,تحويل بنكي;BANK_TRANSFER', null_text=None)
+p.text('P81_REF', f, 50, 'البيان', maxlen=200)
+p.text('P81_REASON', f, 60, 'سبب الإلغاء', maxlen=500)
+b_new = p.button(f, 10, 'SAVE', 'إضافة المستحق', hot=True, condition=':P81_ID is null')
+b_m = p.button(f, 20, 'SET_METHOD', 'تغيير طريقة الصرف', condition=':P81_ID is not null')
+b_a = p.button(f, 30, 'APPROVE', 'اعتماد', condition=':P81_ID is not null')
+b_c = p.button(f, 40, 'CANCEL_EARNING', 'إلغاء', condition=':P81_ID is not null')
+p.process(10, 'AFTER_SUBMIT', 'Add', [
+    'declare l json_object_t := json_object_t();',
+    'begin',
+    "  l.put('employee', to_number(:P81_EMP)); l.put('type', :P81_TYPE); l.put('amount', to_number(:P81_AMOUNT));",
+    "  l.put('month', to_char(sysdate, 'YYYY-MM') || '-01'); l.put('method', :P81_METHOD); l.put('ref', :P81_REF);",
+    '  :P81_ID := noona_wrk_pkg.add_manual(l.to_clob);',
+    'end;'], when_button=b_new, success='تمت إضافة المستحق؛ يعتمد ويصرف من شاشة المستحقات')
+p.process(20, 'AFTER_SUBMIT', 'Method', 'noona_wrk_pkg.set_method(:P81_ID, :P81_METHOD);', when_button=b_m, success='تم تغيير طريقة الصرف')
+p.process(30, 'AFTER_SUBMIT', 'Approve', 'noona_wrk_pkg.approve(:P81_ID);', when_button=b_a, success='تم الاعتماد')
+p.process(40, 'AFTER_SUBMIT', 'Cancel', 'noona_wrk_pkg.cancel(:P81_ID, :P81_REASON);', when_button=b_c, success='تم الإلغاء')
+p.process(5, 'BEFORE_HEADER', 'Load', [
+    'begin',
+    '  for e in (select * from pay_field_earning where id = :P81_ID and company_id = noona_hr_pkg.company) loop',
+    '    :P81_EMP := e.employee_id; :P81_TYPE := e.earning_type; :P81_AMOUNT := e.amount; :P81_METHOD := e.pay_method; :P81_REF := e.source_ref;',
+    '  end loop;',
+    'end;'])
+p.branch(10, url(80) + '&success_msg=#SUCCESS_MSG#')
+
 # =============================================================== 70) الإعدادات
 p = app.page(70, 'Settings', 'SETTINGS', 'إعدادات الموارد البشرية والرواتب', scheme=PAY)
 f = p.static('التجهيز', 5)
@@ -669,6 +751,7 @@ py = app.nav_item('الرواتب', None, 'fa-money', 40, scheme=PAY)
 app.nav_item('تشغيلات الرواتب', 40, 'fa-calculator', 41, parent=py, scheme=PAY)
 app.nav_item('المدخلات المتغيرة', 42, 'fa-pencil-square-o', 42, parent=py, scheme=PAY)
 app.nav_item('السلف والقروض', 30, 'fa-credit-card', 43, parent=py, scheme=PAY)
+app.nav_item('مستحقات العاملين الميدانيين', 80, 'fa-truck', 45, parent=py, scheme=PAY)
 app.nav_item('مخالصة نهاية الخدمة', url(50, clear='RP,50'), 'fa-sign-out', 44, parent=py, scheme=PAY)
 app.nav_item('التقارير', 60, 'fa-bar-chart', 50)
 app.nav_item('الإعدادات', 70, 'fa-cog', 60, scheme=PAY)
