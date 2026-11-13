@@ -5,12 +5,13 @@ const fs = require('fs');
 const path = require('path');
 const { chromium } = require(process.env.PW_PATH);
 
-const W = 1280, H = 720;
+const DW = 1280, DH = 720;
 const CSS = `
 #nnv-cap{position:fixed;inset-inline:0;bottom:18px;margin:0 auto;width:fit-content;max-width:86%;z-index:2147483646;
  background:rgba(11,59,110,.94);color:#fff;font:600 21px/1.6 Cairo,Tahoma,sans-serif;padding:10px 22px;border-radius:12px;
  box-shadow:0 6px 24px rgba(0,0,0,.35);direction:rtl;text-align:center;transition:opacity .25s}
 #nnv-cap b{color:#ffd166}
+@media (max-width:600px){#nnv-cap{font-size:15px;padding:8px 12px;max-width:94%;bottom:10px}#nnv-step{font-size:12px}#nnv-card h1{font-size:26px}#nnv-card p{font-size:15px}}
 #nnv-step{position:fixed;top:10px;left:50%;transform:translateX(-50%);z-index:2147483646;background:#f59e0b;color:#111;font:700 15px Cairo,Tahoma;
  padding:4px 14px;border-radius:20px;direction:rtl}
 #nnv-cur{position:fixed;width:22px;height:22px;border-radius:50%;background:rgba(245,158,11,.55);border:2px solid #b45309;
@@ -18,14 +19,16 @@ const CSS = `
 #nnv-cur.clk{animation:nnvclk .35s}
 @keyframes nnvclk{0%{box-shadow:0 0 0 0 rgba(245,158,11,.8)}100%{box-shadow:0 0 0 18px rgba(245,158,11,0)}}
 .nnv-hl{outline:3px solid #f59e0b!important;outline-offset:2px;border-radius:4px}
-#nnv-card{position:fixed;inset:0;z-index:2147483645;background:linear-gradient(135deg,#0b3b6e,#0067c0);color:#fff;display:flex;
+#nnv-card{position:fixed;inset:0;z-index:2147483647;background:linear-gradient(135deg,#0b3b6e,#0067c0);color:#fff;display:flex;
  flex-direction:column;align-items:center;justify-content:center;font-family:Cairo,Tahoma;direction:rtl;text-align:center;padding:40px}
 #nnv-card h1{font-size:44px;margin:0 0 10px} #nnv-card p{font-size:22px;margin:4px 0;opacity:.95} #nnv-card small{font-size:16px;opacity:.8;margin-top:22px}`;
 
 module.exports = async function video(app, outDir, name, opts = {}) {
+  // opts.width/height: مقاس التسجيل (مثلاً 390×844 لمشاهد الجوال)، opts.context: خصائص إضافية للجلسة (الموقع الجغرافي...)
+  const W = opts.width || DW, H = opts.height || DH;
   fs.mkdirSync(outDir, { recursive: true });
   const browser = await chromium.launch();
-  const ctx = await browser.newContext({ viewport: { width: W, height: H }, recordVideo: { dir: outDir, size: { width: W, height: H } } });
+  const ctx = await browser.newContext({ viewport: { width: W, height: H }, recordVideo: { dir: outDir, size: { width: W, height: H } }, ...(opts.context || {}) });
   const page = await ctx.newPage();
   page.on('dialog', (d) => d.accept());
   const port = opts.port || process.env.NOONA_PORT || 8090;

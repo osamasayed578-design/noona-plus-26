@@ -98,6 +98,14 @@ BEGIN
   EXCEPTION WHEN OTHERS THEN ROLLBACK; say('تنبيه العاملين الميدانيين: ' || SQLERRM);
   END;
 
+  -- ================================================= تجهيز النقدية (الصندوق والبنك وتسلسلات السندات) إن لم تجهز
+  BEGIN
+    IF NOONA_CSH_PKG.is_ready = 'N' THEN
+      l_x := NOONA_CSH_PKG.quick_setup; l_n := NOONA_CSH_PKG.seed_defaults; COMMIT; say('تجهيز النقدية');
+    END IF;
+  EXCEPTION WHEN OTHERS THEN ROLLBACK; say('تنبيه تجهيز النقدية: ' || SQLERRM);
+  END;
+
   -- ================================================= تجهيز المبيعات (الترقيم والعميل النقدي) إن لم تجهز
   BEGIN
     IF NOONA_SAL_PKG.is_ready = 'N' THEN l_n := NOONA_SAL_PKG.quick_setup; COMMIT; say('تجهيز المبيعات والترقيم'); END IF;
